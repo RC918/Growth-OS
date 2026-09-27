@@ -6,6 +6,7 @@
 |---|---|---|---|
 | Sprint 1：公開頁面診斷原型與系統設計 | 草稿 PR，待審查與合併 | [PR #1](https://github.com/RC918/Growth-OS/pull/1)，6 項本機測試與 GitHub CI 通過 | 程式審查；安全與 Staging 門檻另行驗證 |
 | Sprint 2 基礎：彙總 CSV 匯入預覽 | 草稿 PR，依賴 Sprint 1 | [PR #2](https://github.com/RC918/Growth-OS/pull/2)，4 項新增測試與 GitHub CI 通過 | #1 合併後調整 #2 基底；再做登入、網域驗證、權限、持久化與冪等匯入 |
+| Sprint 2 基礎：冪等匯入交易 | 草稿 PR，依賴 Sprint 2 預覽 | [PR #3](https://github.com/RC918/Growth-OS/pull/3)，本機交易與工作區隔離測試通過；CI 執行中 | 可信身分與網域驗證、正式 Postgres/RLS、真實資料接入前驗收 |
 | 真實漏斗／正式產品站 | 尚未開始 | 無 GA4、GSC、廣告或訂單串接，無真實轉換數據 | 確認品牌與新網域；建立 Staging 和經授權的資料接入 |
 
 ## Owner 目前需要做什麼
