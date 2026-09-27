@@ -20,4 +20,4 @@ jobs:
         run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json
       - name: CSV import preview tests
         working-directory: prototype/csv-import
-        run: python3 -m unittest -v test_validate.py
+        run: python3 -m unittest -v test_validate.py test_store.py
