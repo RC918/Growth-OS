@@ -21,3 +21,6 @@ jobs:
       - name: CSV import preview tests
         working-directory: prototype/csv-import
         run: python3 -m unittest -v test_validate.py test_store.py
+      - name: Migration static contract checks
+        working-directory: supabase
+        run: python3 -m unittest -v test_migration_contract.py
