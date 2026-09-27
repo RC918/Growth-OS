@@ -8,6 +8,7 @@ Good Morning Digital Co., Ltd. 的電商與貿易商獲客產品試作。正式�
 |---|---|---|
 | [`prototype/public-audit`](prototype/public-audit/README.md) | 本機公開 HTML 掃描、非同步 API 與報告頁 | 真實公開頁的有限靜態觀察；不是轉換率量測 |
 | [`prototype/offline-proof`](prototype/offline-proof/README.md) | 行動、觀測與事件對齊的離線報告 | 隨附 CSV 全為模擬資料 |
+| [`prototype/csv-import`](prototype/csv-import/README.md) | Sprint 2 的彙總 CSV 欄位驗證與預覽 | 本機預覽，未連接帳號或資料庫 |
 | [`docs`](docs/) | 系統設計、API、SQL、產品規格與執行藍圖 | 設計文件，非已部署功能 |
 
 只需 Python 3.12，從根目錄執行：
