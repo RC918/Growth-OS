@@ -1,0 +1,4 @@
+event_id,date,page,event_type,action_id,amount,currency,source
+L-001,2026-09-18,https://example.com/telegram-ai-support,qualified_lead,,, ,SIMULATED_CRM
+L-002,2026-09-21,https://example.com/telegram-ai-support,qualified_lead,,, ,SIMULATED_CRM
+S-001,2026-09-23,https://example.com/telegram-ai-support,sale,A-001,120,USD,SIMULATED_CRM

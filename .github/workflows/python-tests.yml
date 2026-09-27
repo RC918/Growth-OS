@@ -1,0 +1,20 @@
+name: Python prototype tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Public audit tests
+        working-directory: prototype/public-audit
+        run: python3 -m unittest -v test_scanner.py test_app.py
+      - name: Offline proof example
+        working-directory: prototype/offline-proof
+        run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json

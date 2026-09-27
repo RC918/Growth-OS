@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Commerce Growth — Find the next conversion fix</title>
+  <meta name="description" content="A public landing page audit for ecommerce and trade websites.">
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172c32; background: #f6f8f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { padding: 22px max(24px,calc((100vw - 1120px)/2)); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #dfebe3; background:#fff; }
+    .brand { font-weight:800; letter-spacing:-.04em; font-size:20px; }
+    .brand span { color:#22966c; }
+    .by { font-size:12px; color:#58706c; }
+    main { max-width:1120px; margin:auto; padding:76px 24px 100px; }
+    .eyebrow { color:#15835c; font-weight:750; letter-spacing:.12em; text-transform:uppercase; font-size:12px; }
+    h1 { font-size:clamp(42px,6vw,76px); line-height:1.04; max-width:850px; letter-spacing:-.06em; margin:18px 0 22px; }
+    h1 em { color:#16865d; font-style:normal; }
+    .intro { font-size:19px; color:#47625e; max-width:650px; line-height:1.6; }
+    .panel { margin-top:38px; background:#fff; border:1px solid #dce8df; border-radius:22px; padding:30px; box-shadow:0 24px 70px #17463412; max-width:760px; }
+    label { display:block; font-weight:700; font-size:14px; margin-bottom:10px; }
+    .row { display:flex; gap:10px; }
+    input, select { font:inherit; border:1px solid #b9cbc2; border-radius:10px; padding:14px; background:#fff; color:#1c3c35; }
+    input { flex:1; min-width:0; }
+    select { min-width:170px; }
+    button { font:inherit; background:#15694d; border:0; color:#fff; border-radius:10px; padding:15px 22px; font-weight:750; cursor:pointer; }
+    button:hover { background:#0e513a; }
+    button:disabled { opacity:.6; cursor:wait; }
+    small { color:#718680; display:block; margin-top:13px; }
+    .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-top:60px; }
+    .step { border-top:2px solid #b9dccb; padding-top:16px; }
+    .step b { color:#15835c; font-size:12px; }
+    .step h3 { margin:8px 0; font-size:19px; }
+    .step p { color:#59716b; line-height:1.5; }
+    #report { max-width:760px; margin-top:28px; }
+    .notice, .finding { padding:18px 20px; border:1px solid #dce8df; background:white; border-radius:12px; margin-top:12px; }
+    .finding h3 { margin:0 0 6px; }
+    .finding p { margin:5px 0; color:#49635d; }
+    .badge { display:inline-block; margin-bottom:8px; font-size:11px; font-weight:750; color:#17694e; text-transform:uppercase; }
+    .evidence { overflow-wrap:anywhere; font-size:12px; }
+    footer { border-top:1px solid #dfebe3; color:#778984; padding:28px 24px; text-align:center; font-size:12px; }
+    @media (max-width:750px) { main { padding-top:54px; } .row { flex-direction:column; } .steps { grid-template-columns:1fr; gap:8px; } }
+  </style>
+</head>
+<body>
+  <header><div class="brand">Commerce <span>Growth</span></div><div class="by">by Good Morning Digital · pilot</div></header>
+  <main>
+    <p class="eyebrow">Visitor-to-customer leak map · public scan</p>
+    <h1>Visitors arrive.<br><em>Where do customers disappear?</em></h1>
+    <p class="intro">Start with the page they land on. See observable friction before connecting ad accounts or analytics. Every finding links back to public page evidence.</p>
+    <form class="panel" id="scan-form">
+      <label for="url">Landing page URL</label>
+      <div class="row"><input id="url" type="url" required placeholder="https://yourstore.com/products/example" autocomplete="url"><select id="model" aria-label="Business model"><option value="ecommerce">Ecommerce</option><option value="trade">Trade / inquiry</option></select><button id="submit" type="submit">Check page</button></div>
+      <small>Public HTML only. No login or credit card. This scan cannot measure actual abandonment or revenue.</small>
+    </form>
+    <section id="report" aria-live="polite"></section>
+    <section class="steps" aria-label="How it works">
+      <div class="step"><b>01 · SCAN</b><h3>Inspect the landing page</h3><p>Check visible content, calls to action, and possible registration friction.</p></div>
+      <div class="step"><b>02 · MEASURE</b><h3>Connect your own data</h3><p>A future connected report will locate drop-offs by campaign, page, and device.</p></div>
+      <div class="step"><b>03 · IMPROVE</b><h3>Test one clear change</h3><p>Use qualified inquiries or net orders as outcomes, with the evidence attached.</p></div>
+    </section>
+  </main>
+  <footer>Working product title · Public audit prototype · No claim of sales uplift</footer>
+  <script>
+    const form = document.getElementById('scan-form');
+    const report = document.getElementById('report');
+    const button = document.getElementById('submit');
+    function el(tag, className, value) { const x=document.createElement(tag); x.className=className; x.textContent=value; return x; }
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); button.disabled=true; report.replaceChildren(el('div','notice','Queueing a public page scan…'));
+      try {
+        const res=await fetch('/api/v1/scans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:document.getElementById('url').value,business_model:document.getElementById('model').value})});
+        const job=await res.json();
+        if(!res.ok) throw new Error(job.detail || 'Could not start scan.');
+        let result;
+        for(let i=0;i<25;i++) {
+          await new Promise(resolve=>setTimeout(resolve,800));
+          const status=await fetch('/api/v1/scans/'+encodeURIComponent(job.id)); result=await status.json();
+          if(result.status==='completed'||result.status==='failed') break;
+        }
+        report.replaceChildren();
+        if(result.status==='failed') throw new Error(result.error?.detail || 'Scan failed.');
+        if(result.status!=='completed') { report.append(el('div','notice','Still processing. Please try again shortly.')); return; }
+        report.append(el('h2','', 'Public page findings'));
+        const findings=result.report.findings;
+        if(!findings.length) report.append(el('div','notice','No listed static HTML issues found. This does not prove the page converts well.'));
+        for(const f of findings) {
+          const card=el('div','finding',''); card.append(el('span','badge',f.severity+' · '+f.confidence+' confidence'),el('h3','',f.title),el('p','',f.evidence_excerpt),el('p','evidence',f.evidence_url)); report.append(card);
+        }
+        report.append(el('div','notice',result.report.limitations.join(' ')));
+      } catch(e) { report.replaceChildren(el('div','notice',e.message)); }
+      finally { button.disabled=false; }
+    });
+  </script>
+</body>
+</html>

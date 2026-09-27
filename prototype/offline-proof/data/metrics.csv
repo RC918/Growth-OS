@@ -1,0 +1,15 @@
+date,page,gsc_impressions,gsc_clicks,ga4_organic_sessions,source,observed_at
+2026-09-07,https://example.com/telegram-ai-support,110,7,6,SIMULATED_GSC_GA4,2026-09-27
+2026-09-08,https://example.com/telegram-ai-support,115,8,7,SIMULATED_GSC_GA4,2026-09-27
+2026-09-09,https://example.com/telegram-ai-support,105,6,5,SIMULATED_GSC_GA4,2026-09-27
+2026-09-10,https://example.com/telegram-ai-support,120,9,8,SIMULATED_GSC_GA4,2026-09-27
+2026-09-11,https://example.com/telegram-ai-support,108,7,6,SIMULATED_GSC_GA4,2026-09-27
+2026-09-12,https://example.com/telegram-ai-support,112,8,7,SIMULATED_GSC_GA4,2026-09-27
+2026-09-13,https://example.com/telegram-ai-support,118,8,7,SIMULATED_GSC_GA4,2026-09-27
+2026-09-15,https://example.com/telegram-ai-support,125,9,8,SIMULATED_GSC_GA4,2026-09-27
+2026-09-16,https://example.com/telegram-ai-support,130,10,9,SIMULATED_GSC_GA4,2026-09-27
+2026-09-17,https://example.com/telegram-ai-support,124,8,7,SIMULATED_GSC_GA4,2026-09-27
+2026-09-18,https://example.com/telegram-ai-support,132,11,10,SIMULATED_GSC_GA4,2026-09-27
+2026-09-19,https://example.com/telegram-ai-support,128,9,8,SIMULATED_GSC_GA4,2026-09-27
+2026-09-20,https://example.com/telegram-ai-support,134,10,9,SIMULATED_GSC_GA4,2026-09-27
+2026-09-21,https://example.com/telegram-ai-support,140,12,11,SIMULATED_GSC_GA4,2026-09-27
