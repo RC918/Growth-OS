@@ -13,3 +13,7 @@
 ## 邊界
 
 這次驗證真實 Auth session 的 **SELECT** 可見範圍，連同先前交易回滾 SQL 測試的直接寫入拒絕。尚未驗證 token refresh、登入後撤銷成員資格、正式 server-side 寫入流程、網域所有權、CSV 匯入、付費或客戶資料。測試 Auth 帳號另由 Auth 管理介面清理或停用；不可把此 PASS 當成整體產品上線核准。
+
+## 測試帳號狀態（台灣時間）
+
+使用者明確同意停用後，兩個帳號以 Supabase UI 預設 24 小時封禁並由 `auth.users.banned_until` 核對：`test1@example.com` 至 2026-09-29 22:55:29；`test2@example.com` 至 2026-09-29 22:56:44。封禁到期將自動恢復登入資格。較長期限需要另行指定；合成租戶與成員資料已刪除。
