@@ -6,6 +6,7 @@ ROOT = Path(__file__).parent / "migrations"
 INITIAL = (ROOT / "202609280001_initial.sql").read_text()
 RLS = (ROOT / "202609280002_tenant_rls.sql").read_text()
 GROWTH = (ROOT / "20260928160322_growth_opportunities_v1.sql").read_text()
+REVIEW = (ROOT / "20260928161802_review_growth_opportunity.sql").read_text()
 TABLES = ("organizations", "organization_members", "sites", "scans", "findings",
           "import_batches", "funnel_daily", "recommendations", "actions", "audit_events")
 GROWTH_TABLES = ("business_profiles", "growth_opportunities", "opportunity_sources", "opportunity_decisions")
@@ -44,6 +45,17 @@ class MigrationContractTests(unittest.TestCase):
         self.assertNotIn("for insert to authenticated", GROWTH)
         self.assertNotIn("for update to authenticated", GROWTH)
         self.assertNotIn("for delete to authenticated", GROWTH)
+
+    def test_review_rpc_has_owner_gate_and_atomic_audit(self):
+        self.assertIn("security definer", REVIEW)
+        self.assertIn("set search_path = ''", REVIEW)
+        self.assertIn("private.has_org_role(p_organization_id, array['owner']::text[])", REVIEW)
+        self.assertIn("for update;", REVIEW)
+        self.assertIn("from public.opportunity_sources", REVIEW)
+        self.assertIn("insert into public.opportunity_decisions", REVIEW)
+        self.assertIn("insert into public.audit_events", REVIEW)
+        self.assertIn("revoke all on function public.review_growth_opportunity(uuid, uuid, text, text) from public, anon;", REVIEW)
+        self.assertIn("grant execute on function public.review_growth_opportunity(uuid, uuid, text, text) to authenticated;", REVIEW)
 
 
 if __name__ == "__main__":
