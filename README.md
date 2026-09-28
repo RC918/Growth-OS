@@ -10,7 +10,8 @@ Good Morning Digital Co., Ltd. 的電商與貿易商獲客產品試作。正式�
 | [`prototype/offline-proof`](prototype/offline-proof/README.md) | 行動、觀測與事件對齊的離線報告 | 隨附 CSV 全為模擬資料 |
 | [`prototype/csv-import`](prototype/csv-import/README.md) | Sprint 2 的彙總 CSV 欄位驗證與預覽 | 本機預覽，未連接帳號或資料庫 |
 | [`docs`](docs/) | 系統設計、API、SQL、產品規格與執行藍圖 | 設計文件，非已部署功能 |
-| [`supabase`](supabase/README.md) | Postgres schema 與租戶 RLS 遷移候選 | 尚未在 Supabase Staging 執行或驗收 |
+| [`supabase`](supabase/README.md) | Postgres schema 與租戶 RLS | 已在獨立 Staging 套用；真實 Auth／端到端驗收未完成 |
+| [`apps/web`](apps/web/README.md) | Vercel 靜態產品預覽 | 無表單、掃描 API 或資料連接 |
 
 只需 Python 3.12，從根目錄執行：
 
