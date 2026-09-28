@@ -1,10 +1,10 @@
 # Supabase｜Growth OS Staging
 
-依序執行 `migrations/202609280001_initial.sql` 與 `migrations/202609280002_tenant_rls.sql`。第一份是原始設計 schema 的快照，第二份啟用所有租戶資料表的 RLS、只讀政策，以及私有 schema 的成員角色查詢函式。工作區建立需要後續可信服務端交易。
+依序執行 `migrations/202609280001_initial.sql`、`migrations/202609280002_tenant_rls.sql`、`migrations/20260928160322_growth_opportunities_v1.sql`。第三份新增 Business Profile、成長機會、來源證據與核准紀錄。所有新增表啟用 RLS，只對 authenticated 明確授予 SELECT；沒有匿名或直接客戶端寫入。工作區建立與核准狀態變更仍需要後續可信服務端交易。
 
-已在 Growth OS 組織的獨立空白 Staging 專案 `vhzryhibmpvglzcmfnaa` 套用兩份遷移。資料庫已回報 10 張 public 表啟用 RLS、各有一項 authenticated 讀取政策，安全顧問沒有警示。以交易內臨時身分模擬跨租戶讀取及拒絕直接 INSERT，測試後回滾；詳見 [`docs/Staging_DB_驗收_2026-09-28.md`](../docs/Staging_DB_驗收_2026-09-28.md)。
+已在 Growth OS 組織的獨立 Staging 專案 `vhzryhibmpvglzcmfnaa` 套用三份遷移。前 10 張表的 RLS 與真實 Auth/Data API SELECT 隔離已分別驗證。新增四表的交易回滾驗收見 [`growth_opportunities_staging.sql`](tests/growth_opportunities_staging.sql)；結果 PASS，測後四表資料與臨時身分均為 0。安全顧問未回報新表的 RLS 問題；Auth「Leaked Password Protection Disabled」為既有警示，正式用戶登入前需另行處理。
 
-本地 CI 的合約檢查只檢查檔案內容，不代表完整權限測試；目前也沒有真實 Auth session、API 或 Web 端到端驗收。不得將此資料庫接到公開用戶流或匯入真實客戶資料。
+本地 CI 的合約檢查只檢查檔案內容，不代表完整權限測試。既有 10 表曾以真實 Auth session 驗證 SELECT；**新增四表目前僅模擬 JWT claims 的 SQL 測試**，尚無真正的使用者 API、人工核准交易或 Web 端到端流程。不得將此資料庫接到公開用戶流或匯入真實客戶資料。
 
 ## Staging 必測
 
