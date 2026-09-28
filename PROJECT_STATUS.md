@@ -9,7 +9,7 @@
 | Sprint 2 基礎：冪等匯入交易 | 草稿 PR，依賴 Sprint 2 預覽 | [PR #3](https://github.com/RC918/Growth-OS/pull/3)，本機交易與工作區隔離測試及 GitHub CI 通過 | 可信身分與網域驗證、正式 Postgres/RLS、真實資料接入前驗收 |
 | Sprint 2 基礎：租戶 RLS 遷移候選 | 草稿 PR，依賴前三個 PR | [PR #4](https://github.com/RC918/Growth-OS/pull/4)，16 項本機／靜態檢查與 GitHub CI 通過；獨立 Supabase Staging 已套用遷移及首輪 RLS 煙測 | 補齊真實 Auth session 與完整跨租戶負例，保存 API／E2E 證據 |
 | Web 產品預覽 | 草稿 PR，依賴前四個 PR | [PR #5](https://github.com/RC918/Growth-OS/pull/5)，靜態頁與 Vercel 設定、GitHub CI 通過 | 獨立 Vercel 專案 `growth-os-preview` 已連接 `RC918/Growth-OS`，`feat/web-preview` Preview 部署 READY；正式環境沒有上線 |
-| Sprint 2 基礎：Staging RLS 擴充驗收 | 草稿 PR，依賴 Web 預覽分支 | [PR #6](https://github.com/RC918/Growth-OS/pull/6)，十張表 A/B 租戶、讀寫拒絕及撤權交易測試 PASS，回滾後合成列為 0；GitHub CI 通過 | 真實 Supabase Auth session、publishable key 與 Data API 端到端測試仍待完成 |\n| 真實漏斗／正式產品站 | 尚未開始 | 無 GA4、GSC、廣告或訂單串接，無真實轉換數據 | 確認品牌與新網域；建立 Staging 和經授權的資料接入 |
+| Sprint 2 基礎：Staging RLS 擴充驗收 | 草稿 PR，依賴 Web 預覽分支 | [PR #6](https://github.com/RC918/Growth-OS/pull/6)，十張表 A/B 租戶、讀寫拒絕及撤權交易測試 PASS，回滾後合成列為 0；GitHub CI 通過 | 真實 Supabase Auth session、publishable key 與 Data API 端到端測試仍待完成 |\n| 真實 Auth／Data API 驗收準備 | 草稿 PR，尚未實測 | [PR #7](https://github.com/RC918/Growth-OS/pull/7)，唯讀驗收程式已完成語法檢查 | 建立兩個真實測試帳號與合成租戶資料，在可連線環境執行；不得宣稱已通過 |\n| 真實漏斗／正式產品站 | 尚未開始 | 無 GA4、GSC、廣告或訂單串接，無真實轉換數據 | 確認品牌與新網域；建立 Staging 和經授權的資料接入 |
 
 ## Owner 目前需要做什麼
 
