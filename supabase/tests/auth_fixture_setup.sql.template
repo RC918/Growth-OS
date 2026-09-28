@@ -1,0 +1,52 @@
+-- Isolated Growth OS Staging only. Privileged operator replaces both UUID markers
+-- with IDs of two real, email-confirmed Supabase Auth test users. Never substitute
+-- passwords or access tokens here. Run once, then run auth_data_api_acceptance.py.
+begin;
+
+do $$
+declare a uuid := '__A_USER_UUID__'; b uuid := '__B_USER_UUID__';
+begin
+  if a = b then raise exception 'A and B must be distinct Auth users'; end if;
+  if (select count(*) from auth.users where id in (a,b) and email_confirmed_at is not null) <> 2 then
+    raise exception 'Both confirmed Auth test users must exist';
+  end if;
+  if exists (select 1 from public.organizations where id in
+     ('93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312320002')) then
+    raise exception 'Fixture organizations already exist; inspect before retrying';
+  end if;
+end $$;
+
+insert into public.organizations (id,name,business_model) values
+  ('93a88055-0a0b-40c0-b22f-a6d312320001','Growth OS Auth Fixture A','ecommerce'),
+  ('93a88055-0a0b-40c0-b22f-a6d312320002','Growth OS Auth Fixture B','trade');
+insert into public.organization_members (organization_id,user_id,role) values
+  ('93a88055-0a0b-40c0-b22f-a6d312320001','__A_USER_UUID__','owner'),
+  ('93a88055-0a0b-40c0-b22f-a6d312320002','__B_USER_UUID__','viewer');
+insert into public.sites (id,organization_id,origin) values
+  ('93a88055-0a0b-40c0-b22f-a6d312330001','93a88055-0a0b-40c0-b22f-a6d312320001','https://growth-os-auth-a.example.invalid'),
+  ('93a88055-0a0b-40c0-b22f-a6d312330002','93a88055-0a0b-40c0-b22f-a6d312320002','https://growth-os-auth-b.example.invalid');
+insert into public.scans (id,organization_id,site_id,requested_url) values
+  ('93a88055-0a0b-40c0-b22f-a6d312340001','93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312330001','https://growth-os-auth-a.example.invalid'),
+  ('93a88055-0a0b-40c0-b22f-a6d312340002','93a88055-0a0b-40c0-b22f-a6d312320002','93a88055-0a0b-40c0-b22f-a6d312330002','https://growth-os-auth-b.example.invalid');
+insert into public.findings (id,organization_id,scan_id,rule_code,severity,evidence_url,observed_at,confidence) values
+  ('93a88055-0a0b-40c0-b22f-a6d312350001','93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312340001','auth-fixture','info','https://growth-os-auth-a.example.invalid',now(),'low'),
+  ('93a88055-0a0b-40c0-b22f-a6d312350002','93a88055-0a0b-40c0-b22f-a6d312320002','93a88055-0a0b-40c0-b22f-a6d312340002','auth-fixture','info','https://growth-os-auth-b.example.invalid',now(),'low');
+insert into public.import_batches (id,organization_id,site_id,source,idempotency_key) values
+  ('93a88055-0a0b-40c0-b22f-a6d312360001','93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312330001','ga4','auth-fixture-a'),
+  ('93a88055-0a0b-40c0-b22f-a6d312360002','93a88055-0a0b-40c0-b22f-a6d312320002','93a88055-0a0b-40c0-b22f-a6d312330002','ga4','auth-fixture-b');
+insert into public.funnel_daily (id,organization_id,site_id,import_batch_id,report_date,source,medium) values
+  ('93a88055-0a0b-40c0-b22f-a6d312370001','93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312330001','93a88055-0a0b-40c0-b22f-a6d312360001',current_date,'auth-fixture-a','test'),
+  ('93a88055-0a0b-40c0-b22f-a6d312370002','93a88055-0a0b-40c0-b22f-a6d312320002','93a88055-0a0b-40c0-b22f-a6d312330002','93a88055-0a0b-40c0-b22f-a6d312360002',current_date,'auth-fixture-b','test');
+insert into public.recommendations (id,organization_id,site_id,finding_id,title,rationale,evidence_type) values
+  ('93a88055-0a0b-40c0-b22f-a6d312380001','93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312330001','93a88055-0a0b-40c0-b22f-a6d312350001','Auth Fixture A','test','observed'),
+  ('93a88055-0a0b-40c0-b22f-a6d312380002','93a88055-0a0b-40c0-b22f-a6d312320002','93a88055-0a0b-40c0-b22f-a6d312330002','93a88055-0a0b-40c0-b22f-a6d312350002','Auth Fixture B','test','observed');
+insert into public.actions (id,organization_id,recommendation_id) values
+  ('93a88055-0a0b-40c0-b22f-a6d312390001','93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312380001'),
+  ('93a88055-0a0b-40c0-b22f-a6d312390002','93a88055-0a0b-40c0-b22f-a6d312320002','93a88055-0a0b-40c0-b22f-a6d312380002');
+insert into public.audit_events (id,organization_id,event_type,object_type) values
+  ('93a88055-0a0b-40c0-b22f-a6d3123a0001','93a88055-0a0b-40c0-b22f-a6d312320001','auth-fixture','test'),
+  ('93a88055-0a0b-40c0-b22f-a6d3123a0002','93a88055-0a0b-40c0-b22f-a6d312320002','auth-fixture','test');
+
+commit;
+select id,name from public.organizations where id in
+  ('93a88055-0a0b-40c0-b22f-a6d312320001','93a88055-0a0b-40c0-b22f-a6d312320002') order by id;
