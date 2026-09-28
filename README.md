@@ -1,6 +1,6 @@
 # Growth OS
 
-Good Morning Digital Co., Ltd. 的電商與貿易商獲客產品試作。正式品牌及網域尚待確認；目前產品工作標題為 **Growth OS**。第一個模組 **Visitor-to-Customer Leak Map** 從廣告導流後訪客離站的問題出發，先檢查公開著陸頁，再逐步接入經授權的漏斗資料。
+Good Morning Digital Co., Ltd. 的流量與商業成長產品試作。正式品牌及網域尚待確認；目前產品工作標題為 **Growth OS**。核心方向是幫企業與多媒體創作者找出需求與內容機會、增加相關曝光與到站訪問，並追蹤商業成果。第一試點仍聚焦有自營網站的電商與貿易商；既有 **Visitor-to-Customer Leak Map** 是流量進站後的轉換診斷子模組。詳見 [`定位修正`](docs/Growth_OS_定位修正_2026-09-28.md)。
 
 ## 目前可執行
 

@@ -1,22 +1,23 @@
 # Growth OS｜專案進度
 
-更新時間：2026-09-28（台灣時間）。這是最後一次人工更新的快照，不代表有人在背景持續執行。
+更新時間：2026-09-28（台灣時間）。人工更新的快照；對話結束後不會在背景持續執行。
 
-| 階段 | 狀態 | 可檢查的證據 | 下一道門檻 |
-|---|---|---|---|
-| Sprint 1：公開頁面診斷原型與系統設計 | 草稿 PR，待審查與合併 | [PR #1](https://github.com/RC918/Growth-OS/pull/1)，6 項本機測試與 GitHub CI 通過 | 程式審查；安全與 Staging 門檻另行驗證 |
-| Sprint 2 基礎：彙總 CSV 匯入預覽 | 草稿 PR，依賴 Sprint 1 | [PR #2](https://github.com/RC918/Growth-OS/pull/2)，4 項新增測試與 GitHub CI 通過 | #1 合併後調整 #2 基底；再做登入、網域驗證、權限、持久化與冪等匯入 |
-| 真實漏斗／正式產品站 | 尚未開始 | 無 GA4、GSC、廣告或訂單串接，無真實轉換數據 | 確認品牌與新網域；建立 Staging 和經授權的資料接入 |
+## 產品方向
 
-## Owner 目前需要做什麼
+第一目標是找出需求與內容機會，增加相關搜尋曝光及到站訪問；轉換診斷是第二層。第一試點為自營網站的電商／貿易商，創作者為後續驗證客群。正式品牌、網域與公開發布未決定。詳見 [定位修正](docs/Growth_OS_定位修正_2026-09-28.md)。
 
-現在不用操作。當需要決定品牌、網域、付費服務或提供帳號授權、試點資料時，會另列具體項目與影響。90 天現金試驗上限為 NT$100,000；目前沒有因本倉庫工作產生付費支出。
+| 工作 | 已驗證 | 待完成 |
+|---|---|---|
+| 公開頁面診斷原型 | [PR #1](https://github.com/RC918/Growth-OS/pull/1) 的本機測試與 CI | 安全掃描 Staging API、授權測試網址 |
+| CSV 匯入與持久化原型 | [PR #2](https://github.com/RC918/Growth-OS/pull/2)、[#3](https://github.com/RC918/Growth-OS/pull/3) 的預覽及交易證明 | 登入後真實匯入流程 |
+| Supabase 資料與租戶隔離 | [PR #4](https://github.com/RC918/Growth-OS/pull/4)、[#6](https://github.com/RC918/Growth-OS/pull/6)、[#7](https://github.com/RC918/Growth-OS/pull/7)、[#8](https://github.com/RC918/Growth-OS/pull/8)；10 張表的交易回滾驗收與兩個真實 Auth session 的 40 次 SELECT 隔離檢查通過 | token refresh、撤銷成員資格、正式寫入與產品 API |
+| 獨立網頁預覽 | [PR #5](https://github.com/RC918/Growth-OS/pull/5)、[#9](https://github.com/RC918/Growth-OS/pull/9)；Vercel Preview Ready | 正式品牌、網域、公開發布 |
+| 流量成長主流程 | [PR #9](https://github.com/RC918/Growth-OS/pull/9) 校正藍圖與首頁文案 | Business Profile、需求／內容機會、人工核准、GSC/GA4 基線、週報 |
 
-## 如何判斷進度
+以上仍是相依的草稿 PR，尚未合併為正式產品。沒有已連接的客戶網站、真實流量改善、GSC/GA4 成果或付費功能。Growth OS 的測試 Auth 帳號目前以 Supabase 預設 24 小時封禁，合成租戶資料已清除；封禁到期會恢復帳號登入資格，但沒有租戶成員資格。
 
-- **草稿 PR**：可檢視的工作成果，尚未合併或上線。
-- **CI 通過**：自動測試通過，並不等於雲端 Staging 或真實客戶驗收完成。
-- **合併**：程式納入 main；仍不等於部署。
-- **Staging 驗收**：需 Deployment、API、DB、端到端證據，屆時另提供網址與結果。
+## 下一道門檻
 
-對話回合結束後，工程工作不會自行在背景續跑。下次在同一對話說「繼續 Growth OS」或「進度」，會先核對 GitHub 最新狀態，再從待辦事項接續。此頁不是自動更新的儀表板，以 GitHub PR 與 Actions 的即時狀態為準。
+先完成流量成長主流程的資料契約與可審查機會清單，再建立全新產品站的 GSC／GA4 量測。Owner 只在站點所有權、資料授權、正式品牌／網域、對外發布或付費決策時介入。90 天現金試驗上限 NT$100,000；目前未動用付費設定。
+
+CI 通過不等於 Staging 全鏈驗收；對外展示成果需 Deployment、API、DB 與端到端證據。PR 與 Actions 為即時狀態來源。
