@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://*.supabase.co; form-action 'none'; base-uri 'none'">
+  <title>Growth OS｜14 表登入隔離驗收</title>
+  <link rel="stylesheet" href="/auth-growth-check.css">
+  <script defer src="/auth-growth-check.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Growth OS 測試帳號隔離驗收</h1>
+    <p>只用於合成 Staging 資料。設定與密碼只留在此頁記憶體；重新整理即清除。密碼送至輸入的 Supabase Auth，頁面不保存密碼或權杖。</p>
+    <section aria-label="測試環境">
+      <label>Supabase 專案網址 <input id="project-url" type="url" placeholder="https://project.supabase.co" autocomplete="off" required></label>
+      <label>Publishable key <input id="publishable-key" type="text" autocomplete="off" required></label>
+    </section>
+    <form id="account-a" autocomplete="off">
+      <h2>帳號 A｜owner</h2>
+      <label>電子郵件 <input name="email" type="email" autocomplete="username" required></label>
+      <label>密碼 <input name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">驗證帳號 A</button>
+      <output role="status" aria-live="polite"></output>
+    </form>
+    <form id="account-b" autocomplete="off">
+      <h2>帳號 B｜viewer</h2>
+      <label>電子郵件 <input name="email" type="email" autocomplete="username" required></label>
+      <label>密碼 <input name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">驗證帳號 B</button>
+      <output role="status" aria-live="polite"></output>
+    </form>
+    <p id="overall" role="status" aria-live="polite">等待兩個測試帳號登入。</p>
+  </main>
+</body>
+</html>
