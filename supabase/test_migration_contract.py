@@ -7,6 +7,7 @@ INITIAL = (ROOT / "202609280001_initial.sql").read_text()
 RLS = (ROOT / "202609280002_tenant_rls.sql").read_text()
 GROWTH = (ROOT / "20260928160322_growth_opportunities_v1.sql").read_text()
 REVIEW = (ROOT / "20260928161802_review_growth_opportunity.sql").read_text()
+CREATE = (ROOT / "20260928162623_create_growth_opportunity.sql").read_text()
 TABLES = ("organizations", "organization_members", "sites", "scans", "findings",
           "import_batches", "funnel_daily", "recommendations", "actions", "audit_events")
 GROWTH_TABLES = ("business_profiles", "growth_opportunities", "opportunity_sources", "opportunity_decisions")
@@ -56,6 +57,18 @@ class MigrationContractTests(unittest.TestCase):
         self.assertIn("insert into public.audit_events", REVIEW)
         self.assertIn("revoke all on function public.review_growth_opportunity(uuid, uuid, text, text) from public, anon;", REVIEW)
         self.assertIn("grant execute on function public.review_growth_opportunity(uuid, uuid, text, text) to authenticated;", REVIEW)
+
+    def test_create_rpc_is_owner_only_and_labels_self_reported_source(self):
+        self.assertIn("security definer", CREATE)
+        self.assertIn("set search_path = ''", CREATE)
+        self.assertIn("private.has_org_role(p_organization_id, array['owner']::text[])", CREATE)
+        self.assertIn("p_source_kind not in ('owner_question','research_note')", CREATE)
+        self.assertIn("verified_at is not null", CREATE)
+        self.assertIn("'candidate', 'low'", CREATE)
+        self.assertIn("insert into public.opportunity_sources", CREATE)
+        self.assertIn("insert into public.audit_events", CREATE)
+        self.assertIn("from public, anon;", CREATE)
+        self.assertIn("to authenticated;", CREATE)
 
 
 if __name__ == "__main__":
