@@ -2,6 +2,8 @@
 
 `tenant_rls_staging.sql` is the database-side, rollback-only check already run on the isolated Growth OS Supabase Staging project. It impersonates JWT claims; it does not mint a real Auth session.
 
+`growth_opportunities_staging.sql` checks the four traffic-first tables with rolled-back synthetic data. `review_growth_opportunity_staging.sql` exercises the owner-only RPC, tenant and viewer denial, missing source, invalid and duplicate decisions, and status/decision/audit consistency. Both have run on isolated Staging and rolled back. These simulated claims do not replace real Auth session and Data API checks.
+
 `auth_data_api_acceptance.py` is the next read-only gate. It requires **two separate, email-confirmed test accounts issued by Supabase Auth**, each with exactly one synthetic organization and one row in every tenant table. A is owner, B is viewer. B's own `audit_events` row is intentionally hidden. The script signs in through Auth and calls the Data API using the project publishable key and each actual session JWT. It never prints passwords, tokens, keys, or response rows.
 
 Run only against isolated Staging after creating the two Auth test users. An operator with privileged Staging SQL access can replace `__A_USER_UUID__` and `__B_USER_UUID__` in `auth_fixture_setup.sql.template` with the confirmed users' UUIDs, inspect the resulting SQL, and execute it once. The fixed organization IDs are `93a88055-0a0b-40c0-b22f-a6d312320001` and `93a88055-0a0b-40c0-b22f-a6d312320002`. The setup asserts the two users exist and are email-confirmed before writing any fixture rows. It was dry-run with temporary synthetic `auth.users` rows in a rolled-back transaction, but **has not been applied persistently**.
