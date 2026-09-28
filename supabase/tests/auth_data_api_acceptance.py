@@ -25,6 +25,10 @@ TABLES = (
     "recommendations",
     "actions",
     "audit_events",
+    "business_profiles",
+    "growth_opportunities",
+    "opportunity_sources",
+    "opportunity_decisions",
 )
 
 
@@ -94,13 +98,15 @@ def main():
         for table in TABLES:
             own_count = visible_ids(base_url, key, tokens[actor], table, own)
             other_count = visible_ids(base_url, key, tokens[actor], table, other)
-            expected_own = 0 if actor == "B" and table == "audit_events" else 1
+            expected_own = 0 if actor == "B" and table in (
+                "audit_events", "opportunity_decisions"
+            ) else 1
             if own_count != expected_own or other_count != 0:
                 raise AssertionError(
                     f"{actor} {table}: own={own_count}, cross={other_count}; "
                     f"expected own={expected_own}, cross=0"
                 )
-    print("PASS: real Auth sessions and Data API isolate 10 synthetic tenant tables")
+    print("PASS: real Auth sessions and Data API isolate 14 synthetic tenant tables")
 
 
 if __name__ == "__main__":
