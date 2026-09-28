@@ -1,0 +1,63 @@
+-- Run after the original synthetic Auth fixture is installed in isolated
+-- Staging. No Auth user ID, organization ID or credential is embedded here.
+-- Cleanup cascades from the original fixture organizations.
+begin;
+
+do $$ begin
+  if (select count(*) from public.organizations
+      where name in ('Growth OS Auth Fixture A','Growth OS Auth Fixture B')) <> 2
+     or (select count(*) from public.organization_members m
+           join public.organizations o on o.id=m.organization_id
+           where o.name='Growth OS Auth Fixture A' and m.role='owner') <> 1
+     or (select count(*) from public.organization_members m
+           join public.organizations o on o.id=m.organization_id
+           where o.name='Growth OS Auth Fixture B' and m.role='viewer') <> 1
+     or exists (select 1 from public.growth_opportunities g
+           join public.organizations o on o.id=g.organization_id
+           where o.name in ('Growth OS Auth Fixture A','Growth OS Auth Fixture B')) then
+    raise exception 'Expected two fresh named Auth fixture organizations';
+  end if;
+end $$;
+
+insert into public.business_profiles
+  (organization_id,site_id,display_name,audience_summary,offering_summary,primary_outcome,target_market)
+select o.id,s.id,'Synthetic Shop A','Synthetic buyers','Synthetic goods','order','Taiwan'
+  from public.organizations o join public.sites s on s.organization_id=o.id
+ where o.name='Growth OS Auth Fixture A';
+insert into public.business_profiles
+  (organization_id,site_id,display_name,audience_summary,offering_summary,primary_outcome,target_market)
+select o.id,s.id,'Synthetic Trader B','Synthetic trade buyers','Synthetic products','qualified_lead','Taiwan'
+  from public.organizations o join public.sites s on s.organization_id=o.id
+ where o.name='Growth OS Auth Fixture B';
+
+insert into public.growth_opportunities
+  (organization_id,site_id,channel,audience_need,proposed_action,rationale,status)
+select o.id,s.id,'organic_search','Compare synthetic products','Draft comparison','Owner reported question','rejected'
+  from public.organizations o join public.sites s on s.organization_id=o.id
+ where o.name='Growth OS Auth Fixture A';
+insert into public.growth_opportunities
+  (organization_id,site_id,channel,audience_need,proposed_action,rationale,status)
+select o.id,s.id,'owned_content','Learn synthetic terms','Draft glossary','Owner research note','candidate'
+  from public.organizations o join public.sites s on s.organization_id=o.id
+ where o.name='Growth OS Auth Fixture B';
+
+insert into public.opportunity_sources
+  (organization_id,opportunity_id,source_kind,evidence_note,observed_at)
+select g.organization_id,g.id,'owner_question','Synthetic owner question',now()
+  from public.growth_opportunities g join public.organizations o on o.id=g.organization_id
+ where o.name='Growth OS Auth Fixture A' and g.proposed_action='Draft comparison';
+insert into public.opportunity_sources
+  (organization_id,opportunity_id,source_kind,evidence_note,observed_at)
+select g.organization_id,g.id,'research_note','Synthetic research note',now()
+  from public.growth_opportunities g join public.organizations o on o.id=g.organization_id
+ where o.name='Growth OS Auth Fixture B' and g.proposed_action='Draft glossary';
+
+insert into public.opportunity_decisions
+  (organization_id,opportunity_id,actor_user_id,decision,reason)
+select g.organization_id,g.id,m.user_id,'rejected','Synthetic fixture decision'
+  from public.growth_opportunities g
+  join public.organizations o on o.id=g.organization_id
+  join public.organization_members m on m.organization_id=o.id and m.role='owner'
+ where o.name='Growth OS Auth Fixture A' and g.proposed_action='Draft comparison';
+
+commit;
