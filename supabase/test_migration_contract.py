@@ -23,10 +23,12 @@ class MigrationContractTests(unittest.TestCase):
         self.assertNotIn("to anon\n  using", RLS)
 
     def test_role_helper_is_definer_with_restricted_execute(self):
-        for func in ("has_org_role(uuid, text[])", "create_organization(text, text)"):
-            self.assertIn(f"revoke all on function public.{func} from public, anon;", RLS)
-            self.assertIn(f"grant execute on function public.{func} to authenticated;", RLS)
-        self.assertEqual(RLS.count("security definer"), 2)
+        func = "has_org_role(uuid, text[])"
+        self.assertIn("create schema if not exists private;", RLS)
+        self.assertIn(f"revoke all on function private.{func} from public, anon;", RLS)
+        self.assertIn(f"grant execute on function private.{func} to authenticated;", RLS)
+        self.assertNotIn("function public.has_org_role", RLS)
+        self.assertEqual(RLS.count("security definer"), 1)
 
 
 if __name__ == "__main__":
