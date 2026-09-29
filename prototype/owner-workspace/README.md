@@ -10,4 +10,6 @@
 
 2026-09-29 於 Staging 控制台確認：Site URL 仍是 `http://localhost:3000`、Redirect URLs 為空、Magic Link 使用預設郵件模板、自訂 SMTP 關閉。Supabase 預設寄信服務僅允許寄給專案團隊成員，故兩個獨立且可收信的 owner/viewer 測試帳號需要自訂 SMTP，或重新設計不依賴電子郵件的驗收方式；不可為測試信件擅自把兩個信箱加入具專案權限的團隊。
 
+使用者目前沒有可供驗證的網域。短期 Staging 候選為 Brevo Free：先由使用者建立帳號、驗證一個可收信的寄件地址並建立 **SMTP key**（不是 API key）；若平台要求人工開通交易郵件，須先完成開通。Supabase Staging SMTP 預填 `smtp-relay.brevo.com`、port `587`、寄件名稱 `Growth OS Staging`；SMTP login 與 key 應只在供應商和 Supabase 的安全設定頁輸入，不寫入 GitHub 或對話。Brevo 對未驗證網域的免費信箱寄件者可能改寫 From，僅作驗收用途；正式產品上線前須用自有網域驗證寄件身分。寄信連結追蹤不得改寫 Supabase 確認 URL。
+
 後續需先確認 Staging 郵件可送達兩個使用者掌控的信箱、加入精確回跳 URL，再執行 owner 與 viewer 的真實網頁操作驗收。既有 `test1@example.com`、`test2@example.com` 不能收信，不適合 Magic Link 驗收。先前由人親自於本機執行的 14 表 Auth/Data API PASS，只涵蓋登入與唯讀租戶隔離。
