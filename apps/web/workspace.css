@@ -9,3 +9,25 @@
 .draft-form button { justify-self: start; }
 .draft-result { color: var(--green) !important; font-weight: 800; }
 .draft-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.queue { max-width: 940px; margin: 56px auto 0; }
+.queue .section-head { margin-bottom: 8px; }
+.queue > .explain { max-width: 780px; margin-bottom: 24px; }
+.cards { grid-template-columns: 1fr; gap: 20px; }
+.opportunity-card { padding: 30px; box-shadow: 0 14px 36px rgba(16,61,42,.04); }
+.opportunity-card h3 { margin: 14px 0 6px; font-size: 23px; }
+.opportunity-card > p:not(.opportunity-progress) { margin: 0 0 8px; }
+.opportunity-top { align-items: center; }
+.opportunity-top span:last-child { padding: 6px 10px; background: #eaf4eb; border-radius: 99px; }
+.opportunity-progress { margin: 22px 0 0; padding: 11px 14px; background: #eef5ee; border-left: 3px solid var(--green); border-radius: 5px; font-weight: 800; }
+.draft-focus { margin-top: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: #fbfdf9; }
+.draft-focus h4 { margin: 0 0 14px; font-size: 15px; color: var(--green); }
+.draft-focus strong { display: block; font-size: 17px; line-height: 1.5; }
+.draft-focus .draft-body { margin: 10px 0; }
+.draft-focus .draft-state { margin: 14px 0 0; color: var(--green); font-weight: 700; }
+.draft-focus .review-form { margin-top: 18px; }
+.draft-focus .review-form > p { flex-basis: 100%; margin: 0; font-weight: 700; }
+.compose-draft { margin-top: 18px; padding: 15px 20px; border: 1px solid var(--line); border-radius: 10px; }
+.compose-draft summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--green); }
+.compose-draft .draft-form { border-top: 0; }
+.opportunity-card > .evidence { margin-top: 18px; }
+@media(max-width:540px){.opportunity-card{padding:20px}.draft-focus{padding:16px}.draft-focus .review-form button{flex:1 1 auto}}

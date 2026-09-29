@@ -63,14 +63,13 @@ const formatTime = value => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/T
 function revealVersion(opportunityId, text) {
   const updated = [...$('opportunities').querySelectorAll('.opportunity-card')]
     .find(candidate => candidate.dataset.opportunityId === opportunityId);
-  const panel = updated?.querySelector('.version-history');
+  const panel = updated?.querySelector('.draft-focus');
   if (!panel) return;
-  panel.open = true;
   const result = document.createElement('p');
   result.className = 'draft-result';
   result.setAttribute('role', 'status');
   result.textContent = text;
-  panel.insertBefore(result, panel.children[1] || null);
+  panel.insertBefore(result, panel.firstChild);
   panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -78,27 +77,32 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
   const card = document.createElement('article');
   card.className = 'opportunity-card';
   card.dataset.opportunityId = item.id;
+  const latestVersion = versions.reduce((latest, version) => !latest || version.version_number > latest.version_number ? version : latest, null);
+  const latestReview = latestVersion && reviews.find(row => row.version_id === latestVersion.id);
   const top = document.createElement('div');
   top.className = 'opportunity-top';
   const channel = document.createElement('span');
   channel.textContent = ({organic_search:'自然搜尋',ai_discovery:'AI 探索',owned_content:'自有內容',distribution:'內容分發'})[item.channel] || item.channel;
   const status = document.createElement('span');
-  status.textContent = ({candidate:'待審核',in_review:'審核中',approved:'已核准',rejected:'未採納',published:'已發布',measured:'已量測'})[item.status] || item.status;
+  status.textContent = ({candidate:'機會待審核',in_review:'機會審核中',approved:'機會已核准',rejected:'機會未採納',published:'已發布',measured:'已量測'})[item.status] || item.status;
   top.append(channel, status);
   const heading = document.createElement('h3');
   heading.textContent = item.audience_need;
   const action = document.createElement('p');
   action.textContent = item.proposed_action;
   const rationale = document.createElement('small');
-  rationale.textContent = `判斷依據：${item.rationale} · 信心程度：${item.evidence_confidence}`;
+  rationale.textContent = `判斷依據：${item.rationale} · 證據信心：${({low:'低',medium:'中',high:'高'})[item.evidence_confidence] || item.evidence_confidence}`;
   card.append(top, heading, action, rationale);
-  const readiness = document.createElement('small');
-  readiness.textContent = `執行準備：${orderReason}`;
-  card.append(readiness);
+  const progress = document.createElement('p');
+  progress.className = 'opportunity-progress';
+  progress.textContent = latestVersion
+    ? `目前進度：第 ${latestVersion.version_number} 版${latestReview ? `已${draftDecisionLabels[latestReview.decision] || latestReview.decision}` : '待審核'}${latestReview?.decision === 'rejected' ? '，可新增修訂版' : ''}`
+    : item.status === 'approved' ? '目前進度：機會已核准，可建立第一版草稿' : `目前進度：${status.textContent}`;
+  card.append(progress);
   const evidence = document.createElement('details');
   evidence.className = 'evidence';
   const summary = document.createElement('summary');
-  summary.textContent = `來源 ${sources.length} 筆 · 審核 ${decisions.length} 筆`;
+  summary.textContent = `查看判斷依據與機會審核（來源 ${sources.length} 筆）`;
   evidence.append(summary);
   if (!sources.length) {
     const missing = document.createElement('p');
@@ -120,21 +124,15 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     row.textContent = `審核：${decisionLabels[decision.decision] || decision.decision} · ${formatTime(decision.decided_at)}｜理由：${decision.reason}`;
     evidence.append(row);
   }
-  card.append(evidence);
   const history = document.createElement('details');
   history.className = 'evidence version-history';
   const historySummary = document.createElement('summary');
-  historySummary.textContent = `內容草稿版本 ${versions.length} 筆`;
+  historySummary.textContent = `查看過去版本（${Math.max(0, versions.length - 1)} 筆）`;
   history.append(historySummary);
-  if (!versions.length) {
-    const empty = document.createElement('p'); empty.textContent = '尚無內容草稿。'; history.append(empty);
-  }
-  const newestNumber = versions.reduce((number, row) => Math.max(number, row.version_number), 0);
-  for (const version of versions) {
+  for (const version of versions.filter(row => row.id !== latestVersion?.id)) {
     const review = reviews.find(row => row.version_id === version.id);
-    const latest = version.version_number === newestNumber;
     const heading = document.createElement('p');
-    heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)} · 草稿：${version.title} · ${review ? `內部${draftDecisionLabels[review.decision] || review.decision}${latest ? '' : '（歷史版本）'}` : '待審核'}`;
+    heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)} · ${version.title} · ${review ? `內部${draftDecisionLabels[review.decision] || review.decision}` : '未審核'}`;
     const body = document.createElement('p');
     body.className = 'draft-body'; body.textContent = version.draft_body;
     history.append(heading, body);
@@ -144,9 +142,32 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
       history.append(reviewNote);
     }
   }
-  card.append(history);
+  const focus = document.createElement('section');
+  focus.className = 'draft-focus';
+  const focusHeading = document.createElement('h4');
+  focusHeading.textContent = latestVersion ? `目前草稿 · 第 ${latestVersion.version_number} 版 · ${formatTime(latestVersion.created_at)}` : '目前草稿';
+  focus.append(focusHeading);
+  if (latestVersion) {
+    const title = document.createElement('strong'); title.textContent = latestVersion.title;
+    const body = document.createElement('p'); body.className = 'draft-body'; body.textContent = latestVersion.draft_body;
+    const state = document.createElement('p'); state.className = 'draft-state';
+    state.textContent = latestReview
+      ? `內部${draftDecisionLabels[latestReview.decision] || latestReview.decision} · ${formatTime(latestReview.reviewed_at)} · 理由：${latestReview.reason}。尚未公開發布。`
+      : '待審核 · 這是已儲存的內容，尚未公開發布。';
+    focus.append(title, body, state);
+  } else {
+    const empty = document.createElement('p'); empty.textContent = '尚無草稿。請先記錄第一版。'; focus.append(empty);
+  }
+  if (item.status === 'approved' || latestVersion) card.append(focus);
   let unsavedDraft = null;
+  let compose = null;
   if (owner && item.status === 'approved' && sources.length && decisions.some(row => row.decision === 'approved')) {
+    compose = document.createElement('details');
+    compose.className = 'compose-draft';
+    compose.open = !latestVersion;
+    const composeSummary = document.createElement('summary');
+    composeSummary.textContent = latestVersion ? '修訂內容並建立新版' : '建立第 1 版草稿';
+    compose.append(composeSummary);
     const form = document.createElement('form');
     form.className = 'review-form draft-form';
     const title = document.createElement('label');
@@ -159,7 +180,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     const bodyInput = document.createElement('textarea');
     bodyInput.name = 'draft_body'; bodyInput.required = true; bodyInput.maxLength = 10000;
     body.append(bodyInput);
-    unsavedDraft = { form, titleInput, bodyInput };
+    unsavedDraft = { panel: compose, form, titleInput, bodyInput };
     const save = document.createElement('button');
     save.type = 'submit'; save.className = 'secondary'; save.textContent = '記錄新草稿版本';
     form.append(title, body, save);
@@ -168,17 +189,16 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
       busy(form, async () => {
         await api.createContentDraft(item.id, titleInput.value, bodyInput.value);
         await refresh();
-        revealVersion(item.id, '新草稿版本已記錄，請在下方確認內容。');
+        revealVersion(item.id, '新草稿版本已記錄，請確認內容後再審核。');
       });
     });
-    card.append(form);
+    compose.append(form);
   }
-  const latestVersion = versions.reduce((latest, version) => !latest || version.version_number > latest.version_number ? version : latest, null);
-  if (owner && item.status === 'approved' && latestVersion && !reviews.some(row => row.version_id === latestVersion.id)) {
+  if (owner && item.status === 'approved' && latestVersion && !latestReview) {
     const form = document.createElement('form');
     form.className = 'review-form';
     const versionNote = document.createElement('p');
-    versionNote.textContent = `目前審核已儲存的第 ${latestVersion.version_number} 版：${latestVersion.title}。草稿欄位中的新文字須先按「記錄新草稿版本」。`;
+    versionNote.textContent = `審核上方第 ${latestVersion.version_number} 版。每版只能審核一次。`;
     const label = document.createElement('label');
     label.textContent = '版本審核理由';
     const input = document.createElement('input');
@@ -192,6 +212,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
       button.addEventListener('click', () => {
         if (unsavedDraft && (unsavedDraft.titleInput.value.trim() || unsavedDraft.bodyInput.value.trim())) {
           message('草稿欄位有未儲存內容。請先記錄新草稿版本，或清空欄位後再審核目前版本。', true);
+          unsavedDraft.panel.open = true;
           unsavedDraft.form.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
@@ -204,7 +225,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
       });
     }
     form.append(versionNote, label, approve, reject);
-    card.append(form);
+    focus.append(form);
   }
   if (owner && ['candidate', 'in_review'].includes(item.status)) {
     const form = document.createElement('form');
@@ -227,6 +248,9 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     form.append(label, approve, reject);
     card.append(form);
   }
+  if (compose) card.append(compose);
+  card.append(evidence);
+  if (versions.length > 1) card.append(history);
   return card;
 }
 
