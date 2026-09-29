@@ -8,4 +8,6 @@
 
 本地程式檢查：`node --test prototype/owner-workspace/workspace-api.test.mjs`。它用模擬 Auth 和資料回應驗證登入連結不建立新帳號、精確回跳、查詢範圍、角色權限、RPC 請求及錯誤訊息；結果不能取代真實瀏覽器與雲端 Staging 驗收。
 
+2026-09-29 於 Staging 控制台確認：Site URL 仍是 `http://localhost:3000`、Redirect URLs 為空、Magic Link 使用預設郵件模板、自訂 SMTP 關閉。Supabase 預設寄信服務僅允許寄給專案團隊成員，故兩個獨立且可收信的 owner/viewer 測試帳號需要自訂 SMTP，或重新設計不依賴電子郵件的驗收方式；不可為測試信件擅自把兩個信箱加入具專案權限的團隊。
+
 後續需先確認 Staging 郵件可送達兩個使用者掌控的信箱、部署至隔離的預覽來源、加入精確回跳 URL，再執行 owner 與 viewer 的真實網頁操作驗收。既有 `test1@example.com`、`test2@example.com` 不能收信，不適合 Magic Link 驗收。先前由人親自於本機執行的 14 表 Auth/Data API PASS，只涵蓋登入與唯讀租戶隔離。
