@@ -25,16 +25,28 @@ async function busy(form, operation) {
   } catch (error) {
     message(error.message, true);
   } finally {
-    buttons.forEach(button => { button.disabled = false; });
+    if (form.id === 'profile-form' && state) {
+      showProfile(state.profile, state.sites, state.role === 'owner');
+    } else {
+      buttons.forEach(button => { button.disabled = false; });
+    }
   }
 }
 
-function showProfile(profile, owner) {
+function showProfile(profile, sites, owner) {
   const form = $('profile-form');
   for (const name of ['display_name', 'target_market', 'primary_outcome', 'audience_summary', 'offering_summary']) {
     form.elements.namedItem(name).value = profile?.[name] || (name === 'primary_outcome' ? 'order' : '');
   }
   for (const field of form.querySelectorAll('input,textarea,select')) field.disabled = !owner;
+  const site = sites.find(item => item.id === profile?.site_id);
+  const unverified = !!site && !site.verified_at;
+  $('linked-site-status').textContent = site
+    ? `關聯網站：${site.origin}（${site.verified_at ? '已驗證' : '尚未驗證'}）`
+    : '尚未關聯網站。';
+  $('detach-site-label').hidden = !owner || !unverified;
+  $('detach-site').checked = false;
+  $('save-profile').disabled = !owner || unverified;
   $('profile-status').textContent = profile?.review_status === 'owner_approved' ? '企業主已核准' : '尚待核准';
   $('approve-profile').disabled = !owner || !profile || profile.review_status !== 'draft';
   $('approval-note').hidden = !owner || profile?.review_status === 'owner_approved';
@@ -92,7 +104,7 @@ async function refresh() {
   $('role-text').textContent = owner ? '企業擁有者 · 可管理資料與審核機會' : '檢視者 · 僅可閱讀';
   for (const element of document.querySelectorAll('.owner-control')) element.hidden = !owner;
   $('viewer-note').hidden = owner;
-  showProfile(next.profile, owner);
+  showProfile(next.profile, next.sites, owner);
   $('queue-count').textContent = `${next.opportunities.length} 筆`;
   const list = $('opportunities');
   list.replaceChildren(...next.opportunities.map(item => opportunityCard(item, owner)));
@@ -132,6 +144,10 @@ $('sign-out').addEventListener('click', () => {
   $('sign-in').hidden = false;
   $('opportunities').replaceChildren();
   message('');
+});
+
+$('detach-site').addEventListener('change', event => {
+  $('save-profile').disabled = !event.currentTarget.checked;
 });
 
 $('profile-form').addEventListener('submit', event => {
