@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://vhzryhibmpvglzcmfnaa.supabase.co; form-action 'none'; base-uri 'none'">
   <title>Growth OS｜測試工作台</title>
   <link rel="stylesheet" href="./workspace.css">
@@ -16,10 +17,9 @@
       <div><p class="eyebrow">OWNER WORKSPACE</p><h1>把成長機會<br><em>變成可審核的行動。</em></h1><p class="lead">先確認你的企業定位，再整理客戶需求與內容機會。每筆建議保留來源，由企業擁有者決定是否採納。</p><p class="disclaimer">此頁只用於獨立 Staging 的合成資料驗收。請勿輸入真實客戶資訊。工作台僅在此分頁記住登入狀態，重新整理後需再次登入。</p></div>
       <form id="login-form" class="panel" autocomplete="off">
         <p class="eyebrow">TEST ACCESS</p><h2>進入測試工作台</h2>
-        <label>測試帳號電子郵件<input name="email" type="email" autocomplete="username" required></label>
-        <label>密碼<input name="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit" class="primary">登入</button>
-        <p class="hint">僅使用獨立 Growth OS Staging 帳號。密碼送往 Supabase Auth，不保存在本站。</p>
+        <label>可收信的測試帳號電子郵件<input name="email" type="email" autocomplete="email" required></label>
+        <button type="submit" class="primary">寄送一次性登入連結</button>
+        <p class="hint">只寄給已建立的 Growth OS Staging 帳號。此頁不收取密碼；連結由 Supabase Auth 寄送。</p>
       </form>
     </section>
 
