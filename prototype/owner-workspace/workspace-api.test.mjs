@@ -7,7 +7,7 @@ const key = 'sb_publishable_test';
 const orgA = '93a88055-0a0b-40c0-b22f-a6d312320001';
 const orgB = '93a88055-0a0b-40c0-b22f-a6d312320002';
 
-function fixture(role = 'owner') {
+function fixture(role = 'owner', verified = true) {
   const calls = [];
   async function fetchImpl(url, options) {
     const parsed = new URL(url);
@@ -24,7 +24,10 @@ function fixture(role = 'owner') {
       return { ok: true, json: async () => [{ id: role === 'owner' ? orgA : orgB, name: 'Synthetic workspace' }] };
     }
     if (parsed.pathname.endsWith('/business_profiles')) {
-      return { ok: true, json: async () => [{ review_status: 'owner_approved' }] };
+      return { ok: true, json: async () => [{ site_id: 'fixture-site', review_status: 'owner_approved' }] };
+    }
+    if (parsed.pathname.endsWith('/sites')) {
+      return { ok: true, json: async () => [{ id: 'fixture-site', origin: 'https://example.com', verified_at: verified ? '2026-09-29T00:00:00Z' : null }] };
     }
     if (parsed.pathname.endsWith('/growth_opportunities')) {
       return { ok: true, json: async () => [] };
@@ -43,6 +46,7 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
   assert.equal(reads.length, 3);
   assert.equal(reads[0].query.get('id'), `eq.${orgA}`);
   for (const call of reads.slice(1)) assert.equal(call.query.get('organization_id'), `eq.${orgA}`);
+  assert.equal(calls.find(call => call.path.endsWith('/sites')).query.get('organization_id'), `eq.${orgA}`);
   await api.saveProfile({ display_name: 'A', audience_summary: 'B', offering_summary: 'C', primary_outcome: 'order', target_market: 'TW' });
   await api.approveProfile();
   await api.createOpportunity({ channel: 'organic_search', audience_need: 'Need', proposed_action: 'Action', rationale: 'Reason', source_kind: 'owner_question', evidence_note: 'Evidence' });
@@ -53,8 +57,21 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
     assert.equal(call.options.method, 'POST');
     assert.equal(JSON.parse(call.options.body).p_organization_id, orgA);
   }
+  assert.equal(JSON.parse(mutations[0].options.body).p_site_id, 'fixture-site');
   api.signOut();
   await assert.rejects(api.dashboard(), /請先選擇工作區/);
+});
+
+test('unverified linked site is preserved unless the owner explicitly detaches it', async () => {
+  const { api, calls } = fixture('owner', false);
+  await api.signIn('test1@example.com', 'local-only-password');
+  await api.dashboard();
+  const values = { display_name: 'A', audience_summary: 'B', offering_summary: 'C', primary_outcome: 'order', target_market: 'TW' };
+  assert.throws(() => api.saveProfile(values), /網站尚未驗證/);
+  assert.equal(calls.filter(call => call.path.includes('/rpc/')).length, 0);
+  await api.saveProfile({ ...values, detach_site: true });
+  const save = calls.find(call => call.path.endsWith('/rpc/save_business_profile'));
+  assert.equal(JSON.parse(save.options.body).p_site_id, null);
 });
 
 test('viewer can read only their workspace, and cannot invoke owner mutations', async () => {
