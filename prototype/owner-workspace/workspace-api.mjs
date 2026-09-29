@@ -5,6 +5,8 @@ export function createWorkspaceApi({ origin, key, fetchImpl = fetch }) {
   }
   let token = null;
   let membership = null;
+  let linkedSite = null;
+  let linkedSiteVerified = false;
 
   async function request(path, { method = 'GET', body, authenticated = true } = {}) {
     if (authenticated && !token) throw new Error('請先登入');
@@ -48,6 +50,8 @@ export function createWorkspaceApi({ origin, key, fetchImpl = fetch }) {
     async signIn(email, password) {
       token = null;
       membership = null;
+      linkedSite = null;
+      linkedSiteVerified = false;
       const data = await request('/auth/v1/token?grant_type=password', {
         method: 'POST', body: { email, password }, authenticated: false,
       });
@@ -62,27 +66,39 @@ export function createWorkspaceApi({ origin, key, fetchImpl = fetch }) {
         return { ...membership };
       } catch (error) {
         token = null;
+        linkedSite = null;
+        linkedSiteVerified = false;
         throw error;
       }
     },
     signOut() {
       token = null;
       membership = null;
+      linkedSite = null;
+      linkedSiteVerified = false;
     },
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
-      const [organizations, profiles, opportunities] = await Promise.all([
+      const [organizations, profiles, opportunities, sites] = await Promise.all([
         select('organizations', 'id,name,business_model', { id: `eq.${org}`, limit: '1' }),
-        select('business_profiles', 'id,display_name,audience_summary,offering_summary,primary_outcome,target_market,review_status', { ...scope, limit: '1' }),
+        select('business_profiles', 'id,site_id,display_name,audience_summary,offering_summary,primary_outcome,target_market,review_status', { ...scope, limit: '1' }),
         select('growth_opportunities', 'id,channel,audience_need,proposed_action,rationale,status,evidence_confidence,created_at', { ...scope, order: 'created_at.desc', limit: '30' }),
+        select('sites', 'id,origin,verified_at', { ...scope, limit: '30' }),
       ]);
       if (organizations.length !== 1) throw new Error('找不到測試工作區');
-      return { organization: organizations[0], profile: profiles[0] || null, opportunities, role: membership.role };
+      linkedSite = profiles[0]?.site_id || null;
+      linkedSiteVerified = !!sites.find(site => site.id === linkedSite)?.verified_at;
+      return { organization: organizations[0], profile: profiles[0] || null, opportunities, sites, role: membership.role };
     },
     saveProfile(values) {
+      const organization = ownerOnly();
+      const detachSite = values.detach_site === true || values.detach_site === 'on';
+      if (linkedSite && !linkedSiteVerified && !detachSite) {
+        throw new Error('網站尚未驗證；請先驗證，或明確選擇解除網站關聯');
+      }
       return request('/rest/v1/rpc/save_business_profile', {
-        method: 'POST', body: { p_organization_id: ownerOnly(), p_site_id: null,
+        method: 'POST', body: { p_organization_id: organization, p_site_id: detachSite ? null : linkedSite,
           p_display_name: values.display_name, p_audience_summary: values.audience_summary,
           p_offering_summary: values.offering_summary, p_primary_outcome: values.primary_outcome,
           p_target_market: values.target_market },
