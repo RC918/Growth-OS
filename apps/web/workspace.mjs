@@ -145,6 +145,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     }
   }
   card.append(history);
+  let unsavedDraft = null;
   if (owner && item.status === 'approved' && sources.length && decisions.some(row => row.decision === 'approved')) {
     const form = document.createElement('form');
     form.className = 'review-form draft-form';
@@ -158,6 +159,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     const bodyInput = document.createElement('textarea');
     bodyInput.name = 'draft_body'; bodyInput.required = true; bodyInput.maxLength = 10000;
     body.append(bodyInput);
+    unsavedDraft = { form, titleInput, bodyInput };
     const save = document.createElement('button');
     save.type = 'submit'; save.className = 'secondary'; save.textContent = '記錄新草稿版本';
     form.append(title, body, save);
@@ -175,6 +177,8 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
   if (owner && item.status === 'approved' && latestVersion && !reviews.some(row => row.version_id === latestVersion.id)) {
     const form = document.createElement('form');
     form.className = 'review-form';
+    const versionNote = document.createElement('p');
+    versionNote.textContent = `目前審核已儲存的第 ${latestVersion.version_number} 版：${latestVersion.title}。草稿欄位中的新文字須先按「記錄新草稿版本」。`;
     const label = document.createElement('label');
     label.textContent = '版本審核理由';
     const input = document.createElement('input');
@@ -186,6 +190,11 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     reject.type = 'button'; reject.className = 'quiet'; reject.textContent = '退回此版本';
     for (const [button, decision] of [[approve, 'approved'], [reject, 'rejected']]) {
       button.addEventListener('click', () => {
+        if (unsavedDraft && (unsavedDraft.titleInput.value.trim() || unsavedDraft.bodyInput.value.trim())) {
+          message('草稿欄位有未儲存內容。請先記錄新草稿版本，或清空欄位後再審核目前版本。', true);
+          unsavedDraft.form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
         if (!form.reportValidity()) return;
         busy(form, async () => {
           await api.reviewContentDraft(latestVersion.id, decision, input.value);
@@ -194,7 +203,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
         });
       });
     }
-    form.append(label, approve, reject);
+    form.append(versionNote, label, approve, reject);
     card.append(form);
   }
   if (owner && ['candidate', 'in_review'].includes(item.status)) {
