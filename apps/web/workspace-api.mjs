@@ -102,7 +102,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
-      const [organizations, profiles, opportunities, sites, sources, decisions, versions, reviews] = await Promise.all([
+      const [organizations, profiles, opportunities, sites, sources, decisions, versions, reviews, actionPlans] = await Promise.all([
         select('organizations', 'id,name,business_model', { id: `eq.${org}`, limit: '1' }),
         select('business_profiles', 'id,site_id,display_name,audience_summary,offering_summary,primary_outcome,target_market,review_status', { ...scope, limit: '1' }),
         select('growth_opportunities', 'id,channel,audience_need,proposed_action,rationale,status,evidence_confidence,created_at', { ...scope, order: 'created_at.desc', limit: '30' }),
@@ -111,12 +111,13 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
         select('opportunity_decisions', 'opportunity_id,decision,reason,decided_at', { ...scope, order: 'decided_at.desc', limit: '500' }),
         select('content_versions', 'id,opportunity_id,version_number,title,draft_body,status,created_at', { ...scope, order: 'created_at.desc', limit: '500' }),
         select('content_reviews', 'version_id,decision,reason,reviewed_at', { ...scope, order: 'reviewed_at.desc', limit: '500' }),
+        select('content_action_plans', 'version_id,proposed_path,success_signal,rollback_plan,created_at', { ...scope, order: 'created_at.desc', limit: '500' }),
       ]);
       if (organizations.length !== 1) throw new Error('找不到測試工作區');
-      if (sources.length === 500 || decisions.length === 500 || versions.length === 500 || reviews.length === 500) throw new Error('證據、決策或版本審核筆數超過此測試版可完整顯示的上限');
+      if ([sources, decisions, versions, reviews, actionPlans].some(rows => rows.length === 500)) throw new Error('證據、版本或執行方案筆數超過此測試版可完整顯示的上限');
       linkedSite = profiles[0]?.site_id || null;
       linkedSiteVerified = !!sites.find(site => site.id === linkedSite)?.verified_at;
-      return { organization: organizations[0], profile: profiles[0] || null, opportunities, sites, sources, decisions, versions, reviews, role: membership.role };
+      return { organization: organizations[0], profile: profiles[0] || null, opportunities, sites, sources, decisions, versions, reviews, actionPlans, role: membership.role };
     },
     async verifyViewerIsolation() {
       // Fixture B has no access to Fixture A. This is a real JWT Data API
@@ -190,6 +191,12 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       return request('/rest/v1/rpc/review_content_draft', {
         method: 'POST', body: { p_organization_id: ownerOnly(), p_version_id: versionId,
           p_decision: decision, p_reason: reason },
+      });
+    },
+    planContentAction(versionId, proposedPath, successSignal, rollbackPlan) {
+      return request('/rest/v1/rpc/plan_content_action', {
+        method: 'POST', body: { p_organization_id: ownerOnly(), p_version_id: versionId,
+          p_proposed_path: proposedPath, p_success_signal: successSignal, p_rollback_plan: rollbackPlan },
       });
     },
   };

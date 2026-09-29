@@ -73,12 +73,13 @@ function revealVersion(opportunityId, text) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function opportunityCard(item, owner, sources, decisions, versions, reviews, orderReason) {
+function opportunityCard(item, owner, sources, decisions, versions, reviews, actionPlans, orderReason) {
   const card = document.createElement('article');
   card.className = 'opportunity-card';
   card.dataset.opportunityId = item.id;
   const latestVersion = versions.reduce((latest, version) => !latest || version.version_number > latest.version_number ? version : latest, null);
   const latestReview = latestVersion && reviews.find(row => row.version_id === latestVersion.id);
+  const latestPlan = latestVersion && actionPlans.find(row => row.version_id === latestVersion.id);
   const top = document.createElement('div');
   top.className = 'opportunity-top';
   const channel = document.createElement('span');
@@ -96,7 +97,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
   const progress = document.createElement('p');
   progress.className = 'opportunity-progress';
   progress.textContent = latestVersion
-    ? `目前進度：第 ${latestVersion.version_number} 版${latestReview ? `已${draftDecisionLabels[latestReview.decision] || latestReview.decision}` : '待審核'}${latestReview?.decision === 'rejected' ? '，可新增修訂版' : ''}`
+    ? `目前進度：第 ${latestVersion.version_number} 版${latestReview ? `已${draftDecisionLabels[latestReview.decision] || latestReview.decision}` : '待審核'}${latestPlan ? '，執行方案已記錄' : latestReview?.decision === 'approved' ? '，可規劃執行' : latestReview?.decision === 'rejected' ? '，可新增修訂版' : ''}`
     : item.status === 'approved' ? '目前進度：機會已核准，可建立第一版草稿' : `目前進度：${status.textContent}`;
   card.append(progress);
   const evidence = document.createElement('details');
@@ -131,6 +132,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
   history.append(historySummary);
   for (const version of versions.filter(row => row.id !== latestVersion?.id)) {
     const review = reviews.find(row => row.version_id === version.id);
+    const plan = actionPlans.find(row => row.version_id === version.id);
     const heading = document.createElement('p');
     heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)} · ${version.title} · ${review ? `內部${draftDecisionLabels[review.decision] || review.decision}` : '未審核'}`;
     const body = document.createElement('p');
@@ -140,6 +142,11 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
       const reviewNote = document.createElement('p');
       reviewNote.textContent = `版本審核：${formatTime(review.reviewed_at)}｜理由：${review.reason}。此核准不會公開發布。`;
       history.append(reviewNote);
+    }
+    if (plan) {
+      const planNote = document.createElement('p');
+      planNote.textContent = `歷史執行方案：${plan.proposed_path} · ${formatTime(plan.created_at)}。僅為內部規劃，未發布。`;
+      history.append(planNote);
     }
   }
   const focus = document.createElement('section');
@@ -155,6 +162,15 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
       ? `內部${draftDecisionLabels[latestReview.decision] || latestReview.decision} · ${formatTime(latestReview.reviewed_at)} · 理由：${latestReview.reason}。尚未公開發布。`
       : '待審核 · 這是已儲存的內容，尚未公開發布。';
     focus.append(title, body, state);
+    if (latestPlan) {
+      const plan = document.createElement('div'); plan.className = 'action-plan-summary';
+      const planHeading = document.createElement('h5'); planHeading.textContent = '內部執行方案 · 尚未發布';
+      const path = document.createElement('p'); path.textContent = `建議路徑：${latestPlan.proposed_path}（目前沒有公開網址）`;
+      const signal = document.createElement('p'); signal.textContent = `發布後觀察：${latestPlan.success_signal}`;
+      const rollback = document.createElement('p'); rollback.textContent = `撤回方式：${latestPlan.rollback_plan}`;
+      plan.append(planHeading, path, signal, rollback);
+      focus.append(plan);
+    }
   } else {
     const empty = document.createElement('p'); empty.textContent = '尚無草稿。請先記錄第一版。'; focus.append(empty);
   }
@@ -227,6 +243,50 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, ord
     form.append(versionNote, label, approve, reject);
     focus.append(form);
   }
+  if (owner && item.status === 'approved' && latestVersion && latestReview?.decision === 'approved' && !latestPlan) {
+    const form = document.createElement('form');
+    form.className = 'review-form action-plan-form';
+    const note = document.createElement('p');
+    note.textContent = '下一步：先記錄執行方案。這不會建立頁面，也不會對外發布。';
+    const pathLabel = document.createElement('label');
+    pathLabel.textContent = '建議頁面路徑（非公開網址）';
+    const path = document.createElement('input');
+    path.name = 'proposed_path'; path.required = true; path.maxLength = 201; path.placeholder = '/product-comparison';
+    pathLabel.append(path);
+    const signalLabel = document.createElement('label');
+    signalLabel.textContent = '發布後要觀察的指標';
+    const signal = document.createElement('input');
+    signal.name = 'success_signal'; signal.required = true; signal.maxLength = 1000;
+    signalLabel.append(signal);
+    const rollbackLabel = document.createElement('label');
+    rollbackLabel.textContent = '若內容需撤回，預計如何處理';
+    const rollback = document.createElement('input');
+    rollback.name = 'rollback_plan'; rollback.required = true; rollback.maxLength = 1000;
+    rollbackLabel.append(rollback);
+    const save = document.createElement('button');
+    save.type = 'submit'; save.className = 'secondary'; save.textContent = '記錄內部執行方案';
+    form.append(note, pathLabel, signalLabel, rollbackLabel, save);
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const proposedPath = path.value.trim();
+      if (!/^\/[a-z0-9][a-z0-9/_-]{0,199}$/.test(proposedPath)) {
+        message('路徑須以 / 開頭，只使用小寫英文字母、數字、-、_ 和 /，例如 /product-comparison。', true);
+        return;
+      }
+      if (unsavedDraft && (unsavedDraft.titleInput.value.trim() || unsavedDraft.bodyInput.value.trim())) {
+        message('有未儲存的新草稿。請先記錄新版本，或清空欄位後再規劃目前版本。', true);
+        unsavedDraft.panel.open = true;
+        unsavedDraft.form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      busy(form, async () => {
+        await api.planContentAction(latestVersion.id, proposedPath, signal.value.trim(), rollback.value.trim());
+        await refresh();
+        revealVersion(item.id, `第 ${latestVersion.version_number} 版的內部執行方案已記錄，尚未公開發布。`);
+      });
+    });
+    focus.append(form);
+  }
   if (owner && ['candidate', 'in_review'].includes(item.status)) {
     const form = document.createElement('form');
     form.className = 'review-form';
@@ -272,7 +332,7 @@ async function refresh() {
     next.sources.filter(source => source.opportunity_id === item.id),
     next.decisions.filter(decision => decision.opportunity_id === item.id),
     next.versions.filter(version => version.opportunity_id === item.id),
-    next.reviews, reason)));
+    next.reviews, next.actionPlans, reason)));
   if (!next.opportunities.length) list.textContent = '尚無候選機會。先整理一個值得回答的客戶問題。';
 }
 

@@ -31,3 +31,9 @@
 .compose-draft .draft-form { border-top: 0; }
 .opportunity-card > .evidence { margin-top: 18px; }
 @media(max-width:540px){.opportunity-card{padding:20px}.draft-focus{padding:16px}.draft-focus .review-form button{flex:1 1 auto}}
+.action-plan-summary { margin-top: 18px; padding: 15px 18px; border: 1px solid #cbded1; border-radius: 9px; background: #f0f7f0; }
+.action-plan-summary h5 { margin: 0 0 8px; font-size: 13px; color: var(--green); }
+.action-plan-summary p { margin: 5px 0; overflow-wrap: anywhere; }
+.action-plan-form { display: grid; grid-template-columns: 1fr; align-items: start; }
+.action-plan-form label { margin: 4px 0; }
+.action-plan-form button { justify-self: start; }
