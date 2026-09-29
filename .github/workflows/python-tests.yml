@@ -20,10 +20,12 @@ jobs:
         run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json
       - name: CSV import preview tests
         working-directory: prototype/csv-import
-        run: python3 -m unittest -v test_validate.py test_store.py
+        run: python3 -m unittest -v test_validate.py test_store.py test_gsc_daily.py
       - name: Migration static contract checks
         working-directory: supabase
         run: python3 -m unittest -v test_migration_contract.py
+      - name: Live Auth mutation runner offline checks
+        run: python3 -m unittest -v supabase/tests/test_real_auth_mutation_check.py
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
