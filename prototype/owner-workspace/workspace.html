@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://vhzryhibmpvglzcmfnaa.supabase.co; form-action 'none'; base-uri 'none'">
+  <title>Growth OS｜測試工作台</title>
+  <link rel="stylesheet" href="./workspace.css">
+  <script type="module" src="./workspace.mjs"></script>
+</head>
+<body>
+  <header class="topbar"><a href="/" class="brand">G<span>O</span><small>Growth OS</small></a><span class="environment">隔離 Staging · 測試資料</span></header>
+  <main>
+    <section id="sign-in" class="entry">
+      <div><p class="eyebrow">OWNER WORKSPACE</p><h1>把成長機會<br><em>變成可審核的行動。</em></h1><p class="lead">先確認你的企業定位，再整理客戶需求與內容機會。每筆建議保留來源，由企業擁有者決定是否採納。</p><p class="disclaimer">此頁只用於獨立 Staging 的合成資料驗收。請勿輸入真實客戶資訊。工作台僅在此分頁記住登入狀態，重新整理後需再次登入。</p></div>
+      <form id="login-form" class="panel" autocomplete="off">
+        <p class="eyebrow">TEST ACCESS</p><h2>進入測試工作台</h2>
+        <label>測試帳號電子郵件<input name="email" type="email" autocomplete="username" required></label>
+        <label>密碼<input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit" class="primary">登入</button>
+        <p class="hint">僅使用獨立 Growth OS Staging 帳號。密碼送往 Supabase Auth，不保存在本站。</p>
+      </form>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="workspace-header"><div><p class="eyebrow">GROWTH OS / WORKSPACE</p><h1 id="organization-name"></h1><p id="role-text" class="lead"></p></div><button id="sign-out" type="button" class="quiet">結束此分頁工作階段</button></div>
+      <p id="notice" role="status" aria-live="polite" class="notice" hidden></p>
+      <div class="workspace-grid">
+        <section class="panel profile-panel"><div class="section-head"><div><p class="eyebrow">01 / POSITIONING</p><h2>企業資料</h2></div><span id="profile-status" class="pill"></span></div>
+          <p class="explain">用自己的產品、受眾與市場定義機會。修改後需再次核准，才能建立新機會。</p>
+          <form id="profile-form" class="fields">
+            <label>對外名稱<input name="display_name" maxlength="160" required></label>
+            <label>目標市場<input name="target_market" maxlength="160" required></label>
+            <label>主要成果<select name="primary_outcome"><option value="order">訂單</option><option value="qualified_lead">合格詢問</option><option value="booking">預約</option><option value="subscription">訂閱</option></select></label>
+            <label>目標受眾<textarea name="audience_summary" maxlength="1000" required></textarea></label>
+            <label>提供的產品或服務<textarea name="offering_summary" maxlength="1000" required></textarea></label>
+            <p id="linked-site-status" class="hint"></p>
+            <label id="detach-site-label" class="detach-control" hidden><input id="detach-site" type="checkbox" name="detach_site">我了解並選擇解除這個未驗證網站與企業資料的關聯</label>
+            <div class="actions owner-control"><button id="save-profile" type="submit" class="primary">儲存資料</button><button id="approve-profile" type="button" class="secondary">核准目前版本</button></div>
+          </form>
+        </section>
+
+        <section class="panel opportunity-panel"><div class="section-head"><div><p class="eyebrow">02 / DISCOVERY</p><h2>新增成長機會</h2></div></div>
+          <p class="explain">第一版只接受企業主提供的常見問題或研究筆記，尚未宣稱已驗證搜尋量或流量。</p>
+          <form id="opportunity-form" class="fields owner-control">
+            <label>渠道<select name="channel"><option value="organic_search">自然搜尋</option><option value="ai_discovery">AI 探索</option><option value="owned_content">自有內容</option><option value="distribution">內容分發</option></select></label>
+            <label>客戶需要什麼<textarea name="audience_need" maxlength="500" required></textarea></label>
+            <label>建議行動<textarea name="proposed_action" maxlength="1000" required></textarea></label>
+            <label>為何值得做<textarea name="rationale" maxlength="1000" required></textarea></label>
+            <label>來源種類<select name="source_kind"><option value="owner_question">企業主觀察的問題</option><option value="research_note">研究筆記</option></select></label>
+            <label>來源說明<textarea name="evidence_note" maxlength="1000" required></textarea></label>
+            <button type="submit" class="primary">送出候選機會</button>
+          </form>
+          <p id="viewer-note" class="hint" hidden>你有檢視權限；只有企業擁有者可以編輯或審核。</p>
+          <p id="approval-note" class="hint" hidden>請先儲存並核准企業資料，再建立候選機會。</p>
+        </section>
+      </div>
+      <section class="queue"><div class="section-head"><div><p class="eyebrow">03 / DECISIONS</p><h2>機會清單</h2></div><span id="queue-count" class="pill"></span></div><div id="opportunities" class="cards"></div></section>
+    </section>
+  </main>
+  <footer>Growth OS by Good Morning Digital Co., Ltd. · 隔離測試工作台 · 不代表產品正式上線</footer>
+</body>
+</html>
