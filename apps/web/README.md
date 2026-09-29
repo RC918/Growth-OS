@@ -9,3 +9,5 @@ python3 -m http.server 8081 --directory apps/web
 ```
 
 開啟 `http://127.0.0.1:8081`。Vercel 以根目錄 `vercel.json` 的 `outputDirectory=apps/web` 發布靜態預覽。此頁不代表可用產品；後續 Next.js 與真正的授權流程需要另外驗收。
+
+登入後的工作台候選程式放在 [`prototype/owner-workspace`](../../prototype/owner-workspace/README.md)，尚未包含在 Vercel 靜態預覽輸出中。
