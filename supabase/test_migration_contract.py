@@ -9,6 +9,7 @@ GROWTH = (ROOT / "20260928160322_growth_opportunities_v1.sql").read_text()
 REVIEW = (ROOT / "20260928161802_review_growth_opportunity.sql").read_text()
 CREATE = (ROOT / "20260928162623_create_growth_opportunity.sql").read_text()
 PROFILE = (ROOT / "20260929015843_business_profile_review.sql").read_text()
+GATE = (ROOT / "20260929020743_profile_gate_private_rpcs.sql").read_text()
 TABLES = ("organizations", "organization_members", "sites", "scans", "findings",
           "import_batches", "funnel_daily", "recommendations", "actions", "audit_events")
 GROWTH_TABLES = ("business_profiles", "growth_opportunities", "opportunity_sources", "opportunity_decisions")
@@ -81,6 +82,17 @@ class MigrationContractTests(unittest.TestCase):
         self.assertIn("review_status = 'draft', reviewed_by = null, reviewed_at = null", PROFILE)
         self.assertIn("grant execute on function public.save_business_profile", PROFILE)
         self.assertIn("grant execute on function public.approve_business_profile", PROFILE)
+
+    def test_candidate_requires_approved_profile_and_private_mutation(self):
+        self.assertIn("review_status = 'owner_approved'", GATE)
+        self.assertIn("Approved business profile required", GATE)
+        self.assertIn("function private.create_growth_opportunity_impl", GATE)
+        self.assertIn("function private.review_growth_opportunity_impl", GATE)
+        self.assertEqual(GATE.count("language plpgsql security definer"), 2)
+        self.assertEqual(GATE.count("language sql security invoker"), 2)
+        self.assertIn("for update;", GATE)
+        self.assertIn("grant execute on function public.create_growth_opportunity", GATE)
+        self.assertIn("grant execute on function public.review_growth_opportunity", GATE)
 
 
 if __name__ == "__main__":
