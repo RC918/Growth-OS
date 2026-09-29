@@ -62,6 +62,7 @@ const formatTime = value => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/T
 function opportunityCard(item, owner, sources, decisions, versions, orderReason) {
   const card = document.createElement('article');
   card.className = 'opportunity-card';
+  card.dataset.opportunityId = item.id;
   const top = document.createElement('div');
   top.className = 'opportunity-top';
   const channel = document.createElement('span');
@@ -106,7 +107,7 @@ function opportunityCard(item, owner, sources, decisions, versions, orderReason)
   }
   card.append(evidence);
   const history = document.createElement('details');
-  history.className = 'evidence';
+  history.className = 'evidence version-history';
   const historySummary = document.createElement('summary');
   historySummary.textContent = `內容草稿版本 ${versions.length} 筆`;
   history.append(historySummary);
@@ -139,7 +140,22 @@ function opportunityCard(item, owner, sources, decisions, versions, orderReason)
     form.append(title, body, save);
     form.addEventListener('submit', event => {
       event.preventDefault();
-      busy(form, async () => { await api.createContentDraft(item.id, titleInput.value, bodyInput.value); await refresh(); });
+      busy(form, async () => {
+        await api.createContentDraft(item.id, titleInput.value, bodyInput.value);
+        await refresh();
+        const updated = [...$('opportunities').querySelectorAll('.opportunity-card')]
+          .find(candidate => candidate.dataset.opportunityId === item.id);
+        const versionsPanel = updated?.querySelector('.version-history');
+        if (versionsPanel) {
+          versionsPanel.open = true;
+          const result = document.createElement('p');
+          result.className = 'draft-result';
+          result.setAttribute('role', 'status');
+          result.textContent = '新草稿版本已記錄，請在下方確認內容。';
+          versionsPanel.insertBefore(result, versionsPanel.children[1] || null);
+          versionsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
     });
     card.append(form);
   }
