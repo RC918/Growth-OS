@@ -63,14 +63,14 @@ def selected(token, table, organization, columns, *, extra=None):
 
 def sole_profile(token, organization):
     profiles = selected(token, "business_profiles", organization,
-                        ",".join(PROFILE_FIELDS) + ",review_status")
+                        ",".join(PROFILE_FIELDS) + ",site_id,review_status")
     if len(profiles) != 1:
         raise AssertionError("Expected exactly one synthetic business profile")
     return profiles[0]
 
 
 def save_payload(organization, values):
-    return {"p_organization_id": organization, "p_site_id": None,
+    return {"p_organization_id": organization, "p_site_id": values["site_id"],
             **{f"p_{name}": values[name] for name in PROFILE_FIELDS}}
 
 
@@ -98,61 +98,48 @@ def check(tokens):
     original = sole_profile(tokens["A"], org_a)
     if original["review_status"] != "draft" or sole_profile(tokens["B"], org_b)["review_status"] != "draft":
         raise AssertionError("Expected fresh draft profiles in both fixtures")
+    linked_site = selected(tokens["A"], "sites", org_a, "id,verified_at",
+                           extra={"id": f"eq.{original['site_id']}"})
+    if len(linked_site) != 1 or linked_site[0]["verified_at"] is not None:
+        raise AssertionError("Expected the synthetic profile to link one unverified fixture site")
 
     # All denial checks precede the first authorized mutation.
     rpc(tokens["A"], "create_growth_opportunity", candidate_payload(org_a), denied_code="23514")
     rpc(tokens["B"], "approve_business_profile", {"p_organization_id": org_b}, denied_code="42501")
     rpc(tokens["A"], "approve_business_profile", {"p_organization_id": org_b}, denied_code="42501")
     rpc(tokens["B"], "create_growth_opportunity", candidate_payload(org_b), denied_code="42501")
+    rpc(tokens["A"], "save_business_profile", save_payload(org_a, original), denied_code="23514")
+    rpc(tokens["A"], "approve_business_profile", {"p_organization_id": org_a})
+    if sole_profile(tokens["A"], org_a)["review_status"] != "owner_approved":
+        raise AssertionError("Owner approval was not visible")
 
-    changed = {name: original[name] for name in PROFILE_FIELDS}
-    changed["display_name"] += " [Staging RPC acceptance]"
-    if len(changed["display_name"]) > 160:
-        raise AssertionError("Fixture display name is too long for acceptance suffix")
-    profile_changed = False
-    try:
-        rpc(tokens["A"], "save_business_profile", save_payload(org_a, changed))
-        profile_changed = True
-        if sole_profile(tokens["A"], org_a)["review_status"] != "draft":
-            raise AssertionError("Profile save did not leave a draft")
-        rpc(tokens["A"], "approve_business_profile", {"p_organization_id": org_a})
-        if sole_profile(tokens["A"], org_a)["review_status"] != "owner_approved":
-            raise AssertionError("Owner approval was not visible")
-
-        opportunity = rpc(tokens["A"], "create_growth_opportunity", candidate_payload(org_a))
-        created = selected(tokens["A"], "growth_opportunities", org_a, "id,status",
-                           extra={"id": f"eq.{opportunity}"})
-        sources = selected(tokens["A"], "opportunity_sources", org_a, "opportunity_id,source_kind",
-                           extra={"opportunity_id": f"eq.{opportunity}"})
-        if len(created) != 1 or created[0]["status"] != "candidate" or len(sources) != 1:
-            raise AssertionError("Candidate/source transaction was incomplete")
-        rpc(tokens["B"], "review_growth_opportunity",
-            {"p_organization_id": org_a, "p_opportunity_id": opportunity,
-             "p_decision": "approved", "p_reason": "Synthetic viewer denial"}, denied_code="42501")
-        rpc(tokens["A"], "review_growth_opportunity",
-            {"p_organization_id": org_a, "p_opportunity_id": opportunity,
-             "p_decision": "approved", "p_reason": "Synthetic owner-approved acceptance"})
-        reviewed = selected(tokens["A"], "growth_opportunities", org_a, "id,status",
-                            extra={"id": f"eq.{opportunity}"})
-        decisions = selected(tokens["A"], "opportunity_decisions", org_a, "opportunity_id,decision",
-                             extra={"opportunity_id": f"eq.{opportunity}"})
-        audits = selected(tokens["A"], "audit_events", org_a, "event_type,object_id",
-                          extra={"object_id": f"eq.{opportunity}"})
-        if (len(reviewed) != 1 or reviewed[0]["status"] != "approved"
-                or len(decisions) != 1 or decisions[0]["decision"] != "approved"
-                or sorted(item["event_type"] for item in audits)
-                   != ["growth_opportunity_created", "growth_opportunity_reviewed"]):
-            raise AssertionError("Owner review, decision, or audit chain was incomplete")
-        if selected(tokens["B"], "growth_opportunities", org_a, "id",
-                    extra={"id": f"eq.{opportunity}"}):
-            raise AssertionError("Viewer could read the owner's opportunity")
-    finally:
-        if profile_changed:
-            rpc(tokens["A"], "save_business_profile", save_payload(org_a, original))
-            restored = sole_profile(tokens["A"], org_a)
-            if restored["review_status"] != "draft" or any(
-                    restored[name] != original[name] for name in PROFILE_FIELDS):
-                raise AssertionError("Profile could not be restored to its original draft")
+    opportunity = rpc(tokens["A"], "create_growth_opportunity", candidate_payload(org_a))
+    created = selected(tokens["A"], "growth_opportunities", org_a, "id,status",
+                       extra={"id": f"eq.{opportunity}"})
+    sources = selected(tokens["A"], "opportunity_sources", org_a, "opportunity_id,source_kind",
+                       extra={"opportunity_id": f"eq.{opportunity}"})
+    if len(created) != 1 or created[0]["status"] != "candidate" or len(sources) != 1:
+        raise AssertionError("Candidate/source transaction was incomplete")
+    rpc(tokens["B"], "review_growth_opportunity",
+        {"p_organization_id": org_a, "p_opportunity_id": opportunity,
+         "p_decision": "approved", "p_reason": "Synthetic viewer denial"}, denied_code="42501")
+    rpc(tokens["A"], "review_growth_opportunity",
+        {"p_organization_id": org_a, "p_opportunity_id": opportunity,
+         "p_decision": "approved", "p_reason": "Synthetic owner-approved acceptance"})
+    reviewed = selected(tokens["A"], "growth_opportunities", org_a, "id,status",
+                        extra={"id": f"eq.{opportunity}"})
+    decisions = selected(tokens["A"], "opportunity_decisions", org_a, "opportunity_id,decision",
+                         extra={"opportunity_id": f"eq.{opportunity}"})
+    audits = selected(tokens["A"], "audit_events", org_a, "event_type,object_id",
+                      extra={"object_id": f"eq.{opportunity}"})
+    if (len(reviewed) != 1 or reviewed[0]["status"] != "approved"
+            or len(decisions) != 1 or decisions[0]["decision"] != "approved"
+            or sorted(item["event_type"] for item in audits)
+               != ["growth_opportunity_created", "growth_opportunity_reviewed"]):
+        raise AssertionError("Owner review, decision, or audit chain was incomplete")
+    if selected(tokens["B"], "growth_opportunities", org_a, "id",
+                extra={"id": f"eq.{opportunity}"}):
+        raise AssertionError("Viewer could read the owner's opportunity")
 
 
 def main():
