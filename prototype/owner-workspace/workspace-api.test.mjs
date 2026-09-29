@@ -23,6 +23,12 @@ function fixture(role = 'owner', verified = true) {
     assert.equal(options.headers.Authorization, expected);
     if (parsed.pathname === '/auth/v1/user') return { ok: true, json: async () => ({ id: `synthetic-${role}` }) };
     if (parsed.pathname.endsWith('/organization_members')) {
+      if (parsed.searchParams.get('user_id') !== `eq.synthetic-${role}`) {
+        return { ok: true, json: async () => [
+          { organization_id: orgA, role: 'owner' },
+          { organization_id: orgA, role: 'viewer' },
+        ] };
+      }
       return { ok: true, json: async () => [{ organization_id: role === 'owner' ? orgA : orgB, role }] };
     }
     if (parsed.pathname.endsWith('/organizations')) {
@@ -46,6 +52,7 @@ function fixture(role = 'owner', verified = true) {
 test('owner session scopes dashboard reads and sends mutations with the authenticated organization', async () => {
   const { api, calls } = fixture();
   await api.completeMagicLink(fragment('owner'));
+  assert.equal(calls.find(call => call.path.endsWith('/organization_members')).query.get('user_id'), 'eq.synthetic-owner');
   await api.dashboard();
   const reads = calls.filter(call => ['/rest/v1/organizations', '/rest/v1/business_profiles', '/rest/v1/growth_opportunities'].includes(call.path));
   assert.equal(reads.length, 3);

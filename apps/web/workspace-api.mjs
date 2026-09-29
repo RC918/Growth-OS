@@ -52,7 +52,11 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       // Ask Auth for the current user; an unverified fragment is not a session.
       const user = await request('/auth/v1/user');
       if (!user?.id) throw new Error('登入未取得有效使用者');
-      const memberships = await select('organization_members', 'organization_id,role', { limit: '2' });
+      // Workspace members can see colleagues under RLS; authenticate using only the
+      // current user's membership, not the number of rows visible in the org.
+      const memberships = await select('organization_members', 'organization_id,role', {
+        user_id: `eq.${user.id}`, limit: '2',
+      });
       if (memberships.length !== 1 || !['owner', 'viewer'].includes(memberships[0].role)) {
         throw new Error('此測試版需要恰好一個 owner 或 viewer 工作區');
       }
