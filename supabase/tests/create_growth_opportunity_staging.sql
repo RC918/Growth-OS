@@ -65,7 +65,23 @@ do $$ begin
    raise exception 'empty evidence accepted';
  exception when invalid_parameter_value then null;
  end;
+ begin
+   perform public.create_growth_opportunity('73a88055-0a0b-40c0-b22f-a6d312420001',null,'organic_search','Need','Action','Reason','owner_question','Question');
+   raise exception 'candidate allowed before approved profile';
+ exception when check_violation then null;
+ end;
 end $$;
+
+select public.save_business_profile('73a88055-0a0b-40c0-b22f-a6d312420001',
+ '73a88055-0a0b-40c0-b22f-a6d312430001','Synthetic shop','Synthetic buyers','Synthetic products','order','Taiwan');
+do $$ begin
+ begin
+   perform public.create_growth_opportunity('73a88055-0a0b-40c0-b22f-a6d312420001',null,'organic_search','Need','Action','Reason','owner_question','Question');
+   raise exception 'candidate allowed with draft profile';
+ exception when check_violation then null;
+ end;
+end $$;
+select public.approve_business_profile('73a88055-0a0b-40c0-b22f-a6d312420001');
 
 select public.create_growth_opportunity('73a88055-0a0b-40c0-b22f-a6d312420001',
  '73a88055-0a0b-40c0-b22f-a6d312430001','organic_search',
@@ -85,6 +101,16 @@ begin
    v_id,'approved','Owner approves the draft idea');
 end $$;
 
+select public.save_business_profile('73a88055-0a0b-40c0-b22f-a6d312420001',
+ '73a88055-0a0b-40c0-b22f-a6d312430001','Synthetic shop','Updated synthetic buyers','Synthetic products','order','Taiwan');
+do $$ begin
+ begin
+   perform public.create_growth_opportunity('73a88055-0a0b-40c0-b22f-a6d312420001',null,'organic_search','Need','Action','Reason','owner_question','Question');
+   raise exception 'candidate allowed after profile edit';
+ exception when check_violation then null;
+ end;
+end $$;
+
 reset role;
 do $$ begin
  if (select count(*) from public.growth_opportunities where organization_id='73a88055-0a0b-40c0-b22f-a6d312420001') <> 3
@@ -102,4 +128,4 @@ do $$ begin
 end $$;
 
 rollback;
-select 'PASS: owner-only first-party candidates; tenant/site/source restrictions and atomic audit; rolled back' as result;
+select 'PASS: approved profile gate; owner-only candidates; tenant/site/source restrictions and atomic audit; rolled back' as result;
