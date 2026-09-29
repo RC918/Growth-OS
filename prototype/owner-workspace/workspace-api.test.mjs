@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { createWorkspaceApi } from './workspace-api.mjs';
 
 const origin = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
@@ -115,4 +116,12 @@ test('invalid callback and rejected Auth response clear the in-memory session', 
   await assert.rejects(api.dashboard(), /請先選擇工作區/);
   await assert.rejects(api.completeMagicLink('#error=access_denied&error_description=DO-NOT-LEAK'), /登入連結無效/);
   await assert.rejects(api.completeMagicLink('#access_token=x&token_type=bearer&expires_in=0'), /缺少有效工作階段/);
+});
+
+test('preview publishes the exact reviewed workspace files', async () => {
+  for (const name of ['workspace.html', 'workspace.mjs', 'workspace-api.mjs', 'workspace.css']) {
+    const source = await readFile(new URL(name, import.meta.url), 'utf8');
+    const preview = await readFile(new URL(`../../apps/web/${name}`, import.meta.url), 'utf8');
+    assert.equal(preview, source, `${name} differs from the reviewed source`);
+  }
 });
