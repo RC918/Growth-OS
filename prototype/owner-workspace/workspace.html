@@ -35,7 +35,9 @@
             <label>主要成果<select name="primary_outcome"><option value="order">訂單</option><option value="qualified_lead">合格詢問</option><option value="booking">預約</option><option value="subscription">訂閱</option></select></label>
             <label>目標受眾<textarea name="audience_summary" maxlength="1000" required></textarea></label>
             <label>提供的產品或服務<textarea name="offering_summary" maxlength="1000" required></textarea></label>
-            <div class="actions owner-control"><button type="submit" class="primary">儲存資料</button><button id="approve-profile" type="button" class="secondary">核准目前版本</button></div>
+            <p id="linked-site-status" class="hint"></p>
+            <label id="detach-site-label" class="detach-control" hidden><input id="detach-site" type="checkbox" name="detach_site">我了解並選擇解除這個未驗證網站與企業資料的關聯</label>
+            <div class="actions owner-control"><button id="save-profile" type="submit" class="primary">儲存資料</button><button id="approve-profile" type="button" class="secondary">核准目前版本</button></div>
           </form>
         </section>
 
