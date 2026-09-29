@@ -1,4 +1,5 @@
 import { createWorkspaceApi } from './workspace-api.mjs';
+import { orderOpportunities } from './opportunity-order.mjs';
 
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
@@ -58,7 +59,7 @@ const sourceLabels = { owner_question: '企業主觀察', product_catalog: '商�
 const decisionLabels = { approved: '核准', rejected: '不採納' };
 const formatTime = value => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
-function opportunityCard(item, owner, sources, decisions) {
+function opportunityCard(item, owner, sources, decisions, versions, orderReason) {
   const card = document.createElement('article');
   card.className = 'opportunity-card';
   const top = document.createElement('div');
@@ -75,6 +76,9 @@ function opportunityCard(item, owner, sources, decisions) {
   const rationale = document.createElement('small');
   rationale.textContent = `判斷依據：${item.rationale} · 信心程度：${item.evidence_confidence}`;
   card.append(top, heading, action, rationale);
+  const readiness = document.createElement('small');
+  readiness.textContent = `執行準備：${orderReason}`;
+  card.append(readiness);
   const evidence = document.createElement('details');
   evidence.className = 'evidence';
   const summary = document.createElement('summary');
@@ -101,6 +105,44 @@ function opportunityCard(item, owner, sources, decisions) {
     evidence.append(row);
   }
   card.append(evidence);
+  const history = document.createElement('details');
+  history.className = 'evidence';
+  const historySummary = document.createElement('summary');
+  historySummary.textContent = `內容草稿版本 ${versions.length} 筆`;
+  history.append(historySummary);
+  if (!versions.length) {
+    const empty = document.createElement('p'); empty.textContent = '尚無內容草稿。'; history.append(empty);
+  }
+  for (const version of versions) {
+    const heading = document.createElement('p');
+    heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)} · 草稿：${version.title}`;
+    const body = document.createElement('p');
+    body.className = 'draft-body'; body.textContent = version.draft_body;
+    history.append(heading, body);
+  }
+  card.append(history);
+  if (owner && item.status === 'approved' && sources.length && decisions.some(row => row.decision === 'approved')) {
+    const form = document.createElement('form');
+    form.className = 'review-form draft-form';
+    const title = document.createElement('label');
+    title.textContent = '草稿標題';
+    const titleInput = document.createElement('input');
+    titleInput.name = 'title'; titleInput.required = true; titleInput.maxLength = 160;
+    title.append(titleInput);
+    const body = document.createElement('label');
+    body.textContent = '草稿內容';
+    const bodyInput = document.createElement('textarea');
+    bodyInput.name = 'draft_body'; bodyInput.required = true; bodyInput.maxLength = 10000;
+    body.append(bodyInput);
+    const save = document.createElement('button');
+    save.type = 'submit'; save.className = 'secondary'; save.textContent = '記錄新草稿版本';
+    form.append(title, body, save);
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      busy(form, async () => { await api.createContentDraft(item.id, titleInput.value, bodyInput.value); await refresh(); });
+    });
+    card.append(form);
+  }
   if (owner && ['candidate', 'in_review'].includes(item.status)) {
     const form = document.createElement('form');
     form.className = 'review-form';
@@ -139,9 +181,10 @@ async function refresh() {
   showProfile(next.profile, next.sites, owner);
   $('queue-count').textContent = `${next.opportunities.length} 筆`;
   const list = $('opportunities');
-  list.replaceChildren(...next.opportunities.map(item => opportunityCard(item, owner,
+  list.replaceChildren(...orderOpportunities(next.opportunities, next.sources, next.decisions).map(({ item, reason }) => opportunityCard(item, owner,
     next.sources.filter(source => source.opportunity_id === item.id),
-    next.decisions.filter(decision => decision.opportunity_id === item.id))));
+    next.decisions.filter(decision => decision.opportunity_id === item.id),
+    next.versions.filter(version => version.opportunity_id === item.id), reason)));
   if (!next.opportunities.length) list.textContent = '尚無候選機會。先整理一個值得回答的客戶問題。';
 }
 

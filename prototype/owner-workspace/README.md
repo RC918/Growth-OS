@@ -15,3 +15,5 @@
 viewer 真實網頁唯讀與直接 API 權限拒絕驗收已完成；在同一工作階段，跨工作區讀取無資料、owner RPC 回傳 HTTP 403。既有示例帳號不能收信，不適合 Magic Link 驗收。先前於本機執行的 14 表 Auth/Data API PASS，只涵蓋登入與唯讀租戶隔離。
 
 機會卡片展開後顯示來源類型、觀察時間、原始說明及審核理由／時間，資料分別來自同租戶的 `opportunity_sources` 與 `opportunity_decisions`。未接入 GSC、GA4 前，搜尋曝光與到站訪問明示未知；此清單沒有真實流量排名。來源和決策查詢達到 500 筆上限時會失敗，避免截斷後仍展示不完整的證據鏈。
+
+下一版依執行準備順序顯示資料缺口、已核准可備稿、待審核及不採納，不推測需求量或流量。owner 可為有來源和核准決策的機會留下不可覆寫的內容草稿版本；viewer 只能讀取，草稿不會發布。版本查詢同樣在 500 筆時拒絕截斷呈現。版本資料庫回滾測試位於 `supabase/tests/content_draft_versions_staging.sql`，網頁測試可執行 `node --test prototype/owner-workspace/*.test.mjs`。新版預覽的真實 Auth 網頁互動驗收仍待完成。
