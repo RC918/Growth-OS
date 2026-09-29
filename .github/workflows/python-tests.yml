@@ -24,3 +24,8 @@ jobs:
       - name: Migration static contract checks
         working-directory: supabase
         run: python3 -m unittest -v test_migration_contract.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Workspace API contract checks
+        run: node --test prototype/owner-workspace/workspace-api.test.mjs
