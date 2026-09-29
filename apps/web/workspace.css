@@ -37,3 +37,5 @@
 .action-plan-form { display: grid; grid-template-columns: 1fr; align-items: start; }
 .action-plan-form label { margin: 4px 0; }
 .action-plan-form button { justify-self: start; }
+.draft-focus .action-plan-form > .form-notice { margin: 2px 0 4px; padding: 11px 13px; border-radius: 8px; background: #e7f4e7; color: #19593d; font-weight: 700; }
+.draft-focus .action-plan-form > .form-notice.error { background: #fff0eb; color: #a23c2a; }

@@ -17,15 +17,22 @@ function message(text, failure = false) {
   target.hidden = !text;
 }
 
-async function busy(form, operation) {
+async function busy(form, operation, localNotice = null) {
   const buttons = [...form.querySelectorAll('button')];
   buttons.forEach(button => { button.disabled = true; });
-  message('處理中…');
+  const report = (text, failure = false) => {
+    if (!localNotice) return message(text, failure);
+    localNotice.textContent = text;
+    localNotice.classList.toggle('error', failure);
+    localNotice.setAttribute('role', failure ? 'alert' : 'status');
+    localNotice.hidden = !text;
+  };
+  report('處理中…');
   try {
     await operation();
-    message('已完成，資料已更新。');
+    report('已完成，資料已更新。');
   } catch (error) {
-    message(error.message, true);
+    report(error.message, true);
   } finally {
     if (form.id === 'profile-form' && state) {
       showProfile(state.profile, state.sites, state.role === 'owner');
@@ -246,6 +253,15 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   if (owner && item.status === 'approved' && latestVersion && latestReview?.decision === 'approved' && !latestPlan) {
     const form = document.createElement('form');
     form.className = 'review-form action-plan-form';
+    const formNotice = document.createElement('p');
+    formNotice.className = 'form-notice';
+    formNotice.hidden = true;
+    const formMessage = text => {
+      formNotice.textContent = text;
+      formNotice.setAttribute('role', 'alert');
+      formNotice.classList.add('error');
+      formNotice.hidden = false;
+    };
     const note = document.createElement('p');
     note.textContent = '下一步：先記錄執行方案。這不會建立頁面，也不會對外發布。';
     const pathLabel = document.createElement('label');
@@ -265,16 +281,18 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
     rollbackLabel.append(rollback);
     const save = document.createElement('button');
     save.type = 'submit'; save.className = 'secondary'; save.textContent = '記錄內部執行方案';
-    form.append(note, pathLabel, signalLabel, rollbackLabel, save);
+    form.append(note, pathLabel, signalLabel, rollbackLabel, formNotice, save);
+    path.addEventListener('input', () => { formNotice.hidden = true; });
     form.addEventListener('submit', event => {
       event.preventDefault();
       const proposedPath = path.value.trim();
       if (!/^\/[a-z0-9][a-z0-9/_-]{0,199}$/.test(proposedPath)) {
-        message('路徑須以 / 開頭，只使用小寫英文字母、數字、-、_ 和 /，例如 /product-comparison。', true);
+        formMessage('請只輸入路徑，例如 /product-comparison；不要貼入括號說明文字。路徑僅可使用小寫英文字母、數字、-、_ 和 /。');
+        path.focus();
         return;
       }
       if (unsavedDraft && (unsavedDraft.titleInput.value.trim() || unsavedDraft.bodyInput.value.trim())) {
-        message('有未儲存的新草稿。請先記錄新版本，或清空欄位後再規劃目前版本。', true);
+        formMessage('有未儲存的新草稿。請先記錄新版本，或清空欄位後再規劃目前版本。');
         unsavedDraft.panel.open = true;
         unsavedDraft.form.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
@@ -283,7 +301,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
         await api.planContentAction(latestVersion.id, proposedPath, signal.value.trim(), rollback.value.trim());
         await refresh();
         revealVersion(item.id, `第 ${latestVersion.version_number} 版的內部執行方案已記錄，尚未公開發布。`);
-      });
+      }, formNotice);
     });
     focus.append(form);
   }
