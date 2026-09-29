@@ -59,6 +59,9 @@ function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign
     if (parsed.pathname.endsWith('/content_reviews')) {
       return { ok: true, json: async () => [{ version_id: 'synthetic-version', decision: 'approved', reason: 'Checked synthetic claims', reviewed_at: '2026-09-29T00:00:00Z' }] };
     }
+    if (parsed.pathname.endsWith('/content_action_plans')) {
+      return { ok: true, json: async () => [{ version_id: 'synthetic-version', proposed_path: '/synthetic-page', success_signal: 'GSC clicks', rollback_plan: 'Remove page', created_at: '2026-09-29T00:00:00Z' }] };
+    }
     if (parsed.pathname.endsWith('/rpc/review_growth_opportunity') && role === 'viewer') {
       return { ok: false, status: probeStatus };
     }
@@ -77,11 +80,12 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
   assert.equal(dashboard.decisions[0].reason, 'Synthetic review');
   assert.equal(dashboard.versions[0].title, 'Synthetic draft');
   assert.equal(dashboard.reviews[0].reason, 'Checked synthetic claims');
+  assert.equal(dashboard.actionPlans[0].proposed_path, '/synthetic-page');
   const reads = calls.filter(call => ['/rest/v1/organizations', '/rest/v1/business_profiles', '/rest/v1/growth_opportunities'].includes(call.path));
   assert.equal(reads.length, 3);
   assert.equal(reads[0].query.get('id'), `eq.${orgA}`);
   for (const call of reads.slice(1)) assert.equal(call.query.get('organization_id'), `eq.${orgA}`);
-  for (const table of ['sites', 'opportunity_sources', 'opportunity_decisions', 'content_versions', 'content_reviews']) {
+  for (const table of ['sites', 'opportunity_sources', 'opportunity_decisions', 'content_versions', 'content_reviews', 'content_action_plans']) {
     assert.equal(calls.find(call => call.path.endsWith(`/${table}`)).query.get('organization_id'), `eq.${orgA}`);
   }
   await api.saveProfile({ display_name: 'A', audience_summary: 'B', offering_summary: 'C', primary_outcome: 'order', target_market: 'TW' });
@@ -90,8 +94,9 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
   await api.reviewOpportunity('synthetic-opportunity', 'approved', 'Reviewed');
   await api.createContentDraft('synthetic-opportunity', 'Title', 'Draft body');
   await api.reviewContentDraft('synthetic-version', 'approved', 'Claims checked');
+  await api.planContentAction('synthetic-version', '/synthetic-page', 'GSC clicks', 'Remove page');
   const mutations = calls.filter(call => call.path.includes('/rpc/'));
-  assert.equal(mutations.length, 6);
+  assert.equal(mutations.length, 7);
   for (const call of mutations) {
     assert.equal(call.options.method, 'POST');
     assert.equal(JSON.parse(call.options.body).p_organization_id, orgA);
@@ -103,6 +108,10 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
   const review = mutations.find(call => call.path.endsWith('/rpc/review_content_draft'));
   assert.deepEqual(JSON.parse(review.options.body), { p_organization_id: orgA,
     p_version_id: 'synthetic-version', p_decision: 'approved', p_reason: 'Claims checked' });
+  const action = mutations.find(call => call.path.endsWith('/rpc/plan_content_action'));
+  assert.deepEqual(JSON.parse(action.options.body), { p_organization_id: orgA,
+    p_version_id: 'synthetic-version', p_proposed_path: '/synthetic-page',
+    p_success_signal: 'GSC clicks', p_rollback_plan: 'Remove page' });
   api.signOut();
   await assert.rejects(api.dashboard(), /請先選擇工作區/);
 });
@@ -126,13 +135,14 @@ test('viewer can read only their workspace, and cannot invoke owner mutations', 
   assert.equal(dashboard.sources.length, 1);
   assert.equal(dashboard.decisions.length, 1);
   assert.equal(calls.find(call => call.path.endsWith('/organizations')).query.get('id'), `eq.${orgB}`);
-  for (const table of ['opportunity_sources', 'opportunity_decisions', 'content_versions', 'content_reviews']) {
+  for (const table of ['opportunity_sources', 'opportunity_decisions', 'content_versions', 'content_reviews', 'content_action_plans']) {
     assert.equal(calls.find(call => call.path.endsWith(`/${table}`)).query.get('organization_id'), `eq.${orgB}`);
   }
   assert.throws(() => api.approveProfile(), /只有企業擁有者/);
   assert.throws(() => api.reviewOpportunity('x', 'approved', 'y'), /只有企業擁有者/);
   assert.throws(() => api.createContentDraft('x', 'Title', 'Body'), /只有企業擁有者/);
   assert.throws(() => api.reviewContentDraft('x', 'approved', 'Reason'), /只有企業擁有者/);
+  assert.throws(() => api.planContentAction('x', '/test', 'Clicks', 'Remove'), /只有企業擁有者/);
   assert.equal(calls.filter(call => call.path.includes('/rpc/')).length, 0);
 });
 
@@ -168,7 +178,7 @@ test('diagnostic reports a leak or a validation response instead of passing', as
 test('workspace rejects truncated evidence rather than presenting an incomplete chain', async () => {
   const { api } = fixture('owner', true, 403, false, true);
   await api.completeMagicLink(fragment('owner'));
-  await assert.rejects(api.dashboard(), /證據、決策或版本審核筆數超過/);
+  await assert.rejects(api.dashboard(), /證據、版本或執行方案筆數超過/);
 });
 
 test('magic link request cannot create a user or redirect outside this workspace', async () => {
