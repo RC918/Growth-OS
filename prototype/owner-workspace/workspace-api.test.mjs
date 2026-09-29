@@ -10,7 +10,7 @@ const orgB = '93a88055-0a0b-40c0-b22f-a6d312320002';
 const redirectTo = 'https://growth-os-preview.vercel.app/workspace.html';
 const fragment = role => `#access_token=synthetic-${role}-token&token_type=bearer&expires_in=3600&refresh_token=unused`;
 
-function fixture(role = 'owner', verified = true) {
+function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign = false) {
   const calls = [];
   async function fetchImpl(url, options) {
     const parsed = new URL(url);
@@ -32,6 +32,9 @@ function fixture(role = 'owner', verified = true) {
       return { ok: true, json: async () => [{ organization_id: role === 'owner' ? orgA : orgB, role }] };
     }
     if (parsed.pathname.endsWith('/organizations')) {
+      if (parsed.searchParams.get('id') === `eq.${orgA}` && role === 'viewer') {
+        return { ok: true, json: async () => leakForeign ? [{ id: orgA }] : [] };
+      }
       return { ok: true, json: async () => [{ id: role === 'owner' ? orgA : orgB, name: 'Synthetic workspace' }] };
     }
     if (parsed.pathname.endsWith('/business_profiles')) {
@@ -42,6 +45,9 @@ function fixture(role = 'owner', verified = true) {
     }
     if (parsed.pathname.endsWith('/growth_opportunities')) {
       return { ok: true, json: async () => [] };
+    }
+    if (parsed.pathname.endsWith('/rpc/review_growth_opportunity') && role === 'viewer') {
+      return { ok: false, status: probeStatus };
     }
     if (parsed.pathname.includes('/rpc/')) return { ok: true, json: async () => 'synthetic-id' };
     throw new Error(`Unexpected path: ${parsed.pathname}`);
@@ -94,6 +100,35 @@ test('viewer can read only their workspace, and cannot invoke owner mutations', 
   assert.throws(() => api.approveProfile(), /只有企業擁有者/);
   assert.throws(() => api.reviewOpportunity('x', 'approved', 'y'), /只有企業擁有者/);
   assert.equal(calls.filter(call => call.path.includes('/rpc/')).length, 0);
+});
+
+test('real-token diagnostic checks cross-tenant RLS and a harmless owner-only RPC', async () => {
+  const { api, calls } = fixture('viewer');
+  await assert.rejects(api.verifyViewerIsolation(), /僅供 Fixture B/);
+  await api.completeMagicLink(fragment('viewer'));
+  assert.deepEqual(await api.verifyViewerIsolation(), {
+    scopeDenied: true, ownerActionDenied: true, ownerActionStatus: 403,
+  });
+  const foreign = calls.find(call => call.path.endsWith('/organizations'));
+  assert.equal(foreign.query.get('id'), `eq.${orgA}`);
+  const rpc = calls.find(call => call.path.endsWith('/rpc/review_growth_opportunity'));
+  assert.equal(rpc.options.method, 'POST');
+  assert.equal(JSON.parse(rpc.options.body).p_decision, 'invalid_probe_never_write');
+  assert.equal(JSON.parse(rpc.options.body).p_opportunity_id, '00000000-0000-0000-0000-000000000000');
+  assert.equal(rpc.options.headers.Authorization, 'Bearer synthetic-viewer-token');
+  api.signOut();
+  await assert.rejects(api.verifyViewerIsolation(), /僅供 Fixture B/);
+});
+
+test('diagnostic reports a leak or a validation response instead of passing', async () => {
+  const { api } = fixture('viewer', true, 400, true);
+  await api.completeMagicLink(fragment('viewer'));
+  assert.deepEqual(await api.verifyViewerIsolation(), {
+    scopeDenied: false, ownerActionDenied: false, ownerActionStatus: 400,
+  });
+  const owner = fixture('owner').api;
+  await owner.completeMagicLink(fragment('owner'));
+  await assert.rejects(owner.verifyViewerIsolation(), /僅供 Fixture B/);
 });
 
 test('magic link request cannot create a user or redirect outside this workspace', async () => {

@@ -113,6 +113,36 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       linkedSiteVerified = !!sites.find(site => site.id === linkedSite)?.verified_at;
       return { organization: organizations[0], profile: profiles[0] || null, opportunities, sites, role: membership.role };
     },
+    async verifyViewerIsolation() {
+      // Fixture B has no access to Fixture A. This is a real JWT Data API
+      // check, not a UI-only role check. Never return the token or error body.
+      const fixtureA = '93a88055-0a0b-40c0-b22f-a6d312320001';
+      const fixtureB = '93a88055-0a0b-40c0-b22f-a6d312320002';
+      if (!token || membership?.role !== 'viewer' || membership.organization_id !== fixtureB) {
+        throw new Error('此診斷僅供 Fixture B 檢視者使用');
+      }
+      const foreign = await select('organizations', 'id', { id: `eq.${fixtureA}`, limit: '1' });
+      const scopeDenied = foreign.length === 0;
+      // The deliberately invalid decision guarantees no write even if an
+      // authorization regression reaches validation in this RPC.
+      let response;
+      try {
+        response = await fetchImpl(`${origin}/rest/v1/rpc/review_growth_opportunity`, {
+          method: 'POST',
+          headers: { apikey: key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify({
+            p_organization_id: fixtureB,
+            p_opportunity_id: '00000000-0000-0000-0000-000000000000',
+            p_decision: 'invalid_probe_never_write',
+            p_reason: 'viewer authorization check',
+          }),
+        });
+      } catch {
+        throw new Error('無法連線到 Staging，請稍後再試');
+      }
+      return { scopeDenied, ownerActionDenied: response.status === 403, ownerActionStatus: response.status };
+    },
     saveProfile(values) {
       const organization = ownerOnly();
       const detachSite = values.detach_site === true || values.detach_site === 'on';

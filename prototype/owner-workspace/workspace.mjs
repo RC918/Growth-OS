@@ -103,6 +103,7 @@ async function refresh() {
   const owner = next.role === 'owner';
   $('organization-name').textContent = next.organization.name;
   $('role-text').textContent = owner ? '企業擁有者 · 可管理資料與審核機會' : '檢視者 · 僅可閱讀';
+  $('viewer-diagnostics').hidden = owner || next.organization.id !== '93a88055-0a0b-40c0-b22f-a6d312320002';
   for (const element of document.querySelectorAll('.owner-control')) element.hidden = !owner;
   $('viewer-note').hidden = owner;
   showProfile(next.profile, next.sites, owner);
@@ -156,6 +157,22 @@ $('sign-out').addEventListener('click', () => {
   $('sign-in').hidden = false;
   $('opportunities').replaceChildren();
   message('');
+  $('verification-result').textContent = '';
+});
+
+$('verify-viewer').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  const result = $('verification-result');
+  button.disabled = true;
+  result.textContent = '驗證中…';
+  try {
+    const check = await api.verifyViewerIsolation();
+    result.textContent = `跨工作區讀取：${check.scopeDenied ? '通過（無資料）' : '失敗（可見資料）'}；擁有者操作：${check.ownerActionDenied ? '通過（HTTP 403）' : `失敗或無法確認（HTTP ${check.ownerActionStatus}）`}。${check.scopeDenied && check.ownerActionDenied ? '兩項均通過。' : '請停止使用此測試工作區並回報。'}`;
+  } catch (error) {
+    result.textContent = `驗證未完成：${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
 });
 
 $('detach-site').addEventListener('change', event => {
