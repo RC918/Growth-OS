@@ -10,7 +10,7 @@ const orgB = '93a88055-0a0b-40c0-b22f-a6d312320002';
 const redirectTo = 'https://growth-os-preview.vercel.app/workspace.html';
 const fragment = role => `#access_token=synthetic-${role}-token&token_type=bearer&expires_in=3600&refresh_token=unused`;
 
-function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign = false) {
+function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign = false, excessSources = false) {
   const calls = [];
   async function fetchImpl(url, options) {
     const parsed = new URL(url);
@@ -46,6 +46,13 @@ function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign
     if (parsed.pathname.endsWith('/growth_opportunities')) {
       return { ok: true, json: async () => [] };
     }
+    if (parsed.pathname.endsWith('/opportunity_sources')) {
+      if (excessSources) return { ok: true, json: async () => Array(500).fill({ opportunity_id: 'synthetic-opportunity' }) };
+      return { ok: true, json: async () => [{ opportunity_id: 'synthetic-opportunity', source_kind: 'owner_question', evidence_note: 'Synthetic note', observed_at: '2026-09-29T00:00:00Z' }] };
+    }
+    if (parsed.pathname.endsWith('/opportunity_decisions')) {
+      return { ok: true, json: async () => [{ opportunity_id: 'synthetic-opportunity', decision: 'approved', reason: 'Synthetic review', decided_at: '2026-09-29T00:00:00Z' }] };
+    }
     if (parsed.pathname.endsWith('/rpc/review_growth_opportunity') && role === 'viewer') {
       return { ok: false, status: probeStatus };
     }
@@ -59,12 +66,16 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
   const { api, calls } = fixture();
   await api.completeMagicLink(fragment('owner'));
   assert.equal(calls.find(call => call.path.endsWith('/organization_members')).query.get('user_id'), 'eq.synthetic-owner');
-  await api.dashboard();
+  const dashboard = await api.dashboard();
+  assert.equal(dashboard.sources[0].evidence_note, 'Synthetic note');
+  assert.equal(dashboard.decisions[0].reason, 'Synthetic review');
   const reads = calls.filter(call => ['/rest/v1/organizations', '/rest/v1/business_profiles', '/rest/v1/growth_opportunities'].includes(call.path));
   assert.equal(reads.length, 3);
   assert.equal(reads[0].query.get('id'), `eq.${orgA}`);
   for (const call of reads.slice(1)) assert.equal(call.query.get('organization_id'), `eq.${orgA}`);
-  assert.equal(calls.find(call => call.path.endsWith('/sites')).query.get('organization_id'), `eq.${orgA}`);
+  for (const table of ['sites', 'opportunity_sources', 'opportunity_decisions']) {
+    assert.equal(calls.find(call => call.path.endsWith(`/${table}`)).query.get('organization_id'), `eq.${orgA}`);
+  }
   await api.saveProfile({ display_name: 'A', audience_summary: 'B', offering_summary: 'C', primary_outcome: 'order', target_market: 'TW' });
   await api.approveProfile();
   await api.createOpportunity({ channel: 'organic_search', audience_need: 'Need', proposed_action: 'Action', rationale: 'Reason', source_kind: 'owner_question', evidence_note: 'Evidence' });
@@ -95,8 +106,13 @@ test('unverified linked site is preserved unless the owner explicitly detaches i
 test('viewer can read only their workspace, and cannot invoke owner mutations', async () => {
   const { api, calls } = fixture('viewer');
   await api.completeMagicLink(fragment('viewer'));
-  await api.dashboard();
+  const dashboard = await api.dashboard();
+  assert.equal(dashboard.sources.length, 1);
+  assert.equal(dashboard.decisions.length, 1);
   assert.equal(calls.find(call => call.path.endsWith('/organizations')).query.get('id'), `eq.${orgB}`);
+  for (const table of ['opportunity_sources', 'opportunity_decisions']) {
+    assert.equal(calls.find(call => call.path.endsWith(`/${table}`)).query.get('organization_id'), `eq.${orgB}`);
+  }
   assert.throws(() => api.approveProfile(), /只有企業擁有者/);
   assert.throws(() => api.reviewOpportunity('x', 'approved', 'y'), /只有企業擁有者/);
   assert.equal(calls.filter(call => call.path.includes('/rpc/')).length, 0);
@@ -129,6 +145,12 @@ test('diagnostic reports a leak or a validation response instead of passing', as
   const owner = fixture('owner').api;
   await owner.completeMagicLink(fragment('owner'));
   await assert.rejects(owner.verifyViewerIsolation(), /僅供 Fixture B/);
+});
+
+test('workspace rejects truncated evidence rather than presenting an incomplete chain', async () => {
+  const { api } = fixture('owner', true, 403, false, true);
+  await api.completeMagicLink(fragment('owner'));
+  await assert.rejects(api.dashboard(), /證據或決策筆數超過/);
 });
 
 test('magic link request cannot create a user or redirect outside this workspace', async () => {

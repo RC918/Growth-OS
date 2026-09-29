@@ -102,16 +102,19 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
-      const [organizations, profiles, opportunities, sites] = await Promise.all([
+      const [organizations, profiles, opportunities, sites, sources, decisions] = await Promise.all([
         select('organizations', 'id,name,business_model', { id: `eq.${org}`, limit: '1' }),
         select('business_profiles', 'id,site_id,display_name,audience_summary,offering_summary,primary_outcome,target_market,review_status', { ...scope, limit: '1' }),
         select('growth_opportunities', 'id,channel,audience_need,proposed_action,rationale,status,evidence_confidence,created_at', { ...scope, order: 'created_at.desc', limit: '30' }),
         select('sites', 'id,origin,verified_at', { ...scope, limit: '30' }),
+        select('opportunity_sources', 'opportunity_id,source_kind,source_url,evidence_note,observed_at', { ...scope, order: 'observed_at.desc', limit: '500' }),
+        select('opportunity_decisions', 'opportunity_id,decision,reason,decided_at', { ...scope, order: 'decided_at.desc', limit: '500' }),
       ]);
       if (organizations.length !== 1) throw new Error('找不到測試工作區');
+      if (sources.length === 500 || decisions.length === 500) throw new Error('證據或決策筆數超過此測試版可完整顯示的上限');
       linkedSite = profiles[0]?.site_id || null;
       linkedSiteVerified = !!sites.find(site => site.id === linkedSite)?.verified_at;
-      return { organization: organizations[0], profile: profiles[0] || null, opportunities, sites, role: membership.role };
+      return { organization: organizations[0], profile: profiles[0] || null, opportunities, sites, sources, decisions, role: membership.role };
     },
     async verifyViewerIsolation() {
       // Fixture B has no access to Fixture A. This is a real JWT Data API

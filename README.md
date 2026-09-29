@@ -10,8 +10,8 @@ Good Morning Digital Co., Ltd. 的流量與商業成長產品試作。正式品�
 | [`prototype/offline-proof`](prototype/offline-proof/README.md) | 行動、觀測與事件對齊的離線報告 | 隨附 CSV 全為模擬資料 |
 | [`prototype/csv-import`](prototype/csv-import/README.md) | Sprint 2 的彙總 CSV 欄位驗證與預覽 | 本機預覽，未連接帳號或資料庫 |
 | [`docs`](docs/) | 系統設計、API、SQL、產品規格與執行藍圖 | 設計文件，非已部署功能 |
-| [`supabase`](supabase/README.md) | Postgres schema 與租戶 RLS | 已在獨立 Staging 套用；真實 Auth／端到端驗收未完成 |
-| [`apps/web`](apps/web/README.md) | Vercel 靜態產品預覽 | 無表單、掃描 API 或資料連接 |
+| [`supabase`](supabase/README.md) | Postgres schema、租戶 RLS 與合成資料工作區 | 已在獨立測試專案套用；owner／viewer 真實登入及權限邊界已驗收，真實流量尚未接入 |
+| [`apps/web`](apps/web/README.md) | Vercel 產品預覽與測試工作台 | 獨立預覽連接測試 Auth／Data API；只使用合成資料 |
 
 只需 Python 3.12，從根目錄執行：
 
@@ -26,7 +26,7 @@ python3 app.py
 ## 接下來
 
 1. 確認產品品牌及新網域；不使用既有 Morning Ai 網站試點。
-2. 建立可隔離的 Staging、工作區與網域驗證，完成安全及資料隔離驗收。
+2. 在隔離測試工作區建立可追溯機會、來源與審核流程；正式站點所有權驗證仍待網域。
 3. 接入有授權的 GA4、廣告與訂單／CRM 資料，才計算實際漏斗與轉換。
 4. 在新產品站從零建立 GSC、GA4 與主要轉換事件，開始累積真實基線。
 

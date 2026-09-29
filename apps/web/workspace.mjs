@@ -54,7 +54,11 @@ function showProfile(profile, sites, owner) {
   $('opportunity-form').hidden = !owner || profile?.review_status !== 'owner_approved';
 }
 
-function opportunityCard(item, owner) {
+const sourceLabels = { owner_question: '企業主觀察', product_catalog: '商品資料', public_page: '公開頁面', gsc_query: 'GSC 查詢', research_note: '研究筆記' };
+const decisionLabels = { approved: '核准', rejected: '不採納' };
+const formatTime = value => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+
+function opportunityCard(item, owner, sources, decisions) {
   const card = document.createElement('article');
   card.className = 'opportunity-card';
   const top = document.createElement('div');
@@ -71,6 +75,32 @@ function opportunityCard(item, owner) {
   const rationale = document.createElement('small');
   rationale.textContent = `判斷依據：${item.rationale} · 信心程度：${item.evidence_confidence}`;
   card.append(top, heading, action, rationale);
+  const evidence = document.createElement('details');
+  evidence.className = 'evidence';
+  const summary = document.createElement('summary');
+  summary.textContent = `來源 ${sources.length} 筆 · 審核 ${decisions.length} 筆`;
+  evidence.append(summary);
+  if (!sources.length) {
+    const missing = document.createElement('p');
+    missing.textContent = '尚無可追溯來源；不得以此作為已驗證需求。';
+    evidence.append(missing);
+  }
+  for (const source of sources) {
+    const row = document.createElement('p');
+    row.textContent = `來源：${sourceLabels[source.source_kind] || source.source_kind} · ${formatTime(source.observed_at)}｜${source.evidence_note}${source.source_url ? `｜${source.source_url}` : ''}`;
+    evidence.append(row);
+  }
+  if (!decisions.length && ['approved', 'rejected'].includes(item.status)) {
+    const missing = document.createElement('p');
+    missing.textContent = '審核狀態與決策紀錄不一致，請查核。';
+    evidence.append(missing);
+  }
+  for (const decision of decisions) {
+    const row = document.createElement('p');
+    row.textContent = `審核：${decisionLabels[decision.decision] || decision.decision} · ${formatTime(decision.decided_at)}｜理由：${decision.reason}`;
+    evidence.append(row);
+  }
+  card.append(evidence);
   if (owner && ['candidate', 'in_review'].includes(item.status)) {
     const form = document.createElement('form');
     form.className = 'review-form';
@@ -109,7 +139,9 @@ async function refresh() {
   showProfile(next.profile, next.sites, owner);
   $('queue-count').textContent = `${next.opportunities.length} 筆`;
   const list = $('opportunities');
-  list.replaceChildren(...next.opportunities.map(item => opportunityCard(item, owner)));
+  list.replaceChildren(...next.opportunities.map(item => opportunityCard(item, owner,
+    next.sources.filter(source => source.opportunity_id === item.id),
+    next.decisions.filter(decision => decision.opportunity_id === item.id))));
   if (!next.opportunities.length) list.textContent = '尚無候選機會。先整理一個值得回答的客戶問題。';
 }
 
