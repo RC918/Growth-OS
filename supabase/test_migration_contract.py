@@ -8,6 +8,7 @@ RLS = (ROOT / "202609280002_tenant_rls.sql").read_text()
 GROWTH = (ROOT / "20260928160322_growth_opportunities_v1.sql").read_text()
 REVIEW = (ROOT / "20260928161802_review_growth_opportunity.sql").read_text()
 CREATE = (ROOT / "20260928162623_create_growth_opportunity.sql").read_text()
+PROFILE = (ROOT / "20260929015843_business_profile_review.sql").read_text()
 TABLES = ("organizations", "organization_members", "sites", "scans", "findings",
           "import_batches", "funnel_daily", "recommendations", "actions", "audit_events")
 GROWTH_TABLES = ("business_profiles", "growth_opportunities", "opportunity_sources", "opportunity_decisions")
@@ -69,6 +70,17 @@ class MigrationContractTests(unittest.TestCase):
         self.assertIn("insert into public.audit_events", CREATE)
         self.assertIn("from public, anon;", CREATE)
         self.assertIn("to authenticated;", CREATE)
+
+    def test_profile_rpc_privilege_boundary(self):
+        self.assertIn("function private.save_business_profile_impl", PROFILE)
+        self.assertIn("function private.approve_business_profile_impl", PROFILE)
+        self.assertIn("private.has_org_role(p_organization_id, array['owner']::text[])", PROFILE)
+        self.assertEqual(PROFILE.count("language plpgsql security definer"), 2)
+        self.assertEqual(PROFILE.count("language sql security invoker"), 2)
+        self.assertIn("is distinct from", PROFILE)
+        self.assertIn("review_status = 'draft', reviewed_by = null, reviewed_at = null", PROFILE)
+        self.assertIn("grant execute on function public.save_business_profile", PROFILE)
+        self.assertIn("grant execute on function public.approve_business_profile", PROFILE)
 
 
 if __name__ == "__main__":
