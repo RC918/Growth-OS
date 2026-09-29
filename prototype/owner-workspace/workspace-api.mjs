@@ -1,5 +1,5 @@
-// Isolated Staging client. A session exists only in this page's memory.
-export function createWorkspaceApi({ origin, key, fetchImpl = fetch }) {
+// Isolated Staging client. An access token exists only in this page's memory.
+export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
@@ -46,30 +46,48 @@ export function createWorkspaceApi({ origin, key, fetchImpl = fetch }) {
     return activeOrg();
   }
 
-  return {
-    async signIn(email, password) {
+  async function loadMembership(accessToken) {
+    token = accessToken;
+    try {
+      // Ask Auth for the current user; an unverified fragment is not a session.
+      const user = await request('/auth/v1/user');
+      if (!user?.id) throw new Error('登入未取得有效使用者');
+      const memberships = await select('organization_members', 'organization_id,role', { limit: '2' });
+      if (memberships.length !== 1 || !['owner', 'viewer'].includes(memberships[0].role)) {
+        throw new Error('此測試版需要恰好一個 owner 或 viewer 工作區');
+      }
+      membership = memberships[0];
+      return { ...membership };
+    } catch (error) {
       token = null;
       membership = null;
       linkedSite = null;
       linkedSiteVerified = false;
-      const data = await request('/auth/v1/token?grant_type=password', {
-        method: 'POST', body: { email, password }, authenticated: false,
-      });
-      if (!data?.access_token) throw new Error('登入未取得有效憑證');
-      token = data.access_token;
-      try {
-        const memberships = await select('organization_members', 'organization_id,role', { limit: '2' });
-        if (memberships.length !== 1 || !['owner', 'viewer'].includes(memberships[0].role)) {
-          throw new Error('此測試版需要恰好一個 owner 或 viewer 工作區');
-        }
-        membership = memberships[0];
-        return { ...membership };
-      } catch (error) {
-        token = null;
-        linkedSite = null;
-        linkedSiteVerified = false;
-        throw error;
+      throw error;
+    }
+  }
+
+  return {
+    async requestMagicLink(email, redirectTo) {
+      const redirect = new URL(redirectTo);
+      if (redirect.protocol !== 'https:' || redirect.origin !== redirectOrigin ||
+          !redirect.pathname.endsWith('/workspace.html') || redirect.search || redirect.hash) {
+        throw new Error('登入返回網址不正確');
       }
+      await request(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirect.href)}`, {
+        method: 'POST', body: { email, create_user: false }, authenticated: false,
+      });
+    },
+    async completeMagicLink(fragment) {
+      const params = new URLSearchParams(fragment.replace(/^#/, ''));
+      if (params.get('error') || params.get('error_code')) throw new Error('登入連結無效或已逾期，請重新取得');
+      const accessToken = params.get('access_token');
+      const expiresIn = Number(params.get('expires_in'));
+      if (!accessToken || params.get('token_type')?.toLowerCase() !== 'bearer' ||
+          !Number.isFinite(expiresIn) || expiresIn <= 0) {
+        throw new Error('登入連結缺少有效工作階段');
+      }
+      return loadMembership(accessToken);
     },
     signOut() {
       token = null;
