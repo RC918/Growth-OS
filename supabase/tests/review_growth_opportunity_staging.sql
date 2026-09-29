@@ -87,7 +87,9 @@ do $$ begin
     or exists (select 1 from public.growth_opportunities where id='83a88055-0a0b-40c0-b22f-a6d312450004' and status <> 'candidate') then
     raise exception 'decision/status/audit consistency failed';
   end if;
-  if exists (select 1 from public.opportunity_decisions where actor_user_id <> '83a88055-0a0b-40c0-b22f-a6d312410001') then
+  if exists (select 1 from public.opportunity_decisions
+             where organization_id='83a88055-0a0b-40c0-b22f-a6d312420001'
+               and actor_user_id <> '83a88055-0a0b-40c0-b22f-a6d312410001') then
     raise exception 'actor mismatch';
   end if;
 end $$;
