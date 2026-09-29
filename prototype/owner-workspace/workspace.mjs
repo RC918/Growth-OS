@@ -57,9 +57,24 @@ function showProfile(profile, sites, owner) {
 
 const sourceLabels = { owner_question: '企業主觀察', product_catalog: '商品資料', public_page: '公開頁面', gsc_query: 'GSC 查詢', research_note: '研究筆記' };
 const decisionLabels = { approved: '核准', rejected: '不採納' };
+const draftDecisionLabels = { approved: '核准', rejected: '退回' };
 const formatTime = value => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
-function opportunityCard(item, owner, sources, decisions, versions, orderReason) {
+function revealVersion(opportunityId, text) {
+  const updated = [...$('opportunities').querySelectorAll('.opportunity-card')]
+    .find(candidate => candidate.dataset.opportunityId === opportunityId);
+  const panel = updated?.querySelector('.version-history');
+  if (!panel) return;
+  panel.open = true;
+  const result = document.createElement('p');
+  result.className = 'draft-result';
+  result.setAttribute('role', 'status');
+  result.textContent = text;
+  panel.insertBefore(result, panel.children[1] || null);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function opportunityCard(item, owner, sources, decisions, versions, reviews, orderReason) {
   const card = document.createElement('article');
   card.className = 'opportunity-card';
   card.dataset.opportunityId = item.id;
@@ -114,12 +129,20 @@ function opportunityCard(item, owner, sources, decisions, versions, orderReason)
   if (!versions.length) {
     const empty = document.createElement('p'); empty.textContent = '尚無內容草稿。'; history.append(empty);
   }
+  const newestNumber = versions.reduce((number, row) => Math.max(number, row.version_number), 0);
   for (const version of versions) {
+    const review = reviews.find(row => row.version_id === version.id);
+    const latest = version.version_number === newestNumber;
     const heading = document.createElement('p');
-    heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)} · 草稿：${version.title}`;
+    heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)} · 草稿：${version.title} · ${review ? `內部${draftDecisionLabels[review.decision] || review.decision}${latest ? '' : '（歷史版本）'}` : '待審核'}`;
     const body = document.createElement('p');
     body.className = 'draft-body'; body.textContent = version.draft_body;
     history.append(heading, body);
+    if (review) {
+      const reviewNote = document.createElement('p');
+      reviewNote.textContent = `版本審核：${formatTime(review.reviewed_at)}｜理由：${review.reason}。此核准不會公開發布。`;
+      history.append(reviewNote);
+    }
   }
   card.append(history);
   if (owner && item.status === 'approved' && sources.length && decisions.some(row => row.decision === 'approved')) {
@@ -143,20 +166,35 @@ function opportunityCard(item, owner, sources, decisions, versions, orderReason)
       busy(form, async () => {
         await api.createContentDraft(item.id, titleInput.value, bodyInput.value);
         await refresh();
-        const updated = [...$('opportunities').querySelectorAll('.opportunity-card')]
-          .find(candidate => candidate.dataset.opportunityId === item.id);
-        const versionsPanel = updated?.querySelector('.version-history');
-        if (versionsPanel) {
-          versionsPanel.open = true;
-          const result = document.createElement('p');
-          result.className = 'draft-result';
-          result.setAttribute('role', 'status');
-          result.textContent = '新草稿版本已記錄，請在下方確認內容。';
-          versionsPanel.insertBefore(result, versionsPanel.children[1] || null);
-          versionsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        revealVersion(item.id, '新草稿版本已記錄，請在下方確認內容。');
       });
     });
+    card.append(form);
+  }
+  const latestVersion = versions.reduce((latest, version) => !latest || version.version_number > latest.version_number ? version : latest, null);
+  if (owner && item.status === 'approved' && latestVersion && !reviews.some(row => row.version_id === latestVersion.id)) {
+    const form = document.createElement('form');
+    form.className = 'review-form';
+    const label = document.createElement('label');
+    label.textContent = '版本審核理由';
+    const input = document.createElement('input');
+    input.name = 'review_reason'; input.required = true; input.maxLength = 1000;
+    label.append(input);
+    const approve = document.createElement('button');
+    approve.type = 'button'; approve.className = 'secondary'; approve.textContent = '核准此版本';
+    const reject = document.createElement('button');
+    reject.type = 'button'; reject.className = 'quiet'; reject.textContent = '退回此版本';
+    for (const [button, decision] of [[approve, 'approved'], [reject, 'rejected']]) {
+      button.addEventListener('click', () => {
+        if (!form.reportValidity()) return;
+        busy(form, async () => {
+          await api.reviewContentDraft(latestVersion.id, decision, input.value);
+          await refresh();
+          revealVersion(item.id, `第 ${latestVersion.version_number} 版已${decision === 'approved' ? '核准' : '退回'}，尚未公開發布。`);
+        });
+      });
+    }
+    form.append(label, approve, reject);
     card.append(form);
   }
   if (owner && ['candidate', 'in_review'].includes(item.status)) {
@@ -200,7 +238,8 @@ async function refresh() {
   list.replaceChildren(...orderOpportunities(next.opportunities, next.sources, next.decisions).map(({ item, reason }) => opportunityCard(item, owner,
     next.sources.filter(source => source.opportunity_id === item.id),
     next.decisions.filter(decision => decision.opportunity_id === item.id),
-    next.versions.filter(version => version.opportunity_id === item.id), reason)));
+    next.versions.filter(version => version.opportunity_id === item.id),
+    next.reviews, reason)));
   if (!next.opportunities.length) list.textContent = '尚無候選機會。先整理一個值得回答的客戶問題。';
 }
 
