@@ -3,6 +3,7 @@ import { createWorkspaceApi } from './workspace-api.mjs';
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
   key: 'sb_publishable_B9pMiED8jrCoxuy2kC0HoA_LmzKex9r',
+  redirectOrigin: location.origin,
 });
 const $ = id => document.getElementById(id);
 let state = null;
@@ -115,26 +116,37 @@ $('login-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.currentTarget;
   const email = form.elements.namedItem('email').value.trim();
-  const passwordInput = form.elements.namedItem('password');
-  const password = passwordInput.value;
-  passwordInput.value = '';
   const button = form.querySelector('button');
   button.disabled = true;
   try {
-    await api.signIn(email, password);
-    await refresh();
-    form.reset();
-    $('sign-in').hidden = true;
-    $('workspace').hidden = false;
-    message('');
+    await api.requestMagicLink(email, `${location.origin}${location.pathname}`);
+    form.querySelector('.hint').textContent = '若此帳號已建立且可收信，請在同一瀏覽器開啟 Supabase 寄來的一次性登入連結。';
   } catch (error) {
-    api.signOut();
-    // Login errors must be shown on the login form, never reveal the submitted password.
     form.querySelector('.hint').textContent = error.message;
   } finally {
     button.disabled = false;
   }
 });
+
+async function acceptRedirect() {
+  const fragment = location.hash;
+  if (!fragment) return;
+  // Remove credentials from history before any network call or UI rendering.
+  history.replaceState(null, '', `${location.pathname}${location.search}`);
+  try {
+    await api.completeMagicLink(fragment);
+    await refresh();
+    $('login-form').reset();
+    $('sign-in').hidden = true;
+    $('workspace').hidden = false;
+    message('');
+  } catch (error) {
+    api.signOut();
+    $('login-form').querySelector('.hint').textContent = error.message;
+  }
+}
+
+void acceptRedirect();
 
 $('sign-out').addEventListener('click', () => {
   epoch++;
