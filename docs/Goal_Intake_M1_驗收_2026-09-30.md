@@ -218,4 +218,18 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 
 安全證據在聊天 outputs：Growth-OS-natural-expiry-before.jpg、Growth-OS-natural-expiry-401.jpg、Growth-OS-natural-expiry-recovered.jpg、Growth-OS-natural-expiry-accepted.json；JSON 包含合成歷史、比對 hash 與時間，沒有登入 token／一次性連結。新登入結果分頁保留開啟。
 
-驗收結論：此精確自然到期 → HTTP 401 提示 → 重新登入 → 原目標與 13 筆歷史恢復流程通過。驗收來源是原保留 a0 Preview；固定 alias 的新版首次讀取提示另有既有 PASS，本次沒有重跑。M1 的遠端真正獨立交易重疊仍待完成；probe 只有離線草案與本地模擬安全測試，未啟動或建立遠端角色、credential、DDL、timeout 或安全設定。M1 全面放行與 M2 仍未宣告。
+驗收結論：此精確自然到期 → HTTP 401 提示 → 重新登入 → 原目標與 13 筆歷史恢復流程通過。驗收來源是原保留 a0 Preview；固定 alias 的新版首次讀取提示另有既有 PASS，本次沒有重跑。當輪 probe 尚未建立；以下最新預備紀錄更新其狀態。M1 全面放行與 M2 仍未宣告。
+
+## 已批准的 NOLOGIN 預備與延後窗口（2026-10-01 最新狀態）
+
+本節取代先前「待批准／尚無遠端角色／硬編碼截止」的目前狀態；早期段落保留為歷史。使用者已批准安全準備，要求先完成 NOLOGIN、延後兩小時窗口模板、本地測試、安全密碼介面與清理，再交接本人輸入。自然 JWT 已 PASS，本輪不重跑、不新增部署。
+
+已實作：create.sql.template 不再包含 T0／T1。管理者擁有 activation_window 表，起點與截止初始 NULL；probe LOGIN 無權讀寫窗口，NOLOGIN owner 只能讀取。固定函式在入口及原 RPC 返回後讀取並核對窗口，未啟用即拒絕。activate.sql.template 之後才以精確 UTC T0 原子填入 T1=T0+2h、設定 VALID UNTIL 與 LOGIN；禁止重複啟用、自動延長或剩不足 15 分鐘才啟用。cleanup 已包含窗口表，依序禁用 LOGIN、撤回 EXECUTE、只終止 probe session、移除固定物件与授權；無 CASCADE、不動業務歷史。
+
+遠端已套用 migration growth_os_probe_nologin_preparation。首次 PostgreSQL 17 函式 owner 移轉缺 SET ROLE 能力，交易整體回退且確認無殘留；修正為交易內暫授管理者 SET、移轉後撤回，重新套用成功。讀回證據 outputs/Growth-OS-probe-nologin-readback.json：兩角色 NOLOGIN、所有管理／bypass 能力 false、probe LOGIN 連線上限 3、VALID UNTIL 為 1970 過期值；窗口起點／截止均 NULL、函式 owner 正確、原目標仍 13 筆。probe 兩角色自身無會員权；平台管理者 postgres 保留對新角色的 ADMIN=true、INHERIT=false、SET=false。未輸入密碼、未啟用窗口、未呼叫 probe。
+
+延後窗口版新增本地安全測試 9 組 PASS，outputs/Growth-OS-probe-deferred-local.json。涵蓋 NULL 窗口拒絕、權限與角色目錄、偽造 claims 覆寫、固定 Fixture A／原 13 筆、rollback、最多一筆固定 commit 後 PT409、未開始／過期拒絕、原子啟用與精確清理、嚴格 renderer。這是 PGlite 模擬，不能當作真實密碼 LOGIN、網路到期／連線數 enforcement 或遠端獨立交易重疊通過。既有 native timezonesets 阻擋仍在，未安裝或改系統服務。
+
+本人交接介面為 supabase/tests/goal_lock_probe/set_probe_password.command：固定隔離專案 session pooler、TLS verify-full、psql -X -W、不使用密碼檔／環境密碼；本人先輸入既有管理密碼，再以 psql \password 的不回顯提示輸入新 probe 密碼兩次。脚本不收密碼參數、不寫檔、不啟用窗口；zsh 語法檢查通過，真正連線與密碼設定待本人操作。不要把密碼貼進聊天、SQL Editor、命令列或日誌；若未知既有管理密碼則停止，不重設共享密碼。
+
+下一步驗收仍待開發／執行：本人設定密碼成功後核對實際窗口 T0／T1，才啟用並以三條獨立 session pooler 連線取得 holder／contender／observer 屏障與 blocking PID 證據；兩筆交易 rollback，確認原目標／13 筆與 audit 無追加，立即清理並核對角色／schema／session 不存在。沒有此遠端證據，M1 不全面放行；M2 與新介面仍屬後續規劃。
