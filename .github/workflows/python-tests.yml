@@ -31,3 +31,5 @@ jobs:
           node-version: '24'
       - name: Workspace API contract checks
         run: node --test prototype/owner-workspace/workspace-api.test.mjs
+      - name: Browser baseline data contract checks
+        run: node --test prototype/csv-import/search-baseline.test.mjs

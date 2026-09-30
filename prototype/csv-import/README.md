@@ -23,3 +23,9 @@ date,clicks,impressions
 最多 1 MB、366 天；缺少的日期會列為**未知**，明確的 `0,0` 才是觀察到的零。完整、同一網站資源及搜尋類型、日數相等且無重疊的兩段期間，可以產生描述性點擊與曝光差額。此原型不寫資料庫、不連接 Google、不顯示真實流量；不可將網頁／查詢表格加總當成網站資源總數，也不可把差額解讀成施策帶來的效果或轉換。沒有正式網站、資源驗證及授權資料前，只能以合成數據驗證流程。
 
 Search Console 官方參考：[報表匯出限制](https://support.google.com/webmasters/answer/12917991)、[成效報表指標與彙總方式](https://support.google.com/webmasters/answer/7576553)。
+
+## 瀏覽器工具
+
+`apps/web/search-baseline.html` 提供分頁內的 CSV 選檔、貼上預覽與兩段期間比較；不連接 API、不使用儲存空間，也不將內容傳出分頁。瀏覽器版接受三欄未加引號的標準化資料，數值與加總必須在 JavaScript 安全整數範圍內。修改欄位後，舊結果與比較立即失效；錯誤顯示在送出按鈕旁。範例與下載範本皆為合成資料。
+
+執行瀏覽器資料契約測試：`node --test prototype/csv-import/search-baseline.test.mjs`。
