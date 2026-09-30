@@ -16,3 +16,5 @@
 首次 M1 預覽：[新版工作台](https://growth-os-preview-a0rpg9s0x-morning-ai.vercel.app/workspace.html)。精確網址已經使用者批准並保存，設定頁讀回共 13 項，預設 Site URL 保持原值。真實 owner 保存／修正／重新登入讀回及 viewer 唯讀介面已驗收；新 RPC 的真實拒絕、401 與並行仍待驗收。本機另修正初次讀取完成提示，尚未部署。
 
 新增 `growth_goal_intake` migration 已套用至上述測試 Supabase。遠端 SQL 回滾驗收通過，測試組織與問答未保留；過去觀測與機會資料保持原狀。完整證據見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。
+
+2026-09-30 直接 API 後續：新問答 RPC 真實 viewer／跨租戶 403 與 API 層真實 401 後恢復通過；競爭保存出現 40001 重複與 504／逾時，並行驗收失敗。PT409 修正 migration 已在本機驗證，尚未套用或部署；M1 不放行。具體阻礙與最小下一步統一見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。

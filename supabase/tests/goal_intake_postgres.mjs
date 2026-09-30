@@ -34,9 +34,9 @@ try {
  let version=1;
  for(const [key,answer] of Object.entries({offering:'零件',audience:'採購人員',market:'歐洲／英語',channel:'自然搜尋',asset:'尚無連結',metric:'四週搜尋點擊'})) {await write(version,key,answer);version++;}
  await write(version,'confirm','確認');version++;
- await denied(()=>write(version-1,'audience','stale'),'40001');await write(version,'audience','英國採購人員');version++;await write(version,'confirm','確認');version++;
+ await denied(()=>write(version-1,'audience','stale'),'PT409');await write(version,'audience','英國採購人員');version++;await write(version,'confirm','確認');version++;
  const history=(await db.query('select question_key,answer_text from public.growth_goal_turns order by version_number')).rows;
- assert.equal(history[2].answer_text,'採購人員');assert.equal(history.at(-2).answer_text,'英國採購人員');pass('immutable revisions, no-site intake and optimistic version conflict');
+ assert.equal(history[2].answer_text,'採購人員');assert.equal(history.at(-2).answer_text,'英國採購人員');assert.equal((await db.query("select prosecdef from pg_proc where oid='public.save_goal_turn(uuid,uuid,uuid,integer,text,text)'::regprocedure")).rows[0].prosecdef,false);pass('immutable revisions, no-site intake and HTTP 409 conflict with invoker boundary');
  for(const operation of ["insert into public.growth_goals(id,organization_id,actor_user_id) values(gen_random_uuid(),'"+orgA+"','"+owner+"')","update public.growth_goal_turns set answer_text='tamper'","delete from public.growth_goal_turns"])
   await denied(()=>db.exec(operation),'42501');pass('direct client insert, update and delete denied');
  await auth(viewer);assert.equal((await db.query('select count(*)::integer as n from public.growth_goal_turns')).rows[0].n,version);

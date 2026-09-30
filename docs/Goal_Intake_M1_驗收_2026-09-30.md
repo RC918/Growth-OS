@@ -83,3 +83,23 @@ M2 計畫／工作卡、AI 理解與產稿、發布、真實成長資料仍未�
 兩個回滾交易分別以 backend_pid 295694、295697 執行，同一目標 expected_version=10 的合成 RPC 探測均回傳第 11 版，最後各自 rollback。未觀察到 lock_timeout 或版本衝突，故只能確認獨立後端與回滾，不能證明請求重疊或鎖競爭成功。後續唯讀核對仍為版本 10、10 筆問答與 10 筆審核事件，測試無殘留。查詢與結果摘要保存於 outputs/Growth-OS-M1-concurrency-probes.json；並行驗收維持待完成。需要可控制交易交錯的資料庫連線或適當 API 驗收入口，不能把 MCP 呼叫同時發送當成資料庫同時執行。
 
 本輪來源已保存於本機，沒有推送、合併或新增部署。真實登入測試結束後已退出 owner／viewer 分頁工作階段，精確新版工作台保留開啟。
+
+## 剩餘直接 API 驗收的明確結果
+
+2026-09-30 接續剩餘驗收，郵件連接器已可讀取最新測試郵件。新增 `supabase/tests/goal_intake_real_auth.mjs`，一次性連結與 token 只留記憶體、不輸出或寫入結果檔。runner 的 PTY 輸入需不回顯；初次普通 stdin 已關閉與同步錯誤誤用 assert.rejects 均屬 runner 問題，已修正。請求加 30 秒時限，失敗結果保留安全摘要。
+
+| 剩餘項目 | 明確結果 | 證據／限制 |
+|---|---|---|
+| 新 save_goal_turn 真實 viewer／跨租戶拒絕 | 通過 | 新 Auth 的 viewer 對 Fixture B、viewer 對 Fixture A、owner 對 Fixture B 均為 HTTP 403／42501；新兩張表跨租戶讀取均為空。探測使用無效 question_key，即使授權回歸也不應寫入。遠端 edge logs 有對應三次 403。 |
+| 真實 HTTP 401 後恢復 | 通過（API 層） | 故意破壞 JWT 簽章，真實 Data API 回傳 401；真實 Auth 驗證失敗後清除記憶體工作區，再驗證有效 Auth 後讀回已保存資料。這不是等待 token 自然到期，也不是瀏覽器逾時流程驗收。 |
+| 重疊 API 保存 | 失敗 | 兩次各有一筆合成修正保存，競爭請求第一次回應不能解析 JSON，第二次超過 30 秒。edge logs 確認一次 HTTP 504／text/plain；postgres logs 的 save_goal_turn 相關 40001 在 13:57:18–14:03:22 UTC 有 36,493 筆、2 個後端。不能把 HTTP 同時送出當成 DB 交易重疊通過。 |
+
+唯讀核對本目標現為 12 筆問答、12 筆審核事件；原 10 筆沒有覆寫或刪除，新增兩筆都是清楚標示的合成受眾修正。最新資料因此尚未再次確認，不代表發布或成長。沒有重新執行已通過的 owner 介面驗收。
+
+版本衝突目前用 40001（serialization_failure）回報。官方 [PostgREST 錯誤映射](https://docs.postgrest.org/en/stable/references/errors.html) 將 40* 對應 500，PT409 才明確指定 409；既有 runner 把 40001 預期成 409 的假設已更正。根據大量重複錯誤與最後 504，推斷服務對此交易錯誤持續重試；沒有調低遠端保護或重試設定。
+
+已由 CLI 建立本機 migration `20260930140406_growth_goal_conflict_http.sql`：public RPC 保留 security invoker、空 search_path、既有參數及授權，將 serialization_failure 轉為 PT409；原 private 寫入與權限檢查不變。PostgreSQL WASM 的 9 組實際 SQL 與 8 項 Python 契約均通過，runner 語法檢查通過；後續 SQL／真實 API runner 已改成 PT409 契約。修正未套用遠端，沒有推送、合併或新增部署。
+
+具體阻礙與最小下一步：新 RPC 權限與 API 401 恢復已不缺憑證或授權。並行驗收受目前部署版本的 40001／504 問題阻擋；須解除本輪禁止新部署／遠端變更的限制後，只將上述修正套用 Growth OS 測試 Supabase，再執行 runner 的 --concurrency-only，要求有時限內一筆成功、一筆 PT409／HTTP 409，且僅新增一筆歷史。若要求精確證明 DB 交易重疊，還需可控制 BEGIN／鎖屏障的兩條受限資料庫連線；MCP 兩次呼叫與 HTTP 起訖時間不足以證明該條件。無需提供密碼來重做已完成的測試。
+
+安全摘要保存在 outputs/Growth-OS-M1-direct-api-checkpoint.json；401 的逐項通過紀錄在 Growth-OS-M1-remaining-api-results.json，並行失敗紀錄在 Growth-OS-M1-concurrent-api-results.json。M1 保持未全面放行。

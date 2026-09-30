@@ -1,3 +1,4 @@
+-- Requires growth_goal_conflict_http migration; do not run on the earlier remote version.
 -- Isolated Growth OS only. Synthetic claims and goals, all writes rolled back.
 begin;
 select set_config('growth_m1.owner',(select user_id::text from public.organization_members where organization_id='93a88055-0a0b-40c0-b22f-a6d312320001' and role='owner' limit 1),true);
@@ -25,7 +26,7 @@ begin
   perform public.save_goal_turn(org,goal,gen_random_uuid(),n,field,case when field='asset' then '尚無連結' else 'Synthetic answer' end);n:=n+1;
  end loop;
  perform public.save_goal_turn(org,goal,gen_random_uuid(),n,'confirm','確認');n:=n+1;
- begin perform public.save_goal_turn(org,goal,gen_random_uuid(),n-1,'audience','Stale');raise exception 'Stale accepted';exception when serialization_failure then null;end;
+ begin perform public.save_goal_turn(org,goal,gen_random_uuid(),n-1,'audience','Stale');raise exception 'Stale accepted';exception when sqlstate 'PT409' then null;end;
  perform public.save_goal_turn(org,goal,gen_random_uuid(),n,'audience','Synthetic corrected audience');n:=n+1;
  if (select answer_text from public.growth_goal_turns where goal_id=goal and version_number=3)<>'Synthetic answer' then raise exception 'History overwritten';end if;
  if (select question_key from public.growth_goal_turns where goal_id=goal order by version_number desc limit 1)='confirm' then raise exception 'Confirmation not invalidated';end if;

@@ -121,3 +121,5 @@ M1 固定問題引導、目標／問答保存及不可覆寫修正已完成本�
 - GA4 traffic source dimensions：https://support.google.com/analytics/answer/15612152
 - Google consent mode：https://developers.google.com/tag-platform/security/concepts/consent-mode
 - Google Search Analytics API：https://developers.google.com/webmaster-tools/v1/searchanalytics/query
+
+2026-09-30 直接 API 後續：新問答 RPC 真實 viewer／跨租戶 403 與 API 層真實 401 後恢復通過；競爭保存出現 40001 重複與 504／逾時，並行驗收失敗。PT409 修正 migration 已在本機驗證，尚未套用或部署；M1 不放行。具體阻礙與最小下一步統一見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。

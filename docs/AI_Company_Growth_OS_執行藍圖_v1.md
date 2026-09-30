@@ -144,3 +144,5 @@
 - Google Indexing API 適用頁型：https://developers.google.com/search/apis/indexing-api/v3/using-api
 - Ahrefs API 消耗規則：https://docs.ahrefs.com/en/api/docs/limits-consumption
 - Ahrefs Brand Radar mentions API：https://docs.ahrefs.com/en/api/reference/brand-radar/get-mentions-overview
+
+2026-09-30 直接 API 後續：新問答 RPC 真實 viewer／跨租戶 403 與 API 層真實 401 後恢復通過；競爭保存出現 40001 重複與 504／逾時，並行驗收失敗。PT409 修正 migration 已在本機驗證，尚未套用或部署；M1 不放行。具體阻礙與最小下一步統一見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。
