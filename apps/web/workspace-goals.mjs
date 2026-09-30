@@ -64,7 +64,7 @@ export function createGoalPanel(api,root=document.getElementById('goal-panel')) 
     finally{if(current===generation)controls(false);}
   }
   return {
-    async open(nextRole){generation++;selection++;role=nextRole;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;render();await run(load);},
+    async open(nextRole){generation++;selection++;role=nextRole;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;render();const current=generation;await run(async()=>{await load();if(current===generation)report(goals.length?'已讀取保存的目標與問答。':'工作區尚未保存目標。');});},
     close(){generation++;selection++;role=null;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;content.replaceChildren();report('');},
   };
 }

@@ -106,7 +106,7 @@
 
 2026-09-30 接續指示後，完成本機 M1 切片：新增目標與不可覆寫問答 migration、owner 保存 RPC、組織範圍讀取 API，以及工作台內的最小逐步引導區。修正答案新增紀錄並取消先前資料確認；沒有網站可繼續，確認後顯示「待建立成長計畫」。目前是明示的固定問題引導，沒有自然語言推論、AI 產稿或 M2 成長計畫。
 
-本機 26 項 Node 資料／API／引導／DOM 測試、8 項原有 Python 靜態契約測試及 9 組 PostgreSQL WASM 引擎檢查通過。PostgreSQL 引擎檢查使用合成 auth.uid() claims，排除 pgcrypto extension 安裝，不能代替遠端 Supabase Auth/Data API、多人同時操作或部署後驗收。原生 PostgreSQL 被沙箱共享記憶體限制，Chromium 被 macOS 沙箱限制，桌面／手機瀏覽器流程未驗收。上述為本機實作階段的證據。使用者允許恢復部署後，migration 已套用至隔離 Supabase，應用 Preview 已 Ready，修正後兩次 CI 的桌面／手機合成流程均成功；遠端 SQL 回滾驗收亦通過。精確 callback URL 的確認及新版真實帳號驗收仍待完成，M1 尚未全面放行。詳細記錄見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。
+本機 26 項 Node 資料／API／引導／DOM 測試、8 項原有 Python 靜態契約測試及 9 組 PostgreSQL WASM 引擎檢查通過。PostgreSQL 引擎檢查使用合成 auth.uid() claims，排除 pgcrypto extension 安裝，不能代替遠端 Supabase Auth/Data API、多人同時操作或部署後驗收。原生 PostgreSQL 被沙箱共享記憶體限制，Chromium 被 macOS 沙箱限制，桌面／手機瀏覽器流程未驗收。上述為本機實作階段的證據。使用者允許恢復部署後，migration 已套用至隔離 Supabase，應用 Preview 已 Ready，修正後兩次 CI 的桌面／手機合成流程均成功；遠端 SQL 回滾驗收亦通過。精確 callback URL 已批准保存；真實 owner 問答保存、修正歷史、重新登入讀回及 viewer 唯讀介面已通過。新 RPC 真實拒絕、401 後恢復、並行及本機提示修正部署後驗收仍待完成，M1 尚未全面放行。詳細記錄見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。
 
 ## 9. 目前可交付與待 Owner 提供
 

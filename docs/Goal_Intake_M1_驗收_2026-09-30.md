@@ -1,6 +1,6 @@
 # Growth OS M1 目標與問答保存驗收
 
-2026 年 9 月 30 日。目前狀態為「獨立測試環境已部署，自動驗收通過，真實帳號與多人並行驗收未完成」。下列本機測試表保存最初驗收時的結果；恢復部署後的結果見文末。本文件只記錄實作與驗收證據，產品需求及路線圖仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。
+2026 年 9 月 30 日。目前狀態為「獨立測試環境已部署，自動驗收通過，真實 owner 保存／讀回及 viewer 介面驗收通過，M1 完整 API／並行驗收未完成」。下列本機測試表保存最初驗收時的結果；恢復部署後的結果見文末。本文件只記錄實作與驗收證據，產品需求及路線圖仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。
 
 ## 實作範圍
 
@@ -63,3 +63,17 @@ M2 計畫／工作卡、AI 理解與產稿、發布、真實成長資料仍未�
 2026-09-30 再次核對分支 `feat/passwordless-workspace`，應用與測試提交為 `30325ef`。其與 `a9d0c25` 的 `apps/web` 差異為空；沒有重做功能、migration 或部署。唯讀遠端檢查確認目標與問答各 0 筆、兩張表 RLS 啟用、authenticated 的 SELECT 授權各 1 項，anon／authenticated 的 INSERT、UPDATE、DELETE 授權合計 0 項。部署來源 bundle 的完整歷史驗證通過。
 
 不依賴真人的本階段核對完成。待處理的精確登入返回網址仍為 `https://growth-os-preview-a0rpg9s0x-morning-ai.vercel.app/workspace.html`；未新增授權、變更 Site URL 或重新要求使用者手動登入。M2 與全面介面改寫保持待開發，不因本階段核對完成而標記 M1 全面放行。
+
+## 真實帳號驗收與本機修正
+
+2026-09-30 台北時間約 21:11–21:20，接獲監督任務轉交的使用者精確網址批准及保存結果。設定頁實際讀回確認共 13 個 Redirect URLs，包含 a0rpg9s0x 的 workspace.html，原 12 個保留，Site URL 仍為 ny0422g6e。沒有重複新增或變更預設網址。
+
+使用既有 owner 帳號的最新一次性郵件，於已部署 a9d0c25 頁面完成真實 Supabase Auth 登入，新增合成驗收目標 `5055ca31-40cc-435d-9f52-cdf19166440c`（Fixture A）。目標、六項回答與確認保存成功；無網站可繼續，確認只顯示待建立成長計畫。修正受眾新增第 9 筆歷史，原答案保留且先前確認失效。登出後工作台清除，再用第二封新郵件登入，從伺服器讀回相同 ID、修正版與九筆歷史；重新讀取按鈕亦成功。在 390px 手機寬度完成再次確認；DOM 讀回 viewport 390、document scrollWidth 375，沒有水平溢出。最終資料庫核對為 10 筆問答與 10 筆 goal_turn_saved 審核事件，最新題目為 confirm。驗收資料保留供後續檢查，沒有刪除既有資料。
+
+既有 viewer 帳號真實登入 Fixture B，新目標區沒有 Fixture A 的目標、沒有目標表單或新增／修正控制。既有診斷回傳跨組織 organizations 讀取無資料、review_growth_opportunity RPC HTTP 403。此診斷未呼叫 save_goal_turn，不能宣稱新問答 RPC 的真實 viewer／跨租戶拒絕已驗收；該 RPC 現有證據仍為遠端 SQL 合成 claims 與本機契約。
+
+真實操作發現初次 open() 完成後提示仍為「讀取或保存中」。本機修正為讀取完成時顯示保存資料或空工作區，保留失敗提示與跨工作階段保護。同步 apps/web 與 prototype 檔案；DOM 回歸新增空清單、保存目標、HTTP 401 提示及重新 open 恢復檢查，26 項 Node 測試全數通過。此修正尚未部署；401 檢查使用合成 API 錯誤，不能視為真實 JWT 逾時驗收。
+
+證據保存於聊天 outputs：Growth-OS-M1-real-owner-confirmed.jpg、Growth-OS-M1-real-owner-history.jpg、Growth-OS-M1-real-owner-readback.jpg、Growth-OS-M1-real-owner-mobile.jpg、Growth-OS-M1-real-viewer-isolation.jpg。沒有保存登入 token 或郵件連結到驗收文件。
+
+剩餘完整放行條件：新 save_goal_turn 的真實 viewer／跨工作區 API 拒絕、真實 401 後重新登入恢復、獨立連線多人並行，以及本機提示修正部署後驗收。本輪未新增部署或合併；未擴展 M2、其他專案、正式網域或付費設定。

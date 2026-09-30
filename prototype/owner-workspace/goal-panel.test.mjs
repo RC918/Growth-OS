@@ -14,13 +14,15 @@ test('guided panel saves, resumes, revises immutably, retries uncertain commit a
  }};
  const panel=createGoalPanel(api,root);const submit=async(answer)=>{const form=root.querySelector('form');if(form.querySelector('textarea'))form.querySelector('textarea').value=answer;form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>!root.querySelector('button')?.disabled);};
  try{
-  await panel.open('owner');await submit('更多流量');assert.match(root.textContent,/HTTP 503/);await submit('更多流量');assert.equal(calls[0].requestId,calls[1].requestId);assert.equal(rows.size,1);
+  await panel.open('owner');assert.equal(root.querySelector('[role=status]').textContent,'工作區尚未保存目標。');await submit('更多流量');assert.match(root.textContent,/HTTP 503/);await submit('更多流量');assert.equal(calls[0].requestId,calls[1].requestId);assert.equal(rows.size,1);
   for(const answer of ['零件','採購人員','歐洲','自然搜尋','尚無連結','四週點擊'])await submit(answer);
   await submit();assert.match(root.textContent,/資料已確認/);
-  panel.close();assert.equal(root.textContent,'');await panel.open('owner');assert.match(root.textContent,/尚無連結/);
+  panel.close();assert.equal(root.textContent,'');await panel.open('owner');assert.equal(root.querySelector('[role=status]').textContent,'已讀取保存的目標與問答。');assert.match(root.textContent,/尚無連結/);
   const edit=[...root.querySelectorAll('button')].find(button=>button.textContent==='修正目標受眾');edit.click();await submit('英國採購人員');assert.doesNotMatch(root.textContent,/資料已確認/);assert.equal([...rows.values()][0][2].answer_text,'採購人員');await submit();
   let release;hold=new Promise(resolve=>release=resolve);[...root.querySelectorAll('button')].find(button=>button.textContent==='修正推廣內容').click();
   const form=root.querySelector('form');form.querySelector('textarea').value='新產品';form.dispatchEvent(new dom.window.Event('submit',{cancelable:true}));await new Promise(done=>setTimeout(done,10));panel.close();
-  api.listGoals=async()=>[];await panel.open('viewer');release();await new Promise(done=>setTimeout(done,10));assert.match(root.textContent,/檢視權限/);assert.doesNotMatch(root.textContent,/英國採購人員/);assert.equal(root.querySelector('form'),null);
+  api.listGoals=async()=>[];await panel.open('viewer');release();await new Promise(done=>setTimeout(done,10));assert.match(root.textContent,/檢視權限/);assert.doesNotMatch(root.textContent,/英國採購人員/);assert.equal(root.querySelector('form'),null);assert.equal(root.querySelector('[role=status]').textContent,'工作區尚未保存目標。');
+  api.listGoals=async()=>{throw Error('HTTP 401');};await panel.open('viewer');assert.match(root.querySelector('[role=status]').textContent,/HTTP 401.*重新登入/);
+  api.listGoals=async()=>[];await panel.open('viewer');assert.equal(root.querySelector('[role=status]').textContent,'工作區尚未保存目標。');
  }finally{panel.close();globalThis.document=previous;dom.window.close();}
 });
