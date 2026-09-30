@@ -17,6 +17,7 @@ try {
     page.on('console',message=>{if(message.type()==='error') errors.push(message.text());});
     await page.goto(origin+'/');
     await page.locator('#status a[href="/search-baseline.html"]').click();
+    await page.waitForLoadState('load');
     await page.locator('[data-sample="a"]').click();
     assert.match(await page.locator('#result-a').innerText(),/日期完整：3 \/ 3 天/);
     await page.locator('#second>summary').click();
