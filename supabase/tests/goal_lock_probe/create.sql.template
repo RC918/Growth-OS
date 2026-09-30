@@ -1,0 +1,60 @@
+-- REVIEW DRAFT ONLY. Render exact approved start/deadline before review/use.
+-- Target: isolated Growth OS vhzryhibmpvglzcmfnaa. Contains no password.
+BEGIN;
+DO $$ BEGIN
+ IF '__PROBE_START__'::timestamptz >= '__PROBE_DEADLINE__'::timestamptz
+ OR '__PROBE_DEADLINE__'::timestamptz - '__PROBE_START__'::timestamptz <> interval '2 hours'
+ THEN RAISE EXCEPTION 'Invalid approved window'; END IF;
+ IF EXISTS (SELECT FROM pg_roles WHERE rolname IN ('growth_os_probe_owner','growth_os_probe_login'))
+ THEN RAISE EXCEPTION 'Probe role already exists; do not overwrite'; END IF;
+ IF EXISTS (SELECT FROM pg_namespace WHERE nspname='growth_os_probe')
+ THEN RAISE EXCEPTION 'Probe schema already exists; do not overwrite'; END IF;
+ IF EXISTS (SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname IN ('public','private') AND p.prosecdef AND EXISTS
+ (SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
+ WHERE x.grantee=0 AND x.privilege_type='EXECUTE'))
+ THEN RAISE EXCEPTION 'Unexpected PUBLIC definer access'; END IF;
+ IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ CROSS JOIN LATERAL aclexplode(coalesce(c.relacl,acldefault('r',c.relowner))) x
+ WHERE n.nspname IN ('public','private','auth') AND c.relkind IN ('r','p') AND x.grantee=0)
+ THEN RAISE EXCEPTION 'Unexpected PUBLIC table access'; END IF;
+END $$;
+CREATE ROLE growth_os_probe_owner NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE ROLE growth_os_probe_login NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION
+ CONNECTION LIMIT 3 VALID UNTIL '__PROBE_DEADLINE__';
+CREATE SCHEMA growth_os_probe;
+REVOKE ALL ON SCHEMA growth_os_probe FROM PUBLIC;
+GRANT CONNECT ON DATABASE postgres TO growth_os_probe_login;
+GRANT USAGE ON SCHEMA growth_os_probe TO growth_os_probe_login;
+GRANT USAGE ON SCHEMA growth_os_probe,public,private TO growth_os_probe_owner;
+GRANT EXECUTE ON FUNCTION public.save_goal_turn(uuid,uuid,uuid,integer,text,text),
+ private.save_goal_turn_impl(uuid,uuid,uuid,integer,text,text) TO growth_os_probe_owner;
+-- Temporary CREATE only for ownership transfer; revoked in the same transaction.
+GRANT CREATE ON SCHEMA growth_os_probe TO growth_os_probe_owner;
+CREATE FUNCTION growth_os_probe.append_fixture_turn() RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path='' SET lock_timeout='5s' AS $$
+DECLARE result jsonb;
+BEGIN
+ IF session_user <> 'growth_os_probe_login'
+ OR clock_timestamp() < '__PROBE_START__'::timestamptz
+ OR clock_timestamp() >= '__PROBE_DEADLINE__'::timestamptz
+ THEN RAISE EXCEPTION 'Probe caller or window denied' USING errcode='42501'; END IF;
+ -- Pin both legacy and JSON claims. The caller cannot choose identity/tenant.
+ PERFORM set_config('request.jwt.claim.sub','e85f1a90-3565-4fc1-a7e0-3b7d08830d0e',true);
+ PERFORM set_config('request.jwt.claims','{"sub":"e85f1a90-3565-4fc1-a7e0-3b7d08830d0e","role":"authenticated"}',true);
+ result := public.save_goal_turn('93a88055-0a0b-40c0-b22f-a6d312320001',
+ '5055ca31-40cc-435d-9f52-cdf19166440c',pg_catalog.gen_random_uuid(),13,
+ 'audience','合成 DB 鎖屏障驗收：固定海外工業採購，無真實客戶資料');
+ -- Reject if waiting for the lock carried this call beyond the hard cutoff.
+ IF clock_timestamp() >= '__PROBE_DEADLINE__'::timestamptz
+ THEN RAISE EXCEPTION 'Probe window expired while waiting' USING errcode='42501'; END IF;
+ RETURN result;
+END $$;
+ALTER FUNCTION growth_os_probe.append_fixture_turn() OWNER TO growth_os_probe_owner;
+REVOKE CREATE ON SCHEMA growth_os_probe FROM growth_os_probe_owner;
+REVOKE ALL ON FUNCTION growth_os_probe.append_fixture_turn() FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION growth_os_probe.append_fixture_turn() TO growth_os_probe_login;
+ALTER ROLE growth_os_probe_login SET statement_timeout='15s';
+ALTER ROLE growth_os_probe_login SET lock_timeout='5s';
+ALTER ROLE growth_os_probe_login SET idle_in_transaction_session_timeout='30s';
+COMMIT;

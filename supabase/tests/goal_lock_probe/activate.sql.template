@@ -1,0 +1,19 @@
+-- ONLY after exact approval, create review, and HUMAN password entry.
+-- Human enters a fresh password using psql \password growth_os_probe_login.
+-- Never put its value in SQL, command arguments, chat, files, or logs.
+BEGIN;
+DO $$ BEGIN
+ IF clock_timestamp() < '__PROBE_START__'::timestamptz
+ OR clock_timestamp() >= '__PROBE_DEADLINE__'::timestamptz - interval '15 minutes'
+ THEN RAISE EXCEPTION 'Activation outside approved window'; END IF;
+ IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='growth_os_probe_login'
+ AND NOT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole
+ AND NOT rolcreatedb AND NOT rolreplication AND NOT rolinherit
+ AND rolconnlimit=3 AND rolvaliduntil='__PROBE_DEADLINE__'::timestamptz)
+ THEN RAISE EXCEPTION 'Probe login attributes differ'; END IF;
+ IF EXISTS (SELECT FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member
+ WHERE r.rolname IN ('growth_os_probe_login','growth_os_probe_owner'))
+ THEN RAISE EXCEPTION 'Unexpected probe role memberships'; END IF;
+END $$;
+ALTER ROLE growth_os_probe_login LOGIN;
+COMMIT;

@@ -193,3 +193,16 @@ pg_roles 唯讀結果只有 Supabase 標準角色，沒有專案專用的受限�
 最小必要批准請求草案（未發送）：是否允許只在隔離 Supabase vhzryhibmpvglzcmfnaa 建立上述 2 小時／3 連線／僅 Fixture A 固定目標的 probe 通道，允許最多一筆固定合成追加並按列明範圍清理？新資料庫密碼須由本人在不回顯的安全提示輸入，不能貼到聊天、文件或日誌。未批准前只做本地草案與唯讀核對。
 
 本地補證評估：既有 PGlite 是單個 PostgreSQL WASM 引擎，不能用兩個 JS Promise 代表獨立後端；既有 libpq/17.6 的 psql／initdb／pg_ctl 客戶端可用，但同目錄沒有 postgres 伺服器 binary，目前沒有確認可用的本地 native server。未安裝／啟动新服務、未重跑 9 組 PASS。若後續取得本地獨立 PostgreSQL，可在合成 uid／同 schema／RLS 下驗證兩後端鎖等待、rollback 與 wrapper 固定 fixture 拒絕；仍不能代替遠端已部署版本、真实 Supabase session／pooler、自然 JWT 到期或遠端角色授權驗收。
+
+
+## 受限探測通道離線草案與新增安全測試（目前檢查點）
+
+精確可審查檔案已保存於 `supabase/tests/goal_lock_probe/`：create.sql.template、activate.sql.template（無密碼值）、verify.sql、cleanup.sql、render.mjs、test.mjs、native_overlap.py 與 README.md 中文批准說明。它們位於 tests，沒有加入 migrations 或部署步驟，沒有執行遠端 DDL。時間模板故意不含猜測日期；批准啟用時輸入該次記錄的精確 UTC T0，離線 renderer 計算 T1=T0+2h，產生四份 SQL 與 window.json 供核對。截止硬編碼於函式入口與等鎖返回後；activate 拒絕窗口外與剩不足 15 分鐘的啟用，不自動延長。
+
+新增 PGlite 安全測試 8 組通過，未重跑原 9 組：角色属性目錄與無會員權；PUBLIC／無關角色／anon／authenticated／service_role 路徑拒絕；SET ROLE／原 RPC／private 實作／表／DDL／任意參數拒絕；偽造 legacy sub 與 JSON claims 均被固定 owner 覆寫；固定 Fixture A 與原 13 筆保留；rollback 無問答或 audit 殘留；最多一筆固定 commit 後 PT409；過期／尚未啟用入口拒絕、啟用目錄／精確 cleanup、renderer 拒絕相對／無效日期。遠端唯讀 auth.uid 定義已核對為同樣 coalesce legacy／JSON 邏輯。runner 初版 PGlite RESET SESSION AUTHORIZATION 未恢复初始測試身份導致後續唯讀失敗，已改為顯式恢復原 session 身份；這是測試 harness 修正，不是產品權限放寬。
+
+PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢查不代表真實密碼登入、LOGIN 數目或 VALID UNTIL 網路 enforcement；未宣稱雙 PID 重疊 PASS。安全結果保存於 outputs/Growth-OS-probe-boundary-local.json。
+
+能力調查補正：本機實際存在 PATH 外 `/opt/homebrew/Cellar/postgresql@14/14.19/bin/postgres`，先前只查 libpq 同目錄並不完整。使用該已安裝 14.19 嘗試獨立 `/private/tmp` cluster、0700 Unix socket、listen_addresses=''、auth-host=reject；沒有碰既有 daemon 或遠端。先排除 unlinked keg 的 libpq 與 postgres.bki 路徑，僅為子程序設定既有 library 路徑並引用既有 share；仍受編譯期 `/opt/homebrew/share/postgresql@14/timezonesets` 缺失阻擋，暫存 runtime layout 也無法解決。沒有改全域 symlink／安裝／升級服務；沒有成功啟動 native server、沒有 native lock PASS。唯讀確認暫存 probe 目錄剩餘 0；安全失敗摘要 outputs/Growth-OS-probe-native-overlap.json。Python runner 以不寫 cache 的 compile 驗證語法，Node renderer 語法與 git diff --check 通過。
+
+單一最小批准請求仍僅為 README 內草案，未發重複表單；應在精確 UTC 窗口及四份渲染 SQL 可審查後，由父任務呈現。本人安全輸入新 probe 密碼之前保持 NOLOGIN，不使用共享 postgres／authenticator 憑證。現有自然到期分頁未操作，00:02:54 台北後續驗收；M1 仍未全面放行。
