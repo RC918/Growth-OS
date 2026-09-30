@@ -157,3 +157,39 @@ pg_roles 唯讀結果只有 Supabase 標準角色，沒有專案專用的受限�
 回復方式（須與角色批准一起審閱）：正常或失敗均回滾尚未完成的交易、关闭三條測試連線；只針對該短期測試角色撤回此次授權並取消 LOGIN／到期資格，確認無活躍連線及無擁有物件後才按核准方式移除角色。既有帳號、RLS、callback、資料與 migration 不回退；不得輪替共享 postgres／authenticator 密碼。尚未執行任何角色／授權／callback／域名／路由變更。
 
 協調更新：固定測試分支 alias `https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html` 已在 Vercel Domains 唯讀確認存在；它會跟隨未來分支 build。callback 決策待回應，不新增任何 URL／路由；若固定 alias 獲精確批准，取代尚未執行的 8uz 臨時網址请求，兩者不可同時執行。`project-c7ksn.vercel.app` 標記為 Production，不作測試替代。
+
+
+## 固定測試網址與讀取提示：通過
+
+使用者當次批准固定分支 alias，已只新增 `https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html`。保存後重新載入 Supabase URL Configuration，驗證共 14 項、原 13 項逐項保留、Site URL 相同、僅增加該固定 alias，沒有萬用字或 8uz 臨時網址。安全前後摘要與截圖在 outputs/Growth-OS-fixed-alias-callback.json／.jpg。
+
+原臨時網址批准請求 `call_LrBA8pNNvDqgUuuRkoXRR2Nw` 標記 **superseded／不可執行**，由固定 alias 的精確批准取代。工具查找未提供撤销提問入口，故以此記錄消除舊請求執行效力，不建立第二份提問。
+
+固定 alias 現對應 Ready Preview 6974fc1。另開分頁、既有 owner 測試帳號真實郵件登入後，首次讀取即顯示「已讀取保存的目標與問答。」並讀回指定目標 13 筆歷史。只驗收提示，未重跑保存或權限 PASS、未新增問答。截圖 outputs/Growth-OS-fixed-alias-read-status.jpg。額外登入分頁已退出，固定工作台保留開啟；自然到期分頁 1385706650 未刷新或登出且重新標記交接。
+
+### 精確受限直連方案：安全審核草案，未套用
+
+驗收命題僅是「遠端現版 RPC 的組織列鎖確實使第二個獨立交易等待，rollback 後可繼續，沒有遺失／覆寫歷史」；不是重做已 PASS 的權限、自然到期或 PT409 先後呼叫。現 MCP 的實測時間證明序列化，不能作此命題證據。
+
+唯讀查證：兩張新表 SELECT policy 只針對 authenticated，private.has_org_role 的遠端定義以 auth.uid() 與 organization_members 比對，與 repo 相符。遠端 public/private 可供 PUBLIC EXECUTE 的 SECURITY DEFINER 清單為空，public/private/auth 的 PUBLIC table privilege 清單為空。private.save_goal_turn_impl 是 postgres 擁有的 definer，依 JWT uid 做 owner 檢查、鎖 organizations 列，再追加問答與 audit；public wrapper 為 invoker，轉譯 PT409。SQL client 可設定 request.jwt.claims／sub，因此把 authenticated 或原 RPC EXECUTE 直接授予任意 LOGIN 會允許冒用其他已知 uid，不能保證 Fixture A 限定。
+
+在「不新增角色／不新增可信函式／不改安全設定」條件下，**沒有可安全授予既有直連驗收者的 GRANT 組合**。以下是另經精確批准後才可能建立的隔離探測通道，不能當作現成憑證或既有角色：
+
+| 項目 | 精確範圍 |
+|---|---|
+| `growth_os_probe_owner` | NOLOGIN、NOINHERIT、NOSUPERUSER、NOBYPASSRLS、NOCREATEDB、NOCREATEROLE、NOREPLICATION；不加入 authenticated／service_role／管理角色；只擁有下述固定探測函式，不擁有表或 schema |
+| `growth_os_probe_login` | 起初 NOLOGIN，NOSUPERUSER、NOINHERIT、NOBYPASSRLS、NOCREATEDB、NOCREATEROLE、NOREPLICATION、CONNECTION LIMIT 3；本人完成密碼安全輸入後才啟用 LOGIN；VALID UNTIL 精確批准啟用時間加 2 小時；不加入其他角色 |
+| schema | 新 `growth_os_probe`，由既有管理者擁有；REVOKE ALL ON SCHEMA growth_os_probe FROM PUBLIC；不列入 PostgREST exposed schemas，不改 public/private/auth schema ACL |
+| LOGIN 的 GRANT | `GRANT CONNECT ON DATABASE postgres TO growth_os_probe_login; GRANT USAGE ON SCHEMA growth_os_probe TO growth_os_probe_login; GRANT EXECUTE ON FUNCTION growth_os_probe.append_fixture_turn() TO growth_os_probe_login;` 除既有 PUBLIC 基礎能力之外，沒有表讀寫、原 RPC、private schema 或 owner 角色會員權 |
+| NOLOGIN 函式擁有者的 GRANT | `GRANT USAGE ON SCHEMA growth_os_probe,public,private TO growth_os_probe_owner; GRANT EXECUTE ON FUNCTION public.save_goal_turn(uuid,uuid,uuid,integer,text,text),private.save_goal_turn_impl(uuid,uuid,uuid,integer,text,text) TO growth_os_probe_owner;` 這是可信函式角色的跨租戶能力，不可授予 LOGIN 或讓 LOGIN SET ROLE 到它；建立／移轉函式所需 schema CREATE 只在原子 DDL 交易內暫授，交易結束前 REVOKE |
+| 唯一新函式 | `growth_os_probe.append_fixture_turn()`，零參數、SECURITY DEFINER、空 search_path、由 probe_owner 擁有；先檢查 session_user 必須為 probe_login 與硬編碼的批准截止時間，再覆寫 claims JSON 與 claim.sub 為原 Fixture A owner（e85f1a90-3565-4fc1-a7e0-3b7d08830d0e）；只呼叫原 public RPC 的固定 org=93a88055-0a0b-40c0-b22f-a6d312320001、goal=5055ca31-40cc-435d-9f52-cdf19166440c、expected_version=13、question_key=audience、固定清楚標示的合成答案，request_id 由伺服器產生；不接收任意 SQL、uid、org、goal、答案或版本；明確 REVOKE EXECUTE FROM PUBLIC 與其他 client roles，只有 probe_login 可呼叫 |
+
+這條通道新增受控 definer，需先有本地實作與拒絕案例的安全審核，不能只按上述 GRANT 即上線。固定資料可防止任意 JWT／其他租戶／其他目標；但 SQL LOGIN 可以 COMMIT，不能技術上保證呼叫者一定 rollback：批准必須明確涵蓋「最多追加一筆固定合成修正」的能力，expected_version=13 使成功 commit 後的其他新 request 都被 PT409 拒絕。原有歷史不能 UPDATE／DELETE。若連此固定寫入能力也不允許，方案不能完成現版真實 RPC 的鎖驗收。
+
+實驗只開 3 條相同 LOGIN 連線；A 呼叫固定 probe 函式取得未提交鎖，B 在 A 未釋放時呼叫，C 只查看同角色的 pg_stat_activity／pg_blocking_pids，無 pg_monitor／pg_read_all_stats GRANT。測試連線設定 lock_timeout=5s、statement_timeout=15s、idle_in_transaction_session_timeout=30s，client 亦有 20s 截止。需在 holder／observer 屏障證據取得後立即 A rollback，B 返回後 rollback；三條連線最後關閉。角色預設 timeout 可被 SQL client 改寫，VALID UNTIL 也不關閉已建立的連線，不能將它們描述為不可繞過的安全邊界；固定函式有獨立截止檢查，逾時清理需管理者限定只終止此 role 的三條連線。
+
+清理精確順序：中止尚未完成的 probe 交易並關閉連線；ALTER ROLE growth_os_probe_login NOLOGIN；REVOKE EXECUTE ON FUNCTION growth_os_probe.append_fixture_turn() FROM growth_os_probe_login；核對該 role 無活動 session（若有，只終止匹配該 role 的 session）；DROP 固定 probe 函式，撤回上述 probe_owner 與 LOGIN 的授權，確認 schema 空與兩角色無其他擁有物件／會員權後 DROP SCHEMA growth_os_probe、DROP ROLE 兩個 probe 角色。禁止 DROP OWNED CASCADE、輪替共享密碼、撤回 authenticated 既有權限或回退資料。所有建立／cleanup DDL 的精確 SQL 應在批准前保存成可審查的本地檔案；本輪沒有建立它們或輸入密碼。
+
+最小必要批准請求草案（未發送）：是否允許只在隔離 Supabase vhzryhibmpvglzcmfnaa 建立上述 2 小時／3 連線／僅 Fixture A 固定目標的 probe 通道，允許最多一筆固定合成追加並按列明範圍清理？新資料庫密碼須由本人在不回顯的安全提示輸入，不能貼到聊天、文件或日誌。未批准前只做本地草案與唯讀核對。
+
+本地補證評估：既有 PGlite 是單個 PostgreSQL WASM 引擎，不能用兩個 JS Promise 代表獨立後端；既有 libpq/17.6 的 psql／initdb／pg_ctl 客戶端可用，但同目錄沒有 postgres 伺服器 binary，目前沒有確認可用的本地 native server。未安裝／啟动新服務、未重跑 9 組 PASS。若後續取得本地獨立 PostgreSQL，可在合成 uid／同 schema／RLS 下驗證兩後端鎖等待、rollback 與 wrapper 固定 fixture 拒絕；仍不能代替遠端已部署版本、真实 Supabase session／pooler、自然 JWT 到期或遠端角色授權驗收。
