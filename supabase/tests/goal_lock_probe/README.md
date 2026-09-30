@@ -27,6 +27,8 @@ LOGIN 沒有表權限、原 RPC EXECUTE、private schema USAGE、其他角色會
 
 ## 本地證據與限制
 
+`.github/workflows/python-tests.yml` 已接入同一份 `node supabase/tests/goal_lock_probe/test.mjs`，沿用前面的 `npm ci --ignore-scripts` 安裝 PGlite。CI 只在記憶體內執行既有 9 組邊界測試，不連線 Supabase、不需要 credential、不啟用遠端角色或窗口。此接線尚未 push，遠端 CI 尚未執行，不能記為遠端验收通過。
+
 `test.mjs` 用現有 PGlite，只跑新增 probe 邊界測試；延後窗口版 9 組通過，結果在 outputs/Growth-OS-probe-deferred-local.json。auth.uid 的 coalesce legacy／JSON 定義已與遠端唯讀定義核對。測試覆蓋 NULL 窗口拒絕、PUBLIC／其他角色拒絕、無參數、偽造兩種 claims、原 RPC／表／DDL／SET ROLE 拒絕、固定租戶、rollback、最多一筆 commit、硬截止、角色屬性目錄、啟用目錄與精確清理。PGlite 的 session_user 來自 SET SESSION AUTHORIZATION 模擬，不能宣稱真實密碼登入、連線數／到期 enforcement 或雙後端重疊。
 
 ## 遠端預備與本人密碼交接
