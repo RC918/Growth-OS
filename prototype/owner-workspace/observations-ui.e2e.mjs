@@ -16,7 +16,7 @@ try{
  browser=await chromium.launch();
  for(const width of [1280,390]){
   const context=await browser.newContext({viewport:{width,height:844}}),page=await context.newPage(),errors=[],versions=[],saves=[];
-  let role='owner',failNext=true;
+  let role='owner',failNext=true,loginSequence=0;
   page.on('pageerror',error=>errors.push(error.message));
   await context.route('https://vhzryhibmpvglzcmfnaa.supabase.co/**',async route=>{
    const request=route.request(),url=new URL(request.url()),org=role==='owner'?orgA:orgB;
@@ -39,7 +39,7 @@ try{
    }
    return respond([]);
   });
-  async function login(){await page.goto(origin+'/workspace.html#access_token=synthetic-'+role+'&token_type=bearer&expires_in=3600');await page.locator('#workspace').waitFor({state:'visible'});await page.getByText('工作區尚未保存觀測版本。').waitFor({state:'visible'}).catch(()=>{});}
+  async function login({empty=true}={}){await page.goto(origin+'/workspace.html?test_session='+ ++loginSequence+'#access_token=synthetic-'+role+'&token_type=bearer&expires_in=3600');await page.locator('#workspace').waitFor({state:'visible'});if(empty)await page.getByText('工作區尚未保存觀測版本。').waitFor({state:'visible'});}
   await login();assert.ok(!page.url().includes('access_token'));
   await page.locator('#observation-file').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{}')});
   await page.waitForFunction(()=>document.getElementById('observation-feedback').textContent.includes('欄位'));
@@ -58,7 +58,7 @@ try{
   assert.match(await page.locator('#observation-preview').innerText(),/已保存版本/);
   assert.match(await page.locator('#observation-preview').innerText(),/不是真實成長證據/);
   await page.locator('#sign-out').click();assert.equal(await page.locator('#observation-preview').isVisible(),false);
-  await page.goto(origin+'/workspace.html#access_token=synthetic-owner&token_type=bearer&expires_in=3600');
+  await login({empty:false});
   await page.locator('#workspace').waitFor({state:'visible'});await page.locator('#observation-list button').waitFor();
   await page.locator('#observation-list button').click();await page.locator('#observation-preview').waitFor({state:'visible'});
   assert.match(await page.locator('#observation-preview').innerText(),new RegExp(versions[0].id));
