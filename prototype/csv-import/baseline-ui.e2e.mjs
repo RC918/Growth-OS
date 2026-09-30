@@ -2,6 +2,7 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {readFile} from 'node:fs/promises';
 const origin='http://127.0.0.1:8765';
 const server=spawn('python3',['-m','http.server','8765','--bind','127.0.0.1','--directory','apps/web'],{stdio:'ignore'});
 let browser;
@@ -21,6 +22,20 @@ try {
     await page.locator('#second>summary').click();
     await page.locator('[data-sample="b"]').click(); await page.locator('#compare').click();
     assert.match(await page.locator('#comparison').innerText(),/點擊 \+2 · 曝光 \+10/);
+    const downloadPromise=page.waitForEvent('download'); await page.locator('#save-snapshot').click();
+    const download=await downloadPromise; const saved=await readFile(await download.path());
+    await page.reload(); assert.equal(await page.locator('#save-snapshot').isDisabled(),true);
+    await page.locator('#snapshot-file').setInputFiles({name:'baseline.json',mimeType:'application/json',buffer:saved});
+    await page.locator('#result-b').waitFor({state:'visible'});
+    assert.match(await page.locator('#snapshot-feedback').innerText(),/已重新驗證並載入/);
+    await page.locator('#compare').click(); assert.match(await page.locator('#comparison').innerText(),/點擊 \+2 · 曝光 \+10/);
+    const malformed=JSON.parse(saved); malformed.a.rows[0].clicks=-1;
+    await page.locator('#snapshot-file').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(malformed))});
+    await page.waitForFunction(()=>document.getElementById('snapshot-feedback').textContent.includes('無效'));
+    assert.equal(await page.locator('#result-a').isVisible(),false);
+    assert.equal(await page.locator('#save-snapshot').isDisabled(),true);
+    await page.locator('[data-sample="a"]').click(); await page.locator('[data-sample="b"]').click();
+
     await page.locator('#form-a textarea').fill('date,clicks,impressions\n2026-09-01,2,10\n2026-09-03,0,0');
     assert.equal(await page.locator('#result-a').isVisible(),false); assert.equal(await page.locator('#compare').isDisabled(),true);
     await page.locator('#form-a button[type=submit]').click();

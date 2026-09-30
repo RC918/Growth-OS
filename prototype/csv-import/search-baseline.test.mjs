@@ -19,3 +19,20 @@ test('comparison requires complete, equal, compatible and nonoverlapping periods
  assert.deepEqual(compare(a,b),{clickDifference:0,impressionDifference:0,interpretation:'observed_difference_not_causal_lift'});
  for(const bad of [{...b,complete:false},{...b,origin:'https://other.example'},{...b,type:'image'},{...b,days:4},{...b,start:'2026-09-03'}]) assert.throws(()=>compare(a,bad));
 });
+
+import {loadSnapshot,saveSnapshot} from '../../apps/web/baseline-snapshot.mjs';
+test('saved baselines round trip through validation with missing days preserved',()=>{
+ const a=preview('date,clicks,impressions\n2026-09-01,2,10',meta);
+ const loaded=loadSnapshot(saveSnapshot(a,null,{a:true,b:false}));
+ assert.deepEqual(loaded.a.result,a); assert.equal(loaded.b,null); assert.equal(loaded.a.sample,true);
+});
+test('reload refuses derived totals, invalid rows, unknown versions and oversized files',()=>{
+ const text=saveSnapshot(preview(full,meta),null,{a:false});
+ const derived=JSON.parse(text); derived.a.clicks=999;
+ assert.throws(()=>loadSnapshot(JSON.stringify(derived)),/欄位/);
+ const bad=JSON.parse(text); bad.a.rows[0].clicks=-1; assert.throws(()=>loadSnapshot(JSON.stringify(bad)),/無效/);
+ const version=JSON.parse(text); version.version=2; assert.throws(()=>loadSnapshot(JSON.stringify(version)),/版本/);
+ assert.throws(()=>loadSnapshot('x'.repeat(1000001)),/1 MB/);
+ const changed=JSON.parse(text); changed.a.rows[0].clicks=3;
+ assert.equal(loadSnapshot(JSON.stringify(changed)).a.result.clicks,4); // Recompute; file contents are not authenticated.
+});

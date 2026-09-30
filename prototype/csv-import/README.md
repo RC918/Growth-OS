@@ -29,3 +29,5 @@ Search Console 官方參考：[報表匯出限制](https://support.google.com/we
 `apps/web/search-baseline.html` 提供分頁內的 CSV 選檔、貼上預覽與兩段期間比較；不連接 API、不使用儲存空間，也不將內容傳出分頁。瀏覽器版接受三欄未加引號的標準化資料，數值與加總必須在 JavaScript 安全整數範圍內。修改欄位後，舊結果與比較立即失效；錯誤顯示在送出按鈕旁。範例與下載範本皆為合成資料。
 
 執行瀏覽器資料契約測試：`node --test prototype/csv-import/search-baseline.test.mjs`。
+
+保存檔功能：下載 JSON，包含一或兩段來源資訊、每日資料與範例標記。重新載入會檢查版本、結構、數值、大小與日期，再重新計算摘要；不接受保存檔附帶的加總數字。檔案沒有身分簽章，重新計算不代表來源經 Google 核實。關閉分頁前需自行下載；不寫入工作區或伺服器。

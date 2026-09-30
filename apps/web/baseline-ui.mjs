@@ -1,9 +1,10 @@
 import {preview, compare} from './search-baseline.mjs';
+import {saveSnapshot,loadSnapshot} from './baseline-snapshot.mjs';
 const data = {a: null, b: null}, synthetic = {a: false, b: false}, versions = {a: 0, b: 0};
 const $ = id => document.getElementById(id);
 const number = value => value.toLocaleString('zh-TW');
 function node(tag, text, className) {const element = document.createElement(tag); element.textContent = text; if (className) element.className = className; return element;}
-function clearComparison() { $('comparison').hidden = true; $('comparison-error').textContent = ''; $('compare').disabled = !data.a || !data.b; }
+function clearComparison() { $('comparison').hidden = true; $('comparison-error').textContent = ''; $('compare').disabled = !data.a || !data.b; $('save-snapshot').disabled = !data.a; }
 function invalidate(key) {data[key] = null; synthetic[key] = false; versions[key]++; $('result-' + key).hidden = true; $('error-' + key).textContent = ''; clearComparison();}
 function reveal(element) {element.hidden = false; element.focus({preventScroll: true}); element.scrollIntoView({behavior: 'smooth', block: 'nearest'});}
 function render(key, result) {
@@ -55,4 +56,35 @@ $('compare').addEventListener('click',()=>{
     const signed = n => (n > 0 ? '+' : '') + number(n);
     target.append(node('p',`點擊 ${signed(result.clickDifference)} · 曝光 ${signed(result.impressionDifference)}`, 'difference'),node('p','這是觀察值的差額，不能據此認定內容或行銷措施造成成長。','muted')); reveal(target);
   } catch (error) {$('comparison-error').textContent = error.message;}
+});
+
+$('save-snapshot').addEventListener('click',()=>{
+  $('snapshot-feedback').classList.remove('success'); $('snapshot-feedback').textContent='';
+  try {
+    const text=saveSnapshot(data.a,data.b,synthetic);
+    const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+    const link=document.createElement('a'); link.href=url; link.download='growth-os-search-baseline.json'; link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+  } catch(error) {$('snapshot-feedback').textContent=error.message;}
+});
+$('snapshot-file').addEventListener('change',async()=>{
+  invalidate('a'); invalidate('b'); $('snapshot-feedback').classList.remove('success'); $('snapshot-feedback').textContent='';
+  const file=$('snapshot-file').files[0], versionA=versions.a, versionB=versions.b;
+  if(!file) return;
+  try {
+    if(file.size>1000000) throw new Error('保存檔超過 1 MB。');
+    const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());
+    if(versionA!==versions.a || versionB!==versions.b) return;
+    const loaded=loadSnapshot(text);
+    for(const key of ['a','b']) {
+      const form=$('form-'+key), value=loaded[key];
+      form.reset();
+      if(!value) continue;
+      Object.entries(value.meta).forEach(([name,item])=>form.elements[name].value=item);
+      form.elements.csv.value=value.csv; synthetic[key]=value.sample; data[key]=value.result; render(key,value.result);
+    }
+    $('second').open=Boolean(loaded.b); clearComparison();
+    $('snapshot-feedback').classList.add('success'); $('snapshot-feedback').textContent='已重新驗證並載入。請重新按「比較兩段期間」查看差異；來源資訊仍未核實。';
+    $('snapshot-feedback').scrollIntoView({behavior:'smooth',block:'nearest'});
+  } catch(error) {if(versionA===versions.a && versionB===versions.b) $('snapshot-feedback').textContent=error.message;}
 });
