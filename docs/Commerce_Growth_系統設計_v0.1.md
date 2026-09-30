@@ -101,7 +101,7 @@ flowchart TB
 
 ## 8. 開發路線圖與本次變更
 
-M1 固定問題引導、目標／問答保存及不可覆寫修正已完成本機切片，並經授權部署至獨立 Preview／測試 Supabase。修正後 CI 的桌面／手機合成流程與遠端 SQL 回滾驗收通過；新版精確 callback 已批准保存，真實 owner 保存／修正／讀回及 viewer 唯讀介面通過；新 RPC 真實拒絕、401 與並行仍待驗收。上表的完整自然語言能力仍待開發。實際結果見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)，不得將本機完成寫成整個 M1 放行。
+M1 固定問題引導、目標／問答保存及不可覆寫修正已完成本機切片，並經授權部署至獨立 Preview／測試 Supabase。修正後 CI 的桌面／手機合成流程與遠端 SQL 回滾驗收通過；新版精確 callback 已批准保存，真實 owner 保存／修正／讀回及 viewer 唯讀介面通過；新 RPC 真實拒絕、API 401 恢復及 PT409 先後版本衝突已通過；DB 交易重疊仍未驗收。上表的完整自然語言能力仍待開發。實際結果見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)，不得將本機完成寫成整個 M1 放行。
 
 路線圖統一使用 [執行藍圖第 8 節 M0–M6](AI_Company_Growth_OS_執行藍圖_v1.md#8-更新後的工程路線圖與驗收)，不另設互相衝突的 Sprint 排程。
 
@@ -122,4 +122,4 @@ M1 固定問題引導、目標／問答保存及不可覆寫修正已完成本�
 - Google consent mode：https://developers.google.com/tag-platform/security/concepts/consent-mode
 - Google Search Analytics API：https://developers.google.com/webmaster-tools/v1/searchanalytics/query
 
-2026-09-30 直接 API 後續：新問答 RPC 真實 viewer／跨租戶 403 與 API 層真實 401 後恢復通過；競爭保存出現 40001 重複與 504／逾時，並行驗收失敗。PT409 修正 migration 已在本機驗證，尚未套用或部署；M1 不放行。具體阻礙與最小下一步統一見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。
+2026-09-30 目前結果：新問答 RPC 真實 viewer／跨租戶 403 與 API 層真實 401 後恢復通過。先前競爭保存的 40001／504 已記錄；使用者批准後，PT409 精確修正已套用隔離測試資料庫，先後 API 保存 200／223ms、舊版本拒絕 409／PT409／268ms 通過，原歷史與授權保留。未新增 Vercel 部署；DB 交易重疊、自然 JWT 到期瀏覽器恢復及本機提示修正部署後驗收仍未完成，M1 不全面放行。完整證據與回復方式見 [M1 驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。

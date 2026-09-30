@@ -43,7 +43,7 @@ try {
  const owner=await login('ryan2939x@gmail.com');
  const api=createWorkspaceApi({origin,key,redirectOrigin:new URL(redirect).origin});
  await api.completeMagicLink(owner.fragment);const before=await api.readGoal(goal);const version=before.length;assert.ok(version>=10);
- if(!process.argv.includes('--remaining-only') && !process.argv.includes('--concurrency-only')) {
+ if(!process.argv.includes('--remaining-only') && !process.argv.includes('--concurrency-only') && !process.argv.includes('--sequential-conflict-only')) {
  pass('fresh real owner Auth and existing ten-turn readback');
  const viewer=await login('ryan2939x+growthosviewer@gmail.com');
  const viewerUser=await request('/auth/v1/user',viewer.token);assert.equal(viewerUser.status,200);
@@ -56,7 +56,7 @@ try {
   assert.equal(probe.status,403);assert.equal(probe.data.code,'42501');pass('new RPC '+name+' denied',{http:probe.status,code:probe.data.code});
  }
  }
- if(!process.argv.includes('--concurrency-only')) {
+ if(!process.argv.includes('--concurrency-only') && !process.argv.includes('--sequential-conflict-only')) {
  const parts=owner.token.split('.');const badToken=parts.slice(0,2).join('.')+'.'+(parts[2][0]==='A'?'B':'A')+parts[2].slice(1);
  let corrupt=false;
  const recovering=createWorkspaceApi({origin,key,redirectOrigin:new URL(redirect).origin,fetchImpl:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(30000),headers:{...options.headers,...(corrupt?{Authorization:`Bearer ${badToken}`}:{})}})});
@@ -68,15 +68,19 @@ try {
  }
  // Two HTTP requests overlap in the client. This asserts competing-version API
  // behavior, not PostgreSQL backend PID overlap or transaction scheduling.
- const calls=[0,1].map(index=>{
+ const sequential=process.argv.includes('--sequential-conflict-only');
+ const send=index=>{
   const start=performance.now();return request('/rest/v1/rpc/save_goal_turn',owner.token,{p_organization_id:orgA,p_goal_id:goal,p_request_id:randomUUID(),p_expected_version:version,p_question_key:'audience',p_answer:`合成 API 並行驗收 ${index+1}：海外工業採購`}).then(r=>({...r,start,end:performance.now()}));
- });
- stage='concurrent HTTP requests';const settled=await Promise.allSettled(calls);results.push({name:'request completion evidence',baselineVersion:version,requests:settled.map(r=>r.status==='fulfilled'?{status:r.value.status,code:r.value.data?.code,format:r.value.data?.format,start:r.value.start,end:r.value.end}:{error:r.reason.name})});assert.ok(settled.every(r=>r.status==='fulfilled'));const pair=settled.map(r=>r.value);results.push({name:'concurrent response evidence',baselineVersion:version,responses:pair.map(r=>({status:r.status,code:r.data?.code,format:r.data?.format,durationMs:r.end-r.start})),overlapMs:Math.min(...pair.map(r=>r.end))-Math.max(...pair.map(r=>r.start))});assert.ok(Math.max(...pair.map(r=>r.start))<Math.min(...pair.map(r=>r.end)));
+ };
+ const calls=[];if(sequential){calls.push(Promise.resolve(await send(0)));calls.push(Promise.resolve(await send(1)));}else{calls.push(send(0),send(1));}
+ stage=sequential?'sequential version-conflict requests':'concurrent HTTP requests';const settled=await Promise.allSettled(calls);results.push({name:'request completion evidence',baselineVersion:version,requests:settled.map(r=>r.status==='fulfilled'?{status:r.value.status,code:r.value.data?.code,format:r.value.data?.format,start:r.value.start,end:r.value.end}:{error:r.reason.name})});assert.ok(settled.every(r=>r.status==='fulfilled'));const pair=settled.map(r=>r.value);results.push({name:sequential?'sequential response evidence':'concurrent response evidence',baselineVersion:version,responses:pair.map(r=>({status:r.status,code:r.data?.code,format:r.data?.format,durationMs:r.end-r.start})),overlapMs:Math.min(...pair.map(r=>r.end))-Math.max(...pair.map(r=>r.start))});if(sequential){assert.ok(pair[1].start>=pair[0].end);assert.ok(pair[1].end-pair[1].start<10000);}else assert.ok(Math.max(...pair.map(r=>r.start))<Math.min(...pair.map(r=>r.end)));
  assert.deepEqual(pair.map(r=>r.status).sort(),[200,409]);assert.equal(pair.find(r=>r.status===409).data.code,'PT409');
- pass('overlapping real-owner HTTP saves yield one append and one version conflict',{statuses:pair.map(r=>r.status),code:'PT409',overlapMs:Math.min(...pair.map(r=>r.end))-Math.max(...pair.map(r=>r.start))});
+ pass(sequential?'sequential real-owner save succeeds and stale version quickly conflicts':'overlapping real-owner HTTP saves yield one append and one version conflict',{statuses:pair.map(r=>r.status),code:'PT409',overlapMs:Math.min(...pair.map(r=>r.end))-Math.max(...pair.map(r=>r.start))});
  const after=await api.readGoal(goal);assert.equal(after.length,version+1);assert.deepEqual(after.slice(0,version),before);
+ if(!sequential) {
  await api.saveGoalTurn({goalId:goal,requestId:randomUUID(),expectedVersion:version+1,questionKey:'confirm',answer:'確認'});
  assert.equal((await api.readGoal(goal)).length,version+2);pass('previous turns preserved and synthetic goal reconfirmed',{version:version+2});
+ }else {assert.equal(after.at(-1).answer_text,'合成 API 並行驗收 1：海外工業採購');pass('all previous turns and successful new answer preserved',{version:version+1});}
  await writeFile(process.argv[2],JSON.stringify({scope:'Growth OS isolated test only; real Auth, safe probes and synthetic append; invalid signature 401, not natural JWT expiry; HTTP overlap does not prove backend overlap',results},null,2)+'\n');
  console.log('DONE safe evidence saved');
 }catch(error){console.error('FAIL '+stage+' '+(error instanceof assert.AssertionError?'acceptance assertion':error.name));process.exitCode=1;}

@@ -1,6 +1,6 @@
 # Growth OS M1 目標與問答保存驗收
 
-2026 年 9 月 30 日。目前狀態為「獨立測試環境已部署，自動驗收通過，真實 owner 保存／讀回及 viewer 介面驗收通過，M1 完整 API／並行驗收未完成」。下列本機測試表保存最初驗收時的結果；恢復部署後的結果見文末。本文件只記錄實作與驗收證據，產品需求及路線圖仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。
+2026 年 9 月 30 日。目前狀態為「獨立測試環境已部署，自動驗收通過，真實 owner 保存／讀回及 viewer 介面驗收通過，PT409 遠端先後版本衝突驗收通過；DB 交易重疊與完整 M1 放行仍未完成」。下列本機測試表保存最初驗收時的結果；恢復部署後的結果見文末。本文件只記錄實作與驗收證據，產品需求及路線圖仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。
 
 ## 實作範圍
 
@@ -103,3 +103,26 @@ M2 計畫／工作卡、AI 理解與產稿、發布、真實成長資料仍未�
 具體阻礙與最小下一步：新 RPC 權限與 API 401 恢復已不缺憑證或授權。並行驗收受目前部署版本的 40001／504 問題阻擋；須解除本輪禁止新部署／遠端變更的限制後，只將上述修正套用 Growth OS 測試 Supabase，再執行 runner 的 --concurrency-only，要求有時限內一筆成功、一筆 PT409／HTTP 409，且僅新增一筆歷史。若要求精確證明 DB 交易重疊，還需可控制 BEGIN／鎖屏障的兩條受限資料庫連線；MCP 兩次呼叫與 HTTP 起訖時間不足以證明該條件。無需提供密碼來重做已完成的測試。
 
 安全摘要保存在 outputs/Growth-OS-M1-direct-api-checkpoint.json；401 的逐項通過紀錄在 Growth-OS-M1-remaining-api-results.json，並行失敗紀錄在 Growth-OS-M1-concurrent-api-results.json。M1 保持未全面放行。
+
+## PT409 精確遠端修正與驗收（目前結果）
+
+2026-09-30 台北時間約 22:16–22:20，依使用者精確批准，只將 `20260930140406_growth_goal_conflict_http.sql` 套用隔離 Supabase `vhzryhibmpvglzcmfnaa`。遠端 migration 紀錄為 `20260930141637`／`growth_goal_conflict_http`。沒有推送、合併、Vercel 部署或其他專案／權限變更。
+
+套用前保存 public 原函式定義、prosecdef=false、空 search_path、postgres 擁有者及 ACL；private 定義 MD5 為 `789ebc9f0903f57ef4b4fb793437590b`，其 ACL 亦保存。套用後逐項比對上述屬性、private 定義與 ACL 均相同。只將 public wrapper 改為 PL/pgSQL，以 PT409 轉譯 serialization_failure，private 授權及寫入邏輯不變。DDL 前後目標十二筆歷史 MD5 均為 `483e22b0d560fb83b7e1a7f9810bfffb`。Security Advisor 沒有新增函式／RLS 警告；僅原有 [密碼洩漏保護提示](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)，未改設定。
+
+只執行 runner 的 `--sequential-conflict-only`，不重跑 owner 介面、權限拒絕或 401 驗收。用新的一次性郵件在記憶體取得既有 owner 的真實 Auth：
+
+| 呼叫 | 結果 | 耗時 | 保存效果 |
+|---|---|---|---|
+| 首筆，expected_version=12 | HTTP 200 | 222.83ms | 新增第 13 筆合成受眾修正 |
+| 第二筆，仍 expected_version=12 | HTTP 409／PT409 | 267.96ms | 無新增、無覆寫，保留首筆答案 |
+
+runner 明確驗證第一筆完成後才送第二筆、第二筆小於 10 秒、前十二筆深度相同、成功的新答案保留。資料庫另核對版本 13、13 筆問答、13 筆 goal_turn_saved 審核事件；原十二筆 MD5 未變。最新為受眾修正，尚未再次確認，沒有追加與此次目標無關的確認或功能資料。
+
+14:18:00–14:20:04 UTC 的遠端日誌僅有 save_goal_turn 一次 HTTP 200、一次 HTTP 409、一次 PT409；沒有 40001 重複或 504。故本次「正常保存 → 舊版本快速拒絕 → 不覆寫與審核一致」精確里程碑通過。這是先後呼叫，沒有宣稱 PostgreSQL 交易重疊已驗證。
+
+安全證據在聊天 outputs：Growth-OS-PT409-before.json、Growth-OS-PT409-after.json、Growth-OS-PT409-real-api-results.json、Growth-OS-PT409-verified-history.json、Growth-OS-PT409-logs.json。無登入連結或 token。新增 runner 先後模式與文件保存於本機，沒有推送。
+
+回復方式：原 public 定義保存於 outputs/Growth-OS-PT409-restore-public-function.sql（僅參考，未執行）。若必要，在確認目標及目前 ACL 仍匹配後，以後續補償 migration 的 CREATE OR REPLACE 恢復該原定義；保留擁有者、security invoker、空 search_path 及原 ACL，不刪除 migration 歷史、不回退問答或審核資料。此恢復會帶回 40001／重試問題，不能當成已批准自動回退。
+
+仍未完成：可證實的獨立 DB 交易重疊需兩條可控制 BEGIN／鎖屏障的受限資料庫連線；先後 API 成功不能替代。自然 JWT 到期的瀏覽器恢復未驗收；先前 401 證據為 API 層無效簽章。初次讀取提示本機修正尚未部署。M1 全面放行及 M2／AI 理解／成長計畫仍未宣告完成。
