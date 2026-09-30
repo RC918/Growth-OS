@@ -99,6 +99,24 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       linkedSite = null;
       linkedSiteVerified = false;
     },
+    listGoals() {
+      return select('growth_goals','id,created_at',{
+        organization_id:`eq.${activeOrg()}`,order:'created_at.desc,id.desc',limit:'20',
+      });
+    },
+    async readGoal(id) {
+      const rows=await select('growth_goal_turns','version_number,question_key,question_text,answer_text,created_at',{
+        organization_id:`eq.${activeOrg()}`,goal_id:`eq.${id}`,order:'version_number.asc',limit:'201',
+      });
+      if(!rows.length || rows.length>200) throw new Error('找不到完整可讀取的目標紀錄');
+      return rows;
+    },
+    saveGoalTurn({goalId,requestId,expectedVersion,questionKey,answer}) {
+      return request('/rest/v1/rpc/save_goal_turn',{
+        method:'POST',body:{p_organization_id:ownerOnly(),p_goal_id:goalId,p_request_id:requestId,
+          p_expected_version:expectedVersion,p_question_key:questionKey,p_answer:answer},
+      });
+    },
     listObservations() {
       return select('search_observation_versions','id,created_at',{
         organization_id:`eq.${activeOrg()}`,order:'created_at.desc,id.desc',limit:'20',

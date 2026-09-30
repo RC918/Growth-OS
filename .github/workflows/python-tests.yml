@@ -34,10 +34,16 @@ jobs:
       - name: Browser baseline data contract checks
         run: node --test prototype/csv-import/search-baseline.test.mjs
       - name: Install isolated UI test browser
-        run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.58.2
+        run: npm ci --ignore-scripts
+      - name: Guided goal contract and DOM checks
+        run: node --test prototype/owner-workspace/goal-intake.test.mjs prototype/owner-workspace/goal-panel.test.mjs
+      - name: Guided goal PostgreSQL engine checks
+        run: node supabase/tests/goal_intake_postgres.mjs
       - name: Install Chromium for UI acceptance
         run: npx playwright install --with-deps chromium
       - name: Baseline desktop and mobile UI acceptance
         run: node prototype/csv-import/baseline-ui.e2e.mjs
       - name: Workspace observation desktop and mobile UI acceptance
         run: node prototype/owner-workspace/observations-ui.e2e.mjs
+      - name: Guided goal desktop and mobile UI acceptance
+        run: node prototype/owner-workspace/goal-intake-ui.e2e.mjs

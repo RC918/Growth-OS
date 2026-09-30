@@ -41,3 +41,11 @@
 .draft-focus .action-plan-form > .form-notice.error { background: #fff0eb; color: #a23c2a; }
 
 .observation-preview{margin:20px 0;padding:20px;background:#f1f7ed;border:1px solid #d3e2d1;border-radius:14px;overflow-wrap:anywhere}.observation-version{margin:12px 0;padding:14px;border:1px solid #d3e2d1;border-radius:10px;overflow-wrap:anywhere}.observation-preview h3{margin-top:0}.observation-preview details{margin-top:12px}.observation-preview li{margin:8px 0}
+
+#goal-panel { overflow-wrap:anywhere; }
+#goal-panel select { width:100%; max-width:100%; }
+#goal-panel dt { font-weight:600; margin-top:1rem; }
+#goal-panel dd { margin:0.4rem 0; white-space:pre-wrap; }
+#goal-panel dd button { display:block; margin-top:0.25rem; }
+#goal-panel details { margin:1rem 0; }
+#goal-panel details p { white-space:pre-wrap; }

@@ -1,6 +1,7 @@
 import { createWorkspaceApi } from './workspace-api.mjs';
 import { orderOpportunities } from './opportunity-order.mjs';
 import { createObservationPanel } from './workspace-observations.mjs';
+import { createGoalPanel } from './workspace-goals.mjs';
 
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
@@ -11,6 +12,7 @@ const $ = id => document.getElementById(id);
 let state = null;
 let epoch = 0;
 const observations=createObservationPanel(api);
+const goals=createGoalPanel(api);
 
 function message(text, failure = false) {
   const target = $('notice');
@@ -384,6 +386,7 @@ async function acceptRedirect() {
     $('sign-in').hidden = true;
     $('workspace').hidden = false;
     void observations.open(state.role);
+    void goals.open(state.role);
     message('');
   } catch (error) {
     api.signOut();
@@ -398,6 +401,7 @@ $('sign-out').addEventListener('click', () => {
   api.signOut();
   state = null;
   observations.close();
+  goals.close();
   $('workspace').hidden = true;
   $('sign-in').hidden = false;
   $('opportunities').replaceChildren();
