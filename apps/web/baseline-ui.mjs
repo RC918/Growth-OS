@@ -1,10 +1,12 @@
 import {preview, compare} from './search-baseline.mjs';
 import {saveSnapshot,loadSnapshot} from './baseline-snapshot.mjs';
+import {growthReport} from './baseline-report.mjs';
+let report=null;
 const data = {a: null, b: null}, synthetic = {a: false, b: false}, versions = {a: 0, b: 0};
 const $ = id => document.getElementById(id);
 const number = value => value.toLocaleString('zh-TW');
 function node(tag, text, className) {const element = document.createElement(tag); element.textContent = text; if (className) element.className = className; return element;}
-function clearComparison() { $('comparison').hidden = true; $('comparison-error').textContent = ''; $('compare').disabled = !data.a || !data.b; $('save-snapshot').disabled = !data.a; }
+function clearComparison() { $('comparison').hidden = true; $('comparison-error').textContent = ''; $('compare').disabled = !data.a || !data.b; $('save-snapshot').disabled = !data.a; $('build-report').disabled = !data.a; report=null; $('download-report').disabled=true; $('report-result').hidden=true; $('report-error').textContent=''; }
 function invalidate(key) {data[key] = null; synthetic[key] = false; versions[key]++; $('result-' + key).hidden = true; $('error-' + key).textContent = ''; clearComparison();}
 function reveal(element) {element.hidden = false; element.focus({preventScroll: true}); element.scrollIntoView({behavior: 'smooth', block: 'nearest'});}
 function render(key, result) {
@@ -87,4 +89,23 @@ $('snapshot-file').addEventListener('change',async()=>{
     $('snapshot-feedback').classList.add('success'); $('snapshot-feedback').textContent='已重新驗證並載入。請重新按「比較兩段期間」查看差異；來源資訊仍未核實。';
     $('snapshot-feedback').scrollIntoView({behavior:'smooth',block:'nearest'});
   } catch(error) {if(versionA===versions.a && versionB===versions.b) $('snapshot-feedback').textContent=error.message;}
+});
+
+$('build-report').addEventListener('click',()=>{
+  $('report-error').textContent='';
+  try {
+    report=growthReport(data.a,data.b,synthetic);
+    const target=$('report-result'); target.replaceChildren(node('h3',report.title));
+    const grid=node('div','','report-grid');
+    for(const [heading,items] of report.sections) {
+      const section=node('section','','report-section'); section.append(node('h4',heading));
+      const list=document.createElement('ul'); items.forEach(text=>list.append(node('li',text))); section.append(list); grid.append(section);
+    }
+    target.append(grid); $('download-report').disabled=false; reveal(target);
+  } catch(error) {$('report-error').textContent=error.message;}
+});
+$('download-report').addEventListener('click',()=>{
+  if(!report) return;
+  const url=URL.createObjectURL(new Blob([report.markdown],{type:'text/markdown;charset=utf-8'}));
+  const link=document.createElement('a'); link.href=url; link.download='growth-os-observation-report.md'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),30000);
 });

@@ -36,3 +36,18 @@ test('reload refuses derived totals, invalid rows, unknown versions and oversize
  const changed=JSON.parse(text); changed.a.rows[0].clicks=3;
  assert.equal(loadSnapshot(JSON.stringify(changed)).a.result.clicks,4); // Recompute; file contents are not authenticated.
 });
+
+import {growthReport} from '../../apps/web/baseline-report.mjs';
+test('report separates observations, inference, unknowns and next steps without trusting totals',()=>{
+ const a=preview(full,meta),b=preview(full.replaceAll('09-01','09-04').replaceAll('09-02','09-05').replaceAll('09-03','09-06'),{...meta,start:'2026-09-04',end:'2026-09-06'});
+ const report=growthReport({...a,clicks:999},b,{a:true,b:true});
+ assert.deepEqual(report.sections.map(x=>x[0]),['觀測','合理推論','未知','建議動作']);
+ assert.match(report.markdown,/含合成範例/); assert.match(report.markdown,/觀察到點擊 3/);
+ assert.doesNotMatch(report.markdown,/999/); assert.match(report.markdown,/點擊差額 0/); assert.match(report.markdown,/無法將差異歸因/);
+});
+test('single or incomplete periods report limitations and never manufacture a difference',()=>{
+ const a=preview('date,clicks,impressions\n2026-09-01,0,0',meta);
+ const single=growthReport(a,null,{a:false}); assert.match(single.markdown,/沒有後續比較期間/); assert.match(single.markdown,/無法計算/);
+ const b=preview(full.replaceAll('09-01','09-04').replaceAll('09-02','09-05').replaceAll('09-03','09-06'),{...meta,start:'2026-09-04',end:'2026-09-06'});
+ const partial=growthReport(a,b,{a:false,b:false}); assert.match(partial.markdown,/本次未產生期間差額/); assert.doesNotMatch(partial.markdown,/點擊差額/); assert.match(partial.markdown,/2026-09-02/);
+});

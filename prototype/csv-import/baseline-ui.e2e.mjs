@@ -22,6 +22,12 @@ try {
     await page.locator('#second>summary').click();
     await page.locator('[data-sample="b"]').click(); await page.locator('#compare').click();
     assert.match(await page.locator('#comparison').innerText(),/點擊 \+2 · 曝光 \+10/);
+    await page.locator('#build-report').click();
+    assert.match(await page.locator('#report-result').innerText(),/合成範例/);
+    const reportDownloadPromise=page.waitForEvent('download'); await page.locator('#download-report').click();
+    const reportDownload=await reportDownloadPromise; const reportText=await readFile(await reportDownload.path(),'utf8');
+    for(const heading of ['觀測','合理推論','未知','建議動作']) assert.ok(reportText.includes('## '+heading));
+    assert.match(reportText,/點擊差額 \+2/);
     const downloadPromise=page.waitForEvent('download'); await page.locator('#save-snapshot').click();
     const download=await downloadPromise; const saved=await readFile(await download.path());
     await page.reload(); assert.equal(await page.locator('#save-snapshot').isDisabled(),true);
@@ -38,8 +44,10 @@ try {
 
     await page.locator('#form-a textarea').fill('date,clicks,impressions\n2026-09-01,2,10\n2026-09-03,0,0');
     assert.equal(await page.locator('#result-a').isVisible(),false); assert.equal(await page.locator('#compare').isDisabled(),true);
+    assert.equal(await page.locator('#report-result').isVisible(),false); assert.equal(await page.locator('#download-report').isDisabled(),true);
     await page.locator('#form-a button[type=submit]').click();
     assert.match(await page.locator('#result-a').innerText(),/未知日期：2026-09-02/);
+    await page.locator('#build-report').click(); assert.match(await page.locator('#report-result').innerText(),/本次未產生期間差額/);
     await page.locator('#compare').click(); assert.match(await page.locator('#comparison-error').innerText(),/兩段期間都須沒有缺少日期/);
     await page.locator('#form-a textarea').fill('date,clicks,impressions\n2026-09-01,,10'); await page.locator('#form-a button[type=submit]').click();
     assert.match(await page.locator('#error-a').innerText(),/第 2 行/);
