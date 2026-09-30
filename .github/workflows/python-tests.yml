@@ -39,3 +39,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Baseline desktop and mobile UI acceptance
         run: node prototype/csv-import/baseline-ui.e2e.mjs
+      - name: Workspace observation desktop and mobile UI acceptance
+        run: node prototype/owner-workspace/observations-ui.e2e.mjs

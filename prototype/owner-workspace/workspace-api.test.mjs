@@ -37,6 +37,9 @@ function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign
       }
       return { ok: true, json: async () => [{ id: role === 'owner' ? orgA : orgB, name: 'Synthetic workspace' }] };
     }
+    if (parsed.pathname.endsWith('/search_observation_versions')) {
+      return {ok:true,json:async()=>parsed.searchParams.has('id')?[{id:'synthetic-observation',payload:{version:2},created_at:'2026-09-30T00:00:00Z'}]:[{id:'synthetic-observation',created_at:'2026-09-30T00:00:00Z'}]};
+    }
     if (parsed.pathname.endsWith('/business_profiles')) {
       return { ok: true, json: async () => [{ site_id: 'fixture-site', review_status: 'owner_approved' }] };
     }
@@ -211,9 +214,29 @@ test('invalid callback and rejected Auth response clear the in-memory session', 
 });
 
 test('preview publishes the exact reviewed workspace files', async () => {
-  for (const name of ['workspace.html', 'workspace.mjs', 'workspace-api.mjs', 'workspace.css', 'opportunity-order.mjs']) {
+  for (const name of ['workspace.html', 'workspace.mjs', 'workspace-api.mjs', 'workspace.css', 'opportunity-order.mjs','workspace-observations.mjs','baseline-snapshot.mjs','baseline-report.mjs','baseline-actions.mjs','search-baseline.mjs']) {
     const source = await readFile(new URL(name, import.meta.url), 'utf8');
     const preview = await readFile(new URL(`../../apps/web/${name}`, import.meta.url), 'utf8');
     assert.equal(preview, source, `${name} differs from the reviewed source`);
   }
+});
+
+
+test('observation reads and writes are scoped by authenticated membership; viewer and signed-out writes fail',async()=>{
+ const {api,calls}=fixture(); await api.completeMagicLink(fragment('owner'));
+ await api.listObservations(); await api.readObservation('synthetic-observation');
+ const requestId='00000000-0000-4000-8000-000000000001',payload={version:2};
+ await api.saveObservation(requestId,payload);
+ const reads=calls.filter(c=>c.path.endsWith('/search_observation_versions'));
+ assert.equal(reads[0].query.get('organization_id'),`eq.${orgA}`);
+ assert.equal(reads[0].query.get('select'),'id,created_at'); // Never fetch every payload in the version list.
+ assert.equal(reads[1].query.get('organization_id'),`eq.${orgA}`);
+ assert.equal(reads[1].query.get('id'),'eq.synthetic-observation');
+ const rpc=calls.find(c=>c.path.endsWith('/rpc/save_search_observation'));
+ assert.deepEqual(JSON.parse(rpc.options.body),{p_organization_id:orgA,p_request_id:requestId,p_payload:payload});
+ const viewer=fixture('viewer'); await viewer.api.completeMagicLink(fragment('viewer'));
+ await viewer.api.listObservations();
+ assert.equal(viewer.calls.at(-1).query.get('organization_id'),`eq.${orgB}`);
+ assert.throws(()=>viewer.api.saveObservation(requestId,payload),/只有企業擁有者/);
+ api.signOut(); assert.throws(()=>api.listObservations(),/工作區/); assert.throws(()=>api.saveObservation(requestId,payload),/只有企業擁有者/);
 });

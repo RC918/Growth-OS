@@ -11,3 +11,5 @@ python3 -m http.server 8081 --directory apps/web
 開啟 `http://127.0.0.1:8081`。Vercel 以根目錄 `vercel.json` 的 `outputDirectory=apps/web` 發布靜態預覽。此頁不代表可用產品；後續 Next.js 與真正的授權流程需要另外驗收。
 
 工作台候選程式與測試放在 [`prototype/owner-workspace`](../../prototype/owner-workspace/README.md)，並同步至此目錄供獨立 Vercel 預覽發布。機會卡片可展開來源與審核紀錄；GSC／GA4 等真實流量資料仍未連接。
+
+搜尋觀測版本：`workspace-observations.mjs` 在登入後提供 JSON 保存檔檢查、新版本保存及最近 20 版查看。沿用同一分頁 Auth，不另開登入回呼路徑。操作訊息位於保存按鈕旁；登出清除待保存及已顯示資料。搜尋基線頁本身仍為離線工具。保存的是提供者聲明的原始來源、每日列、合成標記及發布紀錄，不代表網站所有權、Google 資料或真實發布已驗證。

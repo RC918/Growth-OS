@@ -99,6 +99,23 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       linkedSite = null;
       linkedSiteVerified = false;
     },
+    listObservations() {
+      return select('search_observation_versions','id,created_at',{
+        organization_id:`eq.${activeOrg()}`,order:'created_at.desc,id.desc',limit:'20',
+      });
+    },
+    async readObservation(id) {
+      const rows=await select('search_observation_versions','id,payload,created_at',{
+        organization_id:`eq.${activeOrg()}`,id:`eq.${id}`,limit:'1',
+      });
+      if(rows.length!==1) throw new Error('找不到可讀取的觀測版本');
+      return rows[0];
+    },
+    saveObservation(requestId,payload) {
+      return request('/rest/v1/rpc/save_search_observation',{
+        method:'POST',body:{p_organization_id:ownerOnly(),p_request_id:requestId,p_payload:payload},
+      });
+    },
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
