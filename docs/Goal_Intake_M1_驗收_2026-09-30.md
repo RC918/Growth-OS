@@ -77,3 +77,9 @@ M2 計畫／工作卡、AI 理解與產稿、發布、真實成長資料仍未�
 證據保存於聊天 outputs：Growth-OS-M1-real-owner-confirmed.jpg、Growth-OS-M1-real-owner-history.jpg、Growth-OS-M1-real-owner-readback.jpg、Growth-OS-M1-real-owner-mobile.jpg、Growth-OS-M1-real-viewer-isolation.jpg。沒有保存登入 token 或郵件連結到驗收文件。
 
 剩餘完整放行條件：新 save_goal_turn 的真實 viewer／跨工作區 API 拒絕、真實 401 後重新登入恢復、獨立連線多人並行，以及本機提示修正部署後驗收。本輪未新增部署或合併；未擴展 M2、其他專案、正式網域或付費設定。
+
+### 遠端雙連線探測的限制
+
+兩個回滾交易分別以 backend_pid 295694、295697 執行，同一目標 expected_version=10 的合成 RPC 探測均回傳第 11 版，最後各自 rollback。未觀察到 lock_timeout 或版本衝突，故只能確認獨立後端與回滾，不能證明請求重疊或鎖競爭成功。後續唯讀核對仍為版本 10、10 筆問答與 10 筆審核事件，測試無殘留。查詢與結果摘要保存於 outputs/Growth-OS-M1-concurrency-probes.json；並行驗收維持待完成。需要可控制交易交錯的資料庫連線或適當 API 驗收入口，不能把 MCP 呼叫同時發送當成資料庫同時執行。
+
+本輪來源已保存於本機，沒有推送、合併或新增部署。真實登入測試結束後已退出 owner／viewer 分頁工作階段，精確新版工作台保留開啟。
