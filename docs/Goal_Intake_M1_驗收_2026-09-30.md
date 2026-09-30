@@ -138,3 +138,22 @@ runner 明確驗證第一筆完成後才送第二筆、第二筆小於 10 秒、
 - DB 交易重疊屏障探測未通過：holder PID 301844 鎖持有於 14:52:18.036901–14:52:30.050577 UTC；contender PID 301847 在 14:52:34.873647 才開始，14:52:34.913918 結束；observer 14:52:39.659699 的活動交易清單為空。不同 PID 不代表同時交易；三筆交易均 rollback，無保存資料。現有 execute_sql 入口未提供可控制的同時連線，重跑同一工具不補足證據。所需能力為兩條可同步 BEGIN／鎖屏障的受限獨立 SQL 連線及一條 pg_stat_activity／pg_blocking_pids 觀测連線；未新增 login、授權或擷取秘密。
 
 證據在聊天 outputs：Growth-OS-6974fc1-preview-ready.jpg、Growth-OS-M1-lock-barrier-tool-gap.json、Growth-OS-natural-expiry-session.json。PT409 先後保存與快速拒絕、權限拒絕及 API 401 已通過，未重跑。M1 仍待自然到期、真實 DB 重疊及新版登入讀取提示驗收；M2／AI 理解與成長計畫未寫成已完成。
+
+
+### 受限直連能力調查：唯讀結論
+
+2026-09-30 23:06 左右完成唯讀調查。repo 中未找到 DATABASE_URL／DIRECT_URL／PGHOST 等直連設定引用或 env 檔；目前終端環境也沒有這些連線變數（只查是否存在，沒有輸出值）。psql 已安裝，但客戶端存在不代表已有連線憑證。可用 Supabase 連接器沒有獨立連線／交易 handle 接口。
+
+pg_roles 唯讀結果只有 Supabase 標準角色，沒有專案專用的受限測試 LOGIN。authenticated、service_role 均 NOLOGIN；authenticator 為 LOGIN，但它是服務角色，沒有已提供／已授權使用的密碼，不能擷取其秘密或借用。postgres 與若干管理角色有 BYPASSRLS 或更大權限；不能替代驗收使用者權限。先前假設 authenticator 不可登入應以本次 rolcanlogin=true 的實測為準，仍不代表已有可用憑證。
+
+因此目前沒有已確認適合且已授權的受限直連，停止猜測連線或重新跑同一序列化 MCP 屏障。service_role API key 不等於 Postgres LOGIN 密碼；其 BYPASSRLS 也無法證明 owner／viewer 隔離，HTTP 請求更不能持有可控制的 SQL 交易。管理員連線即使 SET ROLE 也仍提供超出驗收需要的能力，不能作為無授權的捷徑。
+
+最小需求（提案，未建立／未授權）：
+
+1. 使用本隔離測試專案的既有適合受限 LOGIN，若不存在則另經精確批准設計短期驗收角色。要求 NOSUPERUSER、NOBYPASSRLS、NOCREATEROLE、NOCREATEDB，僅 CONNECT 與必要 schema USAGE／RPC EXECUTE／受限讀取。必須限制為指定 Fixture A 的合成目標，不授予直接表 INSERT／UPDATE／DELETE、服務角色或管理員角色。單純 GRANT authenticated 並允許任意 JWT claims 不是充分的租戶限制；角色與現有 RLS／函式的相容性及固定 fixture 限制須先審核。
+2. 同一受限角色開兩條交易連線，第三條只觀測這個角色自己的測試 session PID／lock blocker。優先使用本角色 session 可見性，不預先授予 pg_monitor／pg_read_all_stats。連線端點與 username 從專案 Connect 頁取得，TLS 驗證保持；密碼只透過安全輸入留記憶體，不寫入 repo、命令參數、日誌或文件。IPv6 可用時直連；IPv4 可用既有 session pooler，不購買 IPv4 add-on。[官方連線方式](https://supabase.com/docs/guides/database/connecting-to-postgres)、[官方角色說明](https://supabase.com/docs/guides/database/postgres/roles)。
+3. 真正屏障流程：A BEGIN 後對指定合成目標呼叫 RPC，持有未提交的鎖；B 在 A 未釋放前 BEGIN 並呼叫相同目標 RPC；C 證明 A／B PID 不同、B wait_event 為 Lock 且 pg_blocking_pids 包含 A，記錄重疊時間；A ROLLBACK 後 B 完成並 ROLLBACK。所有測試有 lock_timeout／statement_timeout，最後核對原 13 筆历史與審核完整。此流程驗證實際鎖等待，PT409 舊版本拒絕則引用已通過的獨立證據，不混寫成同一測試。
+
+回復方式（須與角色批准一起審閱）：正常或失敗均回滾尚未完成的交易、关闭三條測試連線；只針對該短期測試角色撤回此次授權並取消 LOGIN／到期資格，確認無活躍連線及無擁有物件後才按核准方式移除角色。既有帳號、RLS、callback、資料與 migration 不回退；不得輪替共享 postgres／authenticator 密碼。尚未執行任何角色／授權／callback／域名／路由變更。
+
+協調更新：固定測試分支 alias `https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html` 已在 Vercel Domains 唯讀確認存在；它會跟隨未來分支 build。callback 決策待回應，不新增任何 URL／路由；若固定 alias 獲精確批准，取代尚未執行的 8uz 臨時網址请求，兩者不可同時執行。`project-c7ksn.vercel.app` 標記為 Production，不作測試替代。
