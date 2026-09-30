@@ -206,3 +206,16 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 能力調查補正：本機實際存在 PATH 外 `/opt/homebrew/Cellar/postgresql@14/14.19/bin/postgres`，先前只查 libpq 同目錄並不完整。使用該已安裝 14.19 嘗試獨立 `/private/tmp` cluster、0700 Unix socket、listen_addresses=''、auth-host=reject；沒有碰既有 daemon 或遠端。先排除 unlinked keg 的 libpq 與 postgres.bki 路徑，僅為子程序設定既有 library 路徑並引用既有 share；仍受編譯期 `/opt/homebrew/share/postgresql@14/timezonesets` 缺失阻擋，暫存 runtime layout 也無法解決。沒有改全域 symlink／安裝／升級服務；沒有成功啟動 native server、沒有 native lock PASS。唯讀確認暫存 probe 目錄剩餘 0；安全失敗摘要 outputs/Growth-OS-probe-native-overlap.json。Python runner 以不寫 cache 的 compile 驗證語法，Node renderer 語法與 git diff --check 通過。
 
 單一最小批准請求仍僅為 README 內草案，未發重複表單；應在精確 UTC 窗口及四份渲染 SQL 可審查後，由父任務呈現。本人安全輸入新 probe 密碼之前保持 NOLOGIN，不使用共享 postgres／authenticator 憑證。現有自然到期分頁未操作，00:02:54 台北後續驗收；M1 仍未全面放行。
+
+
+## 自然 JWT 到期與瀏覽器重新登入恢復：通過（2026-10-01）
+
+本節更新先前待自然到期的狀態，舊段落保留為當輪歷史。只驗收原保留分頁 1385706650／a0rpg9s0x Preview，不啟動任何 probe 窗口或新部署。
+
+1. 原登入時保存的實際 exp 為 2026-09-30 16:01:54 UTC／10 月 1 日 00:01:54 台北。2026-09-30 16:47:48 UTC／10 月 1 日 00:47:48 台北起，先唯讀觀察同一分頁：仍在原 a0 工作台、Fixture A owner、同一目標與 13 筆歷史；原版初次提示「讀取或保存中…」亦與先前一致。未先刷新、導覽或重新登入，保留證據未失效。
+2. 點「重新讀取目標」後，頁面顯示「資料操作失敗（HTTP 401）。已保存的問答仍保留；可重試或重新讀取。若登入逾時，請重新登入。」原目標與 13 筆可見歷史仍留在頁面，截圖保存。這是真實過期工作階段的瀏覽器讀取回應，沒有改 JWT、注入無效簽章或縮短到期設定。
+3. 先記錄上述 401，再結束舊分頁工作階段，向既有 owner 測試帳號取得新的一次性郵件並登入同一已批准 a0 工作台。郵件開啟新登入分頁 1385706671；原目標 id=5055ca31-40cc-435d-9f52-cdf19166440c、13 筆完整可見問答與到期前留存內容逐字相同。前後文字 SHA256 均為 `ac02375e2f63ea3dec06ec0ce7cef97861a352a82f7baa18720a5baf2089bd90`。未保存新問答或追加確認、未改角色或資料。
+
+安全證據在聊天 outputs：Growth-OS-natural-expiry-before.jpg、Growth-OS-natural-expiry-401.jpg、Growth-OS-natural-expiry-recovered.jpg、Growth-OS-natural-expiry-accepted.json；JSON 包含合成歷史、比對 hash 與時間，沒有登入 token／一次性連結。新登入結果分頁保留開啟。
+
+驗收結論：此精確自然到期 → HTTP 401 提示 → 重新登入 → 原目標與 13 筆歷史恢復流程通過。驗收來源是原保留 a0 Preview；固定 alias 的新版首次讀取提示另有既有 PASS，本次沒有重跑。M1 的遠端真正獨立交易重疊仍待完成；probe 只有離線草案與本地模擬安全測試，未啟動或建立遠端角色、credential、DDL、timeout 或安全設定。M1 全面放行與 M2 仍未宣告。
