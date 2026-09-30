@@ -32,9 +32,12 @@ try {
     assert.match(await page.locator('#action-list').innerText(),/更新商品比較內容/);
     await page.locator('#build-report').click();
     assert.match(await page.locator('#report-result').innerText(),/合成範例/);
+    assert.match(await page.locator('.report-summary').innerText(),/可比較觀察值，不能歸因/);
+    assert.match(await page.locator('.report-summary').innerText(),/不是真實成長證據/);
     const reportDownloadPromise=page.waitForEvent('download'); await page.locator('#download-report').click();
     const reportDownload=await reportDownloadPromise; const reportText=await readFile(await reportDownload.path(),'utf8');
     for(const heading of ['觀測','合理推論','未知','建議動作']) assert.ok(reportText.includes('## '+heading));
+    assert.ok(reportText.includes('## 先看這裡')); assert.match(reportText,/優先下一步/);
     assert.match(reportText,/點擊差額 \+2/);
     assert.match(reportText,/更新商品比較內容/); assert.match(reportText,/後續期間/);
     const downloadPromise=page.waitForEvent('download'); await page.locator('#save-snapshot').click();
@@ -64,6 +67,8 @@ try {
     await page.locator('#form-a button[type=submit]').click();
     assert.match(await page.locator('#result-a').innerText(),/未知日期：2026-09-02/);
     await page.locator('#build-report').click(); assert.match(await page.locator('#report-result').innerText(),/本次未產生期間差額/);
+    assert.match(await page.locator('.report-summary').innerText(),/先補齊基線資料/);
+    assert.match(await page.locator('.report-summary').innerText(),/才填零/);
     await page.locator('#compare').click(); assert.match(await page.locator('#comparison-error').innerText(),/兩段期間都須沒有缺少日期/);
     await page.locator('#form-a textarea').fill('date,clicks,impressions\n2026-09-01,,10'); await page.locator('#form-a button[type=submit]').click();
     assert.match(await page.locator('#error-a').innerText(),/第 2 行/);

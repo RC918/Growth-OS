@@ -76,3 +76,19 @@ test('reports classify self-declared actions without turning them into verified 
  assert.match(report.markdown,/尚未核對頁面/); assert.match(report.markdown,/無法將差異歸因/);
  assert.ok(report.markdown.includes('\\[link\\]\\(https://example.com\\)'));
 });
+test('summary prioritizes missing data before comparison and never labels sample differences as growth',()=>{
+ const a=preview(full,meta), partial=preview('date,clicks,impressions\n2026-09-01,0,0',meta);
+ const b=preview(full.replaceAll('09-01','09-04').replaceAll('09-02','09-05').replaceAll('09-03','09-06'),{...meta,start:'2026-09-04',end:'2026-09-06'});
+ assert.equal(growthReport(partial,null,{a:false}).summary.label,'先補齊基線資料');
+ assert.equal(growthReport(a,null,{a:false}).summary.label,'已有基線，尚不能比較');
+ assert.equal(growthReport(a,preview('date,clicks,impressions\n2026-09-04,0,0',{...meta,start:'2026-09-04',end:'2026-09-06'}),{a:false}).summary.label,'先補齊後續資料');
+ const mismatch=growthReport(a,{...b,origin:'https://other.example'},{a:false,b:false});
+ assert.equal(mismatch.summary.label,'先修正比較條件'); assert.match(mismatch.summary.detail,/來源/);
+ assert.equal(growthReport(a,a,{a:false,b:false}).summary.label,'先修正比較條件');
+ const compatible=growthReport(a,b,{a:true,b:true});
+ assert.equal(compatible.summary.label,'可比較觀察值，不能歸因');
+ assert.match(compatible.summary.provenance,/不是真實成長證據/);
+ assert.match(compatible.markdown,/## 先看這裡/); assert.match(compatible.markdown,/優先下一步/);
+ const actual=growthReport(a,b,{a:false,b:false}); assert.match(actual.summary.provenance,/尚未向 Google 核實/);
+ assert.doesNotMatch(actual.summary.label,/成功|有效|已成長/);
+});

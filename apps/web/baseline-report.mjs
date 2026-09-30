@@ -4,6 +4,14 @@ const types={web:'網頁搜尋',image:'圖片搜尋',video:'影片搜尋',news:'
 const count=value=>value.toLocaleString('zh-TW');
 const percent=value=>value===null?'無法計算（曝光為零）':(value*100).toFixed(2)+'%';
 const signed=value=>(value>0?'+':'')+count(value);
+const escapeMarkdown=text=>text.replace(/[\\`*_{}\[\]()<>#!|]/g,'\\$&');
+function assessment(before,after) {
+  if(!before.complete) return {label:'先補齊基線資料',detail:`基線期間缺少 ${before.missing.length} 天，不能代表完整期間。`,nextStep:'先補齊基線每日資料；只有確定沒有點擊與曝光的日期才填零。'};
+  if(!after) return {label:'已有基線，尚不能比較',detail:'只有一段完整資料，還沒有後續期間可判讀變化。',nextStep:'加入同網站、同搜尋類型、同日數且不重疊的後續期間。'};
+  if(!after.complete) return {label:'先補齊後續資料',detail:`後續期間缺少 ${after.missing.length} 天，目前不能比較差額。`,nextStep:'先補齊後續每日資料；不要將缺少的日期直接當成零。'};
+  try {compare(before,after);} catch(error) {return {label:'先修正比較條件',detail:error.message,nextStep:'依上方原因修正期間或來源，再重新產生報告。'};}
+  return {label:'可比較觀察值，不能歸因',detail:'兩段資料完整且比較條件一致，可描述點擊與曝光差異；不能據此判定措施有效。',nextStep:'核對資料來源與發布紀錄，持續記錄同口徑資料；目前仍未驗證成長原因。'};
+}
 export function growthReport(a,b,samples,actions=[]) {
   // Reconstruct from daily inputs; never trust caller-supplied aggregates.
   const checked=loadSnapshot(saveSnapshot(a,b,samples,actions));
@@ -51,7 +59,9 @@ export function growthReport(a,b,samples,actions=[]) {
   if(!inference.length) inference.push('資料尚不足以進行期間趨勢解讀。');
   const sample=Boolean(samples.a || (after && samples.b));
   const title=sample?'成長觀察報告｜含合成範例':'成長觀察報告｜提供者聲明資料';
+  const summary=assessment(before,after);
+  summary.provenance=sample?'含合成範例：僅供測試，不是真實成長證據。':'提供者聲明資料：來源尚未向 Google 核實。';
   const sections=[['觀測',observations],['合理推論',inference],['未知',unknowns],['建議動作',nextSteps]];
-  const markdown=`# ${title}\n\n資料用途：離線搜尋基線觀察；尚未連接 Google。${sample?'合成範例不可作為真實成長證據。':'來源尚未核實。'}\n\n`+sections.map(([heading,items])=>`## ${heading}\n\n`+items.map(x=>`- ${x.replace(/[\\`*_{}\[\]()<>#!|]/g,'\\$&')}`).join('\n')).join('\n\n')+'\n';
-  return {title,sections,markdown};
+  const markdown=`# ${title}\n\n資料用途：離線搜尋基線觀察；尚未連接 Google。${sample?'合成範例不可作為真實成長證據。':'來源尚未核實。'}\n\n## 先看這裡\n\n`+[summary.label,summary.detail,summary.provenance,`優先下一步：${summary.nextStep}`].map(escapeMarkdown).join('\n\n')+'\n\n'+sections.map(([heading,items])=>`## ${heading}\n\n`+items.map(x=>`- ${escapeMarkdown(x)}`).join('\n')).join('\n\n')+'\n';
+  return {title,summary,sections,markdown};
 }

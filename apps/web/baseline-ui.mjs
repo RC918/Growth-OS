@@ -99,6 +99,9 @@ $('build-report').addEventListener('click',()=>{
   try {
     report=growthReport(data.a,data.b,synthetic,actions);
     const target=$('report-result'); target.replaceChildren(node('h3',report.title));
+    const summary=node('section','','report-summary'); summary.setAttribute('aria-label','判讀摘要');
+    summary.append(node('h4',report.summary.label),node('p',report.summary.detail),node('p',report.summary.provenance,'small'),node('p',`優先下一步：${report.summary.nextStep}`,'summary-next'));
+    target.append(summary);
     const grid=node('div','','report-grid');
     for(const [heading,items] of report.sections) {
       const section=node('section','','report-section'); section.append(node('h4',heading));
