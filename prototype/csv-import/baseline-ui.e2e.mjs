@@ -1,0 +1,38 @@
+// Synthetic local-only UI acceptance, including a real narrow mobile viewport.
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+const origin='http://127.0.0.1:8765';
+const server=spawn('python3',['-m','http.server','8765','--bind','127.0.0.1','--directory','apps/web'],{stdio:'ignore'});
+let browser;
+try {
+  let ready=false;
+  for(let i=0;i<50;i++) {try {const response=await fetch(origin+'/search-baseline.html'); if(response.ok){ready=true;break;}} catch {} await new Promise(resolve=>setTimeout(resolve,100));}
+  assert.ok(ready,'local static server must start');
+  browser=await chromium.launch();
+  for(const width of [1280,390]) {
+    const page=await browser.newPage({viewport:{width,height:844}}), errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    page.on('console',message=>{if(message.type()==='error') errors.push(message.text());});
+    await page.goto(origin+'/');
+    await page.locator('#status a[href="/search-baseline.html"]').click();
+    await page.locator('[data-sample="a"]').click();
+    assert.match(await page.locator('#result-a').innerText(),/日期完整：3 \/ 3 天/);
+    await page.locator('#second>summary').click();
+    await page.locator('[data-sample="b"]').click(); await page.locator('#compare').click();
+    assert.match(await page.locator('#comparison').innerText(),/點擊 \+2 · 曝光 \+10/);
+    await page.locator('#form-a textarea').fill('date,clicks,impressions\n2026-09-01,2,10\n2026-09-03,0,0');
+    assert.equal(await page.locator('#result-a').isVisible(),false); assert.equal(await page.locator('#compare').isDisabled(),true);
+    await page.locator('#form-a button[type=submit]').click();
+    assert.match(await page.locator('#result-a').innerText(),/未知日期：2026-09-02/);
+    await page.locator('#compare').click(); assert.match(await page.locator('#comparison-error').innerText(),/兩段期間都須沒有缺少日期/);
+    await page.locator('#form-a textarea').fill('date,clicks,impressions\n2026-09-01,,10'); await page.locator('#form-a button[type=submit]').click();
+    assert.match(await page.locator('#error-a').innerText(),/第 2 行/);
+    await page.locator('#form-a input[type=file]').setInputFiles('apps/web/search-baseline-template.csv');
+    await page.waitForFunction(()=>document.querySelector('#form-a textarea').value.includes('2026-09-03,1,10'));
+    await page.locator('#form-a button[type=submit]').click(); assert.match(await page.locator('#result-a').innerText(),/日期完整：3 \/ 3 天/);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal overflow');
+    assert.deepEqual(errors,[],'no page or console errors');
+    await page.close(); console.log(`PASS: ${width}px preview, comparison, invalidation, coverage, errors, CSV selection, navigation, overflow`);
+  }
+} finally {if(browser) await browser.close(); server.kill();}
