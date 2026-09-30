@@ -9,11 +9,17 @@ DO $$ BEGIN
  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='growth_os_probe_login'
  AND NOT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole
  AND NOT rolcreatedb AND NOT rolreplication AND NOT rolinherit
- AND rolconnlimit=3 AND rolvaliduntil='__PROBE_DEADLINE__'::timestamptz)
+ AND rolconnlimit=3 AND rolvaliduntil='1970-01-01 00:00:00+00'::timestamptz)
  THEN RAISE EXCEPTION 'Probe login attributes differ'; END IF;
+ IF NOT EXISTS (SELECT FROM growth_os_probe.activation_window WHERE singleton AND starts_at IS NULL AND deadline IS NULL)
+ THEN RAISE EXCEPTION 'Window already set; no automatic extension'; END IF;
+ IF '__PROBE_DEADLINE__'::timestamptz-'__PROBE_START__'::timestamptz <> interval '2 hours'
+ THEN RAISE EXCEPTION 'Invalid two-hour window'; END IF;
  IF EXISTS (SELECT FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member
  WHERE r.rolname IN ('growth_os_probe_login','growth_os_probe_owner'))
  THEN RAISE EXCEPTION 'Unexpected probe role memberships'; END IF;
 END $$;
+UPDATE growth_os_probe.activation_window SET starts_at='__PROBE_START__',deadline='__PROBE_DEADLINE__' WHERE singleton;
+ALTER ROLE growth_os_probe_login VALID UNTIL '__PROBE_DEADLINE__';
 ALTER ROLE growth_os_probe_login LOGIN;
 COMMIT;

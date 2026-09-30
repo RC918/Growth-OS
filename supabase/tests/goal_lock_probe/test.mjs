@@ -41,6 +41,9 @@ try {
  assert.equal(attrs.length,2);for(const r of attrs)for(const k of ['rolcanlogin','rolinherit','rolsuper','rolbypassrls','rolcreatedb','rolcreaterole','rolreplication'])assert.equal(r[k],false);
  assert.equal(attrs.find(r=>r.rolname==='growth_os_probe_login').rolconnlimit,3);
  assert.equal((await db.query("select count(*)::int n from pg_auth_members m join pg_roles r on m.member=r.oid where r.rolname like 'growth_os_probe_%'")).rows[0].n,0);
+ assert.equal((await db.query('select starts_at,deadline from growth_os_probe.activation_window')).rows[0].starts_at,null);
+ await execAsProbe();await denied('select growth_os_probe.append_fixture_turn()');await denied('select * from growth_os_probe.activation_window');await admin();
+ pass('NOLOGIN preparation has no active window; probe and config access denied');
  pass('role catalogs report restricted attributes, no memberships, NOLOGIN staging');
  await denied('select growth_os_probe.append_fixture_turn()');
  await db.exec('create role unrelated_probe_test nologin;set role unrelated_probe_test');
@@ -59,6 +62,8 @@ try {
  await denied('create function growth_os_probe.evil() returns int language sql as $$select 1$$');
  await denied('select growth_os_probe.append_fixture_turn(null::uuid)','42883');
  pass('simulated session authorization denies SET ROLE, original RPCs, direct tables, DDL and arbitrary arguments');
+ await admin();await db.exec(renderProbe(await readFile(new URL('activate.sql.template',import.meta.url),'utf8'),start));
+ await execAsProbe();
  await db.exec(`begin;select set_config('request.jwt.claim.sub','${foreign}',true);
  select set_config('request.jwt.claims','{"sub":"${foreign}","role":"service_role"}',true);`);
  const saved=(await db.query('select growth_os_probe.append_fixture_turn() result')).rows[0].result;
@@ -76,15 +81,13 @@ try {
  assert.equal((await db.query('select count(*)::int n from public.audit_events')).rows[0].n,1);
  assert.equal((await db.query(`select count(*)::int n from public.growth_goal_turns where organization_id='${other}'`)).rows[0].n,0);
  pass('one fixed synthetic commit allowed, original 13 unchanged, next call PT409, foreign tenant untouched');
- const body=template.slice(template.indexOf('CREATE FUNCTION'),template.indexOf('ALTER FUNCTION')).replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION');
- await db.exec(renderProbe(body,new Date(Date.now()-3*3600000).toISOString()));
+ await db.exec("update growth_os_probe.activation_window set starts_at=now()-interval '3 hours',deadline=now()-interval '1 hour'");
  await execAsProbe();await denied('select growth_os_probe.append_fixture_turn()');await admin();
- await db.exec(renderProbe(body,new Date(Date.now()+3600000).toISOString()));
+ await db.exec("update growth_os_probe.activation_window set starts_at=now()+interval '1 hour',deadline=now()+interval '3 hours'");
  await execAsProbe();await denied('select growth_os_probe.append_fixture_turn()');await admin();
  pass('past hard deadline and future not-before window both denied before RPC');
- // Simulated only: PGlite does not authenticate a new physical LOGIN connection.
- await db.exec(renderProbe(body,start));
- await db.exec(renderProbe(await readFile(new URL('activate.sql.template',import.meta.url),'utf8'),start));
+ await denied(renderProbe(await readFile(new URL('activate.sql.template',import.meta.url),'utf8'),start),'P0001');
+ await db.exec('rollback');
  assert.equal((await db.query("select rolcanlogin from pg_roles where rolname='growth_os_probe_login'")).rows[0].rolcanlogin,true);
  await db.exec(await readFile(new URL('cleanup.sql',import.meta.url),'utf8'));
  assert.equal((await db.query("select count(*)::int n from pg_roles where rolname like 'growth_os_probe_%'")).rows[0].n,0);

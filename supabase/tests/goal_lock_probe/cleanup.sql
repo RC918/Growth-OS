@@ -7,6 +7,8 @@ SELECT pg_terminate_backend(pid) FROM pg_stat_activity
  WHERE usename='growth_os_probe_login' AND pid<>pg_backend_pid();
 BEGIN;
 DROP FUNCTION growth_os_probe.append_fixture_turn();
+REVOKE SELECT ON TABLE growth_os_probe.activation_window FROM growth_os_probe_owner;
+DROP TABLE growth_os_probe.activation_window;
 REVOKE EXECUTE ON FUNCTION public.save_goal_turn(uuid,uuid,uuid,integer,text,text),
  private.save_goal_turn_impl(uuid,uuid,uuid,integer,text,text) FROM growth_os_probe_owner;
 REVOKE USAGE ON SCHEMA growth_os_probe,public,private FROM growth_os_probe_owner;

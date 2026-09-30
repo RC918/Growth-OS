@@ -1,10 +1,7 @@
--- REVIEW DRAFT ONLY. Render exact approved start/deadline before review/use.
+-- Approved NOLOGIN preparation only. NO window, credential, LOGIN or data append activation.
 -- Target: isolated Growth OS vhzryhibmpvglzcmfnaa. Contains no password.
 BEGIN;
 DO $$ BEGIN
- IF '__PROBE_START__'::timestamptz >= '__PROBE_DEADLINE__'::timestamptz
- OR '__PROBE_DEADLINE__'::timestamptz - '__PROBE_START__'::timestamptz <> interval '2 hours'
- THEN RAISE EXCEPTION 'Invalid approved window'; END IF;
  IF EXISTS (SELECT FROM pg_roles WHERE rolname IN ('growth_os_probe_owner','growth_os_probe_login'))
  THEN RAISE EXCEPTION 'Probe role already exists; do not overwrite'; END IF;
  IF EXISTS (SELECT FROM pg_namespace WHERE nspname='growth_os_probe')
@@ -21,9 +18,15 @@ DO $$ BEGIN
 END $$;
 CREATE ROLE growth_os_probe_owner NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE ROLE growth_os_probe_login NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION
- CONNECTION LIMIT 3 VALID UNTIL '__PROBE_DEADLINE__';
+ CONNECTION LIMIT 3 VALID UNTIL '1970-01-01 00:00:00+00';
 CREATE SCHEMA growth_os_probe;
 REVOKE ALL ON SCHEMA growth_os_probe FROM PUBLIC;
+CREATE TABLE growth_os_probe.activation_window(singleton boolean PRIMARY KEY CHECK(singleton), starts_at timestamptz, deadline timestamptz,
+ CHECK((starts_at IS NULL AND deadline IS NULL) OR
+ (starts_at IS NOT NULL AND deadline IS NOT NULL AND deadline-starts_at=interval '2 hours')));
+INSERT INTO growth_os_probe.activation_window VALUES(true,NULL,NULL);
+REVOKE ALL ON TABLE growth_os_probe.activation_window FROM PUBLIC,anon,authenticated,service_role,growth_os_probe_login;
+GRANT SELECT ON TABLE growth_os_probe.activation_window TO growth_os_probe_owner;
 GRANT CONNECT ON DATABASE postgres TO growth_os_probe_login;
 GRANT USAGE ON SCHEMA growth_os_probe TO growth_os_probe_login;
 GRANT USAGE ON SCHEMA growth_os_probe,public,private TO growth_os_probe_owner;
@@ -31,13 +34,16 @@ GRANT EXECUTE ON FUNCTION public.save_goal_turn(uuid,uuid,uuid,integer,text,text
  private.save_goal_turn_impl(uuid,uuid,uuid,integer,text,text) TO growth_os_probe_owner;
 -- Temporary CREATE only for ownership transfer; revoked in the same transaction.
 GRANT CREATE ON SCHEMA growth_os_probe TO growth_os_probe_owner;
+-- PG17 ownership transfer needs SET membership for the DDL operator.
+-- This temporary membership is removed before the atomic preparation commits.
+GRANT growth_os_probe_owner TO CURRENT_USER WITH SET TRUE, INHERIT FALSE;
 CREATE FUNCTION growth_os_probe.append_fixture_turn() RETURNS jsonb
  LANGUAGE plpgsql SECURITY DEFINER SET search_path='' SET lock_timeout='5s' AS $$
-DECLARE result jsonb;
+DECLARE result jsonb; starts timestamptz; ends timestamptz;
 BEGIN
- IF session_user <> 'growth_os_probe_login'
- OR clock_timestamp() < '__PROBE_START__'::timestamptz
- OR clock_timestamp() >= '__PROBE_DEADLINE__'::timestamptz
+ SELECT starts_at,deadline INTO starts,ends FROM growth_os_probe.activation_window WHERE singleton;
+ IF session_user <> 'growth_os_probe_login' OR starts IS NULL OR ends IS NULL
+ OR clock_timestamp() < starts OR clock_timestamp() >= ends
  THEN RAISE EXCEPTION 'Probe caller or window denied' USING errcode='42501'; END IF;
  -- Pin both legacy and JSON claims. The caller cannot choose identity/tenant.
  PERFORM set_config('request.jwt.claim.sub','e85f1a90-3565-4fc1-a7e0-3b7d08830d0e',true);
@@ -46,11 +52,12 @@ BEGIN
  '5055ca31-40cc-435d-9f52-cdf19166440c',pg_catalog.gen_random_uuid(),13,
  'audience','合成 DB 鎖屏障驗收：固定海外工業採購，無真實客戶資料');
  -- Reject if waiting for the lock carried this call beyond the hard cutoff.
- IF clock_timestamp() >= '__PROBE_DEADLINE__'::timestamptz
+ IF clock_timestamp() >= ends
  THEN RAISE EXCEPTION 'Probe window expired while waiting' USING errcode='42501'; END IF;
  RETURN result;
 END $$;
 ALTER FUNCTION growth_os_probe.append_fixture_turn() OWNER TO growth_os_probe_owner;
+REVOKE growth_os_probe_owner FROM CURRENT_USER;
 REVOKE CREATE ON SCHEMA growth_os_probe FROM growth_os_probe_owner;
 REVOKE ALL ON FUNCTION growth_os_probe.append_fixture_turn() FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION growth_os_probe.append_fixture_turn() TO growth_os_probe_login;
