@@ -40,7 +40,8 @@ try {
    if(url.pathname.endsWith('growth_goal_turns')) {assert.equal(url.searchParams.get('organization_id'),`eq.${org}`);return respond(saved.get(url.searchParams.get('goal_id').slice(3))||[]);}
    return respond([]);
   });
-  const login=async()=>{await page.goto(origin+'/workspace.html#access_token=synthetic&token_type=bearer&expires_in=3600');await page.locator('#workspace').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#goal-panel button')?.disabled);};
+  let loginSequence=0;
+  const login=async()=>{await page.goto(origin+'/workspace.html?test_session='+ ++loginSequence+'#access_token=synthetic&token_type=bearer&expires_in=3600');await page.locator('#workspace').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#goal-panel button')?.disabled);};
   await login();assert.match(await page.locator('#goal-panel').innerText(),/告訴我/);
   failNext=true;await page.locator('#goal-form textarea').fill('讓海外買家找到我的零件');await page.locator('#goal-form button[type=submit]').click();
   await page.getByText(/HTTP 503/).waitFor();await page.locator('#goal-form button[type=submit]').click();await page.getByText('已保存並讀回問答；尚未發布或取得成長數據。').waitFor();
