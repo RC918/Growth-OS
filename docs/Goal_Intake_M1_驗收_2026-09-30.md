@@ -126,3 +126,15 @@ runner 明確驗證第一筆完成後才送第二筆、第二筆小於 10 秒、
 回復方式：原 public 定義保存於 outputs/Growth-OS-PT409-restore-public-function.sql（僅參考，未執行）。若必要，在確認目標及目前 ACL 仍匹配後，以後續補償 migration 的 CREATE OR REPLACE 恢復該原定義；保留擁有者、security invoker、空 search_path 及原 ACL，不刪除 migration 歷史、不回退問答或審核資料。此恢復會帶回 40001／重試問題，不能當成已批准自動回退。
 
 仍未完成：可證實的獨立 DB 交易重疊需兩條可控制 BEGIN／鎖屏障的受限資料庫連線；先後 API 成功不能替代。自然 JWT 到期的瀏覽器恢復未驗收；先前 401 證據為 API 層無效簽章。初次讀取提示本機修正尚未部署。M1 全面放行及 M2／AI 理解／成長計畫仍未宣告完成。
+
+
+## M1 接續檢查點：Preview 與剩餘驗收（2026-09-30 23:02）
+
+本節為目前狀態；先前「未推送／未部署」敘述保留作為當輪歷史。
+
+- `feat/passwordless-workspace` 的既有修正已推送至 `6974fc1ad678c683e47e6ea38069b60e1445d883`。Vercel 確認 Ready、Environment=Preview、來源 SHA 相同；網址為 https://growth-os-preview-8uzbiadhu-morning-ai.vercel.app/workspace.html 。初次讀取提示修正已隨此版本部署，登入後真實 UI 驗收仍待該確切 callback 的單項批准，不能以部署成功代替。
+- 該 SHA 的 CI 兩次均成功：[36732622565](https://github.com/RC918/Growth-OS/actions/runs/36732622565)、[36732614466](https://github.com/RC918/Growth-OS/actions/runs/36732614466)。未合併 PR，未改正式網域、付費或其他專案。
+- 自然 JWT 到期驗收已在既有批准的 a0rpg9s0x 工作台建立 owner 工作階段，讀回 13 筆歷史。實際 expires_at=1790784114，即 2026-09-30 16:01:54 UTC／10 月 1 日 00:01:54 台北；安全接續時間為 16:02:54 UTC／00:02:54。分頁 ID 1385706650 已保留交接。不可刷新、關閉或先登出；到時點「重新讀取目標」，觀察自然 401／登入逾時提示，再用既有帳號的新郵件重新登入並讀回同一目標與 13 筆歷史。這項尚未通過，沒有變更 JWT 到期設定。安全摘要僅保存時間與分頁 ID，不含 token。
+- DB 交易重疊屏障探測未通過：holder PID 301844 鎖持有於 14:52:18.036901–14:52:30.050577 UTC；contender PID 301847 在 14:52:34.873647 才開始，14:52:34.913918 結束；observer 14:52:39.659699 的活動交易清單為空。不同 PID 不代表同時交易；三筆交易均 rollback，無保存資料。現有 execute_sql 入口未提供可控制的同時連線，重跑同一工具不補足證據。所需能力為兩條可同步 BEGIN／鎖屏障的受限獨立 SQL 連線及一條 pg_stat_activity／pg_blocking_pids 觀测連線；未新增 login、授權或擷取秘密。
+
+證據在聊天 outputs：Growth-OS-6974fc1-preview-ready.jpg、Growth-OS-M1-lock-barrier-tool-gap.json、Growth-OS-natural-expiry-session.json。PT409 先後保存與快速拒絕、權限拒絕及 API 401 已通過，未重跑。M1 仍待自然到期、真實 DB 重疊及新版登入讀取提示驗收；M2／AI 理解與成長計畫未寫成已完成。
