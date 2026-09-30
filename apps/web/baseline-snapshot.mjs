@@ -1,4 +1,5 @@
 import {preview, BaselineError} from './search-baseline.mjs';
+import {validateActions} from './baseline-actions.mjs';
 const MAX_BYTES=1000000;
 function keys(value, expected) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== expected.slice().sort().join(',')) throw new BaselineError('保存檔的欄位或格式不符，請使用本工具匯出的版本。');
@@ -19,13 +20,13 @@ export function loadSnapshot(text) {
   if (typeof text!=='string' || new TextEncoder().encode(text).length>MAX_BYTES) throw new BaselineError('保存檔須小於 1 MB。');
   let parsed;
   try {parsed=JSON.parse(text);} catch {throw new BaselineError('無法讀取 JSON 保存檔。');}
-  keys(parsed,['format','version','a','b']);
-  if(parsed.format!=='growth-os-search-baseline' || parsed.version!==1) throw new BaselineError('不支援此保存檔版本。');
-  return {a:dataset(parsed.a),b:parsed.b===null?null:dataset(parsed.b)};
+  keys(parsed,parsed?.version===1?['format','version','a','b']:['format','version','a','b','actions']);
+  if(parsed.format!=='growth-os-search-baseline' || ![1,2].includes(parsed.version)) throw new BaselineError('不支援此保存檔版本。');
+  return {a:dataset(parsed.a),b:parsed.b===null?null:dataset(parsed.b),actions:validateActions(parsed.version===1?[]:parsed.actions)};
 }
-export function saveSnapshot(a,b,samples) {
+export function saveSnapshot(a,b,samples,actions=[]) {
   const pack=(result,sample)=>result?{meta:{origin:result.origin,type:result.type,start:result.start,end:result.end,exported:result.exported},rows:result.rows,sample:Boolean(sample)}:null;
-  const text=JSON.stringify({format:'growth-os-search-baseline',version:1,a:pack(a,samples.a),b:pack(b,samples.b)},null,2);
+  const text=JSON.stringify({format:'growth-os-search-baseline',version:2,a:pack(a,samples.a),b:pack(b,samples.b),actions:validateActions(actions)},null,2);
   loadSnapshot(text); // Save only data that can pass the same reload validation.
   return text;
 }

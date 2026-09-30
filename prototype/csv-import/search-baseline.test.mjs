@@ -31,7 +31,7 @@ test('reload refuses derived totals, invalid rows, unknown versions and oversize
  const derived=JSON.parse(text); derived.a.clicks=999;
  assert.throws(()=>loadSnapshot(JSON.stringify(derived)),/欄位/);
  const bad=JSON.parse(text); bad.a.rows[0].clicks=-1; assert.throws(()=>loadSnapshot(JSON.stringify(bad)),/無效/);
- const version=JSON.parse(text); version.version=2; assert.throws(()=>loadSnapshot(JSON.stringify(version)),/版本/);
+ const version=JSON.parse(text); version.version=99; assert.throws(()=>loadSnapshot(JSON.stringify(version)),/版本/);
  assert.throws(()=>loadSnapshot('x'.repeat(1000001)),/1 MB/);
  const changed=JSON.parse(text); changed.a.rows[0].clicks=3;
  assert.equal(loadSnapshot(JSON.stringify(changed)).a.result.clicks,4); // Recompute; file contents are not authenticated.
@@ -50,4 +50,29 @@ test('single or incomplete periods report limitations and never manufacture a di
  const single=growthReport(a,null,{a:false}); assert.match(single.markdown,/沒有後續比較期間/); assert.match(single.markdown,/無法計算/);
  const b=preview(full.replaceAll('09-01','09-04').replaceAll('09-02','09-05').replaceAll('09-03','09-06'),{...meta,start:'2026-09-04',end:'2026-09-06'});
  const partial=growthReport(a,b,{a:false,b:false}); assert.match(partial.markdown,/本次未產生期間差額/); assert.doesNotMatch(partial.markdown,/點擊差額/); assert.match(partial.markdown,/2026-09-02/);
+});
+
+import {validateActions} from '../../apps/web/baseline-actions.mjs';
+const action={date:'2026-09-04',path:'/product-comparison',note:'更新商品比較內容'};
+test('action records reject impossible dates, unsafe paths, duplicate records and oversized lists',()=>{
+ assert.deepEqual(validateActions([{...action,note:' 更新商品比較內容 '}]),[action]);
+ for(const invalid of [{...action,date:'2026-02-30'},...['https://other.example/p','//other.example','/../private','/%2e%2e/private','/%2fother','/page?key=secret','/page%0a'].map(path=>({...action,path})),{...action,note:''},{...action,extra:true}]) assert.throws(()=>validateActions([invalid]));
+ assert.throws(()=>validateActions([action,action]),/已存在/);
+ assert.throws(()=>validateActions(Array(21).fill(action)),/20/);
+});
+test('snapshot v2 preserves actions while legacy v1 loads without records',()=>{
+ const current=saveSnapshot(preview(full,meta),null,{a:true},[action]);
+ assert.deepEqual(loadSnapshot(current).actions,[action]);
+ const legacy=JSON.parse(current); legacy.version=1; delete legacy.actions;
+ assert.deepEqual(loadSnapshot(JSON.stringify(legacy)).actions,[]);
+ const bad=JSON.parse(current); bad.actions[0].path='/../private'; assert.throws(()=>loadSnapshot(JSON.stringify(bad)));
+});
+test('reports classify self-declared actions without turning them into verified publication or causation',()=>{
+ const a=preview(full,meta), b=preview(full.replaceAll('09-01','09-04').replaceAll('09-02','09-05').replaceAll('09-03','09-06'),{...meta,start:'2026-09-04',end:'2026-09-06'});
+ const report=growthReport(a,b,{a:false,b:false},[action,{...action,date:'2026-09-01',note:'[link](https://example.com)'},{...action,date:'2026-09-10'}]);
+ const observations=report.sections[0][1].join(' ');
+ for(const interval of ['基線期間','後續期間','觀察期間之外']) assert.ok(observations.includes(interval));
+ assert.match(observations,/提供者聲明的發布紀錄 3 筆/);
+ assert.match(report.markdown,/尚未核對頁面/); assert.match(report.markdown,/無法將差異歸因/);
+ assert.ok(report.markdown.includes('\\[link\\]\\(https://example.com\\)'));
 });

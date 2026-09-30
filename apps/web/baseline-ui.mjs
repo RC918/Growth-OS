@@ -1,6 +1,8 @@
 import {preview, compare} from './search-baseline.mjs';
 import {saveSnapshot,loadSnapshot} from './baseline-snapshot.mjs';
 import {growthReport} from './baseline-report.mjs';
+import {validateActions} from './baseline-actions.mjs';
+let actions=[],actionsVersion=0;
 let report=null;
 const data = {a: null, b: null}, synthetic = {a: false, b: false}, versions = {a: 0, b: 0};
 const $ = id => document.getElementById(id);
@@ -63,7 +65,7 @@ $('compare').addEventListener('click',()=>{
 $('save-snapshot').addEventListener('click',()=>{
   $('snapshot-feedback').classList.remove('success'); $('snapshot-feedback').textContent='';
   try {
-    const text=saveSnapshot(data.a,data.b,synthetic);
+    const text=saveSnapshot(data.a,data.b,synthetic,actions);
     const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
     const link=document.createElement('a'); link.href=url; link.download='growth-os-search-baseline.json'; link.click();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
@@ -71,13 +73,14 @@ $('save-snapshot').addEventListener('click',()=>{
 });
 $('snapshot-file').addEventListener('change',async()=>{
   invalidate('a'); invalidate('b'); $('snapshot-feedback').classList.remove('success'); $('snapshot-feedback').textContent='';
-  const file=$('snapshot-file').files[0], versionA=versions.a, versionB=versions.b;
+  const file=$('snapshot-file').files[0], versionA=versions.a, versionB=versions.b,versionActions=actionsVersion;
   if(!file) return;
   try {
     if(file.size>1000000) throw new Error('保存檔超過 1 MB。');
     const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());
-    if(versionA!==versions.a || versionB!==versions.b) return;
+    if(versionA!==versions.a || versionB!==versions.b || versionActions!==actionsVersion) return;
     const loaded=loadSnapshot(text);
+    actions=loaded.actions; actionsVersion++; $('action-form').reset(); renderActions();
     for(const key of ['a','b']) {
       const form=$('form-'+key), value=loaded[key];
       form.reset();
@@ -88,13 +91,13 @@ $('snapshot-file').addEventListener('change',async()=>{
     $('second').open=Boolean(loaded.b); clearComparison();
     $('snapshot-feedback').classList.add('success'); $('snapshot-feedback').textContent='已重新驗證並載入。請重新按「比較兩段期間」查看差異；來源資訊仍未核實。';
     $('snapshot-feedback').scrollIntoView({behavior:'smooth',block:'nearest'});
-  } catch(error) {if(versionA===versions.a && versionB===versions.b) $('snapshot-feedback').textContent=error.message;}
+  } catch(error) {if(versionA===versions.a && versionB===versions.b && versionActions===actionsVersion) $('snapshot-feedback').textContent=error.message;}
 });
 
 $('build-report').addEventListener('click',()=>{
   $('report-error').textContent='';
   try {
-    report=growthReport(data.a,data.b,synthetic);
+    report=growthReport(data.a,data.b,synthetic,actions);
     const target=$('report-result'); target.replaceChildren(node('h3',report.title));
     const grid=node('div','','report-grid');
     for(const [heading,items] of report.sections) {
@@ -109,3 +112,21 @@ $('download-report').addEventListener('click',()=>{
   const url=URL.createObjectURL(new Blob([report.markdown],{type:'text/markdown;charset=utf-8'}));
   const link=document.createElement('a'); link.href=url; link.download='growth-os-observation-report.md'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),30000);
 });
+
+function renderActions() {
+  const list=$('action-list'); list.replaceChildren();
+  if(!actions.length) {list.append(node('li','尚未加入發布紀錄。','muted')); return;}
+  actions.forEach((action,index)=>{
+    const item=node('li','','action-item'); item.append(node('span',`${action.date} · ${action.path} · ${action.note}`));
+    const remove=node('button','移除','secondary'); remove.type='button'; remove.setAttribute('aria-label',`移除 ${action.date} ${action.path}`);
+    remove.addEventListener('click',()=>{actions.splice(index,1); actionsVersion++; renderActions(); clearComparison();}); item.append(remove); list.append(item);
+  });
+}
+$('action-form').addEventListener('submit',event=>{
+  event.preventDefault(); $('action-error').textContent='';
+  try {
+    const action=Object.fromEntries(new FormData(event.currentTarget));
+    actions=validateActions([...actions,action]); actionsVersion++; renderActions(); clearComparison(); event.currentTarget.reset();
+  } catch(error) {$('action-error').textContent=error.message;}
+});
+renderActions();
