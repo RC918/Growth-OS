@@ -291,3 +291,9 @@ server落點唯讀repo證據：根vercel.json的outputDirectory=apps/web、build
 Ledger保留完整context最壞費用US$0.4206688與2外部slots後才dispatch；100呼叫至多50組計數／生成，nanoUSD算費。再檢查owner／deadline，未知usage保留額度並pause，budget／呼叫50%與80%提醒為持久metadata。stop不refund，cleanup拒絕未知／active reservations。來源／確認／版本契約沿用，回傳awaiting_user_confirmation且can_persist=false，不調用既有保存RPC。
 
 精確SQL／RPC ACL／runtime／本人Dashboard安全key交接／ready與清理集中在 [單項安全審查包](../supabase/tests/model_trial/README.md)，產品與路線圖仍以原藍圖為準。計數端點計費缺權威證據，gate維持關閉，最小可選替代未採用；尚不請本人key操作。未重跑自然JWT／probe；未改apps/web／morningai／owner-console／Production／付費。本批工程與CI不放行完整M1或M2。
+
+## 2026-10-01 postusage保守修訂（取代前節計數設計現況）
+
+主管批准移除外部count endpoint與免費旗標；2048只作生成後provider完整usage驗收，無事前token保證。新policy v2-postusage，每次仍保留context最壞US$0.4206688及2slots，最多50生成／單併發／output1024／ready起七天。超界、未知、timeout保留額度pause不回proposal、不重試；未放寬USD1或原100calls。新增handler兩fixture與usage邊界／超界、SQL結算拒絕，以及真正Supabase Edge Runtime無網無key user-worker imports／closedgate503驗證；CI結果與精確hash寫同head outputs及PR19。前節的count設計與計费阻礙屬歷史，不再是新版runtime依賴。
+
+審查包仍為 [model_trial README](../supabase/tests/model_trial/README.md)，清楚揭露共享service_role可結算ledger、SQL無法獨立證明provider usage；不授browser／模型此能力、不寫goal/history/audit/business表。未執行遠端migration／ACL／Edge／key／ready／Production，JWT／真實probe不重跑，完整M1／確認UI／live Auth／模型仍未驗收。

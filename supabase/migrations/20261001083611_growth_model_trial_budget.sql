@@ -5,7 +5,7 @@ create table private.model_trial (
  organization_id uuid references public.organizations(id),
  state text not null default 'staged' check(state in ('staged','active','paused','closed')),
  starts_at timestamptz, deadline timestamptz,
- policy_version text not null default 'gpt41mini-20250414-v1' check(policy_version='gpt41mini-20250414-v1'),
+ policy_version text not null default 'gpt41mini-20250414-v2-postusage' check(policy_version='gpt41mini-20250414-v2-postusage'),
  calls_reserved integer not null default 0 check(calls_reserved between 0 and 100),
  spent_nusd bigint not null default 0 check(spent_nusd>=0),
  held_nusd bigint not null default 0 check(held_nusd>=0),
@@ -51,7 +51,7 @@ declare t private.model_trial; a private.model_trial_attempts; new_warnings inte
  if t.state<>'active' or t.starts_at is null or clock_timestamp()<t.starts_at or clock_timestamp()>=t.deadline-interval '2 minutes'
  then raise exception 'Trial inactive or expired' using errcode='55000'; end if;
  if t.active_request is not null then raise exception 'Trial busy; no automatic retry' using errcode='55000'; end if;
- -- A pair reserves TWO HTTP calls (count + generate), so total external calls <=100.
+ -- Conservatively reserve TWO slots per single generation: at most 50 calls.
  if t.calls_reserved+2>100 or t.spent_nusd+t.held_nusd+420668800>1000000000
  then raise exception 'Trial quota exhausted' using errcode='54000'; end if;
  new_warnings:=t.warnings;
@@ -76,9 +76,9 @@ declare t private.model_trial; a private.model_trial_attempts; cost bigint; unkn
  select * into t from private.model_trial where singleton for update;
  select * into a from private.model_trial_attempts where request_id=p_request for update;
  if not found then raise exception 'Unknown reservation' using errcode='22023'; end if;
- if p_result is null or p_result not in ('ok','refusal','invalid_output','incomplete','scope_changed','provider_failure','usage_unknown','count_over_limit')
+ if p_result is null or p_result not in ('ok','refusal','invalid_output','incomplete','scope_changed','provider_failure','usage_unknown','usage_over_limit')
  then raise exception 'Invalid outcome' using errcode='22023'; end if;
- unknown:=p_input is null or p_output is null or p_input<0 or p_output<0 or p_input>2048 or p_output>1024;
+ unknown:=p_input is null or p_output is null or p_input<1 or p_output<0 or p_input>2048 or p_output>1024;
  if a.state<>'reserved' then
   if a.result_code is distinct from p_result or a.input_tokens is distinct from p_input or a.output_tokens is distinct from p_output
   then raise exception 'Settlement differs' using errcode='22023'; end if;

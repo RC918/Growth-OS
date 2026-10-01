@@ -16,6 +16,7 @@ export function createTrialHandler({authenticate,ledger,provider,ready=false,get
   let reserved=false,requestId,actor,organization,outcome='provider_failure',usage=null,accounting=null;
   try {
    // No raw request body, headers, provider messages or exception text are logged.
+   // ID-only envelope byte cap is NOT a bound on model input tokens.
    const raw=await request.text();if(new TextEncoder().encode(raw).length>1024)throw new Error('INVALID_REQUEST');
    const body=JSON.parse(raw);requestBody(body);requestId=body.request_id;organization=body.organization_id;
    actor=await authenticate(request,organization);
@@ -29,15 +30,10 @@ export function createTrialHandler({authenticate,ledger,provider,ready=false,get
    if(reservation.dispatch!==true)return response(409,{code:'REPLAY_NOT_DISPATCHED'});
    reserved=true;
    await ledger.authorize({requestId,actorId:actor.id,organizationId:organization});
-   const count=await provider.count(payload);
-   if(!Number.isInteger(count)||count<1||count>POLICY.maxInput) {
-    // Count-only abort is conservatively held/paused; no generation request.
-    outcome='count_over_limit';throw new Error('COUNT_LIMIT');
-   }
-   await ledger.authorize({requestId,actorId:actor.id,organizationId:organization});
    const result=await provider.generate(payload);
+   // 2048 is POST-generation usage acceptance, never a preflight token guarantee.
    if(result.model!==POLICY.model||!result.usage||!Number.isInteger(result.usage.input_tokens)||
-    !Number.isInteger(result.usage.output_tokens)||result.usage.input_tokens!==count||
+    !Number.isInteger(result.usage.output_tokens)||
     result.usage.input_tokens<1||result.usage.input_tokens>POLICY.maxInput||
     result.usage.output_tokens<0||result.usage.output_tokens>POLICY.maxOutput||
     result.usage.total_tokens!==result.usage.input_tokens+result.usage.output_tokens||

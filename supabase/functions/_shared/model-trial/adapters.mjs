@@ -26,18 +26,13 @@ export function supabaseAdapters({publishableKey,serviceKey,fetchImpl=fetch}) {
  };
 }
 export function openaiProvider({getKey,fetchImpl=fetch}) {
- const send=async(path,body)=>{
+ const send=async(body)=>{
   const key=getKey();if(!key)throw new Error('MODEL_KEY_NOT_CONFIGURED');
   // Fixed provider, no logging/retry, no arbitrary URL/header overrides.
-  return jsonBounded(await fetchImpl('https://api.openai.com/v1/responses'+path,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(40000)}));
+  return jsonBounded(await fetchImpl('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(40000)}));
  };
- return {count:async(body)=>{
-  const {model,instructions,input,text,truncation}=body;
-  const count=await send('/input_tokens',{model,instructions,input,text,truncation});
-  if(count.object!=='response.input_tokens')throw new Error('INVALID_TOKEN_COUNT');
-  return count.input_tokens;
- },generate:body=>{
+ return {generate:body=>{
   if(body.model!==POLICY.model||body.max_output_tokens!==POLICY.maxOutput||body.store!==false)throw new Error('MODEL_POLICY_DRIFT');
-  return send('',body);
+  return send(body);
  }};
 }

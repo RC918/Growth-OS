@@ -1,4 +1,5 @@
-export const POLICY=Object.freeze({version:'gpt41mini-20250414-v1',model:'gpt-4.1-mini-2025-04-14',
+export const POLICY=Object.freeze({version:'gpt41mini-20250414-v2-postusage',model:'gpt-4.1-mini-2025-04-14',
+ // maxInput is post-generation usage acceptance, not preflight token counting.
  maxInput:2048,maxOutput:1024,maxCalls:100,capNusd:1_000_000_000,
  // Whole-model input context bound, NOT a guess about schema/message overhead.
  reserveNusd:1_047_576*400+1024*1600,maxInflight:1,days:7});

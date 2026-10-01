@@ -12,14 +12,14 @@ try {
  insert into auth.users values('${actor}');insert into organizations values('${org}');insert into organization_members values('${org}','${actor}','owner');`);
  await db.exec(await readFile(new URL('../../migrations/20261001083611_growth_model_trial_budget.sql',import.meta.url),'utf8'));
  let activation=await readFile(new URL('activate.sql.template',import.meta.url),'utf8');
- for(const [key,value] of Object.entries({__READY_POLICY__:POLICY.version,__COUNTING_ZERO_EXTRA_CHARGE__:'confirmed',__RUNTIME_REVIEWED__:'confirmed',__ACTOR_UUID__:actor,__ORG_UUID__:org}))activation=activation.replaceAll(key,value);
+ for(const [key,value] of Object.entries({__READY_POLICY__:POLICY.version,__RUNTIME_REVIEWED__:'confirmed',__ACTOR_UUID__:actor,__ORG_UUID__:org}))activation=activation.replaceAll(key,value);
  await db.exec(activation);await db.exec('set role service_role');
  const invoke=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
  const ledger={reserve:x=>invoke('select public.model_trial_reserve($1,$2,$3,$4,$5,$6) r',[x.requestId,x.actorId,x.organizationId,x.fixtureId,x.hash,x.expectedVersion]),
  authorize:x=>invoke('select public.model_trial_authorize_dispatch($1,$2,$3) r',[x.requestId,x.actorId,x.organizationId]),
  settle:x=>invoke('select public.model_trial_settle($1,$2,$3,$4) r',[x.requestId,x.input,x.output,x.result])};
  let generated=0;
- const provider={count:async()=>1000,generate:async()=>{generated++;return {model:POLICY.model,service_tier:'default',status:'completed',usage:{input_tokens:1000,output_tokens:100,total_tokens:1100},output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify({fields:[],missing_fields:['offering','audience','market','channel','asset','metric']})}]}]};}};
+ const provider={generate:async()=>{generated++;return {model:POLICY.model,service_tier:'default',status:'completed',usage:{input_tokens:1000,output_tokens:100,total_tokens:1100},output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify({fields:[],missing_fields:['offering','audience','market','channel','asset','metric']})}]}]};}};
  const handler=createTrialHandler({authenticate:async()=>({id:actor,role:'owner'}),ledger,provider,ready:true});
  const request=n=>new Request('https://synthetic.test',{method:'POST',body:JSON.stringify({request_id:`aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12,'0')}`,organization_id:org,fixture_id:'synth-parts-v1',expected_version:1})});
  assert.equal((await handler(request(1))).status,200);assert.equal((await handler(request(1))).status,409);assert.equal(generated,1);

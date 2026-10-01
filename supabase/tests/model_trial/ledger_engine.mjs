@@ -27,7 +27,7 @@ try {
  pass('exact service-only RPC ACL, no table grant; both tables RLS');
  await db.query('update private.model_trial set actor_user_id=$1,organization_id=$2 where singleton',[actor,org]);
  let activate=await readFile(new URL('activate.sql.template',import.meta.url),'utf8');
- activate=activate.replaceAll('__READY_POLICY__','gpt41mini-20250414-v1').replaceAll('__COUNTING_ZERO_EXTRA_CHARGE__','confirmed').replaceAll('__RUNTIME_REVIEWED__','confirmed').replaceAll('__ACTOR_UUID__',actor).replaceAll('__ORG_UUID__',org);
+ activate=activate.replaceAll('__READY_POLICY__','gpt41mini-20250414-v2-postusage').replaceAll('__RUNTIME_REVIEWED__','confirmed').replaceAll('__ACTOR_UUID__',actor).replaceAll('__ORG_UUID__',org);
  await db.exec(activate);const times=await row();assert.equal(new Date(times.deadline)-new Date(times.starts_at),7*86400000);
  await assert.rejects(()=>db.exec(activate));await db.exec('rollback');pass('7-day clock starts only ready; second activation/reset denied');
  await db.exec('set role service_role');assert.equal((await reserve()).rows[0].r.dispatch,true);
@@ -35,21 +35,28 @@ try {
  await assert.rejects(()=>reserve(2),e=>e.code==='55000');await db.exec('reset role');assert.equal((await row()).calls_reserved,2);assert.equal((await row()).held_nusd,'420668800');pass('atomic reservation, busy and changed replay refusal');
  await db.exec('set role service_role');await settle(1);await settle(1);await assert.rejects(()=>settle(1,1001),e=>e.code==='22023');await db.exec('reset role');assert.equal((await row()).spent_nusd,'560000');assert.equal((await row()).held_nusd,'0');pass('known usage once only, integer nanoUSD refund');
  for(let n=2;n<=50;n++){await reserve(n);await settle(n);}
- assert.equal((await row()).calls_reserved,100);assert.deepEqual((await row()).warnings,[50,80]);await assert.rejects(()=>reserve(51),e=>e.code==='54000');pass('100 total HTTP slots incl counting, persistent 50/80 warnings, no extra call');
+ assert.equal((await row()).calls_reserved,100);assert.deepEqual((await row()).warnings,[50,80]);await assert.rejects(()=>reserve(51),e=>e.code==='54000');pass('100 reserved slots, at most 50 generation requests, persistent 50/80 warnings, no extra call');
  // Synthetic isolated fixture reset ONLY in this engine test; never exposed by RPC.
  await db.exec('truncate private.model_trial_attempts;update private.model_trial set calls_reserved=0,spent_nusd=600000000,held_nusd=0,active_request=null,warnings=\'{}\';');
  await assert.rejects(()=>reserve(52),e=>e.code==='54000');pass('budget worst-case reserve rejects before total exceeds USD1');
  await db.exec('update private.model_trial set spent_nusd=0;');await reserve(53);await settle(53,null,null,'usage_unknown');assert.equal((await row()).state,'paused');assert.equal((await row()).held_nusd,'420668800');await assert.rejects(()=>reserve(54),e=>e.code==='55000');pass('unknown usage retains all held budget and pauses new calls');
+ // Fresh synthetic ledger states ONLY in test: direct service settlement cannot refund invalid usage.
+ for(const [input,output] of [[2049,100],[1000,1025],[0,100]]) {
+  await db.exec("truncate private.model_trial_attempts;update private.model_trial set state='active',held_nusd=0,active_request=null;");
+  await reserve(54);await settle(54,input,output,'usage_over_limit');
+  assert.equal((await row()).state,'paused');assert.equal((await row()).held_nusd,'420668800');
+ }
+ pass('post-generation input/output/zero-usage violations never release reservation');
  await db.exec('truncate private.model_trial_attempts;update private.model_trial set state=\'active\',held_nusd=0,active_request=null;');await reserve(55);
- await db.exec("update public.organization_members set role='viewer';");await assert.rejects(()=>db.query('select public.model_trial_authorize_dispatch($1,$2,$3)',[id(55),actor,org]),e=>e.code==='42501');await settle(55,null,null,'scope_changed');pass('membership revoked after count denies generation dispatch');
+ await db.exec("update public.organization_members set role='viewer';");await assert.rejects(()=>db.query('select public.model_trial_authorize_dispatch($1,$2,$3)',[id(55),actor,org]),e=>e.code==='42501');await settle(55,null,null,'scope_changed');pass('membership revoked before dispatch denies generation dispatch');
  await db.exec("update public.organization_members set role='owner';truncate private.model_trial_attempts;update private.model_trial set state='active',held_nusd=0,active_request=null;");
  await reserve(56);
  // Set both endpoints from a single clock to satisfy exact 7-day invariant.
  await db.exec("update private.model_trial set starts_at=statement_timestamp()-interval '7 days'+interval '30 seconds',deadline=statement_timestamp()+interval '30 seconds';");
  assert.equal((await row()).state,'active');
  await assert.rejects(()=>db.query('select public.model_trial_authorize_dispatch($1,$2,$3)',[id(56),actor,org]),e=>e.code==='42501');
- await settle(56,0,0,'count_over_limit');
- await assert.rejects(()=>reserve(57),e=>e.code==='55000');pass('deadline changed after count denies generation; near-expiry reserve denied');
+ await settle(56,1,0,'provider_failure');
+ await assert.rejects(()=>reserve(57),e=>e.code==='55000');pass('deadline changed before dispatch denies generation; near-expiry reserve denied');
  const stop=await readFile(new URL('stop.sql',import.meta.url),'utf8');
  const cleanup=await readFile(new URL('cleanup.sql',import.meta.url),'utf8');
  await db.exec("update private.model_trial set starts_at=statement_timestamp(),deadline=statement_timestamp()+interval '7 days';");await reserve(58);
@@ -58,7 +65,7 @@ try {
  await assert.rejects(()=>db.exec(cleanup));await db.exec('rollback');
  assert.equal((await row()).state,'closed');pass('stop rejects new calls and cleanup refuses unclosed reservation');
  // Only the isolated harness settles its known zero-usage synthetic reservation.
- await settle(58,0,0,'count_over_limit');
+ await settle(58,1,0,'provider_failure');
  // Previously unknown synthetic attempt is gone via the earlier test-only truncate.
  await db.exec(cleanup);
  assert.equal((await db.query("select to_regclass('private.model_trial') t")).rows[0].t,null);

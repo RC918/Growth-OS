@@ -2,7 +2,7 @@
 
 2026-09-27　工作標題：Growth OS by Good Morning Digital。正式產品品牌與網域待定。此文件是開工設計；目前沒有已連接客戶網站、真實漏斗或上線成效。
 
-> 2026-10-01 更新：產品方向與里程碑以 [執行藍圖 v1.10](AI_Company_Growth_OS_執行藍圖_v1.md) 為主要依據。本文件整合產品需求與技術改造；保留 Visitor-to-Customer Leak Map 作後續轉換子模組。下列設計不是已完成宣告；實際資料結構以 `supabase/migrations` 為準。
+> 2026-10-01 更新：產品方向與里程碑以 [執行藍圖 v1.11](AI_Company_Growth_OS_執行藍圖_v1.md) 為主要依據。本文件整合產品需求與技術改造；保留 Visitor-to-Customer Leak Map 作後續轉換子模組。下列設計不是已完成宣告；實際資料結構以 `supabase/migrations` 為準。
 
 ## 1. 產品決策
 
@@ -143,4 +143,6 @@ M1 尚未全面放行：自然 JWT 到期工作階段已建立，安全接續時
 
 已建立supabase/functions/growth-model-trial與_shared/model-trial的本機協調草案：登入及owner會員核對、固定合成來源、既有推論契約、未知usage停止及持久原子成本台帳。config.toml保留verify_jwt=true；只有platform backend service_role可調用新ledger RPC，browser／模型不持有此權限。這是未部署草案，apps/web仍是原靜態工作台，未全面改寫或接入真實AI。
 
-已批准ready後7天／100外呼／US$1合成模型試驗；未批准充值／訂閱／付費升級，無key或外呼。表、RPC definer及ACL、runtime、安全本人key介面與cleanup精確清單見 [技術安全審查包](../supabase/tests/model_trial/README.md)。計數額外計費缺證據，gate保持關閉；50/80提醒API metadata已實作、UI待接入，真實NL／確認保存未验收，M1／M2不提前放行。
+已批准ready後7天／100外呼／US$1合成模型試驗；未批准充值／訂閱／付費升級，無key或外呼。表、RPC definer及ACL、runtime、安全本人key介面與cleanup精確清單見 [技術安全審查包](../supabase/tests/model_trial/README.md)。主管批准移除計數外呼，2048改事後usage驗收；新版ready gate仍關閉；50/80提醒API metadata已實作、UI待接入，真實NL／確認保存未验收，M1／M2不提前放行。
+
+本機postusage修訂：保留完整context費用與2slots預留（最多50生成）、output1024／單併發／ready起七天，不用bytes／字數代替token界限。input>2048／output>1024或未知usage保留全額pause；沒有業務保存。共享service_role結算是受信任backend邊界，不是handler獨佔。真正Edge Runtime CI只驗無key／無網user-worker imports與closed503，live gateway/Auth／deploy仍待精確安全審查。

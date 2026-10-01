@@ -54,8 +54,7 @@ try:
     query((root / 'migrations/20261001083611_growth_model_trial_budget.sql').read_text())
     assert state() == {'calls': 0, 'held': 0, 'spent': 0, 'active': None}
     template = (Path(__file__).parent / 'activate.sql.template').read_text()
-    for key, value in {'__READY_POLICY__': 'gpt41mini-20250414-v1', '__COUNTING_ZERO_EXTRA_CHARGE__': 'confirmed',
-                       '__RUNTIME_REVIEWED__': 'confirmed', '__ACTOR_UUID__': actor, '__ORG_UUID__': org}.items():
+    for key, value in {'__READY_POLICY__': 'gpt41mini-20250414-v2-postusage', '__RUNTIME_REVIEWED__': 'confirmed', '__ACTOR_UUID__': actor, '__ORG_UUID__': org}.items():
         template = template.replace(key, value)
     activation_a = subprocess.Popen(argv('ready-holder'), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     activation_a.stdin.write(template.replace('COMMIT;', 'SELECT pg_sleep(2);COMMIT;'))
