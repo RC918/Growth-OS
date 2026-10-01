@@ -59,3 +59,13 @@
 4. agent下一輪僅查名稱存在性與ledger仍staged／時間NULL；key存在不代表權限／額度／live API通過。明確ready actor/org、七天啟用及live驗收是後續獨立步驟，本次交接不自動啟用。
 
 [OpenAI key權限文件](https://help.openai.com/en/articles/8867743-assign-api-key-permissions)說明Restricted是逐資源設定，service-account建立對話不提供同樣控制。[最新spend-limits文件](https://developers.openai.com/api/docs/guides/spend-limits)區分alert與hard-limit enforcement且後者有傳播延遲，不能將警示預算當精確即時硬上限；本次不改OpenAI帳戶limits、不提高額度。應用保留已批准的原子ledger上限，平台帳務仍需真人核對。保留ledger，不执行DROP／reset／refund。
+
+## 2026-10-01 最多七天期限修復：本機工程，尚未套用遠端
+
+本人試驗批准是最多七天。現有遠端model_trial_check1強制等於七天，且SQL CHECK UNKNOWN可能接受非法NULL截止；不要求延長或重建本人七天key。新增CLI生成migration `20261001120704_growth_model_trial_bounded_deadline.sql`，保留已套用的原migration不改。新migration先精確核對現有constraint名稱／validated／定義，漂移即整筆拒絕；僅替換這個CHECK。staged必須兩時間NULL；active/paused/closed必須兩時間非NULL、deadline>starts_at且<=starts_at+7days、actor/org非NULL。沒有DML、新角色、RPC、RLS／ACL／owner／defaultprivilege／預算／provider／runtime／business變更。
+
+activate模板仍在singleton FOR UPDATE取得鎖後取clock_timestamp為T0，T1=least(T0+7days,2026-10-07T11:50:00Z)。C由本人／父提供為保守key cap，不將secret updated_at或回覆時間當key到期。剩餘時間必須**超過三分鐘**：既有reserve提前2min拒絕＋1min準備緩衝，dispatch仍提前1min拒絕，provider timeout40sec不變。C截止時reserve自10/7 11:48UTC拒絕，dispatch自11:49UTC拒絕。人工安排stop只在實際執行時closed，不是DB硬截止；已dispatch請求仍需結算，無refund／reset／cleanup。
+
+新增deadline_engine在完整20張synthetic業務表的PGlite驗短期／exact7days、NULL／零負／>7days與狀態／actor/org拒絕、到期／<=3min啟用拒絕、原constraint漂移拒絕、repeat啟用不刷新，以及全部業務雜湊、計數、RPC定義／ACL、RLS、role/defaults/policy未變。native_ledger沿用官方PG17.6隔離容器（network none／Unix socket／no TCP／no cloud），載入完整migration歷史，新增A/B/C不同PID真實readiness Lock/blocker、已啟用再試拒絕与同一批不變性。CI實際結果看本次同head證據，不以PGlite或Python語法宣稱native成功。所有offline harness只替換**記憶體內**啟用SQL的C為合成短期clock，避免10/7後CI失效；production template的固定C不變，測試不會啟用遠端。
+
+本輪只工程／正常分支推送與CI／草稿PR；遠端仍原CHECK與staged，不套用新migration、未設定ready／啟用、無模型／key／瀏覽器／付費操作，不重跑遠端probe／JWT。後續先審核精確migration與SHA256並套用後独立constraint／security／business／ledger讀回；再明確啟用交易读回T0/T1<=C，最後本人設定非secret `MODEL_TRIAL_READY_POLICY=gpt41mini-20250414-v2-postusage`。T0不可預猜或回填，不延展既有啟用。

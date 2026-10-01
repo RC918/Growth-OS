@@ -47,6 +47,7 @@ jobs:
           node --test supabase/tests/model_trial/handler.test.mjs
           node supabase/tests/model_trial/ledger_engine.mjs
           node supabase/tests/model_trial/integration.mjs
+          node supabase/tests/model_trial/deadline_engine.mjs
       - name: Model trial atomic reservation on independent PG17 backends (no network)
         run: python3 -B supabase/tests/model_trial/native_ledger.py
       - name: Supabase Edge Runtime closed-gate user worker (no network or keys)

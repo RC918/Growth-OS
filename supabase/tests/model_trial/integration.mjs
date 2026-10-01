@@ -11,8 +11,11 @@ try {
  create table auth.users(id uuid primary key);create table organizations(id uuid primary key);create table organization_members(organization_id uuid,user_id uuid,role text);
  insert into auth.users values('${actor}');insert into organizations values('${org}');insert into organization_members values('${org}','${actor}','owner');`);
  await db.exec(await readFile(new URL('../../migrations/20261001083611_growth_model_trial_budget.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../../migrations/20261001120704_growth_model_trial_bounded_deadline.sql',import.meta.url),'utf8'));
  let activation=await readFile(new URL('activate.sql.template',import.meta.url),'utf8');
  for(const [key,value] of Object.entries({__READY_POLICY__:POLICY.version,__RUNTIME_REVIEWED__:'confirmed',__ACTOR_UUID__:actor,__ORG_UUID__:org}))activation=activation.replaceAll(key,value);
+ // Offline copy only: production human cutoff is never changed by this harness.
+ activation=activation.replace("TIMESTAMPTZ '2026-10-07T11:50:00Z'","clock_timestamp()+interval '3 days'");
  await db.exec(activation);await db.exec('set role service_role');
  const invoke=async(sql,args)=>(await db.query(sql,args)).rows[0].r;
  const ledger={reserve:x=>invoke('select public.model_trial_reserve($1,$2,$3,$4,$5,$6) r',[x.requestId,x.actorId,x.organizationId,x.fixtureId,x.hash,x.expectedVersion]),

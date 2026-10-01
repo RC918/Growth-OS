@@ -16,6 +16,7 @@ try {
  create table public.organization_members(organization_id uuid,user_id uuid,role text);
  insert into auth.users values('${actor}');insert into public.organizations values('${org}');insert into public.organization_members values('${org}','${actor}','owner');`);
  await db.exec(sql);
+ await db.exec(await readFile(new URL('../../migrations/20261001120704_growth_model_trial_bounded_deadline.sql',import.meta.url),'utf8'));
  assert.equal((await row()).state,'staged');assert.equal((await row()).starts_at,null);
  await assert.rejects(()=>reserve(),e=>e.code==='42501');pass('staged has no clock/calls, blocks reserve');
  const acl=(await db.query(`select r.rolname,has_function_privilege(r.oid,'public.model_trial_reserve(uuid,uuid,uuid,text,text,integer)','EXECUTE') reserve,
@@ -28,8 +29,10 @@ try {
  await db.query('update private.model_trial set actor_user_id=$1,organization_id=$2 where singleton',[actor,org]);
  let activate=await readFile(new URL('activate.sql.template',import.meta.url),'utf8');
  activate=activate.replaceAll('__READY_POLICY__','gpt41mini-20250414-v2-postusage').replaceAll('__RUNTIME_REVIEWED__','confirmed').replaceAll('__ACTOR_UUID__',actor).replaceAll('__ORG_UUID__',org);
- await db.exec(activate);const times=await row();assert.equal(new Date(times.deadline)-new Date(times.starts_at),7*86400000);
- await assert.rejects(()=>db.exec(activate));await db.exec('rollback');pass('7-day clock starts only ready; second activation/reset denied');
+ // Offline copy only: production human cutoff is never changed by this harness.
+ activate=activate.replace("TIMESTAMPTZ '2026-10-07T11:50:00Z'","clock_timestamp()+interval '3 days'");
+ await db.exec(activate);const times=await row();assert.ok(new Date(times.deadline)-new Date(times.starts_at)<=3*86400000+1000);assert.ok(new Date(times.deadline)-new Date(times.starts_at)>0);
+ await assert.rejects(()=>db.exec(activate));await db.exec('rollback');pass('bounded clock starts only ready; second activation/reset denied');
  await db.exec('set role service_role');assert.equal((await reserve()).rows[0].r.dispatch,true);
  assert.equal((await reserve()).rows[0].r.dispatch,false);await assert.rejects(()=>reserve(1,actor,'b'.repeat(64)),e=>e.code==='22023');
  await assert.rejects(()=>reserve(2),e=>e.code==='55000');await db.exec('reset role');assert.equal((await row()).calls_reserved,2);assert.equal((await row()).held_nusd,'420668800');pass('atomic reservation, busy and changed replay refusal');
