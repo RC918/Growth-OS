@@ -239,3 +239,9 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 本人執行腳本退出 certificate verify failed，尚未確認密碼設定成功。無 credential 的 libpq 17.6／OpenSSL 重現證明 system CA 無法驗證 Supabase Root 2021 CA；保持 verify-full，依官方 psql 文件與官方 Dashboard 原始碼的 HTTPS 下載來源取得公開 CA，放在 probe 工具目錄並核對指紋。脚本僅為本次連線指定 sslrootcert，不改全域信任、SSL enforcement、LOGIN、window 或密碼／權限。
 
 無密碼 --check-tls 已通過 certificate 與 hostname 驗證；錯誤 hostname 仍拒絕 (62)。libpq 指定 CA 後不再 TLS 失敗，而在未提供密碼處停止。這是 TLS 修復證據，不是真正登入／密碼設定／遠端並行 PASS。02:03:58 UTC 唯讀核對：NOLOGIN 兩角色、NULL 窗口、probe sessions=0、13 筆歷史。官方 CA URL、SHA256、有效期、限制與本人最小重試統一於 [probe README](../supabase/tests/goal_lock_probe/README.md#2026-10-01-tls-修復與無密碼驗證)。原自然 JWT PASS 不重跑。
+
+## 三連線 readiness 更新（2026-10-01）
+
+主管已看本人手動密碼流程完成截圖，无TLS/TCC/SQL錯誤，但未明示退出碼；仍不能宣稱probe真登入成功。新增本人運行的run_probe.command／remote_overlap.py，A/B/C psql各自行不回顯收取密碼，controller不讀或轉存密碼；固定函式、3PID、C同時觀察B Lock/blocker=A、兩次rollback、退出後本人管理連線cleanup與非敏感證據保存已備妥。7個離線控制器測試通過，不能代替真正Terminal／TLS三連線。
+
+遠端OID18474固定函式ACL與文件不同：PUBLIC EXECUTE、无explicit login，client無schema USAGE；已備妥單一函式reconcile（暫時SET owner、限定DCL、撤回臨時SET）及create／activation／cleanup operator修正，新增非superuser本地回歸通過。修正未套用遠端，窗口保持NULL／NOLOGIN。缺口為主管審查ACL、確切T0/T1、基準hash、本人一次安全hand-off（3次probe密碼＋1次管理清理）；若本人取消／OS停頓或前置檢查失敗，主管需即時管理MCP cleanup fallback，不能承諾所有失敗自動撤回。完整精確SQL、操作與驗收條件統一於 [probe README](../supabase/tests/goal_lock_probe/README.md#三連線本人交接控制器與啟用前-acl-審查)，M1仍未全面放行。

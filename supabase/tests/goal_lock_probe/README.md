@@ -52,3 +52,21 @@ LOGIN 沒有表權限、原 RPC EXECUTE、private schema USAGE、其他角色會
 本機另確實裝有 PATH 外的 PostgreSQL 14.19 server。`native_overlap.py` 只嘗試独立 `/private/tmp`、0700 Unix socket、無 TCP listener 的合成 cluster，未碰既有 daemon。既有 Homebrew keg 缺編譯期 `/opt/homebrew/share/postgresql@14/timezonesets` 資源路徑；使用既有 libraries／share 與任務暫存 runtime 仍無法啟動。暫存檔已清除，沒有留下 server。未修改全域 symlink、安裝／升級或開服務；native 與遠端重疊均 **未 PASS**。後續修復全域安裝超出本輪授權，不自行執行。
 
 即使之後本地原生重疊成功，它也只證明合成 schema／RLS／RPC 的鎖等待與 rollback；不能代替遠端 deployed SHA、Supabase session pooler、真實 Auth／自然 JWT 到期的證據。
+
+## 三連線本人交接控制器與啟用前 ACL 審查
+
+`run_probe.command`／`remote_overlap.py` 已備妥，沒有啟用能力。只有主管審查 ACL、保存原 13 筆與 audit 基準、確認本人可操作及明確批准精確 T0/T1 後，才由主管產生本目錄 `approved-window.json`（start、deadline、approved=true、project=vhzryhibmpvglzcmfnaa），再以 activate SQL 啟用。此檔目前故意不存在，缺檔、未開始、過期、少於 15 分鐘或非兩小時窗口都在登入前停止；離線 renderer 的 reviewOnly window.json 不等於批准。
+
+本人只啟動一次介面：psql -X -W 依序 A/B/C 各由本人在 /dev/tty 不回顯輸入同一 probe 密碼，控制器不讀輸入、不用 argv/env/file/管線傳密碼。子程序環境只保留固定非敏感連線設定、verify-full／官方 CA 与臨時空密碼檔；SQL stdin 管線與 stdout 只包含固定 SQL／查詢結果，stderr 直接給本人 Terminal，不保存。每次登入等待上限 180 秒。這仍待本人實際 Terminal 操作驗證，不以 agent 可讀 CA 或離線 fake sessions 當作真人介面 PASS。
+
+A/B/C 身份必須都是 probe_login，PID 三者不同；開始交易前設 statement_timeout=15s、lock_timeout=5s、idle transaction=30s。A 呼叫零參數固定函式取得版本14但不提交，B 開始同一呼叫；C 最多4秒找 B wait_event_type=Lock 且 blocker含A。取得同時屏障後 A rollback，B 返回版本14再 rollback，三連線結束。没有證據／任一步失敗都不得記 PASS；disconnect/terminate 使未提交交易回退。最多三條 probe 連線，之後清理用的管理連線是不同角色，不屬於 probe 的 connlimit3。
+
+完成／失敗後本人需再輸入管理密碼一次，執行精確 cleanup.sql。若清理提示等待或取消、OS crash、前置檢查/CA/輸出目錄拒絕，無法保證自動撤回；主管須在場，立即以既有管理 MCP 執行同一 cleanup（DDL 用 apply_migration），並讀回該角色 session／schema／兩角色全撤回、歷史與 audit 基準相同。不要等待 VALID UNTIL，因它不關閉既有連線。證據只記窗口、PID、同時 Lock/blocker、rollback／退出狀態；即使 runner返回0仍 full_acceptance=false，須上述唯讀比對才能全面通過。清理失敗或歷史改變是 blocker，不自動刪歷史或改expected_version。
+
+遠端唯讀 ACL 差異：OID18474，`growth_os_probe.append_fixture_turn()` 零參數、owner probe_owner、definer、空search_path／lock_timeout5s 正確；但 ACL 為 PUBLIC=X 與 owner=X，login 從 PUBLIC 得 EXECUTE，沒有 explicit login grant。anon/authenticated/service_role 可 EXECUTE 但 schema USAGE=false，尚不能進入；Data API exposed schemas 清單未取得確證，不將此說成已確認的公開API。owner function defaults 無額外設定，管理者 postgres 只有對 owner 的 ADMIN=true、SET/INHERIT=false。原模板在撤回臨時 SET 後以非 owner做REVOKE/GRANT，是必要的 operator 檢查缺口；新增非superuser PGlite 實測此路徑DCL不生效、留下PUBLIC，與遠端結果相符，但不能在沒有DDL歷史的情況斷言遠端每一步原因或歸咎ALTER OWNER。
+
+`reconcile_acl.sql` 只修此函式：同一原子交易內暫授既有管理者 SET（不繼承）、SET LOCAL ROLE owner、REVOKE PUBLIC/anon/authenticated/service_role、明確 GRANT login，RESET ROLE並撤回臨時會員權，assert无PUBLIC及无臨時SET/INHERIT。create與cleanup同樣以owner執行object DCL；activate新增PUBLIC與client拒絕／explicit login grant檢查。這些是待主管審查的本地修正，**未套用遠端**；不改default privileges、共享角色、RLS、schema exposure或其他函式。
+
+新增本地驗證：controller 7 個 unittest 通過（屏障順序、部分auth失敗/timeout/無Lock/錯blocker/rollback失敗、close失敗、清理取消/非零退出、寫證據失敗、批准窗口、排除credential sources）；非superuser DCL regression＋reconcile＋cleanup拒絕通過。既有9組probe與自然JWT PASS 未重跑。測試接入現有CI，但此批未push，不宣稱新head遠端CI或真並行已過。
+
+`readback.sql` 為主管管理 MCP 的唯讀前後比對：固定目標本體、完整13筆歷史與該目標audit的SHA256／count；不回傳答案明文。啟用前與清理後使用同一UTC timezone執行，goal/history/audit hash須逐項相同，後者schema不存在、角色清單空、probe sessions=0。其後即使controller有Lock證據，若比對不符仍不能PASS。此檔不讀password/hash或認證token。

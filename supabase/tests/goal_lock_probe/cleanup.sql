@@ -1,7 +1,14 @@
 -- REVIEW DRAFT: only these exact probe objects; never DROP OWNED/CASCADE.
 -- First controller rolls back and closes A/B/C. Admin denies new login next.
 ALTER ROLE growth_os_probe_login NOLOGIN;
+BEGIN;
+-- Revoke object ACL as its owner, not merely a role with ADMIN membership.
+GRANT growth_os_probe_owner TO CURRENT_USER WITH SET TRUE, INHERIT FALSE;
+SET LOCAL ROLE growth_os_probe_owner;
 REVOKE EXECUTE ON FUNCTION growth_os_probe.append_fixture_turn() FROM growth_os_probe_login;
+RESET ROLE;
+REVOKE growth_os_probe_owner FROM CURRENT_USER;
+COMMIT;
 -- Only terminate this role's remaining sessions, if any. No other role matches.
 SELECT pg_terminate_backend(pid) FROM pg_stat_activity
  WHERE usename='growth_os_probe_login' AND pid<>pg_backend_pid();

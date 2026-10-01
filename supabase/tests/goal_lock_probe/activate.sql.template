@@ -18,6 +18,19 @@ DO $$ BEGIN
  IF EXISTS (SELECT FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member
  WHERE r.rolname IN ('growth_os_probe_login','growth_os_probe_owner'))
  THEN RAISE EXCEPTION 'Unexpected probe role memberships'; END IF;
+ IF EXISTS (SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
+ WHERE n.nspname='growth_os_probe' AND p.proname='append_fixture_turn' AND x.grantee=0)
+ OR NOT EXISTS (SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
+ JOIN pg_roles r ON r.oid=x.grantee
+ WHERE n.nspname='growth_os_probe' AND p.proname='append_fixture_turn'
+ AND r.rolname='growth_os_probe_login' AND x.privilege_type='EXECUTE')
+ THEN RAISE EXCEPTION 'Probe ACL differs from approved scope'; END IF;
+ IF has_function_privilege('anon','growth_os_probe.append_fixture_turn()','EXECUTE')
+ OR has_function_privilege('authenticated','growth_os_probe.append_fixture_turn()','EXECUTE')
+ OR has_function_privilege('service_role','growth_os_probe.append_fixture_turn()','EXECUTE')
+ THEN RAISE EXCEPTION 'Unexpected client probe execution'; END IF;
 END $$;
 UPDATE growth_os_probe.activation_window SET starts_at='__PROBE_START__',deadline='__PROBE_DEADLINE__' WHERE singleton;
 ALTER ROLE growth_os_probe_login VALID UNTIL '__PROBE_DEADLINE__';

@@ -41,6 +41,10 @@ jobs:
         run: node supabase/tests/goal_intake_postgres.mjs
       - name: Offline probe boundary checks (PGlite only)
         run: node supabase/tests/goal_lock_probe/test.mjs
+      - name: Offline probe controller and DCL operator checks
+        run: |
+          python3 -B -m unittest discover -s supabase/tests/goal_lock_probe -p test_remote_overlap.py -v
+          node supabase/tests/goal_lock_probe/test_acl_operator.mjs
       - name: Install Chromium for UI acceptance
         run: npx playwright install --with-deps chromium
       - name: Baseline desktop and mobile UI acceptance
