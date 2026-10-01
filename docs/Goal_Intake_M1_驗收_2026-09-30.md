@@ -245,3 +245,12 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 主管已看本人手動密碼流程完成截圖，无TLS/TCC/SQL錯誤，但未明示退出碼；仍不能宣稱probe真登入成功。新增本人運行的run_probe.command／remote_overlap.py，A/B/C psql各自行不回顯收取密碼，controller不讀或轉存密碼；固定函式、3PID、C同時觀察B Lock/blocker=A、兩次rollback、退出後本人管理連線cleanup與非敏感證據保存已備妥。7個離線控制器測試通過，不能代替真正Terminal／TLS三連線。
 
 遠端OID18474固定函式ACL與文件不同：PUBLIC EXECUTE、无explicit login，client無schema USAGE；已備妥單一函式reconcile（暫時SET owner、限定DCL、撤回臨時SET）及create／activation／cleanup operator修正，新增非superuser本地回歸通過。修正未套用遠端，窗口保持NULL／NOLOGIN。缺口為主管審查ACL、確切T0/T1、基準hash、本人一次安全hand-off（3次probe密碼＋1次管理清理）；若本人取消／OS停頓或前置檢查失敗，主管需即時管理MCP cleanup fallback，不能承諾所有失敗自動撤回。完整精確SQL、操作與驗收條件統一於 [probe README](../supabase/tests/goal_lock_probe/README.md#三連線本人交接控制器與啟用前-acl-審查)，M1仍未全面放行。
+
+
+## 2026-10-01 安全審查補強（本機，窗口未啟用）
+
+本批補齊 d4b9bf6 的精確 grantor 與清理缺口：reconcile 只允許 OID18474／原 ACL／兩條 supabase_admin grant／NOLOGIN NULL 窗口的既有狀態，臨時 SET grant 明確 GRANTED BY postgres，撤回也限該 grantor；完整原 membership、函式定義與角色非秘密屬性 before/after 相同。ACL 成功末態精確 owner/login EXECUTE。中途 division-by-zero 與四種漂移拒絕皆驗證 rollback 保留原狀。
+
+清理順序以此節及 [probe README](../supabase/tests/goal_lock_probe/README.md#三連線本人交接控制器與啟用前-acl-審查) 為準：先獨立提交 NOLOGIN，再只終止 probe sessions，讀回 false/0，最後撤 ACL／物件。管理 connector 逐步執行 emergency_disable.sql，不能把前置封鎖與可能失敗的 DCL 包在同一次隱式交易。管理密碼等待／取消／OS 中斷時，主管立即用既有 connector 接手，不等本人或有效期；未新增服務、cron 或權限。
+
+本機結果：ACL 6 案例及 controller 8 unittest PASS。PGlite 0.5.8 實際為 PG18.3 WASM，PG17 僅核對官方 GRANT/REVOKE 文件；未把本機 mock 當 PG17／TTY／TLS／遠端並行 PASS。原 JWT 已通過，未重跑。尚需單項精確 ACL 安全審查；本批未改遠端、未 push、未部署、未啟用窗口，也未請本人操作。M1 的遠端重疊／清理與歷史 hash 驗收仍未完成，M2 不因本機準備完成而放行。

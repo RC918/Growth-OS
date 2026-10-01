@@ -187,7 +187,7 @@ def main():
         output.mkdir(parents=True, exist_ok=True)
     except (Exception, KeyboardInterrupt) as error:
         print('前置檢查失敗（' + type(error).__name__ + '），未嘗試登入。')
-        print('若窗口已啟用：停止並通知主管立即以既有管理 MCP 執行 cleanup.sql。不要開新窗口或延長。')
+        print('若窗口已啟用：停止並通知主管立即以既有管理 MCP 分三次執行 emergency_disable.sql 的封鎖、終止及觀測，再執行 cleanup.sql。不要開新窗口或延長。')
         return 1
     destination = output / ('Growth-OS-probe-overlap-' + uuid.uuid4().hex + '.json')
     proof = {'window': window, 'overlap_observed': False, 'cleanup_exit_code': None,
@@ -204,7 +204,7 @@ def main():
             print('未完成 overlap；已停止，將關閉三連線並清理。', flush=True)
         finally:
             save_proof(destination, proof)
-            print('本人輸入管理密碼一次：只執行既有精確 cleanup，不啟用窗口。', flush=True)
+            print('本人輸入管理密碼一次：只執行既有精確 cleanup，不啟用窗口。若提示等待、取消或 OS 中斷，主管立即先執行 emergency_disable.sql 的獨立封鎖與終止，勿等密碼。', flush=True)
             # Fourth connection is the human administrator, after A/B/C close.
             # Inherited TTY, no controller capture of prompt or password.
             human_cleanup(env, proof)
@@ -212,7 +212,7 @@ def main():
     print('非敏感證據：' + str(destination), flush=True)
     print('需管理者唯讀核對原 13 筆歷史、audit 及角色/schema/session 撤回，才算完整驗收。')
     if proof['cleanup_exit_code'] != 0:
-        print('清理未確認成功：主管須立即以既有管理 MCP 執行 cleanup.sql，勿等待 VALID UNTIL 自動關閉。')
+        print('清理未確認成功：主管須立即以既有管理 MCP 分三次執行 emergency_disable.sql 的封鎖、終止及觀測，再執行 cleanup.sql，勿等待 VALID UNTIL 自動關閉。')
     return 0 if (proof['overlap_observed'] and proof['cleanup_exit_code'] == 0
                  and proof['client_connections_closed'] and not proof.get('evidence_write_error')) else 1
 

@@ -3,6 +3,8 @@ import datetime as dt
 import json
 from pathlib import Path
 import tempfile
+import io
+from contextlib import redirect_stdout
 import unittest
 from unittest.mock import patch
 import remote_overlap as probe
@@ -128,6 +130,19 @@ class ControllerTests(unittest.TestCase):
         with patch.object(probe.subprocess, 'call', return_value=2):
             probe.human_cleanup({}, proof)
         self.assertEqual(proof['cleanup_exit_code'], 2)
+
+    def test_preflight_failure_never_authenticates_and_names_independent_fallback(self):
+        output = io.StringIO()
+        with patch.object(probe.sys, 'argv', ['probe', '--window', '/synthetic/missing',
+                '--output-dir', '/synthetic/output']), \
+                patch.object(probe, 'check_window', side_effect=ValueError), \
+                patch.object(probe, 'Session') as session, \
+                patch.object(probe, 'human_cleanup') as cleanup, redirect_stdout(output):
+            self.assertEqual(probe.main(), 1)
+        session.assert_not_called()
+        cleanup.assert_not_called()
+        self.assertIn('emergency_disable.sql', output.getvalue())
+        self.assertIn('分三次', output.getvalue())
 
     def test_close_failure_does_not_claim_all_sessions_closed(self):
         proof, _, _ = self.simulate('close_failure')

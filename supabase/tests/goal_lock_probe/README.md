@@ -61,12 +61,25 @@ LOGIN 沒有表權限、原 RPC EXECUTE、private schema USAGE、其他角色會
 
 A/B/C 身份必須都是 probe_login，PID 三者不同；開始交易前設 statement_timeout=15s、lock_timeout=5s、idle transaction=30s。A 呼叫零參數固定函式取得版本14但不提交，B 開始同一呼叫；C 最多4秒找 B wait_event_type=Lock 且 blocker含A。取得同時屏障後 A rollback，B 返回版本14再 rollback，三連線結束。没有證據／任一步失敗都不得記 PASS；disconnect/terminate 使未提交交易回退。最多三條 probe 連線，之後清理用的管理連線是不同角色，不屬於 probe 的 connlimit3。
 
-完成／失敗後本人需再輸入管理密碼一次，執行精確 cleanup.sql。若清理提示等待或取消、OS crash、前置檢查/CA/輸出目錄拒絕，無法保證自動撤回；主管須在場，立即以既有管理 MCP 執行同一 cleanup（DDL 用 apply_migration），並讀回該角色 session／schema／兩角色全撤回、歷史與 audit 基準相同。不要等待 VALID UNTIL，因它不關閉既有連線。證據只記窗口、PID、同時 Lock/blocker、rollback／退出狀態；即使 runner返回0仍 full_acceptance=false，須上述唯讀比對才能全面通過。清理失敗或歷史改變是 blocker，不自動刪歷史或改expected_version。
+完成／失敗後本人需再輸入管理密碼一次，執行精確 cleanup.sql。本人 psql 使用 autocommit，不加 --single-transaction：NOLOGIN 先提交，只終止 probe session，再開始可能失敗的物件 ACL 交易。若管理密碼提示等待、取消、OS 中斷或前置檢查失敗，主管必須立即以既有管理 connector 接手，勿等本人輸入或 VALID UNTIL；它不會關閉既有連線。無法承諾無人在場時所有中斷均自動撤回。
+
+管理 connector 精確備援見 `emergency_disable.sql`，每一步是**獨立 connector action**，不可一次送入共同／隱式交易，也不可與可能失敗的 ACL／DROP 合併：
+
+1. `apply_migration` 只送第一個 `ALTER ROLE growth_os_probe_login NOLOGIN;`，確認成功提交。
+2. `execute_sql` 只送第二個精確 role 的 `pg_terminate_backend` SELECT，不碰共享或其他 session。
+3. `execute_sql` 只送第三個狀態 SELECT，確認 can_login=false、sessions=0；必要時重複第二、三步。
+4. 以上封鎖已持久化後，才單獨以 `apply_migration` 執行 cleanup.sql 的剩餘 ACL／物件撤回。即使此步失敗，前兩步不回退；依賴不符要停止處理，不用 CASCADE。
+
+主管再用 readback.sql 核對兩角色/schema全撤回、原歷史與 audit 基準相同。證據只記窗口、PID、同時 Lock/blocker、rollback／退出狀態；即使 runner返回0仍 full_acceptance=false，須上述唯讀比對才能全面通過。清理失敗或歷史改變是 blocker，不自動刪歷史或改expected_version。
 
 遠端唯讀 ACL 差異：OID18474，`growth_os_probe.append_fixture_turn()` 零參數、owner probe_owner、definer、空search_path／lock_timeout5s 正確；但 ACL 為 PUBLIC=X 與 owner=X，login 從 PUBLIC 得 EXECUTE，沒有 explicit login grant。anon/authenticated/service_role 可 EXECUTE 但 schema USAGE=false，尚不能進入；Data API exposed schemas 清單未取得確證，不將此說成已確認的公開API。owner function defaults 無額外設定，管理者 postgres 只有對 owner 的 ADMIN=true、SET/INHERIT=false。原模板在撤回臨時 SET 後以非 owner做REVOKE/GRANT，是必要的 operator 檢查缺口；新增非superuser PGlite 實測此路徑DCL不生效、留下PUBLIC，與遠端結果相符，但不能在沒有DDL歷史的情況斷言遠端每一步原因或歸咎ALTER OWNER。
 
-`reconcile_acl.sql` 只修此函式：同一原子交易內暫授既有管理者 SET（不繼承）、SET LOCAL ROLE owner、REVOKE PUBLIC/anon/authenticated/service_role、明確 GRANT login，RESET ROLE並撤回臨時會員權，assert无PUBLIC及无臨時SET/INHERIT。create與cleanup同樣以owner執行object DCL；activate新增PUBLIC與client拒絕／explicit login grant檢查。這些是待主管審查的本地修正，**未套用遠端**；不改default privileges、共享角色、RLS、schema exposure或其他函式。
+`reconcile_acl.sql` 的單一安全審查項目僅為 OID18474 函式 ACL 修正，無 LOGIN、窗口或密碼變更。前置精確核對 zero-arg／owner／definer／config／原 ACL，以及全部相關 pg_auth_members：僅兩條 grantor=supabase_admin、member=postgres、role 分別 probe_owner/probe_login，ADMIN=true、SET=false、INHERIT=false。operator 必須 postgres NOSUPERUSER CREATEROLE。以 `GRANTED BY postgres` 新增 ADMIN=false、SET=true、INHERIT=false 的臨時 owner grant，再 SET LOCAL ROLE owner 撤回 PUBLIC/client、授予 login；RESET ROLE 後 `REVOKE ... FROM postgres GRANTED BY postgres RESTRICT` 只撤回此次 grantor 的 grant，保留 supabase_admin 原兩條。完整 membership（包含 OID、grantor、admin/set/inherit）與 pg_proc 除 ACL 的全部欄位、兩角色非秘密屬性均 before/after 相等；最終 ACL 精確只含 owner/login EXECUTE，grantor 均 owner。任一不符回退整筆交易。沒有原 membership 漂移修復或自動放寬前置的權限。
 
-新增本地驗證：controller 7 個 unittest 通過（屏障順序、部分auth失敗/timeout/無Lock/錯blocker/rollback失敗、close失敗、清理取消/非零退出、寫證據失敗、批准窗口、排除credential sources）；非superuser DCL regression＋reconcile＋cleanup拒絕通過。既有9組probe與自然JWT PASS 未重跑。測試接入現有CI，但此批未push，不宣稱新head遠端CI或真並行已過。
+語意依据 [PostgreSQL 17 GRANT](https://www.postgresql.org/docs/17/sql-grant.html) 與 [REVOKE](https://www.postgresql.org/docs/17/sql-revoke.html)：角色 membership 的 GRANTED BY 決定授權來源，撤回需明確指向該 grantor。本機 PGlite 0.5.8 實際引擎是 **PostgreSQL 18.3 WASM**，模型把真實 postgres NOSUPERUSER operator 映射為 probe_operator、supabase_admin grantor 映射為 bootstrap postgres，OID 18474 映射為合成函式 OID。它不能證明遠端 PG17 執行、MCP 交易邊界、真實密碼／TTY／TLS／獨立後端並行；PG17 目前只有文件語意核對，精確遠端 SQL 尚待單項審查後套用及讀回。
+
+本批本機驗證：6 個 ACL 模型案例（成功、變更 ACL 後故意 division-by-zero、OID/ACL/membership/owner 漂移）；失败案例核對預期拒絕原因與 rollback 後完整 ACL／定義／membership／非秘密角色屬性／窗口一致。成功案例另驗證獨立提交 NOLOGIN/terminate 後 ACL 清理故意失敗，role 仍 NOLOGIN、原 membership 不變。8 個 controller unittest 通過；新增前置失敗絕不登入或開管理密碼流程、明示獨立 connector 備援。mock 不算 TTY/TLS/遠端 PASS。既有9組 probe與自然JWT PASS 未重跑，本批未 push 或部署。
+
+create 與 activation 的早期修正仍為本地模板；不再建立已存在的遠端角色。窗口仍待確切 T0/T1、基準 hash、管理備援在場與本人安全操作就緒後才啟用。密碼由本人 psql 無回顯收取；agent 不代填或記錄。此輪只完成本機審查包，未作遠端動作。
 
 `readback.sql` 為主管管理 MCP 的唯讀前後比對：固定目標本體、完整13筆歷史與該目標audit的SHA256／count；不回傳答案明文。啟用前與清理後使用同一UTC timezone執行，goal/history/audit hash須逐項相同，後者schema不存在、角色清單空、probe sessions=0。其後即使controller有Lock證據，若比對不符仍不能PASS。此檔不讀password/hash或認證token。
