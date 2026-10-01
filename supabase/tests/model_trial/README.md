@@ -1,8 +1,20 @@
-# M1 受限模型試驗：已部署、gate關閉與安全交接
+# M1 受限模型試驗：固定合成驗收與安全交接
 
-目前部署狀態與本人key交接見文末19:24節；下方本機工程／未批准段落保留為歷史，不代表目前尚未部署。七天未開始，M1仍未全面放行。
+最新狀態：兩個固定合成案例已成功返回並結算，應用台帳合計 US$0.0004708；原截止 2026-10-07T11:50Z 未變。工作台尚未接入，M1仍未全面放行。精確時間與事故／安全交接見「最新遠端狀態與單案例入口」；其餘未部署、staged或停止段落均為當時歷史，不能當成當前runtime狀態。本輪只整理runner、必要離線測試與文件，不執行live runner、不改部署或安全設定。
 
-2026-10-01。產品方向／里程碑仍以 [既有藍圖](../../../docs/AI_Company_Growth_OS_執行藍圖_v1.md) 為準；本文件只記精確技術變更與操作邊界。本批沒有執行遠端 migration、Edge 部署、金鑰操作、模型 API 或試驗啟用。
+2026-10-01。產品方向／里程碑仍以 [既有藍圖](../../../docs/AI_Company_Growth_OS_執行藍圖_v1.md) 為準；本文件只記精確技術變更與操作邊界。下列原本機工程批次沒有執行遠端 migration、Edge 部署、金鑰操作、模型 API 或試驗啟用，後續分階段批准與結果保留在時間紀錄。
+
+## 單案例 CLI 的實際安全邊界與離線驗證
+
+`live_single_case.mjs` 是人工授權後才能使用的隔離試驗工具，不是 CI／背景工作。它會寄出一次既有 owner 登入郵件、驗證登入與工作區，再等待 stdin 的明確 fixture dispatch；每次程序最多發送一次模型 POST，沒有自動 retry、token refresh、fallback 或 ledger reset。只有重新執行程序仍可能產生新的 request_id，故沒有「永遠最多一次」或跨程序去重保證；任何未知結果須先核對原 request 的持久 ledger，不能因本地失敗再執行。
+
+runner 不直接執行 SQL／保存業務資料，但呼叫的 Edge endpoint **會預留／結算或暫停持久 ledger**。已知用量由伺服器結算並釋放差額，未知用量保留預留額；runner只記錄返回結果，不能退還、重置或自行確認帳務。`completed=true` 只表示 HTTP200及synthetic_trial／can_persist旗標符合，不獨立證明完整推論契約、usage數字、DB結算、價格或provider invoice。`model_posts` 在持久保存發送意圖前設定，代表嘗試發送的意圖，不是provider已收到／已計費的證據；真正接受與結算須依原request讀回。金額是既定價格計算與應用ledger值，四捨五入平台$0.00不能當免費或精確invoice。兩個已完成case以各自HTTP／DB／業務雜湊證據為準，不依單一CLI旗標宣稱M1通過。
+
+CLI本身**不關閉 terminal echo，也不偵測 raw mode**。操作端須在提供登入資料前安排不回顯的raw stdin；不能直接在一般canonical TTY貼完整郵件。只提供一個縮短的登入anchor，禁止透過命令列、env檔或檔案傳憑證。CLI不有意保存登入link／JWT到證據檔，成功輸出只包含固定合成proposal及帳務；但stdin工具轉錄、終端錄製、shell／平台診斷各有持久記錄風險，不能宣稱整個操作鏈「memory-only／從不記錄」。不錄製、不snapshot／attach尚未證明安全的key顯示頁、不讀clipboard；本人處理key建立／替換及關閉顯示／輸入視窗，agent只讀安全metadata，不能用CLI不輸出key作為UI安全保證。
+
+登入redirect只走HTTPS、禁止URL內帳密或自訂port，限制既定tracking host／isolated Auth verify／callback。最多五個跳轉是同一次登入link的redirect鏈，並非失敗後retry；鏈耗盡、EOF、權限拒絕或異常即停止。owner結果須符合指定actor與org。已有證據檔以wx拒絕，不覆寫；新檔會在POST前記錄意圖，之後僅保存安全狀態，不以本地中斷推論遠端取消。
+
+離線測試：`node --test supabase/tests/model_trial/live_single_case.test.mjs`。子程序在載入真實CLI之前以固定fake fetch取代所有HTTP，使用合成mail/JWT標記及固定clock，不帶入父程序credentials；没有真實Auth／provider／Supabase／browser／ledger或部署。九項測試涵蓋兩fixture單次發送、既有檔不變、cutoff、EOF／非HTTPS鏈、owner拒絕／org錯配、dispatch不符、模型403／timeout不retry、unknown保留回傳held、可persist回應不標completed，以及合成憑證標記不進stdout/stderr/證據。這證明CLI控制流，不證明terminal echo關閉、伺服器SQL效果或provider帳單；伺服器unknown pause與原子ledger另由既有handler／ledger／integration測試驗證。CI只執行此離線test，不執行live_single_case.mjs的真實入口。
 
 ## 已批准範圍與本批狀態
 
@@ -60,7 +72,33 @@
 
 [OpenAI key權限文件](https://help.openai.com/en/articles/8867743-assign-api-key-permissions)說明Restricted是逐資源設定，service-account建立對話不提供同樣控制。[最新spend-limits文件](https://developers.openai.com/api/docs/guides/spend-limits)區分alert與hard-limit enforcement且後者有傳播延遲，不能將警示預算當精確即時硬上限；本次不改OpenAI帳戶limits、不提高額度。應用保留已批准的原子ledger上限，平台帳務仍需真人核對。保留ledger，不执行DROP／reset／refund。
 
-## 2026-10-01 最多七天期限修復：本機工程，尚未套用遠端
+## 2026-10-01 最新遠端狀態與單案例入口
+
+### 兩固定案例的驗收與先前停止紀錄
+
+2026-10-01 15:04UTC 最新合成驗收：本人直接確認替換／權限完成／ready恢復並僅批准續跑第二fixture後，完成必要的一次fresh owner Auth與RLS owner核對，僅發送 `synth-shop-v1` 一次；未重跑第一case、未retry/reset/refund。第二request `ec4183e8-6bba-4f49-b7fa-8afee43af2e8` HTTP200／settled／result_code=ok，input226/output89，232800nUSD=US$0.0002328。第一case仍僅1attempt，兩case合計470800nUSD=US$0.0004708、held0、active_request=NULL、unsettled0、calls_reserved4（四個預算槽、兩次generation）；US$1 cap剩餘US$0.9995292。T0=2026-10-01T12:36:50.150072Z、T1=2026-10-07T11:50Z不變。20張業務表計數／SHA256未變，原13筆歷史保留。回應均 synthetic_trial／can_persist=false／awaiting_user_confirmation／inference_verified=false，沒有發布或寫入業務草稿。
+
+兩固定case的 live Auth／model／契約與應用台帳驗收通過，不代表產品UI／M1全面通過。官方專用project用量頁本輪安全唯讀仍顯示1request／input227／$0.00，尚未反映第二case；金額以上均為既定價格計算與應用ledger，非invoice，不將四捨五入顯示當0。沒有自動輪詢或第三case。agent未讀新key值／開credential modal／改secret或gate／部署；ready恢復與權限完成為本人直接回報。證據：outputs/Growth-OS-live-model-authorized-case2-20261001.json、outputs/Growth-OS-two-fixed-cases-acceptance-20261001.json。下列停止與metadata狀態保留為歷史。
+
+2026-10-01 14:32UTC 安全 metadata 後續核對：本人替換並關閉視窗的回報後，既有 OpenAI handle 限定確認 key display heading=0／dialog=0，只讀目前欄位名稱與 Name/Status/到期日/Permissions。`Growth OS Trial replacement` 為 Active／Restricted，舊 `Growth OS Trial` Revoked；新 key 到期日顯示2026年10月8日，exact UTC未在清單顯示，不能確認不晚於原2026-10-07T11:50Z，故仍禁止恢復。Restricted亦不能推論逐資源 Responses Write only／其餘None。Supabase只讀名稱／更新時間，OPENAI_API_KEY更新14:28:52Z；非秘密 MODEL_TRIAL_READY_POLICY更新14:25:22Z，摘要等於SHA256(paused)，確認設定paused，未外呼驗證runtime。DB仍active、1settled／0unsettled／noactive／held0／spent238000nUSD／calls2，原T0/T1未变。模型／登入／key／secret／gate／DB皆無新增或寫入。本批證據 outputs/Growth-OS-replacement-key-paused-metadata-20261001.json 列出最小恢復前置，第二fixture synth-shop-v1仍待另行明確恢復指示，第一case不重跑；以下前節metadata保留為歷史。
+
+2026-10-01 14:19UTC 唯讀事故跟進：先檢查既有安全 handle 的頁面位置與 key modal/dialog 均不存在，再只讀 API keys 清單 Name/Status，專用 Growth OS Trial 唯一列已為 Revoked；沒有讀 Secret Key/Tracking ID。官方用量已到達：指定模型1 request、input227/output92（total319），與應用台帳一致；官方費用畫面只顯示四捨五入 $0.00，精確 provider 帳務仍未驗證。DB仍active，attempts1／unsettled0／active_request=NULL／held0／spent238000nUSD／calls_reserved2，原T0/T1未變。沒有新 key／登入／模型／DB／secret／gate 操作。runtime gate 本輪未重新核對，最後已知 policy 存在，不能宣稱runtime已關閉。安全替換流程只備妥於聊天outputs/Growth-OS-safe-key-replacement-handoff-20261001.md；事故去秘密metadata與最新讀回在outputs/Growth-OS-key-revoked-readonly-followup-20261001.json。第二案例仍未發送，不自動恢復；下列未撤銷／No data 狀態保留為歷史。
+
+本人在本聊天直接批准重新取得一次 owner 登入郵件後，已完成 fresh real Auth／RLS owner 核對，且只發送一次 `synth-parts-v1`。request `0be53526-f521-42b1-b434-60781678b198` 在 2026-10-01T14:09:39.446356Z settled，HTTP 200、result_code=ok、input=227／output=92 tokens。actual_nusd=227×400+92×1600=238000，即應用台帳 US$0.000238；held=0、active_request=NULL。calls_reserved=2 是既定的兩個預算槽，只對應一個模型 generation／一筆 attempt。草稿 awaiting_user_confirmation、inference_verified=false、can_persist=false，沒有發布或保存為業務資料；20 張業務表計數／SHA256與既有基準相同，原目標仍13筆歷史。US$1 cap、原 starts_at／2026-10-07T11:50Z deadline 均未變，沒有 retry/refund/reset。
+
+第二案例未發送，停止原因有兩項：OpenAI Growth OS Trial 用量頁仍顯示 No data／0 requests／0 tokens，尚不能核對 provider 帳務，畫面 $0.00 不代表此請求免費；此外，既有 OpenAI user tab 停留在一次性 key 顯示 modal，瀏覽器初始 accessibility 輸出包含憑證欄位。agent 已關閉 modal，沒有複製、代填、保存至專案檔案或使用該值；工具轉錄暴露需由本人撤銷並替換此專用 key，agent 不操作 credential 建立／撤銷／旋轉。此事件與帳務未確認均禁止第二案例；不得將應用台帳驗收寫成 provider 帳務／M1 全面通過。
+
+證據：聊天 outputs/Growth-OS-live-model-authorized-case1-20261001.json、outputs/Growth-OS-model-case1-accounting-second-stopped-20261001.json。以下先前阻塞狀態為當時歷史，沒有刪除或覆寫。
+
+期限修訂已由本聊天本人直接批准並套用，DB 試驗於 2026-10-01T12:36:50.150072Z 啟用，固定截止 2026-10-07T11:50:00Z；沒有延展或重置。2026-10-01T14:00:43Z 讀回 active、calls_reserved=0、spent_nusd=0、held_nusd=0、attempts=0、active_request=NULL，原目標歷史仍 13 筆。Dashboard 的 MODEL_TRIAL_READY_POLICY 名稱存在，updated_at=13:39:32Z，摘要符合 gpt41mini-20250414-v2-postusage；這只證明設定摘要，不等於模型或帳務驗收。
+
+新增 `live_single_case.mjs` 是獨立 CLI 驗收入口，未接入產品介面，也不改部署：固定 isolated origin/actor/org/fixture/cutoff，先驗 owner，再等待明確 stdin dispatch 指令。每個程序最多一個模型 POST，無 refresh/retry、無直接 SQL 或 business mutation；Endpoint會改預留／結算ledger。輸出檔必須新建，發送前保存意圖，未知結果不得再次呼叫。登入資料與不回顯由操作端安全管理，不能宣稱工具轉錄也只存在記憶體；具體限制與離線測試以本文件「單案例CLI的實際安全邊界」為準。
+
+本人批准兩個固定合成案例、總費用 US$1，但第一案例尚未發送：本地輸入通道失敗後，automatic approval review 拒絕再次登入，理由為未有新的直接授權而構成自動重試。已停止並保留所有先前證據；目前只有語法檢查通過，live 模型／用量／provider 帳務未驗收。不得以此紀錄宣稱 M1 通過。後續須先取得接續登入的直接授權；第一案例完成後獨立讀回該 request 的 input/output tokens、result_code、actual_nusd 與總 ledger，再核對 provider 帳務，才能發送第二案例；未知用量、逾時或權限拒絕即停止且保留預留額。不得 reset/refund/retry。
+
+證據：聊天 outputs/Growth-OS-deadline-applied-db-active-runtime-closed-20261001.json（DB 啟用當時），outputs/Growth-OS-model-live-approval-blocked-20261001.json（本輪最新）；以下「尚未套用」段落保留為當時歷史。
+
+## 2026-10-01 最多七天期限修復：當時本機工程，現已套用遠端
 
 本人試驗批准是最多七天。現有遠端model_trial_check1強制等於七天，且SQL CHECK UNKNOWN可能接受非法NULL截止；不要求延長或重建本人七天key。新增CLI生成migration `20261001120704_growth_model_trial_bounded_deadline.sql`，保留已套用的原migration不改。新migration先精確核對現有constraint名稱／validated／定義，漂移即整筆拒絕；僅替換這個CHECK。staged必須兩時間NULL；active/paused/closed必須兩時間非NULL、deadline>starts_at且<=starts_at+7days、actor/org非NULL。沒有DML、新角色、RPC、RLS／ACL／owner／defaultprivilege／預算／provider／runtime／business變更。
 

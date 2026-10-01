@@ -45,6 +45,7 @@ jobs:
         run: |
           node --check supabase/functions/growth-model-trial/index.js
           node --test supabase/tests/model_trial/handler.test.mjs
+          node --test supabase/tests/model_trial/live_single_case.test.mjs
           node supabase/tests/model_trial/ledger_engine.mjs
           node supabase/tests/model_trial/integration.mjs
           node supabase/tests/model_trial/deadline_engine.mjs
