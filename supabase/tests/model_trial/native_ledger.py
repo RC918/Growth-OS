@@ -27,11 +27,18 @@ def state():
 try:
     subprocess.run(['docker', 'run', '--detach', '--rm', '--network', 'none',
                     '--name', name, '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
-                    'postgres:17.6', 'postgres', '-c', 'listen_addresses='],
+                    'postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929', 'postgres', '-c', 'listen_addresses='],
                    check=True, stdout=subprocess.DEVNULL, timeout=120)
     until = time.monotonic() + 40
     while True:
         try:
+            # Ignore the bootstrap server; entrypoint restarts it before exec.
+            process = subprocess.run(['docker', 'exec', name, 'cat', '/proc/1/comm'], text=True, capture_output=True, check=True, timeout=10)
+            if process.stdout.strip() != 'postgres':
+                if time.monotonic() >= until:
+                    raise AssertionError('Final server did not start')
+                time.sleep(.2)
+                continue
             query('select 1;')
             break
         except subprocess.CalledProcessError:
@@ -50,7 +57,18 @@ try:
     for key, value in {'__READY_POLICY__': 'gpt41mini-20250414-v1', '__COUNTING_ZERO_EXTRA_CHARGE__': 'confirmed',
                        '__RUNTIME_REVIEWED__': 'confirmed', '__ACTOR_UUID__': actor, '__ORG_UUID__': org}.items():
         template = template.replace(key, value)
-    query(template)
+    activation_a = subprocess.Popen(argv('ready-holder'), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    activation_a.stdin.write(template.replace('COMMIT;', 'SELECT pg_sleep(2);COMMIT;'))
+    activation_a.stdin.close()
+    until = time.monotonic() + 3
+    while query("select exists(select from pg_stat_activity where application_name='ready-holder' and wait_event='PgSleep');") != 't':
+        if time.monotonic() >= until:
+            raise AssertionError('Ready holder barrier missing')
+        time.sleep(.05)
+    activation_b = subprocess.run(argv('ready-contender'), input=template, text=True, capture_output=True, timeout=10)
+    assert activation_a.wait(timeout=10) == 0, activation_a.stderr.read()
+    assert activation_b.returncode != 0 and 'Staging state differs' in activation_b.stderr
+    assert query("select deadline=starts_at+interval '7 days' from private.model_trial;") == 't'
     # A holds the real row lock; B is an independent backend. C observes blocking.
     a = subprocess.Popen(argv('ledger-holder'), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     a.stdin.write('begin;set local role service_role;' + reserve(1) + 'select pg_sleep(4);commit;\n')
@@ -83,6 +101,6 @@ try:
     assert failed.returncode != 0 and state() == before, 'Partial reservation persisted after rollback'
     print(json.dumps({'runtime': 'PostgreSQL 17.6', 'network': 'none', 'tcp_listener': False,
                       'real_lock_overlap': observed, 'one_dispatch_only': True,
-                      'reservation_rollback_atomic': True, 'cloud_calls': 0}))
+                      'reservation_rollback_atomic': True, 'simultaneous_ready_no_extension': True, 'cloud_calls': 0}))
 finally:
     subprocess.run(['docker', 'rm', '--force', name], capture_output=True, timeout=20)

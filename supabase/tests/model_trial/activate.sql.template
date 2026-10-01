@@ -1,7 +1,10 @@
 -- Only AFTER exact remote SQL/runtime/ACL approval, human key setup, quota and
 -- counting-endpoint zero-extra-charge/current tariff readiness proof. NO SECRET.
 BEGIN;
-DO $$ DECLARE ready_at timestamptz:=clock_timestamp(); BEGIN
+DO $$ DECLARE ready_at timestamptz; BEGIN
+ -- Serialize simultaneous readiness requests; recheck staged AFTER acquiring lock.
+ PERFORM 1 FROM private.model_trial WHERE singleton FOR UPDATE;
+ ready_at:=clock_timestamp();
  IF '__READY_POLICY__'<>'gpt41mini-20250414-v1' OR '__COUNTING_ZERO_EXTRA_CHARGE__'<>'confirmed'
  OR '__RUNTIME_REVIEWED__'<>'confirmed'
  THEN RAISE EXCEPTION 'Readiness unconfirmed'; END IF;
