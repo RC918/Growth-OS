@@ -21,3 +21,5 @@ python3 -m http.server 8081 --directory apps/web
 2026-10-02 新增 `offline-draft-review.html`，可由工作台登入前或目標區開啟。兩個手寫合成案例提供來源檢視、修改、取消、重新確認，以及逐項追加並讀回記憶體版本。修改或來源／版本變更會使確認失效；保存下一項前須重新確認。此頁不登入、不呼叫模型、不存取遠端資料，CSP 禁止連線，也不使用瀏覽器持久儲存。重新整理或切換案例會重設模擬紀錄；完成兩項仍明示缺少四項必要資料，不代表完整目標確認或發布。串接真實工作區保存尚待開發。
 
 離線檢查：`node --test prototype/owner-workspace/offline-draft-session.test.mjs`；桌面與手機驗收：`node prototype/owner-workspace/offline-draft-ui.e2e.mjs`（需 Playwright Chromium）。
+
+取消會捨棄未保存編輯，重開須重新確認；已保存版本保留。瀏覽器測試包含實際 Tab／Shift+Tab／Enter／Space 操作，及僅在 localhost harness 注入的角色／目標／版本拒絕案例。這些是離線 UI 證據；Preview 的既有 SSO 保護使雲端 UI／部署內容一致性未驗證，不得算作 PASS。

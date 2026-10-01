@@ -20,9 +20,30 @@ test('editing after confirmation invalidates it and changes its source-bound ide
 });
 test('cancel clears confirmation, preserves memory history and requires fresh confirmation after reopen',async()=>{
  const s=createOfflineDraftSession('shop');await s.confirm();await s.simulateSave();const prior=s.view().history;
+ s.edit('audience','未保存的合成修正');
  await s.confirm();s.cancel();await assert.rejects(()=>s.simulateSave(),/CONFIRMATION/);await assert.rejects(()=>s.confirm(),/CONFIRMABLE/);
- assert.deepEqual(s.view().history,prior);s.reopen();assert.equal(s.view().confirmed,false);await assert.rejects(()=>s.simulateSave(),/CONFIRMATION/);
+ assert.deepEqual(s.view().history,prior);s.reopen();assert.equal(s.view().fields[0].value,'台灣買家');assert.equal(s.view().fields[0].edited,false);assert.equal(s.view().confirmed,false);await assert.rejects(()=>s.simulateSave(),/CONFIRMATION/);
  await s.confirm();await s.simulateSave();assert.equal(s.view().phase,'complete');assert.deepEqual(s.view().history.slice(0,2),prior);
+});
+test('cancel before any save discards all unsaved edits and modified source labels',async()=>{
+ const s=createOfflineDraftSession('parts'),original=s.view().fields;s.edit('offering','捨棄的產品');s.edit('audience','捨棄的受眾');await s.confirm();s.cancel();s.reopen();
+ assert.deepEqual(s.view().fields,original);assert.equal(s.view().confirmed,false);assert.equal(s.view().history.length,1);
+});
+test('viewer/editor and cross-goal contexts cannot edit, confirm or append even outside the UI',async()=>{
+ for(const mode of ['viewer','editor','goal']){
+  const base=createMemoryDraftStore('parts');let appends=0;
+  const store={read(){const value=base.read();if(mode==='goal'){value.goalId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';value.turns.forEach(t=>t.goal_id=value.goalId);}else value.role=mode;return value;},append(){appends++;}};
+  const s=createOfflineDraftSession('parts',{store}),error=mode==='goal'?/SCOPE_MISMATCH/:/OWNER_REQUIRED/;
+  assert.equal(s.view().canEdit,false);assert.throws(()=>s.edit('offering','拒絕'),error);await assert.rejects(()=>s.confirm(),error);await assert.rejects(()=>s.simulateSave(),/CONFIRMATION/);assert.equal(appends,0);
+ }
+});
+test('role or goal change after confirmation denies save, clears receipt and disables subsequent edits',async()=>{
+ for(const mode of ['viewer','editor','goal']){
+  const base=createMemoryDraftStore('parts');let changed=false,appends=0;
+  const s=createOfflineDraftSession('parts',{store:{read(){const value=base.read();if(changed){if(mode==='goal'){value.goalId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';value.turns.forEach(t=>t.goal_id=value.goalId);}else value.role=mode;}return value;},append(){appends++;}}});
+  await s.confirm();changed=true;await assert.rejects(()=>s.simulateSave(),mode==='goal'?/SCOPE_MISMATCH/:/OWNER_REQUIRED/);
+  assert.equal(s.view().confirmed,false);assert.equal(s.view().canEdit,false);assert.equal(appends,0);assert.equal(base.read().turns.length,1);
+ }
 });
 test('each simulated append reads back an immutable version and invalidates next-field confirmation',async()=>{
  for(const fixture of ['parts','shop']){
