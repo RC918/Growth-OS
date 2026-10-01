@@ -138,3 +138,39 @@ test('closing panel during post-save list refresh cannot repopulate its UI or re
   assert.equal(root.textContent,'');assert.equal(h.adapter.view().confirmed,false);assert.equal(h.adapter.view().snapshot,null);assert.equal(h.posts().length,1); // Already-dispatched mock commit cannot be undone.
  }finally{panel.close();globalThis.document=previous;dom.window.close();}
 });
+function deferredHash(t){
+ const originalDigest=crypto.subtle.digest.bind(crypto.subtle),pending=[];
+ t.mock.method(crypto.subtle,'digest',(...args)=>new Promise((resolve,reject)=>pending.push(()=>originalDigest(...args).then(resolve,reject))));
+ return pending;
+}
+test('deferred review hash cannot refill a signed-out adapter',async t=>{
+ const h=await harness(),hashes=deferredHash(t),pending=h.adapter.review(draft());assert.equal(hashes.length,1);
+ h.context=null;h.adapter.clear('SIGNED_OUT');hashes[0]();await assert.rejects(()=>pending,/STALE_OPERATION/);
+ const state=h.adapter.view();assert.equal(state.status,'closed');assert.equal(state.context,null);assert.equal(state.snapshot,null);assert.equal(state.raw,null);assert.equal(state.proposal,null);assert.equal(state.confirmed,false);assert.equal(h.posts().length,0);
+});
+test('deferred review hash cannot refill old proposal after selecting another goal',async t=>{
+ const h=await harness(),hashes=deferredHash(t),pending=h.adapter.review(draft());assert.equal(hashes.length,1);
+ h.context={...h.context,goalId:otherGoal};await h.select();hashes[0]();await assert.rejects(()=>pending,/STALE_OPERATION/);
+ const state=h.adapter.view();assert.equal(state.status,'idle');assert.equal(state.context.goalId,otherGoal);assert.equal(state.raw,null);assert.equal(state.proposal,null);assert.equal(state.confirmed,false);assert.equal(h.posts().length,0);
+});
+test('older deferred review cannot overwrite newer review state in either completion order',async t=>{
+ const hashes=deferredHash(t);
+ for(const order of ['new-first','old-first']){
+  const h=await harness(),index=hashes.length,old=h.adapter.review(draft());assert.equal(hashes.length,index+1);
+  h.context={...h.context,goalId:otherGoal};await h.select();const next=draft(original(),h.context);next.fields[0].value='較新的合成草稿';const newer=h.adapter.review(next);assert.equal(hashes.length,index+2);
+  if(order==='new-first'){
+   hashes[index+1]();await newer;const current=h.adapter.view();hashes[index]();await assert.rejects(()=>old,/STALE_OPERATION/);assert.deepEqual(h.adapter.view(),current);
+  }else{
+   hashes[index]();await assert.rejects(()=>old,/STALE_OPERATION/);const pending=h.adapter.view();assert.equal(pending.busy,true);assert.equal(pending.proposal,null);assert.equal(pending.raw,null);hashes[index+1]();await newer;
+  }
+  const state=h.adapter.view();assert.equal(state.status,'review');assert.equal(state.proposal.goal_id,otherGoal);assert.equal(state.proposal.fields[0].value,'較新的合成草稿');assert.equal(state.confirmed,false);assert.equal(h.posts().length,0);
+ }
+});
+test('scope cancellation between readback helper return and save continuation cannot restore a snapshot',async()=>{
+ let current={organizationId:org,goalId:goal,role:'owner'},reads=0,posts=0,queued=false;const turns=original();let adapter;
+ adapter=createGoalDraftAdapter({api:{readGoal:async()=>{reads++;return clone(turns);},saveGoalTurn:async intent=>{posts++;turns.push({version_number:2,question_key:intent.questionKey,answer_text:intent.answer});return {goal_id:goal};}},getContext:()=>{
+  if(reads===3&&!queued){queued=true;queueMicrotask(()=>{current=null;adapter.clear('SIGNED_OUT');});}return current;
+ }});
+ adapter.select({...current,turns});await adapter.review(draft());await adapter.confirm();await assert.rejects(()=>adapter.save('offering'),/STALE_OPERATION/);
+ assert.equal(posts,1);assert.equal(turns.length,2);const state=adapter.view();assert.equal(state.status,'closed');assert.equal(state.snapshot,null);assert.equal(state.proposal,null);assert.equal(state.raw,null);assert.equal(state.confirmed,false);
+});

@@ -50,7 +50,13 @@ export function createGoalDraftAdapter({api,getContext}){
  return {
   clear,view,
   select(selected){clear('SELECTION_CHANGED');const next=snapshotFor(selected,selected.turns);context={organizationId:selected.organizationId,goalId:selected.goalId,role:selected.role,sessionId:selected.sessionId??null};snapshot=next;status='idle';error=null;return view();},
-  review(output){return run(async ticket=>{const validated=validatedInferenceData(output,snapshot);raw=clone(validated.proposal);receipt=null;proposal=await proposalFor(raw,snapshot);guard(ticket);status='review';error=null;return view();});},
+  review(output){return run(async ticket=>{
+   const candidate=clone(validatedInferenceData(output,snapshot).proposal);
+   raw=null;proposal=null;receipt=null;
+   const checked=await proposalFor(candidate,snapshot);guard(ticket);
+   // Commit only after the asynchronous result still belongs to this selection.
+   raw=candidate;proposal=checked;status='review';error=null;return view();
+  });},
   edit(key,value){
    if(active)fail('DRAFT_BUSY');
    try{
@@ -76,7 +82,7 @@ export function createGoalDraftAdapter({api,getContext}){
    receipt=null;status='saving';
    const result=await api.saveGoalTurn({goalId:intent.goalId,requestId:intent.requestId,expectedVersion:intent.expectedVersion,questionKey:intent.questionKey,answer:intent.answer});guard(ticket);
    if(result?.goal_id!==context.goalId)fail('SAVE_RESULT_MISMATCH');
-   const readback=await fresh(ticket),last=readback.turns.at(-1);
+   const readback=await fresh(ticket);guard(ticket);const last=readback.turns.at(-1);
    if(readback.turns.length!==current.turns.length+1||history(readback.turns.slice(0,-1))!==history(current.turns)||last.question_key!==intent.questionKey||last.answer_text!==intent.answer)fail('READBACK_MISMATCH');
    snapshot=readback;raw=null;proposal=null;receipt=null;epoch++;status='saved';error=null;return view();
   });},
