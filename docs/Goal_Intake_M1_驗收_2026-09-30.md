@@ -1,5 +1,17 @@
 # Growth OS M1 目標與問答保存驗收
 
+## 2026-10-02 目標工作台與草稿 adapter 接線（預設停用、僅替身）
+
+新增 `goal-draft-adapter.mjs`，接收選取的 organization／goal／history、當前 membership／session 與注入的 `readGoal(id)`／`saveGoalTurn({...})`。沿用既有 API 形狀；`readGoal` 列不含 scope IDs 時，驗證快照採用該次選取／查詢上下文，若列提供不符的 ID 則拒絕。proposal 本身的 organization／goal／expected_version 不改寫，不把離線 fixture 假 UUID 換成可保存目標。API 必須與當前工作區綁定；這個契約不能代替 RLS 證據。
+
+確認前重讀歷史，核對版本、原始來源 hash 與 scope；保存前再次重讀、核對 receipt、owner 角色、合法欄位順序及當前工作階段。讀取／hash／保存回應途中切換上下文、目標、工作區或登出，使舊回應失效。修改清除確認；一次保存只消耗一欄，成功後讀回並驗證舊版內容與新增欄位，清空草稿／receipt。下一版需由呼叫端明確提供新 proposal，沒有自動產生、修正 scope 或自動重試。
+
+目標面板新增可選 adapter seam 與 `reviewDraft`／`confirmDraft`／`saveDraftField` 方法，讀取、輸入、修正、選目標、切工作區或 close 都清除舊確認。現有 `workspace.mjs` 不傳 adapter／上下文，也不 import 它；三個新方法預設拒絕，沒有 UI 入口或遠端啟用。獨立 offline demo 完全不使用 adapter。沒有 DB 表／紀錄／ACL、模型 handler、登入或遠端流程變更。
+
+12 組新增 adapter／panel 測試採用真 `createWorkspaceApi` 加完全替換的 fetchImpl，只返回合成 Auth／Data API 形狀。涵蓋確認／保存前重讀、保存後讀回、跨 goal／tenant／role／version／來源拒絕、欄位順序、編輯及新版失效、重複點擊、待讀取時切換／登出、錯誤及讀回不一致，以及保存後列表重讀期間 close 不得還原 UI。連同既有契約／DOM／workspace API／offline session 共 45 項本機 PASS；既有工作台與離線頁的 1280px／390px 瀏覽器回歸 PASS。不是實際 Auth/RLS 或遠端保存驗收，沒有真 API 呼叫。
+
+送出前驗證失敗零 POST；送出後的錯誤不會在本地宣告追加成功，也不重試／重新生成。若服務端已處理而回應或讀回失敗，不能承諾遠端未提交或已回滾；替身測試明確保留這種不確定結果且只送一次。真正固定兩個 goal 的寫入方案、啟用與遠端驗收仍待另行決策。協調端回報既有登入限定 smoke／CSS parity 已驗證；本批未執行或重跑。完整雲端 HTML／JS byte parity 與新 adapter 的雲端保存未驗證，不能泛稱整套雲端驗收通過。同 HEAD CI 結果以 PR19／聊天 outputs 為準，維持 draft、不 merge。
+
 ## 2026-10-02 離線介面限定修正與補驗收
 
 取消現在會捨棄尚未模擬保存的修改及其「使用者修改」標記，清除確認；重開回到手寫提議，必須重新確認。已模擬保存的版本與原始來源保持不變。切換案例同樣清除編輯、確認與本頁模擬紀錄。這是既有流程修正，不新增產品需求、登入、遠端保存或權限。

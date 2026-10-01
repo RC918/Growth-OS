@@ -41,6 +41,8 @@ jobs:
         run: node --test prototype/owner-workspace/goal-inference-contract.test.mjs
       - name: Offline draft confirmation state and source checks (memory only)
         run: node --test prototype/owner-workspace/offline-draft-session.test.mjs
+      - name: Unwired goal draft adapter and panel checks (injected API only)
+        run: node --test prototype/owner-workspace/goal-draft-adapter.test.mjs
       - name: Guided goal PostgreSQL engine checks
         run: node supabase/tests/goal_intake_postgres.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)

@@ -8,6 +8,8 @@
 
 ## 1. 產品決策
 
+目標面板與草稿契約的最小接線為可選 adapter，預設 null 且沒有入口；現有 workspace 不 import／啟用。adapter 接受實際選取的 org／goal／history，保留 proposal scope；查詢列未帶 scope 時只補驗證快照的查詢上下文，不改寫 proposal。確認及保存前重讀，hash 綁定來源與版本；epoch／當前 membership 防止切換或登出後接受舊回應。保存先消耗 receipt，最多一次 dispatch，成功讀回才更新快照；任何拒絕／錯誤清除 proposal，不自動生成或重試。已送出但結果不明不能推定服務端未提交，必須另行核對。本批只有 API 形狀替身和 panel DOM 證據，沒有遠端 Auth/RLS／DB 驗收；正式接線仍需可信的 membership 與同工作區 API 綁定。詳見既有 M1 驗收紀錄。
+
 離線確認限定修正：取消會重設尚未保存欄位與修改標記，保留已保存歷史。session 與 UI 共用可編輯性結果，模擬 viewer/editor 或不符案例的目標／工作區不能編輯、確認或保存；保存前另核對當前記憶體上下文，角色／目標／版本漂移拒絕保存並清除 receipt。負向角色及漂移僅由 localhost 測試 harness 注入，不新增產品入口、登入或遠端權限。真實 Auth/RLS 仍由既有雲端邊界負責，不能以本機測試冒充驗收。
 
 優先服務電商與貿易商，核心目標為增加相關流量與點閱；保留產品／作品、受眾及渠道等可擴展欄位，創作者專屬流程未來另驗證。第一版先完成網站自然搜尋的對話與內容工作流程。轉換優化、GA4/訂單歸因與 Ahrefs 為後續能力。既有 **Visitor-to-Customer Leak Map** 保留為轉換子模組，創辦人的訪客未註冊案例不再決定整體入口。

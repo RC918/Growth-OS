@@ -1,5 +1,9 @@
 import {intakeState,intakeFields} from './goal-intake.mjs';
-export function createGoalPanel(api,root=document.getElementById('goal-panel')) {
+export function createGoalPanel(api,root=document.getElementById('goal-panel'),{draftAdapter=null}={}) {
+  // Optional test-only seam; the current workspace never supplies an adapter.
+  let workspaceContext=null;
+  const clearDraft=reason=>draftAdapter?.clear(reason);
+  function selectDraft(){if(draftAdapter&&workspaceContext&&goalId)draftAdapter.select({...workspaceContext,role,goalId,turns});}
   let generation=0,selection=0,role=null,goals=[],goalId=null,turns=[],pending=null,editing=null,locked=false;
   const node=(tag,text='',className='')=>{const el=document.createElement(tag);el.textContent=text;if(className)el.className=className;return el;};
   const feedback=node('p','','notice');feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
@@ -10,7 +14,7 @@ export function createGoalPanel(api,root=document.getElementById('goal-panel')) 
     const state=intakeState(turns);content.replaceChildren();
     const actions=node('div','','actions');
     const reload=node('button','重新讀取目標','quiet');reload.type='button';reload.addEventListener('click',()=>void run(async()=>{const current=generation;await load();if(current===generation)report('已重新讀取保存資料。');}));actions.append(reload);
-    if(role==='owner') {const fresh=node('button','新增目標','secondary');fresh.type='button';fresh.addEventListener('click',()=>{selection++;goalId=null;turns=[];pending=null;editing=null;report('既有目標仍保留。');render();});actions.append(fresh);}
+    if(role==='owner') {const fresh=node('button','新增目標','secondary');fresh.type='button';fresh.addEventListener('click',()=>{clearDraft('GOAL_CHANGED');selection++;goalId=null;turns=[];pending=null;editing=null;report('既有目標仍保留。');render();});actions.append(fresh);}
     content.append(actions);
     if(goals.length) {
       const label=node('label','最近保存的目標');const select=node('select');select.id='goal-select';
@@ -23,7 +27,7 @@ export function createGoalPanel(api,root=document.getElementById('goal-panel')) 
       const summary=node('dl');
       for(const field of intakeFields) if(state.answers[field.key]) {
         summary.append(node('dt',field.label));const value=node('dd',state.answers[field.key]);
-        if(role==='owner') {const edit=node('button',`修正${field.label}`,'quiet');edit.type='button';edit.addEventListener('click',()=>{editing=field;pending=null;render();content.querySelector('textarea')?.focus();});value.append(edit);}
+        if(role==='owner') {const edit=node('button',`修正${field.label}`,'quiet');edit.type='button';edit.addEventListener('click',()=>{clearDraft('CONTENT_CHANGED');editing=field;pending=null;render();content.querySelector('textarea')?.focus();});value.append(edit);}
         summary.append(value);
       }
       content.append(summary,node('p',state.confirmed?'資料已確認 · 待建立成長計畫':'資料收集中 · 尚未建立成長計畫','pill'));
@@ -36,11 +40,13 @@ export function createGoalPanel(api,root=document.getElementById('goal-panel')) 
     if(state.version>=200){content.append(node('p','此目標已達 200 筆紀錄上限；既有資料仍保留，請新增目標。','hint'));controls(locked);return;}
     const form=node('form');form.id='goal-form';form.className='fields';const label=node('label',question.question);
     const input=node('textarea');input.name='answer';input.maxLength=2000;input.required=true;
+    input.addEventListener('input',()=>clearDraft('CONTENT_CHANGED'));
     if(question.key!=='confirm') {input.value=editing?state.answers[editing.key]:'';label.append(input);}form.append(label);
     const save=node('button',question.key==='confirm'?'確認資料':state.version?'保存回答':'保存目標','primary');save.type='submit';form.append(save);
     if(editing) {const cancel=node('button','取消修正','quiet');cancel.type='button';cancel.addEventListener('click',()=>{editing=null;pending=null;render();});form.append(cancel);}
     form.addEventListener('submit',event=>{
       event.preventDefault();if(locked)return;
+      clearDraft('CONTENT_CHANGED');
       const answer=question.key==='confirm'?'確認':input.value.trim();if(!answer){report('請填寫目標或回答。');return;}
       if(!goalId)goalId=crypto.randomUUID();
       const signature=JSON.stringify([goalId,state.version,question.key,answer]);
@@ -56,15 +62,27 @@ export function createGoalPanel(api,root=document.getElementById('goal-panel')) 
     });content.append(form);controls(locked);
   }
   async function loadList(){const current=generation;const next=await api.listGoals();if(current!==generation)return;goals=next;}
-  async function read(id){const current=generation;const ticket=++selection;const next=await api.readGoal(id);if(current!==generation||ticket!==selection)return;intakeState(next);goalId=id;turns=next;editing=null;render();}
+  async function read(id){clearDraft('GOAL_RELOADED');const current=generation;const ticket=++selection;const next=await api.readGoal(id);if(current!==generation||ticket!==selection)return;intakeState(next);goalId=id;turns=next;editing=null;selectDraft();render();}
   async function load(){const current=generation;await loadList();if(current!==generation)return;if(goals.length)await read(goalId&&goals.some(goal=>goal.id===goalId)?goalId:goals[0].id);else render();}
   async function run(operation) {
     if(locked)return;const current=generation;controls(true);report('讀取或保存中…');
     try{await operation();}catch(error){if(current===generation)report(`${error.message}。已保存的問答仍保留；可重試或重新讀取。若登入逾時，請重新登入。`);}
     finally{if(current===generation)controls(false);}
   }
+  async function draftOperation(operation,{readback=false}={}){
+    if(!draftAdapter)throw Error('DRAFT_ADAPTER_NOT_ENABLED');if(locked)throw Error('DRAFT_BUSY');
+    const current=generation;controls(true);
+    try{const result=await operation();if(current!==generation)throw Error('STALE_OPERATION');
+      if(readback){await read(goalId);if(current!==generation)throw Error('STALE_OPERATION');await loadList();if(current!==generation)throw Error('STALE_OPERATION');render();report('已保存並讀回問答；尚未發布或取得成長數據。');}
+      return result;
+    }catch(error){if(current===generation)report(`${error.message}。草稿確認已清除，請重新讀取與檢查；不會自動重新產生或保存。`);throw error;}
+    finally{if(current===generation)controls(false);}
+  }
   return {
-    async open(nextRole){generation++;selection++;role=nextRole;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;render();const current=generation;await run(async()=>{await load();if(current===generation)report(goals.length?'已讀取保存的目標與問答。':'工作區尚未保存目標。');});},
-    close(){generation++;selection++;role=null;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;content.replaceChildren();report('');},
+    async open(nextRole,context=null){clearDraft('WORKSPACE_CHANGED');workspaceContext=context;generation++;selection++;role=nextRole;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;render();const current=generation;await run(async()=>{await load();if(current===generation)report(goals.length?'已讀取保存的目標與問答。':'工作區尚未保存目標。');});},
+    reviewDraft(output){return draftOperation(()=>{if(!workspaceContext||!goalId)throw Error('DRAFT_CONTEXT_REQUIRED');selectDraft();return draftAdapter.review(output);});},
+    confirmDraft(){return draftOperation(()=>draftAdapter.confirm());},
+    saveDraftField(key){return draftOperation(()=>draftAdapter.save(key),{readback:true});},
+    close(){clearDraft('SIGNED_OUT');workspaceContext=null;generation++;selection++;role=null;goals=[];goalId=null;turns=[];pending=null;editing=null;locked=false;content.replaceChildren();report('');},
   };
 }

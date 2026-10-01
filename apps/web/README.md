@@ -23,3 +23,5 @@ python3 -m http.server 8081 --directory apps/web
 離線檢查：`node --test prototype/owner-workspace/offline-draft-session.test.mjs`；桌面與手機驗收：`node prototype/owner-workspace/offline-draft-ui.e2e.mjs`（需 Playwright Chromium）。
 
 取消會捨棄未保存編輯，重開須重新確認；已保存版本保留。瀏覽器測試包含實際 Tab／Shift+Tab／Enter／Space 操作，及僅在 localhost harness 注入的角色／目標／版本拒絕案例。這些是離線 UI 證據；Preview 的既有 SSO 保護使雲端 UI／部署內容一致性未驗證，不得算作 PASS。
+
+`goal-draft-adapter.mjs` 是尚未啟用的目標面板／草稿契約 seam。只接受注入 API 與當前上下文；確認、保存前重讀，保持 proposal scope，owner 依欄位順序保存後讀回。現有工作台沒有傳入 adapter，也沒有新 UI 入口；offline demo 不使用它。替身檢查：`node --test prototype/owner-workspace/goal-draft-adapter.test.mjs`。本批沒有遠端寫入／Auth/RLS 驗收；固定兩個 goal 的真寫入方案待另行決策。若送出後讀回失敗，只清除本地確認，不推定服務端未提交或自動重試。
