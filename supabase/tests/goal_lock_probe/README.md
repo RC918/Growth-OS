@@ -27,7 +27,7 @@ LOGIN 沒有表權限、原 RPC EXECUTE、private schema USAGE、其他角色會
 
 ## 本地證據與限制
 
-`.github/workflows/python-tests.yml` 已接入同一份 `node supabase/tests/goal_lock_probe/test.mjs`，沿用前面的 `npm ci --ignore-scripts` 安裝 PGlite。CI 只在記憶體內執行既有 9 組邊界測試，不連線 Supabase、不需要 credential、不啟用遠端角色或窗口。此接線尚未 push，遠端 CI 尚未執行，不能記為遠端验收通過。
+`.github/workflows/python-tests.yml` 已接入同一份 `node supabase/tests/goal_lock_probe/test.mjs`，沿用前面的 `npm ci --ignore-scripts` 安裝 PGlite。CI 只在記憶體內執行既有 9 組邊界測試，不連線 Supabase、不需要 credential、不啟用遠端角色或窗口。接線提交 028c09f 的 push／PR CI 36754861356／36754865648 均 success，第 15 步與 9 組測試均通過；這仍不代表遠端並行驗收。
 
 `test.mjs` 用現有 PGlite，只跑新增 probe 邊界測試；延後窗口版 9 組通過，結果在 outputs/Growth-OS-probe-deferred-local.json。auth.uid 的 coalesce legacy／JSON 定義已與遠端唯讀定義核對。測試覆蓋 NULL 窗口拒絕、PUBLIC／其他角色拒絕、無參數、偽造兩種 claims、原 RPC／表／DDL／SET ROLE 拒絕、固定租戶、rollback、最多一筆 commit、硬截止、角色屬性目錄、啟用目錄與精確清理。PGlite 的 session_user 來自 SET SESSION AUTHORIZATION 模擬，不能宣稱真實密碼登入、連線數／到期 enforcement 或雙後端重疊。
 
@@ -38,6 +38,16 @@ LOGIN 沒有表權限、原 RPC EXECUTE、private schema USAGE、其他角色會
 本人在 Terminal 執行 `set_probe_password.command`。它固定連線隔離測試專案的 session pooler，使用 psql `-X -W`、TLS verify-full、停用密碼檔與環境密碼，再用 `\password growth_os_probe_login` 的不回顯提示輸入既有管理密碼及新 probe 密碼兩次。腳本不接受密碼參數、不保存密碼、不啟用 LOGIN 或窗口；請勿將密碼貼进聊天、SQL Editor、命令列、檔案或日誌。若不知道既有管理密碼，停止，不重設共享密碼。腳本語法檢查通過；實際連線與密碼設定尚待本人操作，未宣稱通過。
 
 本人完成後只回報是否成功；後續才核對實際 T0／T1 並啟用兩小時窗口。完成／失敗立即執行精確 cleanup：禁用 LOGIN、撤回函式執行、只終止該 probe 的 session，再撤回授權並移除固定函式、窗口表、schema 與兩角色。不使用 CASCADE，不刪除業務資料。
+
+### 2026-10-01 TLS 修復與無密碼驗證
+
+本人初次執行遇到 `certificate verify failed`，未確認密碼設定成功。原腳本使用 libpq 17.6 的 `PGSSLROOTCERT=system`，Homebrew OpenSSL CA store 無法驗證 pooler 使用的 Supabase Root 2021 CA；清空 credential 環境並使用 psql -w 重現相同 TLS 錯誤，OpenSSL 回報 self-signed certificate in certificate chain (19)。這是客戶端信任鏈缺口，不能判定為密碼錯誤。
+
+依 [Supabase 官方 psql 說明](https://supabase.com/docs/guides/database/psql)，保持 verify-full 並明確指定官方 CA。CA 來源由 [官方 Dashboard 設定](https://github.com/supabase/supabase/blob/cf063c4ae8674d6b18dd7894a17563e16e013cd2/apps/studio/hooks/custom-content/custom-content.json) 的 ssl:certificate_url 與 [SSLConfiguration](https://github.com/supabase/supabase/blob/cf063c4ae8674d6b18dd7894a17563e16e013cd2/apps/studio/components/interfaces/Settings/Database/SSLConfiguration.tsx) prod 環境對照確認，經驗證 HTTPS 下載 [prod-ca-2021.crt](https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt)。隨此目錄保存的只是公開 CA，沒有私鑰。SHA256 憑證指紋 `807025AD50D4ED219D2C9C7D299C004F824EB00CF7F65AFEF607D07B72E6CAFA`，有效至 2031-04-26；脚本先核對指紋，再將 PGSSLROOTCERT 指向同目錄檔案。不從未驗證 server chain 接受根憑證，不修改全域信任；日後 CA 輪替必須重新由官方來源核對。
+
+新增 `set_probe_password.command --check-tls` 僅用 OpenSSL 檢查固定 session pooler，不傳送帳號密碼、不執行 SQL。實測 certificate／hostname 驗證 OK、return code 0；錯誤 hostname 仍拒絕 (62)。同一 libpq 改用明確 CA 後，無密碼連線只回報 `fe_sendauth: no password supplied`，代表 TLS 已通過、仍停在 credential 邊界。本人模式使用臨時空白 0600 密碼檔阻止讀取已存憑證，退出即移除；該檔不寫入任何密碼。TLS log 在聊天 outputs，不能當作密碼設定成功或真正登入 PASS。
+
+本人最小重試：重新執行本目錄最新 `set_probe_password.command`（不帶參數），依不回顯提示輸入既有管理密碼及新 probe 密碼兩次。不要貼密碼到聊天或命令列；若再失敗，只回報錯誤文字，先停止。2026-10-01 02:03:58 UTC 唯讀核對仍為兩角色 NOLOGIN、window NULL、probe sessions 0、原歷史 13；不得因此提前啟用窗口。
 
 本機另確實裝有 PATH 外的 PostgreSQL 14.19 server。`native_overlap.py` 只嘗試独立 `/private/tmp`、0700 Unix socket、無 TCP listener 的合成 cluster，未碰既有 daemon。既有 Homebrew keg 缺編譯期 `/opt/homebrew/share/postgresql@14/timezonesets` 資源路徑；使用既有 libraries／share 與任務暫存 runtime 仍無法啟動。暫存檔已清除，沒有留下 server。未修改全域 symlink、安裝／升級或開服務；native 與遠端重疊均 **未 PASS**。後續修復全域安裝超出本輪授權，不自行執行。
 

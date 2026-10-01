@@ -233,3 +233,9 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 本人交接介面為 supabase/tests/goal_lock_probe/set_probe_password.command：固定隔離專案 session pooler、TLS verify-full、psql -X -W、不使用密碼檔／環境密碼；本人先輸入既有管理密碼，再以 psql \password 的不回顯提示輸入新 probe 密碼兩次。脚本不收密碼參數、不寫檔、不啟用窗口；zsh 語法檢查通過，真正連線與密碼設定待本人操作。不要把密碼貼進聊天、SQL Editor、命令列或日誌；若未知既有管理密碼則停止，不重設共享密碼。
 
 下一步驗收仍待開發／執行：本人設定密碼成功後核對實際窗口 T0／T1，才啟用並以三條獨立 session pooler 連線取得 holder／contender／observer 屏障與 blocking PID 證據；兩筆交易 rollback，確認原目標／13 筆與 audit 無追加，立即清理並核對角色／schema／session 不存在。沒有此遠端證據，M1 不全面放行；M2 與新介面仍屬後續規劃。
+
+## 2026-10-01 本人密碼腳本 TLS 故障修復
+
+本人執行腳本退出 certificate verify failed，尚未確認密碼設定成功。無 credential 的 libpq 17.6／OpenSSL 重現證明 system CA 無法驗證 Supabase Root 2021 CA；保持 verify-full，依官方 psql 文件與官方 Dashboard 原始碼的 HTTPS 下載來源取得公開 CA，放在 probe 工具目錄並核對指紋。脚本僅為本次連線指定 sslrootcert，不改全域信任、SSL enforcement、LOGIN、window 或密碼／權限。
+
+無密碼 --check-tls 已通過 certificate 與 hostname 驗證；錯誤 hostname 仍拒絕 (62)。libpq 指定 CA 後不再 TLS 失敗，而在未提供密碼處停止。這是 TLS 修復證據，不是真正登入／密碼設定／遠端並行 PASS。02:03:58 UTC 唯讀核對：NOLOGIN 兩角色、NULL 窗口、probe sessions=0、13 筆歷史。官方 CA URL、SHA256、有效期、限制與本人最小重試統一於 [probe README](../supabase/tests/goal_lock_probe/README.md#2026-10-01-tls-修復與無密碼驗證)。原自然 JWT PASS 不重跑。
