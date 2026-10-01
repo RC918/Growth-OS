@@ -41,6 +41,14 @@ jobs:
         run: node --test prototype/owner-workspace/goal-inference-contract.test.mjs
       - name: Guided goal PostgreSQL engine checks
         run: node supabase/tests/goal_intake_postgres.mjs
+      - name: Offline model trial handler and ledger checks (no provider calls)
+        run: |
+          node --check supabase/functions/growth-model-trial/index.js
+          node --test supabase/tests/model_trial/handler.test.mjs
+          node supabase/tests/model_trial/ledger_engine.mjs
+          node supabase/tests/model_trial/integration.mjs
+      - name: Model trial atomic reservation on independent PG17 backends (no network)
+        run: python3 -B supabase/tests/model_trial/native_ledger.py
       - name: Offline probe boundary checks (PGlite only)
         run: node supabase/tests/goal_lock_probe/test.mjs
       - name: Offline probe controller and DCL operator checks

@@ -10,7 +10,7 @@ async function auth(user,role='authenticated') {await db.exec('reset role');awai
 const write=(version,key,answer,request=randomUUID(),organization=orgA,id=goal)=>db.query('select public.save_goal_turn($1,$2,$3,$4,$5,$6) as result',[organization,id,request,version,key,answer]);
 const denied=async(operation,code)=>assert.rejects(operation,error=>error.code===code);
 try {
- await db.exec(`create role anon nologin;create role authenticated nologin;
+ await db.exec(`create role anon nologin;create role authenticated nologin;create role service_role nologin;
  create schema auth;create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;

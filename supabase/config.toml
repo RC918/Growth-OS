@@ -1,0 +1,5 @@
+# Reviewed deployment draft only; no config push/deploy in CI.
+project_id = "growth-os-isolated-model-trial"
+[functions.growth-model-trial]
+verify_jwt = true
+entrypoint = "./functions/growth-model-trial/index.js"

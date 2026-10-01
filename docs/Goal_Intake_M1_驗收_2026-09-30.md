@@ -1,6 +1,6 @@
 # Growth OS M1 目標與問答保存驗收
 
-更新：2026-10-01。固定問題引導切片的真實 owner 保存／讀回、viewer／跨工作區拒絕、PT409 舊版本拒絕、新版首次讀取提示、自然 JWT 到期 → 401 → 重新登入恢復，以及受限三連線鎖重疊 → 雙 rollback → 完整清理均 PASS。原目標、13 筆歷史與 audit 雜湊不變，probe 通道已完全撤回。本批證據只放行既有固定引導的上述工程驗收，不等於自然語言理解或完整產品里程碑完成。自然語言推論／確認能力尚未開發；M2 計畫與工作卡待開發。本文件記錄實作與證據，產品與里程碑仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。下方日期段落和初次測試表是歷史紀錄，最新結果見文末。
+更新：2026-10-01。固定問題引導切片的真實 owner 保存／讀回、viewer／跨工作區拒絕、PT409 舊版本拒絕、新版首次讀取提示、自然 JWT 到期 → 401 → 重新登入恢復，以及受限三連線鎖重疊 → 雙 rollback → 完整清理均 PASS。原目標、13 筆歷史與 audit 雜湊不變，probe 通道已完全撤回。本批證據只放行既有固定引導的上述工程驗收，不等於自然語言理解或完整產品里程碑完成。自然語言推論的受限試驗handler／ledger已有本機草案，真實模型／確認UI尚未驗收；M2 計畫與工作卡待開發。本文件記錄實作與證據，產品與里程碑仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。下方日期段落和初次測試表是歷史紀錄，最新結果見文末。
 
 ## 實作範圍
 
@@ -281,3 +281,13 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 離線10個Node tests涵蓋上述正負路徑，加入既有CI獨立步驟 Offline inference proposal contract checks (test doubles only)。沒有重跑遠端JWT/probe/PASS，沒有修改apps/web或migration／遠端DDL／權限，也沒有付費或API key。
 
 server落點唯讀repo證據：根vercel.json的outputDirectory=apps/web、buildCommand=靜態preview；apps/web是瀏覽器.mjs以fetch呼叫Supabase Auth/Data API，沒有api/ handler或Vercel Function。supabase/目前是SQL migrations與tests，沒有functions/ Edge Function或config.toml；已有public/private資料庫RPC，不是外部模型的HTTP協調runtime。prototype/public-audit/app.py有本機HTTP診斷原型，並非已部署的GrowthOS登入協調端點。package.json只有固定版本devDependencies，沒有AI/server SDK執行期依賴。這些證據表示目前repo尚無可直接復用的已部署模型server handler；Vercel Functions或Supabase Edge Functions屬候選落點，建立／選擇、授權／資料邊界與硬費用上限尚待另行決策，未在本輪建立。
+
+## 2026-10-01 M1 受限模型試驗本機工程
+
+本人16:32台北已批准GPT-4.1 mini／既有隔離Supabase／synthetic／ready後7天／100calls／US$1，不含充值、訂閱、付費升級或未列明的新安全權限。本批新增functions的handler／adapter、預設關閉runtime配置及只插staged row的migration草案；沒有套用遠端SQL／ACL、部署Edge、讀寫key、呼叫模型或啟用trial。先前「repo沒有functions/config」是上一輪歷史證據；目前已有本機草案，仍無已部署模型端點。
+
+離線handler11 tests、SQL ledger12 groups、handler→SQL integration2groups與所有migration／goal SQL9groups通過。CI補入獨立PG17三後端真實row lock及交易回退測試；本機Docker未運行，原生結果須看同headCI。Provider/Auth仍為明示doubles，不代表live模型、平台Auth或Edge打包成功。
+
+Ledger保留完整context最壞費用US$0.4206688與2外部slots後才dispatch；100呼叫至多50組計數／生成，nanoUSD算費。再檢查owner／deadline，未知usage保留額度並pause，budget／呼叫50%與80%提醒為持久metadata。stop不refund，cleanup拒絕未知／active reservations。來源／確認／版本契約沿用，回傳awaiting_user_confirmation且can_persist=false，不調用既有保存RPC。
+
+精確SQL／RPC ACL／runtime／本人Dashboard安全key交接／ready與清理集中在 [單項安全審查包](../supabase/tests/model_trial/README.md)，產品與路線圖仍以原藍圖為準。計數端點計費缺權威證據，gate維持關閉，最小可選替代未採用；尚不請本人key操作。未重跑自然JWT／probe；未改apps/web／morningai／owner-console／Production／付費。本批工程與CI不放行完整M1或M2。

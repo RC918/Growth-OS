@@ -1,0 +1,18 @@
+-- Only AFTER exact remote SQL/runtime/ACL approval, human key setup, quota and
+-- counting-endpoint zero-extra-charge/current tariff readiness proof. NO SECRET.
+BEGIN;
+DO $$ DECLARE ready_at timestamptz:=clock_timestamp(); BEGIN
+ IF '__READY_POLICY__'<>'gpt41mini-20250414-v1' OR '__COUNTING_ZERO_EXTRA_CHARGE__'<>'confirmed'
+ OR '__RUNTIME_REVIEWED__'<>'confirmed'
+ THEN RAISE EXCEPTION 'Readiness unconfirmed'; END IF;
+ IF NOT EXISTS(SELECT FROM public.organization_members WHERE user_id='__ACTOR_UUID__'::uuid
+ AND organization_id='__ORG_UUID__'::uuid AND role='owner')
+ THEN RAISE EXCEPTION 'Current owner required'; END IF;
+ IF NOT EXISTS(SELECT FROM private.model_trial WHERE singleton AND state='staged'
+ AND starts_at IS NULL AND deadline IS NULL AND calls_reserved=0 AND spent_nusd=0
+ AND held_nusd=0 AND active_request IS NULL)
+ THEN RAISE EXCEPTION 'Staging state differs; no reset/extension'; END IF;
+ UPDATE private.model_trial SET actor_user_id='__ACTOR_UUID__',organization_id='__ORG_UUID__',
+ starts_at=ready_at,deadline=ready_at+interval '7 days',state='active' WHERE singleton;
+END $$;
+COMMIT;
