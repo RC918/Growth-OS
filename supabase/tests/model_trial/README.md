@@ -1,4 +1,6 @@
-# M1 受限模型試驗：本機工程與單項安全審查包
+# M1 受限模型試驗：已部署、gate關閉與安全交接
+
+目前部署狀態與本人key交接見文末19:24節；下方本機工程／未批准段落保留為歷史，不代表目前尚未部署。七天未開始，M1仍未全面放行。
 
 2026-10-01。產品方向／里程碑仍以 [既有藍圖](../../../docs/AI_Company_Growth_OS_執行藍圖_v1.md) 為準；本文件只記精確技術變更與操作邊界。本批沒有執行遠端 migration、Edge 部署、金鑰操作、模型 API 或試驗啟用。
 
@@ -41,3 +43,19 @@
 這證明固定自架runtime的user-worker實際module graph載入及關閉gate路徑；沒有測Supabase雲端deploy/eszip流程、verify_jwt gateway、ready真實Auth或provider，也不等於這些已部署驗收。本輪成功與限制以同headCI／outputs為準，不重試跨聊天回報。
 
 首次真正runtime載入因node:crypto的graph解析試圖下載@types/node而被無網路阻擋，結果500 EDGE_BOOT_FAILED，未算成功。修正使用runtime內建標準Web Crypto SHA-256；既有驗證邏輯抽成單一goal-inference-core，原同步Node契約仍為薄adapter、確認hash／API不變，新增parity測試。沒有自製hash演算法、無新增npm runtime依賴、不允許runtime外網。image固定為實測digest，早期失敗保留。
+## 2026-10-01 19:24 台北：已批准部署完成，gate仍關閉
+
+本人2026-10-01 10:59UTC精確批准；11:20UTC完成Dashboard登入。CLI名稱查核失敗的先前阻礙紀錄保留，不改寫為當時成功。其後Codex In-app Browser 2／tab1在指定專案functions/secrets顯示「No custom secrets created」，部署前後均無OPENAI_API_KEY、MODEL_TRIAL_READY_POLICY或任何custom ready設定；未展開值。確認無部分既有物件後，只原樣套用c0c146a migration（SHA256 9d14a0e21db8cea3398d439b8dd40a973c8b75e063a89f6a69d07fde31be3939），deploy growth-model-trial v1／verify_jwt=true，讀回7份production來源逐字相同。未改原來源、既有role/default privileges或共享service_role信任邊界。
+
+独立connector讀回：兩private表RLS=true，anon/authenticated/service_role無直接SELECT；4函式postgres owner、SECURITY DEFINER、empty search_path，PUBLIC／anon／authenticated無EXECUTE，3public RPC僅既有service_role另有EXECUTE，private helper亦拒service_role。20張public業務表筆數及SHA256全相同；growth_goal_turns仍13。trial staged、starts_at/deadline/actor/org/active_request=NULL、calls/spent/held/attempts全0。未呼叫function／provider，因此本輪無模型請求；短窗口function logs聚合無資料，但log延遲／來源覆蓋不能作獨立provider帳單證明。未查billing或承諾平台零費用。
+
+[Supabase Advisor RLS無policy INFO](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)對應本設計兩私有ledger表的拒絕直連，不新增client policy。另回報[Auth leaked-password protection disabled WARN](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)，本批未改Auth／方案／付費，保留原警告。這些結果不等於live Auth、gateway、provider或工作台驗收。完整證據在聊天outputs/Growth-OS-model-trial-deployed-gateclosed-c0c146a.json；前節未部署狀態保留為歷史。
+
+### 本人專用key交接：只設定key，不啟用試驗
+
+1. 本人在OpenAI API Platform核對既有可用credit／quota與固定模型gpt-4.1-mini-2025-04-14可用性；額度不足、不可用或需要充值／升級立即停止，只回報狀態，不新增付費。本輪agent未驗證帳戶credit，不把ChatGPT訂閱當API額度。
+2. 使用僅供Growth OS合成試驗的獨立OpenAI project。本人在該project的API Keys建立**user-owned**專用key（勿使用共享或Default project key），選Restricted，僅Responses／生成Responses對應Write權限，所有其他資源設None；若當前UI不能表達此最小權限，停止回報，不自行改All。名稱可用growth-os-synthetic-trial。agent不開啟key建立／顯示介面、不生成或代填。
+3. 本人直接在[指定Supabase Secrets](https://supabase.com/dashboard/project/vhzryhibmpvglzcmfnaa/functions/secrets)新增名稱OPENAI_API_KEY，值由本人從OpenAI一次顯示直接輸入並保存；不得貼聊天、檔案、CLI、日誌、錄影或含值截圖。若同名已存在，停止，不覆蓋。不要新增MODEL_TRIAL_READY_POLICY或其他ready旗標；不執行activate模板。完成僅回報「key已設定」及credit／固定模型是否可用，不回報值。
+4. agent下一輪僅查名稱存在性與ledger仍staged／時間NULL；key存在不代表權限／額度／live API通過。明確ready actor/org、七天啟用及live驗收是後續獨立步驟，本次交接不自動啟用。
+
+[OpenAI key權限文件](https://help.openai.com/en/articles/8867743-assign-api-key-permissions)說明Restricted是逐資源設定，service-account建立對話不提供同樣控制。[最新spend-limits文件](https://developers.openai.com/api/docs/guides/spend-limits)區分alert與hard-limit enforcement且後者有傳播延遲，不能將警示預算當精確即時硬上限；本次不改OpenAI帳戶limits、不提高額度。應用保留已批准的原子ledger上限，平台帳務仍需真人核對。保留ledger，不执行DROP／reset／refund。

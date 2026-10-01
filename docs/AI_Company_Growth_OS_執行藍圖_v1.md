@@ -1,6 +1,6 @@
 # AI Company Growth OS｜執行藍圖 v1.0
 
-更新日期：2026-10-01　狀態：v1.11，固定引導工程驗收 PASS；推論輸出離線契約已實作，自然語言理解及 M2 計畫／工作卡待開發。本文件為產品方向與工程里程碑的主要依據；產品需求及技術細節見 [系統設計](Commerce_Growth_系統設計_v0.1.md)。核心是增加相關流量與點閱，轉換優化為後續能力。帳號、隔離、版本、審核與搜尋觀測已有測試環境基礎；沒有接入客戶站、真實成長數據或對外發布。既有預算條件保留，本輪不變更付費設定。
+更新日期：2026-10-01　狀態：v1.12，固定引導工程驗收 PASS；受限合成模型試验已部署且gate關閉、七天未開始；自然語言理解及 M2 計畫／工作卡待開發。本文件為產品方向與工程里程碑的主要依據；產品需求及技術細節見 [系統設計](Commerce_Growth_系統設計_v0.1.md)。核心是增加相關流量與點閱，轉換優化為後續能力。帳號、隔離、版本、審核與搜尋觀測已有測試環境基礎；沒有接入客戶站、真實成長數據或對外發布。既有預算條件保留，本輪不變更付費設定。
 
 ## 1. 要驗證的生意
 
@@ -189,3 +189,4 @@ M2最小下一項：定義已確認目標 → 可保存的計畫版本 → 工�
 ### M1 本機保守修訂：移除計數端點（2026-10-01）
 
 主管批准在原synthetic／固定GPT-4.1-mini／7天／100calls／USD1範圍內移除外部計數，2048改為生成後usage驗收。每次仍預留US$0.4206688、2slots、output1024及單併發；超界／未知usage／timeout保留全額並pause，不回提案、不重試。加入真正Edge Runtime無外網／無key user-worker imports及gateclosed503 CI，不把語法檢查當部署打包或live Auth／模型成功。安全清單揭露共享service_role可提交ledger結算的信任範圍，沒有business寫入。新政策僅本機工程；遠端migration／ACL／Edge／key／ready尚未批准执行，M1確認UI及M2門檻不變。
+> 2026-10-01 19:24 台北最新狀態：本人18:59批准的限定部署已完成。隔離 Supabase `vhzryhibmpvglzcmfnaa` 已套用 c0c146a 原樣 migration；`growth-model-trial` v1 ACTIVE、verify_jwt=true、7份來源逐字讀回一致。private兩表RLS／4函式empty search_path／3個public RPC僅service_role EXECUTE及private helper隔離均已獨立讀回；20張public業務表筆數／SHA256未變，原歷史13筆。試驗仍staged，starts_at/deadline=NULL，calls_reserved/spent/held/attempts=0。Dashboard custom secrets為空，OPENAI_API_KEY與任何custom ready設定不存在；未啟用ready或七天、未呼叫模型、未處理key值、未改付費或清理ledger。以下先前未部署／未批准段落為當時歷史，現在部署狀態以本段及[技術操作紀錄](../supabase/tests/model_trial/README.md)為準；本人專用key／既有credit及模型可用性、明確ready actor/org與live Auth／模型／確認UI仍待完成，M1不全面放行、M2門檻不變。證據：聊天outputs/Growth-OS-model-trial-deployed-gateclosed-c0c146a.json。
