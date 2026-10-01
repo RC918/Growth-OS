@@ -1,5 +1,7 @@
 # Growth OS 測試工作台候選版
 
+2026-10-02 新增獨立離線合成草稿確認示範，入口與測試方式見 [Web 預覽說明](../../apps/web/README.md)。此頁只使用記憶體與手寫資料，沒有 Auth、模型或遠端保存；真實工作區確認後保存的整合仍待開發。產品依據沿用 [既有執行藍圖](../../docs/AI_Company_Growth_OS_執行藍圖_v1.md)，完成狀態見 [M1 驗收紀錄](../../docs/Goal_Intake_M1_驗收_2026-09-30.md)。下文未標示日期的待驗收項目屬早期候選版紀錄，應以該驗收文件的最新證據為準。
+
 此介面同步至 `apps/web/workspace.html`，供獨立 Growth OS Vercel Preview 讀取。**owner 真實登入、讀取、新增與核准，以及 viewer 真實登入、唯讀介面、跨工作區讀取與 owner RPC 拒絕，均已完成瀏覽器驗收；逾期憑證等負向情境仍待驗收**。證據見 [`owner 與 viewer 工作台真實登入驗收`](../../docs/Owner_Workspace_Real_Auth_驗收_2026-09-29.md)。使用獨立 Growth OS Supabase Staging 的合成資料。頁面以同分頁記憶體保存短期 Auth access token，重新整理後需重新登入；瀏覽器只持有 publishable key，沒有 service-role key。不要輸入真實客戶資料。
 
 登入候選流程改為 Supabase Auth 預設 Magic Link：`POST /auth/v1/otp` 指定 `create_user:false`，並指定當前 HTTPS 工作台的精確回跳網址。預設模板的 Supabase 確認連結會在回跳頁的 fragment 帶入 Auth session；頁面立即清除 fragment，再向 `/auth/v1/user` 驗證 access token 和讀取成員資格。只使用 access token，丟棄 refresh token，不寫入 localStorage/sessionStorage/cookie。連結須由可收信的既有帳號在同一瀏覽器開啟；重新整理後須重新取得連結。請先在 Staging Auth 的 Redirect URLs 中只加入預覽工作台的**精確** HTTPS URL，並核對 Magic Link 模板仍使用 `{{ .ConfirmationURL }}`；不要加入正式網域或廣泛的萬用字元。

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+ <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+ <title>Growth OS｜離線草稿確認</title>
+ <link rel="stylesheet" href="./workspace.css"><script type="module" src="./offline-draft-review.mjs"></script>
+</head>
+<body>
+ <header class="topbar"><a href="/" class="brand">G<span>O</span><small>Growth OS</small></a><span class="environment">離線示範 · 合成資料</span></header>
+ <main class="draft-demo">
+  <section class="panel" aria-labelledby="draft-demo-heading">
+   <p class="eyebrow">DRAFT / REVIEW</p><h1 id="draft-demo-heading">先確認，再往下一步。</h1>
+   <p class="lead">看看來源，修改不合適的提議，再確認你想保留的內容。</p>
+   <p class="explain">這是手寫合成草稿，不會呼叫模型、登入、寫入遠端或發布。模擬紀錄只留在本頁記憶體；重新整理或切換案例會清空。請勿輸入真實客戶資料。</p>
+   <label for="draft-fixture">合成案例</label><select id="draft-fixture"><option value="parts">貿易商 · 合成零件</option><option value="shop">電商 · 合成杯子</option></select>
+   <div class="draft-source"><h2>原始來源</h2><p id="draft-source-text"></p><p class="hint">來源版本 1 · 合成目標。引用存在不代表推斷正確；修改內容由你提供，仍需要確認。</p></div>
+   <p id="draft-feedback" class="notice" role="status" aria-live="polite" tabindex="-1"></p>
+   <div id="draft-review"></div>
+   <div class="actions"><a href="./workspace.html" class="quiet">返回測試工作台</a></div>
+  </section>
+  <section class="panel queue" aria-labelledby="draft-history-heading"><p class="eyebrow">MEMORY / HISTORY</p><h2 id="draft-history-heading">本頁模擬紀錄</h2><p class="explain">每次只模擬保存一項，追加版本並讀回；舊版本保留。保存後，下一項需要重新確認。不是資料庫保存、計畫執行或流量成效。</p><div id="draft-history"></div></section>
+ </main>
+ <footer>Growth OS · 離線合成介面驗證 · 尚未接入真實模型或遠端保存</footer>
+</body>
+</html>

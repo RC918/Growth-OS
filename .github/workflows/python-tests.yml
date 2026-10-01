@@ -39,6 +39,8 @@ jobs:
         run: node --test prototype/owner-workspace/goal-intake.test.mjs prototype/owner-workspace/goal-panel.test.mjs
       - name: Offline inference proposal contract checks (test doubles only)
         run: node --test prototype/owner-workspace/goal-inference-contract.test.mjs
+      - name: Offline draft confirmation state and source checks (memory only)
+        run: node --test prototype/owner-workspace/offline-draft-session.test.mjs
       - name: Guided goal PostgreSQL engine checks
         run: node supabase/tests/goal_intake_postgres.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
@@ -67,3 +69,5 @@ jobs:
         run: node prototype/owner-workspace/observations-ui.e2e.mjs
       - name: Guided goal desktop and mobile UI acceptance
         run: node prototype/owner-workspace/goal-intake-ui.e2e.mjs
+      - name: Offline draft confirmation desktop and mobile acceptance (no remote requests)
+        run: node prototype/owner-workspace/offline-draft-ui.e2e.mjs

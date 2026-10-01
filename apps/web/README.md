@@ -16,4 +16,8 @@ python3 -m http.server 8081 --directory apps/web
 
 ## M1 本機引導切片
 
-2026-09-30 新增的目標／問答引導僅在本機程式中；新 migration 未套用到遠端，既有預覽尚未更新。固定問題引導不代表 AI 理解或產稿，確認只完成資料收集。保留原工作台與所有既有版本／審核功能。進度及測試限制見 [M1 驗收紀錄](../../docs/Goal_Intake_M1_驗收_2026-09-30.md)。
+2026-09-30 的本機切片紀錄已由後續隔離測試驗收更新。固定問題引導不代表 AI 理解或產稿，確認只完成資料收集。保留原工作台與所有既有版本／審核功能；目前狀態與歷史證據見 [M1 驗收紀錄](../../docs/Goal_Intake_M1_驗收_2026-09-30.md)。
+
+2026-10-02 新增 `offline-draft-review.html`，可由工作台登入前或目標區開啟。兩個手寫合成案例提供來源檢視、修改、取消、重新確認，以及逐項追加並讀回記憶體版本。修改或來源／版本變更會使確認失效；保存下一項前須重新確認。此頁不登入、不呼叫模型、不存取遠端資料，CSP 禁止連線，也不使用瀏覽器持久儲存。重新整理或切換案例會重設模擬紀錄；完成兩項仍明示缺少四項必要資料，不代表完整目標確認或發布。串接真實工作區保存尚待開發。
+
+離線檢查：`node --test prototype/owner-workspace/offline-draft-session.test.mjs`；桌面與手機驗收：`node prototype/owner-workspace/offline-draft-ui.e2e.mjs`（需 Playwright Chromium）。

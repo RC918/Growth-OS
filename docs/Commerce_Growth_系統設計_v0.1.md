@@ -2,7 +2,9 @@
 
 2026-09-27　工作標題：Growth OS by Good Morning Digital。正式產品品牌與網域待定。此文件是開工設計；目前沒有已連接客戶網站、真實漏斗或上線成效。
 
-> 2026-10-01 更新：產品方向與里程碑以 [執行藍圖 v1.11](AI_Company_Growth_OS_執行藍圖_v1.md) 為主要依據。本文件整合產品需求與技術改造；保留 Visitor-to-Customer Leak Map 作後續轉換子模組。下列設計不是已完成宣告；實際資料結構以 `supabase/migrations` 為準。
+> 2026-10-02 更新：產品方向與里程碑以 [執行藍圖 v1.13](AI_Company_Growth_OS_執行藍圖_v1.md) 為主要依據。本文件整合產品需求與技術改造；保留 Visitor-to-Customer Leak Map 作後續轉換子模組。下列設計不是已完成宣告；實際資料結構以 `supabase/migrations` 為準。
+
+本次已實作離線草稿確認頁，重用現有工作台CSS與推論來源／確認契約。browser core為既有純驗證器的相對import鏡像，測試逐字核對，沒有修改已部署Edge的驗證authority或module graph。兩個手寫合成fixture只存本頁記憶體；來源與引用不等於推斷已驗證，使用者修改明確標示。confirmation hash綁定目前內容與完整來源版本；修改／取消／任何模擬append皆清除receipt，pending hash回應不能恢复舊確認。模擬store以expectedVersion拒絕衝突並保留舊版本；每次保存一項，須重新確認下一項。頁面connect-src none，無Auth／model／fetch／remote adapter／localStorage／sessionStorage；沒有新角色或權限。這是離線互動與契約驗收，未接入真實保存、計畫、工作卡或成效。真實owner確認保存須另依現有RPC/RLS/版本紀錄進行整合驗收，不因離線owner上下文而獲得remote權限。詳細證據見[M1驗收紀錄](Goal_Intake_M1_驗收_2026-09-30.md)。
 
 ## 1. 產品決策
 
