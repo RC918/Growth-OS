@@ -1,5 +1,5 @@
-import {createHash} from 'node:crypto';
-import {validateInferenceProposal} from '../../../../prototype/owner-workspace/goal-inference-contract.mjs';
+import {sha256Hex} from './hash.mjs';
+import {validatedInferenceData,materializeInferenceProposal} from '../../../../prototype/owner-workspace/goal-inference-core.mjs';
 import {POLICY,FIXTURE_IDS,fixtureSnapshot,providerBody} from './policy.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const response=(status,body)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
@@ -25,7 +25,7 @@ export function createTrialHandler({authenticate,ledger,provider,ready=false,get
    if(snapshot.organizationId!==organization||snapshot.role!=='owner')throw new Error('SOURCE_SCOPE_MISMATCH');
    if(snapshot.turns.length!==body.expected_version)throw new Error('VERSION_DRIFT');
    const payload=providerBody(snapshot);
-   const fingerprint=createHash('sha256').update(JSON.stringify([POLICY.version,body.fixture_id,snapshot,payload])).digest('hex');
+   const fingerprint=await sha256Hex(JSON.stringify([POLICY.version,body.fixture_id,snapshot,payload]));
    const reservation=await ledger.reserve({requestId,actorId:actor.id,organizationId:organization,fixtureId:body.fixture_id,hash:fingerprint,expectedVersion:body.expected_version});
    if(reservation.dispatch!==true)return response(409,{code:'REPLAY_NOT_DISPATCHED'});
    reserved=true;
@@ -46,8 +46,9 @@ export function createTrialHandler({authenticate,ledger,provider,ready=false,get
    try {
     inferred=JSON.parse(content[0].text);
     if(Object.keys(inferred).length!==2||!Object.hasOwn(inferred,'fields')||!Object.hasOwn(inferred,'missing_fields'))throw new Error();
-    proposal=validateInferenceProposal({contract_version:1,operation:'propose_intake_fields',organization_id:snapshot.organizationId,
+    const validated=validatedInferenceData({contract_version:1,operation:'propose_intake_fields',organization_id:snapshot.organizationId,
      goal_id:snapshot.goalId,expected_version:snapshot.turns.length,...inferred},snapshot);
+    proposal=materializeInferenceProposal(validated,await sha256Hex(validated.fingerprintText));
    } catch {outcome='invalid_output';throw new Error('INVALID_OUTPUT');}
    // Recheck current membership/version before exposing a proposal; never save it.
    const currentActor=await authenticate(request,organization);

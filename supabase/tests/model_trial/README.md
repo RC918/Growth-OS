@@ -32,10 +32,12 @@
 
 確認無 active request、held=0、attempts 都 settled 且狀態 staged/closed，另核准 cleanup.sql 才以無 CASCADE 的精確 DROP 移除本次 4 functions／2 tables；任一依賴／前置不符就整筆回退。再停用／移除僅此 Edge Function 與本次專用 readiness flags／OPENAI_API_KEY，由本人操作含 secret 的刪除介面；不動既有平台內建 secrets、Auth、org、goal、history、audit、其他功能或正式專案。七日到期即停止外呼；應用不落地原始 prompt/response，已知帳務結算後清除本次試驗 metadata，未知帳務保留至對帳，不宣稱已完成清除。程式庫內的固定合成測試樣本是測試 fixture，不是真實客戶材料。
 
-離線證據：handler 12 tests、PGlite SQL 13 groups、handler→SQL integration 2 groups、所有 migrations 編譯／既有 goal SQL 9 groups。Auth/provider 是 doubles，PGlite PG18.3 不代表 native concurrency。CI 新增 postgres:17.6 一次性容器測試：network=none、Unix socket、無 TCP／密碼／cloud，A/B/C 真實獨立 PID、B Lock blocker=A、僅一筆預留成功、失敗交易整笔回退；本機 Docker daemon 不運行，結果以該 head CI 實際輸出為準。部署／live模型費／UI／真實Auth未驗收，M1不放行。
+離線證據：handler 13 tests、PGlite SQL 13 groups、handler→SQL integration 2 groups、所有 migrations 編譯／既有 goal SQL 9 groups。Auth/provider 是 doubles，PGlite PG18.3 不代表 native concurrency。CI 新增 postgres:17.6 一次性容器測試：network=none、Unix socket、無 TCP／密碼／cloud，A/B/C 真實獨立 PID、B Lock blocker=A、僅一筆預留成功、失敗交易整笔回退；本機 Docker daemon 不運行，結果以該 head CI 實際輸出為準。部署／live模型費／UI／真實Auth未驗收，M1不放行。
 
 ### 真正Edge Runtime離線驗證範圍
 
-`edge_runtime.py`／`edge_harness/index.ts`以官方 [self-host compose](https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml) 的固定 `supabase/edge-runtime:v1.76.2`啟動main dispatcher，再由 `EdgeRuntime.userWorkers.create`載入真正production index.js及所有相對imports／node:crypto。worker envVars=[]、無provider key、無平台secrets、network=none／無host ports。只把明列6份程式複製至臨時目錄唯讀掛載，不掛checkout／home／env檔／Docker socket。HTTP在容器內loopback呼叫，gate未啟用必須503 TRIAL_NOT_READY與no-store、GET405；boot/import錯誤只能500 EDGE_BOOT_FAILED，不會假算503成功。測後移除容器與臨時程式。CI記錄image digest与複製程式hash；本機Docker未運行，不以Python／Deno語法冒充runtime成功。
+`edge_runtime.py`／`edge_harness/index.ts`以官方 [self-host compose](https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml) 的固定 `supabase/edge-runtime:v1.76.2`啟動main dispatcher，再由 `EdgeRuntime.userWorkers.create`載入真正production index.js及所有相對imports／Web Crypto。worker envVars=[]、無provider key、無平台secrets、network=none／無host ports。只把明列7份程式複製至臨時目錄唯讀掛載，不掛checkout／home／env檔／Docker socket。HTTP在容器內loopback呼叫，gate未啟用必須503 TRIAL_NOT_READY與no-store、GET405；boot/import錯誤只能500 EDGE_BOOT_FAILED，不會假算503成功。測後移除容器與臨時程式。CI記錄image digest与複製程式hash；本機Docker未運行，不以Python／Deno語法冒充runtime成功。
 
 這證明固定自架runtime的user-worker實際module graph載入及關閉gate路徑；沒有測Supabase雲端deploy/eszip流程、verify_jwt gateway、ready真實Auth或provider，也不等於這些已部署驗收。本輪成功與限制以同headCI／outputs為準，不重試跨聊天回報。
+
+首次真正runtime載入因node:crypto的graph解析試圖下載@types/node而被無網路阻擋，結果500 EDGE_BOOT_FAILED，未算成功。修正使用runtime內建標準Web Crypto SHA-256；既有驗證邏輯抽成單一goal-inference-core，原同步Node契約仍為薄adapter、確認hash／API不變，新增parity測試。沒有自製hash演算法、無新增npm runtime依賴、不允許runtime外網。image固定為實測digest，早期失敗保留。

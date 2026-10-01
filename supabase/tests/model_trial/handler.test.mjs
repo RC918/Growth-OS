@@ -39,7 +39,7 @@ test('reservation commits before the single generation; synthetic-only payload o
 });
 test('two handler instances sharing ledger: 24 concurrent attempts dispatch exactly one',async()=>{
  const h=harness();let release;const gate=new Promise(r=>release=r);h.provider.generate=async()=>{h.events.push('generate');await gate;return result();};
- const first=h.create()(h.request());while(!h.events.includes('generate'))await Promise.resolve();
+ const first=h.create()(h.request());while(!h.events.includes('generate'))await new Promise(resolve=>setTimeout(resolve,0));
  const replies=await Promise.all(Array.from({length:23},(_,i)=>h.create()(h.request(i+2))));assert.ok(replies.every(r=>r.status===503));assert.equal(h.state.calls,2);release();assert.equal((await first).status,200);assert.equal(h.events.filter(e=>e==='generate').length,1);
 });
 test('request replay never calls model twice; calls cap and 50/80 warnings survive across instances',async()=>{
@@ -91,4 +91,11 @@ test('both fixed synthetic fixtures and exact usage acceptance boundary preserve
  for(const fixtureId of ['synth-parts-v1','synth-shop-v1']){const h=harness();h.provider.generate=async payload=>{h.events.push('generate');const parsed=JSON.parse(payload.input);assert.equal(parsed.sources.length,1);assert.equal(parsed.sources[0].turn_version,1);const quote=fixtureId==='synth-parts-v1'?'合成零件':'合成杯子';assert.ok(parsed.sources[0].text.includes(quote));const r=result();r.usage={input_tokens:2048,output_tokens:1024,total_tokens:3072};const proposal=inferred();proposal.fields[0].value=quote;proposal.fields[0].source_refs[0].quote=quote;r.output[0].content[0].text=JSON.stringify(proposal);return r;};
  const reply=await h.create()(h.request(1,{fixture_id:fixtureId}));assert.equal(reply.status,200);const body=await reply.json();assert.equal(body.can_persist,false);assert.equal(h.state.spent,2457600);assert.equal(h.state.held,0);assert.equal(h.state.calls,2);assert.equal(h.events.filter(e=>e==='generate').length,1);
  }
+});
+
+test('Edge Web Crypto materialization matches existing synchronous confirmation identity exactly',async()=>{
+ const {validateInferenceProposal}=await import('../../../prototype/owner-workspace/goal-inference-contract.mjs');
+ const snapshot=fixtureSnapshot('synth-parts-v1',org);
+ const expected=validateInferenceProposal({contract_version:1,operation:'propose_intake_fields',organization_id:org,goal_id:snapshot.goalId,expected_version:1,...inferred()},snapshot);
+ const h=harness();const reply=await h.create()(h.request());assert.equal(reply.status,200);assert.deepEqual((await reply.json()).proposal,expected);
 });

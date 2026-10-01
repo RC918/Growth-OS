@@ -10,7 +10,7 @@ import time
 import uuid
 
 root = Path(__file__).resolve().parents[3]
-image = 'supabase/edge-runtime:v1.76.2'  # Official Supabase compose version.
+image = 'supabase/edge-runtime:v1.76.2@sha256:edd22bef4477b900d5c300e287ce9b18bff9b81a0291bee14ee0b7c7b71a2899'  # Official Supabase compose version.
 name = 'growth-model-edge-' + uuid.uuid4().hex[:12]
 # Exact code allowlist, never mount the checkout, home, Docker socket or env files.
 files = [
@@ -18,7 +18,8 @@ files = [
     'supabase/functions/_shared/model-trial/handler.mjs',
     'supabase/functions/_shared/model-trial/adapters.mjs',
     'supabase/functions/_shared/model-trial/policy.mjs',
-    'prototype/owner-workspace/goal-inference-contract.mjs',
+    'supabase/functions/_shared/model-trial/hash.mjs',
+    'prototype/owner-workspace/goal-inference-core.mjs',
     'apps/web/goal-intake.mjs',
 ]
 
