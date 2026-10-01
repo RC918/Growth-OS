@@ -270,3 +270,14 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 原始 controller JSON 保留其 full_acceptance=false；可信獨立讀回與控制器證據整合後，`outputs/Growth-OS-probe-final-acceptance-20261001.json` 明確記錄 full_probe_acceptance=true。完整時間、PID、備援觀察與清理條件統一於 [probe README](../supabase/tests/goal_lock_probe/README.md)。Supavisor 後端短暫保留已由管理 cleanup 撤回，沒有重複備援 DDL；舊告警時間點不能取代最終讀回。
 
 本機 approved-window.json 已歸檔，遠端通道已完全撤回；本次受限並行缺口關閉，不再請本人輸入密碼。自然 JWT 已 PASS 未重跑，未新部署／push。其他 M1／後續 M2 範圍仍按既有藍圖驗收，本次結果不把未實作能力寫為已完成。
+
+
+## 2026-10-01 推論輸出純契約與離線拒絕測試
+
+新增 prototype/owner-workspace/goal-inference-contract.mjs 與同名 .test.mjs，沿用 apps/web/goal-intake.mjs 的六欄位／順序／版本／修正取消確認概念。輸入是明示手寫test double；無模型或網路呼叫，不接工作台或保存API。驗證資料來源同租戶／目標、版本與原文引用；拒絕空來源、捏造引用、其他欄位或confirm作為證據、未知欄位或高權限操作、缺資料清單不一致、過長文字、不完整歷史、稀疏陣列與getter輸出。尚無連結是明示回答，不自行推測網站。
+
+未確認不能產生append intent；確認綁定內容和完整問答版本hash，內容修正、來源改變或版本漂移都需重新確認。owner才可產生單筆既有saveGoalTurn形狀的intent，viewer/editor拒絕；依既有收集順序、200版本上限與UUID request_id約束，修正已確認目標會取消確認。只回傳意圖、不寫資料；現有RLS／RPC重新授權仍為實際寫入邊界。source quote只驗證可追溯文字，不保證推論語義正確；confirmation物件與hash不證明本人按鈕操作或身份。真實NL／UI／模型協調仍待開發。
+
+離線10個Node tests涵蓋上述正負路徑，加入既有CI獨立步驟 Offline inference proposal contract checks (test doubles only)。沒有重跑遠端JWT/probe/PASS，沒有修改apps/web或migration／遠端DDL／權限，也沒有付費或API key。
+
+server落點唯讀repo證據：根vercel.json的outputDirectory=apps/web、buildCommand=靜態preview；apps/web是瀏覽器.mjs以fetch呼叫Supabase Auth/Data API，沒有api/ handler或Vercel Function。supabase/目前是SQL migrations與tests，沒有functions/ Edge Function或config.toml；已有public/private資料庫RPC，不是外部模型的HTTP協調runtime。prototype/public-audit/app.py有本機HTTP診斷原型，並非已部署的GrowthOS登入協調端點。package.json只有固定版本devDependencies，沒有AI/server SDK執行期依賴。這些證據表示目前repo尚無可直接復用的已部署模型server handler；Vercel Functions或Supabase Edge Functions屬候選落點，建立／選擇、授權／資料邊界與硬費用上限尚待另行決策，未在本輪建立。

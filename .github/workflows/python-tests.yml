@@ -37,6 +37,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Guided goal contract and DOM checks
         run: node --test prototype/owner-workspace/goal-intake.test.mjs prototype/owner-workspace/goal-panel.test.mjs
+      - name: Offline inference proposal contract checks (test doubles only)
+        run: node --test prototype/owner-workspace/goal-inference-contract.test.mjs
       - name: Guided goal PostgreSQL engine checks
         run: node supabase/tests/goal_intake_postgres.mjs
       - name: Offline probe boundary checks (PGlite only)
