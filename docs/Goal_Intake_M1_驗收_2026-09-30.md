@@ -261,3 +261,12 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 本人批准後，原樣套用 1d98452 的精確 reconcile_acl.sql，隔離專案 migration growth_os_probe_exact_acl_reconciliation 成功。PG17.6 獨立讀回確認 OID18474 ACL 只有 owner/probe EXECUTE；PUBLIC/anon/authenticated/service_role 無有效執行權。owner/config/函式定義 hash 不變；原 supabase_admin grantor 的兩條完整 membership 保留，臨時 postgres grant 撤回；角色仍 NOLOGIN、窗口 NULL、sessions=0。原目標及 13 筆歷史、13 筆 audit 的 count/hash 與交易前完全相同。
 
 證據 outputs/Growth-OS-probe-acl-remote-1d98452.json；精確 SQL SHA256 與 handoff／獨立管理備援複核統一於 [probe README](../supabase/tests/goal_lock_probe/README.md)。此節取代「ACL 尚待審查／尚未套用」的目前狀態，但不變更原批准範圍。尚未啟用窗口、未請本人輸入密碼、未部署或 push、未重跑自然 JWT。M1 仍缺真實三連線重疊、rollback、完整 cleanup 與原資料雜湊核對；本次 ACL 完成不算整體 M1 放行。
+
+
+## 2026-10-01 13:35 台北：受限真實並行驗收完成
+
+此前受限直連的真實三 PID／同時 Lock blocker 缺口已完成：T0/T1=05:31:41–07:31:41UTC，本人 run_probe.command 取得 A366169/B366171/C366172，B 等鎖 blocker=A，兩交易 rollback、client 關閉，管理 cleanup exit0。獨立管理讀回確認 probe 固定函式/schema/兩角色/session 全0，原目標、13筆歷史、13筆 audit 的 hash/count 與啟用前一致。未提交固定追加，沒有业务資料改動。
+
+原始 controller JSON 保留其 full_acceptance=false；可信獨立讀回與控制器證據整合後，`outputs/Growth-OS-probe-final-acceptance-20261001.json` 明確記錄 full_probe_acceptance=true。完整時間、PID、備援觀察與清理條件統一於 [probe README](../supabase/tests/goal_lock_probe/README.md)。Supavisor 後端短暫保留已由管理 cleanup 撤回，沒有重複備援 DDL；舊告警時間點不能取代最終讀回。
+
+本機 approved-window.json 已歸檔，遠端通道已完全撤回；本次受限並行缺口關閉，不再請本人輸入密碼。自然 JWT 已 PASS 未重跑，未新部署／push。其他 M1／後續 M2 範圍仍按既有藍圖驗收，本次結果不把未實作能力寫為已完成。

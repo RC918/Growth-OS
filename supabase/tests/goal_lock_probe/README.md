@@ -1,4 +1,4 @@
-# M1 受限鎖驗收通道：已批准 NOLOGIN 預備，窗口尚未啟用
+# M1 受限鎖驗收通道：真實重疊與完整撤回驗收已通過
 
 這不是 migration，自動部署不會套用。只適用隔離專案 `vhzryhibmpvglzcmfnaa`。
 2026-10-01 已按批准套用遠端 NOLOGIN 預備。兩角色均不能登入，activation_window 的 starts_at／deadline 均為 NULL；未設定密碼或啟用窗口。固定網址提示與自然 JWT 驗收已 PASS，不重做。
@@ -94,3 +94,14 @@ create 與 activation 的早期修正仍為本地模板；不再建立已存在�
 交易前後目標 hash、13 筆歷史 hash/count、13 筆 audit hash/count 全部一致。客觀證據保存在專案工作區 outputs/Growth-OS-probe-acl-remote-1d98452.json。本節取代前述「ACL 尚未套用」的目前狀態；本機 PG18.3 模型與 PG17.6 實際 ACL 套用證據分開保留，不把 ACL 成功視為真實密碼／TTY／三連線重疊 PASS。
 
 已複核三連線 handoff：缺少 approved-window.json 會在登入前停止、controller 不啟用窗口、本人 psql -W /dev/tty 無回顯輸入、無密碼 argv/env/保存、verify-full 與官方 CA、3 個不同 probe PID、B Lock/blocker=A 後兩交易 rollback 並關閉連線。管理密碼等待或取消／OS 中斷時主管即時分別提交 NOLOGIN、終止精確 probe sessions、觀測 false/0，然後才進行可失敗的物件 cleanup。此複核屬程式／操作流程審查，尚未請本人操作，也未啟用窗口；後續仍需精確 T0/T1、本人就緒、管理 connector 在場、當次基準與最終唯讀核對。自然 JWT 不重跑。
+
+
+## 2026-10-01 13:35 台北：真實三連線重疊與完整撤回 PASS
+
+本人 ready 且既有受限窗口批准下，用當下 UTC 渲染並啟用 T0=2026-10-01T05:31:41.000Z、T1=2026-10-01T07:31:41.000Z，沒有延長期限或增加權限。本人運行既有 run_probe.command，psql 管理清理退出碼 0；agent 未讀、輸入、傳送或保存密碼，也未執行額外備援 DDL。自然 JWT 不重跑，無新部署／push。
+
+真實 controller 證據是 `outputs/Growth-OS-probe-overlap-2031d5ec719d4504bc31a51b86d2fea2.json`：A PID366169、B PID366171、C PID366172 三者不同；05:33:26.974588UTC，B active／wait_event_type=Lock、blockers含A；雙方 rollback=true、client_connections_closed=true。Supavisor idle 後端在 client close 後短暫保留，不能把關閉 client 當作 sessions=0；本人管理 cleanup 隨後完成角色封鎖、精確後端終止及物件撤回。
+
+05:35:25.08033UTC 獨立管理讀回：goal/history/audit hash 全與 05:31:41 啟用前基準相同，history/audit 各13。05:35:31.289299UTC 再次目錄讀回 probe function、schema、roles、sessions 均0。完整可信整合證據 `outputs/Growth-OS-probe-final-acceptance-20261001.json` 的 full_probe_acceptance=true；原 controller 的 full_acceptance=false／readback_pending 保留不改寫，因 controller 自身不能作管理端最終判定。本節為此受限重疊驗收的完成狀態，歷史待驗段落不再代表現況。
+
+本機 approved-window.json 已移至 `outputs/Growth-OS-probe-window-20261001/approved-window.closed.json` 歸檔；原執行位置沒有批准檔，防止再次啟動。render SQL、窗口批准與 activation 獨立讀回皆保留。本次通道完全撤回，禁止以舊窗口重建或重跑。本次 PASS 只涵蓋固定 Fixture A 的鎖重疊、雙 rollback、清理與資料完整性；其他產品里程碑依原路線圖驗收，不把本次證據延伸為未測項目通過。
