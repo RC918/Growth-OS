@@ -1,7 +1,7 @@
 # M1 受限鎖驗收通道：真實重疊與完整撤回驗收已通過
 
 這不是 migration，自動部署不會套用。只適用隔離專案 `vhzryhibmpvglzcmfnaa`。
-2026-10-01 已按批准套用遠端 NOLOGIN 預備。兩角色均不能登入，activation_window 的 starts_at／deadline 均為 NULL；未設定密碼或啟用窗口。固定網址提示與自然 JWT 驗收已 PASS，不重做。
+目前狀態：2026-10-01 13:35 台北已完成真實三連線重疊、雙 rollback 與完整撤回；probe 函式、schema、兩角色與 sessions 均0，原13筆歷史及audit雜湊不變。自然 JWT 已 PASS，未重做。早期 NOLOGIN 與延後窗口記錄保留於下方作歷史依據。
 
 ## 原批准範圍（歷史草案，不另發表單）
 
