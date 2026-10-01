@@ -1,6 +1,6 @@
 # Growth OS M1 目標與問答保存驗收
 
-2026 年 9 月 30 日。目前狀態為「獨立測試環境已部署，自動驗收通過，真實 owner 保存／讀回及 viewer 介面驗收通過，PT409 遠端先後版本衝突驗收通過；DB 交易重疊與完整 M1 放行仍未完成」。下列本機測試表保存最初驗收時的結果；恢復部署後的結果見文末。本文件只記錄實作與驗收證據，產品需求及路線圖仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。
+更新：2026-10-01。固定問題引導切片的真實 owner 保存／讀回、viewer／跨工作區拒絕、PT409 舊版本拒絕、新版首次讀取提示、自然 JWT 到期 → 401 → 重新登入恢復，以及受限三連線鎖重疊 → 雙 rollback → 完整清理均 PASS。原目標、13 筆歷史與 audit 雜湊不變，probe 通道已完全撤回。本批證據只放行既有固定引導的上述工程驗收，不等於自然語言理解或完整產品里程碑完成。自然語言推論／確認能力尚未開發；M2 計畫與工作卡待開發。本文件記錄實作與證據，產品與里程碑仍以 [執行藍圖](AI_Company_Growth_OS_執行藍圖_v1.md) 為準。下方日期段落和初次測試表是歷史紀錄，最新結果見文末。
 
 ## 實作範圍
 
@@ -8,7 +8,7 @@
 
 新 migration 由 Supabase CLI 建立為 `20260930112010_growth_goal_intake.sql`，新增 `growth_goals` 和 `growth_goal_turns`。本機實作階段尚未套用遠端；恢復部署後已套用至隔離測試 Supabase，詳見文末。每次回答／修正新增版本，保留原話與伺服器問題；修正取消既有確認，需再次確認。歷史版本無直接客戶端更新或刪除權限。
 
-owner 保存透過 public invoker／private definer RPC，私有交易每次依目前成員關係檢查權限。Authenticated 只能讀取有成員資格的工作區；viewer 可讀不可寫；anon 無資料讀取或 RPC 權限。RPC 使用 request_id 去重、expected_version 拒絕過期寫入，與 audit_events 同交易。組織鎖序列化同組織寫入；真正多人並行仍待驗收。
+owner 保存透過 public invoker／private definer RPC，私有交易每次依目前成員關係檢查權限。Authenticated 只能讀取有成員資格的工作區；viewer 可讀不可寫；anon 無資料讀取或 RPC 權限。RPC 使用 request_id 去重、expected_version 拒絕過期寫入，與 audit_events 同交易。組織鎖序列化同組織寫入；固定 Fixture A 已由三條真實受限連線完成 Lock/blocker 與雙 rollback 驗收，不外推為任意目標的全面並行驗收。
 
 API 依已確認的登入成員設定 organization_id。對話內容只以 textContent 顯示；沒有本機持久憑證或私密問答快取。重新登入後由資料庫讀回；登出清除畫面及待提交內容，延遲回應不得恢復前一工作階段。尚未提交的文字不承諾跨登入保存；HTTP 401 提示重新登入。
 
@@ -40,7 +40,7 @@ node prototype/owner-workspace/goal-intake-ui.e2e.mjs
 
 ## 待驗收與範圍護欄
 
-隔離 Supabase schema 套用、SQL 權限／撤銷會員驗收與 CI 桌面／手機合成流程已完成。M1 放行前仍需使用真實登入驗證 owner 保存與重新讀取、viewer／跨工作區 API 拒絕、401 後恢復，以及真正獨立資料庫連線的多人並行。SQL 合成 claims 與瀏覽器合成 transport 不替代上述證據。
+隔離 schema／SQL 權限／CI 合成桌面與手機流程，以及本頁頂部所列真實驗收均已完成，不再列自然 JWT 或固定 fixture 交易重疊為待驗項。保留真實瀏覽器、SQL 合成 claims、離線 controller 模型及管理端讀回的證據來源區別。完整 M1 尚包括未實作的自然語言推論與可修正確認；若下一階段引入模型，須先選定經登入驗證的伺服器協調層、資料傳送範圍與成本上限，不能以固定問題引導充當 AI 理解。數名目標使用者的流程辨識驗收尚未完成，CI 合成視窗不代表真實手機或外部商家驗證。
 
 M2 計畫／工作卡、AI 理解與產稿、發布、真實成長資料仍未實作。現有企業資料核准不能被目標確認取代。保留 profile／機會／內容版本／審核／行動計畫／觀測功能與過去資料。本輪不改 morningai、owner-console、正式網域或付費設定。
 
@@ -199,7 +199,7 @@ pg_roles 唯讀結果只有 Supabase 標準角色，沒有專案專用的受限�
 
 精確可審查檔案已保存於 `supabase/tests/goal_lock_probe/`：create.sql.template、activate.sql.template（無密碼值）、verify.sql、cleanup.sql、render.mjs、test.mjs、native_overlap.py 與 README.md 中文批准說明。它們位於 tests，沒有加入 migrations 或部署步驟，沒有執行遠端 DDL。時間模板故意不含猜測日期；批准啟用時輸入該次記錄的精確 UTC T0，離線 renderer 計算 T1=T0+2h，產生四份 SQL 與 window.json 供核對。截止硬編碼於函式入口與等鎖返回後；activate 拒絕窗口外與剩不足 15 分鐘的啟用，不自動延長。
 
-新增 PGlite 安全測試 8 組通過，未重跑原 9 組：角色属性目錄與無會員權；PUBLIC／無關角色／anon／authenticated／service_role 路徑拒絕；SET ROLE／原 RPC／private 實作／表／DDL／任意參數拒絕；偽造 legacy sub 與 JSON claims 均被固定 owner 覆寫；固定 Fixture A 與原 13 筆保留；rollback 無問答或 audit 殘留；最多一筆固定 commit 後 PT409；過期／尚未啟用入口拒絕、啟用目錄／精確 cleanup、renderer 拒絕相對／無效日期。遠端唯讀 auth.uid 定義已核對為同樣 coalesce legacy／JSON 邏輯。runner 初版 PGlite RESET SESSION AUTHORIZATION 未恢复初始測試身份導致後續唯讀失敗，已改為顯式恢復原 session 身份；這是測試 harness 修正，不是產品權限放寬。
+新增 PGlite 安全測試 8 組通過，未重跑原 9 組：角色属性目錄與無會員權；PUBLIC／無關角色／anon／authenticated／service_role 路徑拒絕；SET ROLE／原 RPC／private 實作／表／DDL／任意參數拒絕；偽造 legacy sub 與 JSON claims 均被固定 owner 覆寫；固定 Fixture A 與原 13 筆保留；rollback 無問答或 audit 殘留；最多一筆固定 commit 後 PT409；過期／尚未啟用入口拒絕、啟用目錄／精確 cleanup、renderer 拒絕相對／無效日期。遠端唯讀 auth.uid 定義已核對為同樣 coalesce legacy／JSON 邏輯。runner 初版 PGlite RESET SESSION AUTHORIZATION 未恢復初始測試身份導致後續唯讀失敗，已改為顯式恢復原 session 身份；這是測試 harness 修正，不是產品權限放寬。
 
 PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢查不代表真實密碼登入、LOGIN 數目或 VALID UNTIL 網路 enforcement；未宣稱雙 PID 重疊 PASS。安全結果保存於 outputs/Growth-OS-probe-boundary-local.json。
 
