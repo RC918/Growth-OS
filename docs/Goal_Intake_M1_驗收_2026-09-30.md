@@ -254,3 +254,10 @@ PGlite 的 session_user 是 SET SESSION AUTHORIZATION 模擬，角色屬性檢�
 清理順序以此節及 [probe README](../supabase/tests/goal_lock_probe/README.md#三連線本人交接控制器與啟用前-acl-審查) 為準：先獨立提交 NOLOGIN，再只終止 probe sessions，讀回 false/0，最後撤 ACL／物件。管理 connector 逐步執行 emergency_disable.sql，不能把前置封鎖與可能失敗的 DCL 包在同一次隱式交易。管理密碼等待／取消／OS 中斷時，主管立即用既有 connector 接手，不等本人或有效期；未新增服務、cron 或權限。
 
 本機結果：ACL 6 案例及 controller 8 unittest PASS。PGlite 0.5.8 實際為 PG18.3 WASM，PG17 僅核對官方 GRANT/REVOKE 文件；未把本機 mock 當 PG17／TTY／TLS／遠端並行 PASS。原 JWT 已通過，未重跑。尚需單項精確 ACL 安全審查；本批未改遠端、未 push、未部署、未啟用窗口，也未請本人操作。M1 的遠端重疊／清理與歷史 hash 驗收仍未完成，M2 不因本機準備完成而放行。
+
+
+## 2026-10-01 12:51 台北：已批准 ACL 修正完成（窗口仍未啟用）
+
+本人批准後，原樣套用 1d98452 的精確 reconcile_acl.sql，隔離專案 migration growth_os_probe_exact_acl_reconciliation 成功。PG17.6 獨立讀回確認 OID18474 ACL 只有 owner/probe EXECUTE；PUBLIC/anon/authenticated/service_role 無有效執行權。owner/config/函式定義 hash 不變；原 supabase_admin grantor 的兩條完整 membership 保留，臨時 postgres grant 撤回；角色仍 NOLOGIN、窗口 NULL、sessions=0。原目標及 13 筆歷史、13 筆 audit 的 count/hash 與交易前完全相同。
+
+證據 outputs/Growth-OS-probe-acl-remote-1d98452.json；精確 SQL SHA256 與 handoff／獨立管理備援複核統一於 [probe README](../supabase/tests/goal_lock_probe/README.md)。此節取代「ACL 尚待審查／尚未套用」的目前狀態，但不變更原批准範圍。尚未啟用窗口、未請本人輸入密碼、未部署或 push、未重跑自然 JWT。M1 仍缺真實三連線重疊、rollback、完整 cleanup 與原資料雜湊核對；本次 ACL 完成不算整體 M1 放行。

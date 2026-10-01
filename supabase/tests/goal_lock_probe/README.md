@@ -83,3 +83,14 @@ A/B/C 身份必須都是 probe_login，PID 三者不同；開始交易前設 sta
 create 與 activation 的早期修正仍為本地模板；不再建立已存在的遠端角色。窗口仍待確切 T0/T1、基準 hash、管理備援在場與本人安全操作就緒後才啟用。密碼由本人 psql 無回顯收取；agent 不代填或記錄。此輪只完成本機審查包，未作遠端動作。
 
 `readback.sql` 為主管管理 MCP 的唯讀前後比對：固定目標本體、完整13筆歷史與該目標audit的SHA256／count；不回傳答案明文。啟用前與清理後使用同一UTC timezone執行，goal/history/audit hash須逐項相同，後者schema不存在、角色清單空、probe sessions=0。其後即使controller有Lock證據，若比對不符仍不能PASS。此檔不讀password/hash或認證token。
+
+
+## 2026-10-01 12:51 台北：精確 ACL 遠端套用與獨立讀回
+
+本人已批准上述單一 ACL 交易。原樣執行 commit 1d984520e14d10a6570c296c06b7b5ca4fd652dc 的 reconcile_acl.sql（SHA256 d5809d9890e699b79b2ef367a9d5965a2c3f5c2c2a7a84aadcc22221e973d64a），隔離專案 vhzryhibmpvglzcmfnaa migration `growth_os_probe_exact_acl_reconciliation` 回報 success=true。所有交易內前後 guard 通過，未放寬或修改批准 SQL。
+
+獨立 connector 讀回為 PG17.6：OID18474、owner、zero-arg、definer、config 與 pg_proc 除 ACL 的 hash 相同；ACL 精確只含 owner/login EXECUTE，grantor=owner，無 grant option；PUBLIC 無條目，anon/authenticated/service_role effective EXECUTE=false。兩條原 membership OID18461/18463 與全部欄位未變：grantor=supabase_admin、member=postgres、ADMIN=true、SET=false、INHERIT=false；臨時 postgres grant 已移除。兩角色仍 NOLOGIN、窗口 starts_at/deadline=NULL、probe sessions=0。
+
+交易前後目標 hash、13 筆歷史 hash/count、13 筆 audit hash/count 全部一致。客觀證據保存在專案工作區 outputs/Growth-OS-probe-acl-remote-1d98452.json。本節取代前述「ACL 尚未套用」的目前狀態；本機 PG18.3 模型與 PG17.6 實際 ACL 套用證據分開保留，不把 ACL 成功視為真實密碼／TTY／三連線重疊 PASS。
+
+已複核三連線 handoff：缺少 approved-window.json 會在登入前停止、controller 不啟用窗口、本人 psql -W /dev/tty 無回顯輸入、無密碼 argv/env/保存、verify-full 與官方 CA、3 個不同 probe PID、B Lock/blocker=A 後兩交易 rollback 並關閉連線。管理密碼等待或取消／OS 中斷時主管即時分別提交 NOLOGIN、終止精確 probe sessions、觀測 false/0，然後才進行可失敗的物件 cleanup。此複核屬程式／操作流程審查，尚未請本人操作，也未啟用窗口；後續仍需精確 T0/T1、本人就緒、管理 connector 在場、當次基準與最終唯讀核對。自然 JWT 不重跑。
