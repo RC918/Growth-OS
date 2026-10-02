@@ -1,29 +1,31 @@
 # Growth OS｜專案進度
 
-更新時間：2026-10-02（台灣時間）。人工更新的快照；對話結束後不會在背景持續執行。
-
-## 目前工程恢復
-
-目前分支 `feat/passwordless-workspace`、Draft PR #19。基準 `0a36de7` 的兩次 CI（36896863481／36896871573）及 Preview checks 成功，包含離線草稿與 unwired adapter 回歸；不是完整遠端 adapter 或真實發布驗收。原生協調工具不影響本地工程。根目錄 package.json 無 build/lint/typecheck scripts；静態 Vercel build 僅 echo，不宣稱這三項品質驗證 PASS。最近舊失敗 36844043808 是 Edge 離線 module graph 嘗試下載 npm types；後續 shared pure validator 修正及目前 CI 已通過，不重做。沒有 AGENTS.md／CONTRIBUTING.md。
-
-新增 M2 已確認目標／計畫版本／工作卡離線契約，13 項測試 PASS、語法與 diff 檢查 PASS；詳細範圍及未完成項目見 [M2 契約紀錄](docs/Growth_Plan_M2_離線契約_2026-10-02.md)。後續 memory-only 版本 session 的 6 項測試亦 PASS，保留舊版及狀態事件；獨立合成操作頁亦通過桌面／手機 E2E；尚無真實持久化或工作台接線。下方 2026-09-28 表格與資料描述保留為歷史，最新細項以驗收文件及 PR checks 為準。
+更新：2026-10-02（台北）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
 
 ## 產品方向
 
-第一目標是找出需求與內容機會，增加相關搜尋曝光及到站訪問；轉換診斷是第二層。第一試點為自營網站的電商／貿易商，創作者為後續驗證客群。正式品牌、網域與公開發布未決定。詳見 [定位修正](docs/Growth_OS_定位修正_2026-09-28.md)。
+URL → First Useful Result → Review → Publish → Measure。電商／貿易商產品頁優先；網址主入口，自動理解與分析，必要缺口才問。第一成果為帶來源、可套用的產品頁 title/meta/描述改善包。plan/work 是內部治理，不是一般使用者的第一價值時刻。
 
-| 工作 | 已驗證 | 待完成 |
+## 已完成的工程資產
+
+基準 `8a4591b`、分支 `feat/passwordless-workspace`、[Draft PR #19](https://github.com/RC918/Growth-OS/pull/19)。同 SHA [push CI](https://github.com/RC918/Growth-OS/actions/runs/36953102738)／[PR CI](https://github.com/RC918/Growth-OS/actions/runs/36953106748) 及 Preview checks 成功。包含既有 unit／integration／desktop-mobile 回歸、新增 plan/session 19 項測試與離線計畫 E2E。未合併，沒有已驗證的客戶發布／流量成效閉環。
+
+| 資產 | 證據／可重用範圍 | 目前限制 |
 |---|---|---|
-| 公開頁面診斷原型 | [PR #1](https://github.com/RC918/Growth-OS/pull/1) 的本機測試與 CI | 安全掃描 Staging API、授權測試網址 |
-| CSV 匯入與持久化原型 | [PR #2](https://github.com/RC918/Growth-OS/pull/2)、[#3](https://github.com/RC918/Growth-OS/pull/3) 的預覽及交易證明 | 登入後真實匯入流程 |
-| Supabase 資料與租戶隔離 | [PR #4](https://github.com/RC918/Growth-OS/pull/4)、[#6](https://github.com/RC918/Growth-OS/pull/6)、[#7](https://github.com/RC918/Growth-OS/pull/7)、[#8](https://github.com/RC918/Growth-OS/pull/8)；10 張表的交易回滾驗收與兩個真實 Auth session 的 40 次 SELECT 隔離檢查通過 | token refresh、撤銷成員資格、正式寫入與產品 API |
-| 獨立網頁預覽 | [PR #5](https://github.com/RC918/Growth-OS/pull/5)、[#9](https://github.com/RC918/Growth-OS/pull/9)；Vercel Preview Ready | 正式品牌、網域、公開發布 |
-| 流量成長主流程 | [PR #9](https://github.com/RC918/Growth-OS/pull/9) 校正藍圖與首頁文案 | Business Profile、需求／內容機會、人工核准、GSC/GA4 基線、週報 |
+| Auth/RLS、tenant、版本、approval/audit、固定引導 | [歷史 M1 驗收](docs/Goal_Intake_M1_驗收_2026-09-30.md)及既有 CI | 新成果／發布整合仍需遠端驗收，不重跑既有 PASS |
+| 公開 scanner、CSV 與 observation | prototype/public-audit、prototype/csv-import 及 CI | 安全服務端產品入口與真實量測鏈尚未接通 |
+| 草稿 review、unwired adapter | 0a36de7 與後續 CI，來源／版本／scope／race 回歸 | adapter 未啟用，remote save 未驗收 |
+| plan/work-card 契約／memory session／離線 UI | 2d8f7c3、13b7bad、559c033、8a4591b；[證據](docs/Growth_Plan_M2_離線契約_2026-10-02.md) | 改列內部治理／驗收資產；不等於新版 M2 第一可用成果 |
+| 靜態 Preview | 同 SHA 部署成功 | 雲端互動未完整驗收，不能代替發布產品內容 |
 
-以上仍是相依的草稿 PR，尚未合併為正式產品。沒有已連接的客戶網站、真實流量改善、GSC/GA4 成果或付費功能。Growth OS 的測試 Auth 帳號目前以 Supabase 預設 24 小時封禁，合成租戶資料已清除；封禁到期會恢復帳號登入資格，但沒有租戶成員資格。
+## 進行中與待完成
 
-## 下一道門檻
+本輪僅藍圖／文件／PR 對齊，暫停功能擴張。新 M1 URL 安全理解、新 M2 可用成果、新 M3 review 接線、新 M4 單平台發布、新 M5 可信效果、新 M6 試點閉環均未全面完成。沒有以舊 M1/M2 同名驗收直接放行新里程碑。
 
-先完成流量成長主流程的資料契約與可審查機會清單，再建立全新產品站的 GSC／GA4 量測。Owner 只在站點所有權、資料授權、正式品牌／網域、對外發布或付費決策時介入。90 天現金試驗上限 NT$100,000；目前未動用付費設定。
+藍圖確認後下一項是 URL-to-source／產品事實最小切片及成果預覽；不再把通用計畫保存／工作卡 UI 擴張當第一優先。具體放行條件與依賴見唯一藍圖，不在本頁另排 M0–M6。
 
-CI 通過不等於 Staging 全鏈驗收；對外展示成果需 Deployment、API、DB 與端到端證據。PR 與 Actions 為即時狀態來源。
+## 真正限制
+
+試點產品網址、發布平台及站點／數據授權尚未建立閉環；它們在 live 整合階段需要對應資訊／登入，不阻擋離線契約與固定 fixture 工程。無真實資料顯示未知，不宣稱 Growth。
+
+package.json 未配置 build/lint/typecheck scripts；Vercel echo build 不是三項品質 PASS。已有 CI／E2E 才是證據。既有 .DS_Store 不納入提交。保持 Growth OS 獨立環境，不改 production、morningai、owner-console、正式網域、模型限額或付費設定。
