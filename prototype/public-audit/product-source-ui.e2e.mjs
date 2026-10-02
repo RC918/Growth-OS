@@ -99,7 +99,15 @@ try{
  assert.match(await page.locator('#source-feedback').innerText(),/本次未產生新成果/);assert.match(await page.locator('#result-fields').innerText(),/Hexagonal head/);
  assert.deepEqual(await exportReport(true),microReport);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
- assert.equal(downloadCount,15);
- await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 15 real downloads; no remote/storage/errors/overflow');
+ await submit('/woo-named');
+ await page.getByRole('button',{name:'複製全部文本'}).focus();await page.keyboard.press('Enter');
+ const namedCopy=await page.evaluate(()=>navigator.clipboard.readText());assert.match(namedCopy,/Bolt A is a steel fastener for workshop assembly/);assert.doesNotMatch(namedCopy,/Bolt A\. Bolt A/);
+ const namedReport=await exportReport(true);assert.equal(namedReport.preview.fields.description.suggested,'Bolt A is a steel fastener for workshop assembly.');
+ assert.equal(namedReport.preview.fields.description.original,namedReport.facts.description.value);
+ assert.equal(createHash('sha256').update(Buffer.from(namedReport.snapshot.content_base64,'base64')).digest('hex'),namedReport.snapshot.version);
+ assert.ok(namedReport.facts.description.citations.every(id=>namedReport.preview.fields.description.citations.includes(id)));
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
+ assert.equal(downloadCount,16);
+ await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 16 real downloads; no remote/storage/errors/overflow');
  }
 }finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));await rm(temp,{recursive:true,force:true});}

@@ -21,6 +21,7 @@ def fetch(url):
     if parts.path=='/complexity':return 200,{'content-type':'text/html'},b'<div>'*150+b'x'+b'</div>'*150
     if parts.path=='/woo-micro':return 200,{'content-type':'text/html'},WOO_MICRO_NO_SHORT
     if parts.path=='/woo-conflict':return 200,{'content-type':'text/html'},WOO_MICRO_NAME_CONFLICT
+    if parts.path=='/woo-named':return 200,{'content-type':'text/html'},WOO_PRODUCT.replace(b'Steel bolt for workshop assembly.',b'Bolt A is a steel fastener for workshop assembly.')
     if parts.path=='/woo':return 200,{'content-type':'text/html'},WOO_PRODUCT
     if parts.path=='/mixed':return 200,{'content-type':'text/html'},MIXED_PRODUCT
     if parts.path=='/unscoped':return 200,{'content-type':'text/html'},PRODUCT.replace(b' itemscope itemtype="https://schema.org/Product"',b'')

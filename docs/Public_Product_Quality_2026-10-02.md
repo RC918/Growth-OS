@@ -55,3 +55,16 @@ Owner 另批准父提交 Books to Scrape／ScrapeMe 兩個指定 URL 各一次�
 - 兩次提交／UI 安全 fallback 有實際證據；snapshot 寫入數沒有直接讀 DB，**不能記為 0**。本輪 agent 沒有追加 live POST 或重抓任何相關域名。
 
 父另以唯讀 DOM 觀察確認 ScrapeMe 的 `main#main` → `div#product-759.product.type-product` → `div.summary.entry-summary` → `h1.product_title.entry-title`，同產品的 `div.woocommerce-product-details__short-description` 與 `#tab-description` 含一致描述，related products 為另一區；沒有 Product microdata。此結構證據支持下方狹窄 parser 修復；未保存網站長文。真實可用成果品質仍未 PASS，修復後 live 重測須由父另處理授權。
+
+## 首次實際 Preview 可用文本產出（父提供，2026-10-02 23:52 UTC）
+
+Owner 另批准父單次新版 Bulbasaur 提交，額度已用完。父於 23:52 UTC 核對 HEAD `9874e6b8c32c6e237a60183edaeff3a73b28eb88`、兩 CI success、Preview `H7TGnzpVFaaYXSuUuSkKyitrKs64` 與 branch alias 映射後提交一次，成功看到 title/meta/description 三份文本及 Woo target name/description 的來源引用。這取代「尚未有實際成功結果」的舊狀態，不追溯改寫先前失敗紀錄。
+
+- original/final URL：`https://scrapeme.live/shop/Bulbasaur/`（相同）。
+- fetched_at：`2026-10-02T23:52:48.839429+00:00`。
+- SHA-256 fingerprint：`fb43e63ad4cda608d8ee1edb4ac4614e04652f56b233ae0be31cc5d191ac4361`。
+- 證據來源為父雲端瀏覽器觀察，沒有在本 Cloud task 重抓或重送 POST。沒有保存長文、cookie 或登入資料。deployment/alias 在提交前已核對；不是逐請求 immutable deployment header 的另行證明。
+
+首次真 Preview 產出與來源追溯通過，但描述出現產品名重複的機械組合問題；下一修復以合成 fixture 處理。此結果不等於全 M1/M2、任意產品品質、內容採用、發布或流量驗收。
+
+Copy 顯示成功，但父的雲端 `clipboard.readText` 回空；Export 顯示成功，父等待 download 30 秒後工具 kernel timeout，回綁原 tab 時成果仍在。**雲端剪貼簿內容與匯出檔案尚未獨立驗證**；這是驗證不確定性，未證實產品功能失敗。頁面提示本身不是檔案已保存的證據。本機真 clipboard/download 有既有及本次 E2E 證據，不能取代雲端證據，也不據此猜測工具故障或修改產品行為。任何進一步 live 驗證由父另處理授權，本 task 不追加請求。

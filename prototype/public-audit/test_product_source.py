@@ -171,6 +171,26 @@ class ProductTests(unittest.TestCase):
                 self.assertIn('conflict',r['extraction']['method'])
                 self.assertEqual(r['facts']['features'],[])
 
+    def test_description_does_not_repeat_leading_product_name(self):
+        for description, expected in [
+            ('Bolt A is a steel fastener for workshop assembly.', 'Bolt A is a steel fastener for workshop assembly.'),
+            ('bolt a: a steel fastener for workshop assembly.', 'bolt a: a steel fastener for workshop assembly.'),
+            ('Bolt A—steel fastener for workshop assembly.', 'Bolt A—steel fastener for workshop assembly.'),
+            ('Bolt AB is a different designation in the source.', 'Bolt A. Bolt AB is a different designation in the source.'),
+            ('Assembly uses the Bolt A steel fastener.', 'Bolt A. Assembly uses the Bolt A steel fastener.'),
+        ]:
+            with self.subTest(description=description):
+                body=WOO_PRODUCT.replace(b'Steel bolt for workshop assembly.',description.encode())
+                r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+                field=r['preview']['fields']['description']
+                self.assertEqual(field['suggested'],expected)
+                self.assertEqual(r['facts']['description']['value'],description)
+                self.assertEqual(field['original'],description)
+                self.assertTrue(set(r['facts']['description']['citations'])<=set(field['citations']))
+                self.assertTrue(set(r['facts']['product_name']['citations'])<=set(field['citations']))
+                self.assertEqual(r['facts']['description']['verification'],'source_asserted')
+                self.assertFalse(r['preview']['published'])
+
     def test_redirect_and_final_source(self):
         calls=[]
         def redirected(url):

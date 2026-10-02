@@ -263,7 +263,10 @@ def preview_for(result):
     for feature in facts["features"]:
         if feature["value"] not in pieces and feature["value"] not in description["value"] and sum(map(len,pieces)) + len(feature["value"]) < 1200:
             pieces.append(feature["value"]); refs += feature["citations"]
-    full = name["value"] + ". " + " ".join(pieces)
+    # Keep the source wording when it already opens with the whole name.
+    # A name prefix inside a longer word/SKU (e.g. Bolt AB) is not a match.
+    already_named = re.match(re.escape(name["value"]) + r"(?=$|\W)", description["value"], re.IGNORECASE)
+    full = ("" if already_named else name["value"] + ". ") + " ".join(pieces)
     def field(original, suggested, sources, reason):
         return {"original": original["value"] if original else "", "suggested": suggested,
                 "citations": list(dict.fromkeys(sources)), "reason": reason}

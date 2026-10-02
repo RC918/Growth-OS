@@ -148,3 +148,13 @@ Fresh local E2E after correction: **1280 PASS / 390 PASS**, 12 real downloads ea
 驗證：**38 scanner/API tests PASS**；新增有／無／空 Woo short-description 下有效 microdata 保留、Woo 補描述而不丟特性、名稱（含未標記 h1 的其他 visible name）衝突、microdata 多份描述、兩種格式各自一致但彼此不同，以及來源 scope／名稱引用／version 檢查。**Fresh 1280/390 E2E PASS，各 15 次真下載**，保留原 microdata 與 Woo 路徑，新增 mixed 成功的 keyboard Copy/Export/bytes hash，衝突 response 明確 preview=null，UI 保留前次成功成果且 export JSON 完全相同。`git diff --check` PASS。
 
 僅合成 fixture／本機 HTTP/SQLite/Chromium 151。未 live POST、未重抓域名、未模型呼叫。新 SHA 的 CI 與 review 待父獨立驗收；真實 ScrapeMe 的修復後有效成果品質仍未驗收。
+
+## 已有產品名前綴的描述組合修正
+
+父已在 `9874e6b8c32c6e237a60183edaeff3a73b28eb88` 的實際 Preview 單次取得 Bulbasaur 三份文本與來源，詳見[真頁證據增補](Public_Product_Quality_2026-10-02.md#首次實際-preview-可用文本產出父提供2026-10-02-2352-utc)。這是首次 live Preview 成功產出；Copy/Export 雲端內容／檔案未獨立核實，不稱完整 M1/M2 或品質閉環完成。
+
+先以合成句 `Bolt A is a steel fastener for workshop assembly.` 重現舊輸出 `Bolt A. Bolt A ...`（FAIL），只修改 preview 描述組合：來源描述開頭已是完整產品名（不分大小寫，後接空白／標點或字串結尾）時省略額外加入的名稱前綴，來源原句不改。較長單字／SKU 前綴如 Bolt AB 及句中才出現名稱仍保留原組合規則。facts、原文、citations、source version、unknown 與未發布狀態不改；不增加 SEO 或效果宣稱，無模型生成。
+
+針對性驗證：`python3 -B -m unittest -q test_product_source.ProductTests test_product_api.py` **25 tests PASS**，包含新增大小寫／標點／較長名稱／非開頭對照與引用／原文不變。只跑受影響產品/API 路徑，未重跑無關 transport／其他模組 PASS suite。**Fresh 1280/390 URL E2E PASS，各 16 次真下載**：新增合成帶名前綴產品經本機 API→preview→真 keyboard clipboard／download，確認不重複、原文與引用保留及原 bytes hash；既有來源／混合格式／最後成功成果回歸保留。`git diff --check` PASS。
+
+Copy 實作等待 clipboard.writeText 完成才顯示成功、拒絕則選取文字 fallback；Export 透過 Blob/object URL 與 download anchor 啟動下載，UI 提示不讀取雲端工具的完成事件。此次本機沒有重現新的 Copy/Export 缺陷，因此未改其產品程式或放寬驗證。雲端讀回空與 kernel timeout 的原因仍未知。沒有 live POST／重抓域名／模型／登入／remote DB 操作；新 HEAD CI 和真頁修復後觀察待父獨立核對。
