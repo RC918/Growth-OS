@@ -37,6 +37,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Guided goal contract and DOM checks
         run: node --test prototype/owner-workspace/goal-intake.test.mjs prototype/owner-workspace/goal-panel.test.mjs
+      - name: Offline growth plan and work card contracts (no persistence)
+        run: node --test prototype/owner-workspace/growth-plan-contract.test.mjs
       - name: Offline inference proposal contract checks (test doubles only)
         run: node --test prototype/owner-workspace/goal-inference-contract.test.mjs
       - name: Offline draft confirmation state and source checks (memory only)

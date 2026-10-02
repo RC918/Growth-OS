@@ -202,3 +202,8 @@ M2最小下一項：定義已確認目標 → 可保存的計畫版本 → 工�
 > 2026-10-01 19:24 台北最新狀態：本人18:59批准的限定部署已完成。隔離 Supabase `vhzryhibmpvglzcmfnaa` 已套用 c0c146a 原樣 migration；`growth-model-trial` v1 ACTIVE、verify_jwt=true、7份來源逐字讀回一致。private兩表RLS／4函式empty search_path／3個public RPC僅service_role EXECUTE及private helper隔離均已獨立讀回；20張public業務表筆數／SHA256未變，原歷史13筆。試驗仍staged，starts_at/deadline=NULL，calls_reserved/spent/held/attempts=0。Dashboard custom secrets為空，OPENAI_API_KEY與任何custom ready設定不存在；未啟用ready或七天、未呼叫模型、未處理key值、未改付費或清理ledger。以下先前未部署／未批准段落為當時歷史，現在部署狀態以本段及[技術操作紀錄](../supabase/tests/model_trial/README.md)為準；本人專用key／既有credit及模型可用性、明確ready actor/org與live Auth／模型／確認UI仍待完成，M1不全面放行、M2門檻不變。證據：聊天outputs/Growth-OS-model-trial-deployed-gateclosed-c0c146a.json。
 
 2026-10-01 最多七天期限修復（本機工程）：新增獨立constraint-only migration，activated期限改為非NULL且0<duration<=7days；啟用模板鎖後T0，T1=min(T0+7days,2026-10-07T11:50:00Z)，剩餘<=3min拒絕。不延長或重建本人key，不改帳務／權限／runtime／業務。短期／非法NULL／零負／>7days與完整20業務表不變性由離線測試覆蓋；原生PG17新增真實三backend啟用Lock/blocker及不延展case，同headCI結果單獨記錄。遠端仍staged及原七天CHECK，未套用本修訂、未開ready／模型，不放行M1／M2；精確差異與後續審查流程統一於[技術操作紀錄](../supabase/tests/model_trial/README.md)最新期限修復節。
+
+
+### 2026-10-02 M2 離線契約增量
+
+已確認目標 → 計畫版本 → 工作卡純契約已實作，來源引用、缺資料、依賴、owner 修改／viewer 讀取、修訂核准失效與狀態 revision 衝突由 13 項測試覆蓋。無持久化／UI／遠端 Auth 驗收；完整 M2 尚未放行。下一項為保留歷史版本的 memory-only session。詳細證據及限制見 [M2 契約紀錄](Growth_Plan_M2_離線契約_2026-10-02.md)。
