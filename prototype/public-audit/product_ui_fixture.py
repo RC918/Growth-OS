@@ -7,7 +7,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 import app,product_api
 from product_source import build_snapshot
 from scanner import ScanError
-from test_product_source import PRODUCT, fixture
+from test_product_source import PRODUCT, MIXED_PRODUCT, fixture
 from urllib.parse import urlsplit
 def fetch(url):
     parts=urlsplit(url)
@@ -18,6 +18,9 @@ def fetch(url):
     if parts.path=='/old':return 302,{'location':'/products/bolt'},b''
     if parts.path=='/catalog':return 200,{'content-type':'text/html'},b'<main><h1>Catalog</h1><a href="/products/bolt">Bolt A</a></main>'
     if parts.path=='/complexity':return 200,{'content-type':'text/html'},b'<div>'*150+b'x'+b'</div>'*150
+    if parts.path=='/mixed':return 200,{'content-type':'text/html'},MIXED_PRODUCT
+    if parts.path=='/unscoped':return 200,{'content-type':'text/html'},PRODUCT.replace(b' itemscope itemtype="https://schema.org/Product"',b'')
+    if parts.path=='/multiple':return 200,{'content-type':'text/html'},PRODUCT.replace(b'</main>',b'<h1>Drill B</h1></main>')
     if parts.path=='/unknown':return 200,{'content-type':'text/html'},b'<h1>Unsupported page</h1>'
     return fixture(url)
 product_api.build_snapshot=lambda url:build_snapshot(url,fetch)

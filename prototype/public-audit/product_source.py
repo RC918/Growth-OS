@@ -24,12 +24,19 @@ class ProductParser(HTMLParser):
         if self.counter >= 20000 or len(self.stack) >= 128:
             raise ScanError("page_complexity", "The public HTML exceeds parsing complexity limits; choose a simpler product page.")
         attrs = dict(attrs)
-        blocked = any(e["blocked"] for e in self.stack) or tag in ("style", "noscript", "nav", "footer")
+        blocked = any(e["blocked"] for e in self.stack) or tag in ("style", "noscript", "nav", "footer", "aside")
         blocked = blocked or "hidden" in attrs or attrs.get("aria-hidden") == "true"
+        if blocked or "itemscope" in attrs:
+            for ancestor in self.stack:
+                if ancestor["tag"] in ("p", "li"):
+                    ancestor["mixed_scope"] = True
         self.counter += 1
         entry = {"tag": tag, "attrs": attrs, "text": [], "text_size": 0, "blocked": blocked,
-                 "locator": tag + "[" + str(self.counter) + "]",
-                 "in_main": tag in ("main", "article") or any(e["tag"] in ("main", "article") for e in self.stack)}
+                 "locator": tag + "[" + str(self.counter) + "]"}
+        parent_scope = next((e for e in reversed(self.stack) if "itemscope" in e["attrs"]), None)
+        scope = entry if "itemscope" in attrs else parent_scope
+        entry["scope"] = scope["locator"] if scope else None
+        entry["scope_type"] = scope["attrs"].get("itemtype", "").split() if scope else []
         if tag == "meta" and attrs.get("property", "").lower() == "og:type":
             self.og_product = attrs.get("content", "").lower() in ("product", "og:product")
         if tag not in ("meta", "link", "input", "img", "br", "hr", "source", "area", "wbr", "embed"):
@@ -57,7 +64,7 @@ class ProductParser(HTMLParser):
                 if entry["attrs"].get("type", "").lower() == "application/ld+json":
                     self.scripts.append("".join(entry["text"]))
             elif not entry["blocked"] and value:
-                if entry["tag"] in ("h1", "p", "li", "a"):
+                if entry["tag"] in ("h1", "p", "li", "a") or "name" in entry["attrs"].get("itemprop", "").split():
                     entry["value"] = value[:2000]
                     self.entries.append(entry)
 
@@ -110,7 +117,7 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
     products = parser.products()
     matches = [(name, index, h) for name, index in products for h in headings if name == h["value"]]
     distinct = {m[0] for m in matches}
-    supported = len(distinct) == 1 or (not products and parser.og_product and len(headings) == 1)
+    supported = len(headings) == 1 and (len(distinct) == 1 or (not products and parser.og_product))
     if not supported:
         candidates = []
         for e in parser.entries:
@@ -134,16 +141,33 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
     else:
         heading = headings[0]; name = heading["value"]
         type_ref = cite("meta[property=og:type]", "product")
-    descriptions = [e for e in parser.entries if e["tag"] == "p" and
-                    (e["in_main"] or e["attrs"].get("itemprop") == "description") and len(e["value"]) >= 15]
-    features = [e for e in parser.entries if e["tag"] == "li" and e["in_main"]][:8]
+    # A page-wide main/article is not product ownership. Only explicit visible
+    # microdata properties in the heading's own Product scope can supply facts.
+    scope = heading["scope"] if "name" in heading["attrs"].get("itemprop", "").split() and any(
+        t in ("https://schema.org/Product", "http://schema.org/Product") for t in heading["scope_type"]) else None
+    scoped_names = {e["value"] for e in parser.entries if e["scope"] == scope and "name" in e["attrs"].get("itemprop", "").split()}
+    if scoped_names != {name}:
+        scope = None
+    def owned(entry, prop):
+        return scope is not None and not entry.get("mixed_scope") and entry["scope"] == scope and prop in entry["attrs"].get("itemprop", "").split()
+    descriptions = [e for e in parser.entries if e["tag"] == "p" and owned(e, "description") and len(e["value"]) >= 15]
+    # Conflicting descriptions cannot be resolved by taking the first paragraph.
+    if len({e["value"] for e in descriptions}) != 1:
+        descriptions = []
+    features = [e for e in parser.entries if e["tag"] == "li" and owned(e, "additionalProperty")][:8]
     facts = {"product_name": fact(name, heading["locator"]),
              "title": fact(page.title, "title"), "meta_description": fact(page.meta_description, 'meta[name=description]'),
              "description": fact(descriptions[0]["value"], descriptions[0]["locator"]) if descriptions else None,
              "features": [fact(e["value"], e["locator"]) for e in features]}
+    for item in [facts["description"], *facts["features"]]:
+        if item:
+            item["product_scope"] = {"locator": scope, "name_locator": heading["locator"], "product_name": name}
+            item["citations"] += facts["product_name"]["citations"]
     known_use = [e for e in descriptions if e["attrs"].get("data-product-usage") is not None]
     facts["use"] = fact(known_use[0]["value"], known_use[0]["locator"]) if known_use else None
     missing = [key for key in ("title", "meta_description", "description", "use") if not facts[key]]
+    if not features: missing.append("features")
+    if not descriptions: missing.append("No unambiguous public description bound to the target product; provide a product-scoped source.")
     missing += ["specifications", "price", "certifications", "performance", "comparisons", "guarantees"]
     result = {"snapshot": snapshot, "page_type": "product", "facts": facts,
               "inferences": [{"kind": "inference", "value": "Supported single product page",

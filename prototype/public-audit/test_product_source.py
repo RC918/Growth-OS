@@ -12,6 +12,9 @@ PRODUCT = b'''<html><head><title>Workshop - Bolt A | Shop</title><meta name="des
 <script type="application/ld+json">{"@type":"Product","name":"Bolt A","price":"FAKE","description":"UNSUPPORTED SECRET CLAIM"}</script>
 </head><body><main><h1>Bolt A</h1><p>Public steel bolt for workshop assembly.</p>
 <ul><li>Hexagonal head</li><li>Reusable package</li></ul></main></body></html>'''
+# Explicit product ownership for the supported single-product fixture.
+PRODUCT = PRODUCT.replace(b'<main>', b'<main itemscope itemtype="https://schema.org/Product">').replace(b'<h1>', b'<h1 itemprop="name">').replace(b'<p>', b'<p itemprop="description">').replace(b'<li>', b'<li itemprop="additionalProperty">')
+MIXED_PRODUCT = PRODUCT.replace(b'<h1 itemprop="name">', b'<p>Free delivery on orders over fifty dollars.</p><ul><li>Free returns forever</li></ul><h1 itemprop="name">').replace(b'</main>', b'<aside><p itemprop="description">Other drill offers a powerful motor.</p><li itemprop="additionalProperty">900 watt motor</li></aside><section itemscope itemtype="https://schema.org/Product"><h2 itemprop="name">Drill B</h2><p itemprop="description">Other drill for professional projects.</p><li itemprop="additionalProperty">1200 watt motor</li></section></main>')
 def fixture(url):
     if url.endswith('/robots.txt'): return 200, {'content-type':'text/plain'}, b'User-agent: *\nAllow: /\n'
     return 200, {'content-type':'text/html'}, PRODUCT
@@ -39,6 +42,44 @@ class ProductTests(unittest.TestCase):
         self.assertIn('price',r['missing']);self.assertFalse(r['preview']['published'])
         self.assertNotIn('FAKE',json.dumps(r['facts']));self.assertNotIn('UNSUPPORTED SECRET',json.dumps(r['facts']))
 
+    def test_mixed_content_is_not_target_product_fact(self):
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},MIXED_PRODUCT))
+        self.assertEqual(r['facts']['description']['value'],'Public steel bolt for workshop assembly.')
+        self.assertEqual([f['value'] for f in r['facts']['features']],['Hexagonal head','Reusable package'])
+        self.assertIsNotNone(r['preview'])
+        for fact in [r['facts']['description'], *r['facts']['features']]:
+            self.assertEqual(fact['product_scope']['product_name'],'Bolt A')
+            self.assertTrue(set(r['facts']['product_name']['citations']).issubset(fact['citations']))
+        for text in ['Free delivery','Free returns','900 watt','1200 watt','Other drill']:
+            self.assertNotIn(text,json.dumps(r['facts']))
+            self.assertNotIn(text,json.dumps(r['preview']))
+
+    def test_unmarked_features_are_unknown_not_guessed(self):
+        body=PRODUCT.replace(b' itemprop="additionalProperty"',b'')
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+        self.assertIsNotNone(r['preview'])
+        self.assertEqual(r['facts']['features'],[])
+        self.assertIn('features',r['missing'])
+        self.assertNotIn('Hexagonal head',r['preview']['fields']['description']['suggested'])
+
+    def test_unscoped_and_ambiguous_product_content_degrades(self):
+        bodies = [
+            PRODUCT.replace(b' itemscope itemtype="https://schema.org/Product"',b''),
+            PRODUCT.replace(b'<p itemprop="description">',b'<p>'),
+            PRODUCT.replace(b'</main>',b'<h2 itemprop="name">Drill B</h2></main>'),
+            PRODUCT.replace(b'Public steel bolt for workshop assembly.',b'Public steel bolt <span itemscope itemtype="https://schema.org/Product">other drill claim</span> for assembly.'),
+            PRODUCT.replace(b'</main>',b'<p itemprop="description">Conflicting description for another purpose.</p></main>'),
+        ]
+        for body in bodies:
+            with self.subTest(body=body):
+                r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+                self.assertIsNone(r['preview'])
+                self.assertIsNone(r['facts']['description'])
+                self.assertIn('description',r['missing'])
+        body=PRODUCT.replace(b'</main>',b'<h1>Drill B</h1><p>Other drill for professional projects.</p></main>')
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+        self.assertIsNone(r['preview']); self.assertFalse(r['facts'])
+
     def test_redirect_and_final_source(self):
         calls=[]
         def redirected(url):
@@ -59,13 +100,13 @@ class ProductTests(unittest.TestCase):
         self.assertFalse(empty['facts']);self.assertIsNone(empty['preview']);self.assertTrue(empty['missing'])
 
     def test_schema_mismatch_and_multiple_products_are_not_fact(self):
-        for body in [PRODUCT.replace(b'<h1>Bolt A</h1>',b'<h1>Something else</h1>'),
+        for body in [PRODUCT.replace(b'<h1 itemprop="name">Bolt A</h1>',b'<h1>Something else</h1>'),
                      PRODUCT.replace(b'</main>',b'<h1>Bolt B</h1></main>').replace(b'</head>',b'<script type="application/ld+json">{"@type":"Product","name":"Bolt B"}</script></head>')]:
             r=build_snapshot('https://example.com/products/x',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
             self.assertIsNone(r['preview']);self.assertFalse(r['facts'])
 
     def test_missing_description_does_not_fake_useful_result(self):
-        body=PRODUCT.replace(b'<p>Public steel bolt for workshop assembly.</p>',b'')
+        body=PRODUCT.replace(b'<p itemprop="description">Public steel bolt for workshop assembly.</p>',b'')
         r=build_snapshot('https://example.com/products/x',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
         self.assertEqual(r['page_type'],'product');self.assertIn('description',r['missing']);self.assertIsNone(r['preview'])
 
@@ -99,7 +140,7 @@ class ProductTests(unittest.TestCase):
     def test_restricted_and_non_html(self):
         for status,headers,body,code in [(401,{},b'', 'restricted_content'),(403,{},b'', 'restricted_content'),
           (200,{'content-type':'application/pdf'},b'pdf','not_html'),
-          (200,{'content-type':'text/html'},PRODUCT.replace(b'<main>',b'<input type="password"><main>'),'restricted_content')]:
+          (200,{'content-type':'text/html'},PRODUCT.replace(b'<body>',b'<body><input type="password">'),'restricted_content')]:
             def custom(url):return fixture(url) if url.endswith('robots.txt') else (status,headers,body)
             with self.subTest(code=code),self.assertRaises(ScanError) as e:build_snapshot('https://example.com/products/a',custom)
             self.assertEqual(e.exception.code,code)

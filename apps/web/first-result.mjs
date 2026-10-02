@@ -9,7 +9,7 @@ function render(r){
  current=r;$('source-fallback').replaceChildren();
  if(!r.preview){
   const box=$('source-fallback');box.append(node('h2',r.page_type==='product'?'還缺必要的公開描述':'請選擇要改善的產品頁'));
-  box.append(node('p',r.page_type==='product'?'已找到產品名稱，但沒有可支持的描述。請提供有公開描述的產品網址；不會產出占位文本。':'尚不能可靠辨識單一產品。只在這個缺口請你選擇產品；以下候選尚未驗證。'));
+  box.append(node('p',r.page_type==='product'?'已找到產品名稱，但無法將公開描述明確歸屬於此產品，或存在多份矛盾描述。請提供具明確產品名稱與描述的產品頁；不會借用配送或其他商品文字。':'尚不能可靠辨識單一產品。只在這個缺口請你選擇產品；以下候選尚未驗證。'));
   for(const candidate of r.inferences.filter(v=>v.url)){const b=node('button','使用候選：'+candidate.label);b.type='button';b.addEventListener('click',()=>{$('source-url').value=candidate.url;$('source-form').requestSubmit();});box.append(b,node('p',candidate.url));}
   report('尚未產生成果；網址保留，請選產品候選或改用公開產品頁。');return;
  }

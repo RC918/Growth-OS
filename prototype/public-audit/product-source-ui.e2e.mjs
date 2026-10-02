@@ -10,7 +10,7 @@ const server=spawn('python3',['-B','prototype/public-audit/product_ui_fixture.py
 let browser;
 try{
  const port=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Fixture HTTP server did not start')),10000);server.stdout.once('data',data=>{clearTimeout(timer);resolve(Number(data.toString().trim()));});server.once('exit',code=>{clearTimeout(timer);reject(Error('Fixture server exited '+code));});});
- const origin='http://127.0.0.1:'+port;browser=await chromium.launch({headless:true});
+ const origin='http://127.0.0.1:'+port;browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{})});
  for(const width of [1280,390]){
  server.kill('SIGUSR1'); // Separate viewport cases start with a fresh test-only rate window.
  const context=await browser.newContext({viewport:{width,height:844},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true,serviceWorkers:'block'}),page=await context.newPage(),remote=[],errors=[];
@@ -32,6 +32,12 @@ try{
   await submit(path);assert.equal(await input.inputValue(),'https://example.com'+path);assert.match(await page.locator('#source-feedback').innerText(),new RegExp(text));assert.equal(await page.locator('#result-section').isVisible(),false);
  }
  await submit('/catalog');await page.getByRole('button',{name:'使用候選：Bolt A'}).click();await page.locator('#source-submit:not([disabled])').waitFor();assert.equal(await input.inputValue(),'https://example.com/products/bolt');assert.equal(await page.locator('#result-section').isVisible(),true);
+ server.kill('SIGUSR1');
+ await submit('/mixed');assert.equal(await page.locator('#result-section').isVisible(),true);
+ assert.match(await page.locator('#result-fields').innerText(),/Public steel bolt/);
+ assert.doesNotMatch(await page.locator('#result-fields').innerText(),/Free delivery|Free returns|900 watt|1200 watt|Other drill/);
+ await submit('/unscoped');assert.equal(await page.locator('#result-section').isVisible(),false);assert.match(await page.locator('#source-fallback').innerText(),/無法將公開描述明確歸屬/);
+ await submit('/multiple');assert.equal(await page.locator('#result-section').isVisible(),false);assert.match(await page.locator('#source-fallback').innerText(),/選擇/);
  await input.fill('not-a-url');await page.getByRole('button',{name:'取得第一份成果',exact:true}).click();assert.equal(await input.inputValue(),'not-a-url');assert.equal(await input.evaluate(e=>e.checkValidity()),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(await page.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
  assert.equal(await page.getByText('已發布',{exact:true}).count(),0);
