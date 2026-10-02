@@ -59,3 +59,20 @@ SQLite 只在本機／serverless /tmp 暫存，最多 100 筆；不是 tenant DB
 Follow-up security regression: malformed candidate URL no longer hides valid candidates; HTML depth <=128, elements <=20000 and per-element captured text <=2000. Both added cases PASS; parser-limit recovery also checked on desktop/mobile. First slice 3bb7245 same-head CI runs 36990198565 / 36990203644 and Preview checks PASS. Preview HTTP redirects to Vercel SSO; cloud UI/POST runtime is not verified and no login bypass was attempted.
 
 SSRF follow-up: Azure host-platform virtual address 168.63.129.16 and IPv4-mapped variants are explicitly blocked, in addition to all non-global or mixed public/private DNS answers. Regression reproduced before correction and passes afterwards. [Platform IP documentation](https://learn.microsoft.com/en-us/azure/virtual-network/what-is-ip-address-168-63-129-16). No actual platform endpoint was contacted.
+
+## HTTP parsing deadline follow-up (2026-10-02)
+
+Baseline: `6663b7f2fb01dab383c1dd5faa5cdeb82d3ee4ad`. Parent independently reported push CI 36991068476 (literal checkout), PR CI 36991073075 (merge ref), 24 scanner/API tests, 1280/390 URL-source E2E and Preview Ready at that baseline. These are not checks for this follow-up commit.
+
+Reproduced with the real Python HTTPResponse parser over local socket pairs, without external requests: at a shortened 0.2-second request deadline, status-line/header/chunk-header trickles returned only after approximately 1.01/1.13/0.72 seconds. Each byte arrived before the socket inactivity timeout, so internal parser reads exceeded the shared deadline.
+
+The response socket file now applies the remaining absolute request deadline at every underlying read. HTTP parsing stays in the standard library. Explicit response cleanup also covers responses whose Connection: close transfers socket ownership away from the connection; the captured response socket remains available for body timeout updates.
+
+Validation: `python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py` — **26 tests PASS**. New socket-pair coverage includes status/header/chunk-header trickle (each returns timeout below a 0.6-second scheduling tolerance for the 0.2-second configured deadline) and normal content-length/chunked/connection-close bodies, with socket closure checks. Existing DNS, pinned peer/TLS name, body trickle, SSRF, redirect, parser, snapshot/API tests remain PASS. `git diff --check` PASS. No UI changes; prior desktop/mobile evidence is retained, not represented as a new run. No model/ledger, login, cloud-runtime, production or live-product validation was performed.
+
+Remaining reproduced issues, outside this transport slice:
+
+- A fixture with a delivery paragraph preceding the product description and an unrelated drill feature inside main/aside selected delivery as the description and the drill's 900-watt claim as a product feature. Product identity matching does not establish ownership of every main/article paragraph/list item. Next product-quality slice should require product-specific evidence and degrade safely when ambiguous.
+- A temporary SQLite fixture filled with 100 snapshots still rejected the next snapshot with `snapshot_capacity` after JSON export; all 100 rows remained. UI code clears the current result on submit/input before the new request succeeds. Export does not reclaim capacity; no recovery path has been validated. Preserve recoverable results and define bounded cache lifecycle without deleting production data.
+
+PR #19 API previously returned Forbidden. Do not retry or bypass; parent must update the PR description and independently verify checks for the new head. Cross-login persistence, SSO runtime interaction, real product quality, Review/Publish/Measure and pilot acceptance remain open.

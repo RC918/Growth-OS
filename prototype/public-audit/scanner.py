@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import http.client
+import io
 import ipaddress
 import socket
 import ssl
@@ -81,6 +82,37 @@ def resolve_public(host: str) -> list[str]:
     return addresses
 
 
+class DeadlineReader(io.RawIOBase):
+    """Apply the same absolute deadline to every HTTP parser socket read."""
+    def __init__(self, sock, remaining):
+        self.sock = sock
+        self.remaining = remaining
+        self.raw = sock.makefile("rb", buffering=0)
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        self.sock.settimeout(self.remaining())
+        return self.raw.readinto(buffer)
+
+    def close(self):
+        try:
+            self.raw.close()
+        finally:
+            super().close()
+
+
+class DeadlineSocket:
+    # HTTPResponse only needs makefile; retain normal socket-file ownership.
+    def __init__(self, sock, remaining):
+        self.sock = sock
+        self.remaining = remaining
+
+    def makefile(self, mode):
+        return io.BufferedReader(DeadlineReader(self.sock, self.remaining))
+
+
 class PinnedHTTPSConnection(http.client.HTTPSConnection):
     def __init__(self, host: str, ip: str):
         super().__init__(host, port=443, timeout=TIMEOUT, context=ssl.create_default_context())
@@ -108,19 +140,23 @@ def fetch_once(url: str) -> tuple[int, dict[str, str], bytes]:
         left = deadline - time.monotonic()
         if left <= 0: raise ScanError("timeout", "The public request exceeded its deadline.")
         return left
+    conn.response_class = lambda sock, **kwargs: http.client.HTTPResponse(
+        DeadlineSocket(sock, remaining), **kwargs)
+    response = None
     try:
         conn.timeout = remaining()
         path = urlunsplit(("", "", u.path or "/", u.query, ""))
         conn.request("GET", path, headers={"Host": u.hostname, "User-Agent": USER_AGENT,
                                            "Accept": "text/html,text/plain;q=0.8", "Accept-Encoding": "identity"})
-        conn.sock.settimeout(remaining())
+        response_sock = conn.sock
+        response_sock.settimeout(remaining())
         response = conn.getresponse()
         headers = {k.lower(): v for k, v in response.getheaders()}
         if response.length is not None and response.length > MAX_BYTES:
             raise ScanError("too_large", "The page exceeds the scan size limit.")
         chunks, size = [], 0
         while True:
-            conn.sock.settimeout(remaining())
+            response_sock.settimeout(remaining())
             chunk = response.read1(min(65536, MAX_BYTES + 1 - size))
             if not chunk: break
             size += len(chunk)
@@ -133,6 +169,8 @@ def fetch_once(url: str) -> tuple[int, dict[str, str], bytes]:
     except (OSError, ssl.SSLError, http.client.HTTPException) as exc:
         raise ScanError("fetch_failed", "The public page could not be retrieved.") from exc
     finally:
+        if response is not None:
+            response.close()
         conn.close()
 
 

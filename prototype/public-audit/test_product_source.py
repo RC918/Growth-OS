@@ -1,6 +1,8 @@
 import hashlib
 import json
 import socket
+import threading
+import time
 import unittest
 from unittest.mock import patch, MagicMock
 from product_source import build_snapshot, product_url
@@ -146,6 +148,69 @@ class TransportTests(unittest.TestCase):
         with patch('scanner.resolve_public',return_value=['93.184.216.34']),patch('scanner.PinnedHTTPSConnection',return_value=c),patch('scanner.time.monotonic',side_effect=[0,1,2,3,6]):
             with self.assertRaises(ScanError) as e:fetch_once('https://example.com/x')
             self.assertEqual(e.exception.code,'timeout')
+
+    def test_wire_deadline_covers_status_headers_and_chunk_headers(self):
+        # Real HTTPResponse parser and local sockets, without external requests.
+        for prefix, tail in [
+            (b'HTTP/1.1 200 ', b'OK\r\nContent-Length: 0\r\n\r\n'),
+            (b'HTTP/1.1 200 OK\r\nX-Slow: ', b'value\r\nContent-Length: 0\r\n\r\n'),
+            (b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n1;', b'extension=value\r\nx\r\n0\r\n\r\n'),
+        ]:
+            with self.subTest(prefix=prefix):
+                client, server = socket.socketpair()
+                stop = threading.Event()
+                conn = PinnedHTTPSConnection('example.com', '93.184.216.34')
+                def connect(): conn.sock = client
+                conn.connect = connect
+                def serve():
+                    try:
+                        server.recv(4096)
+                        server.sendall(prefix)
+                        for byte in tail:
+                            if stop.wait(0.04): break
+                            server.sendall(bytes([byte]))
+                    except OSError:
+                        pass
+                    finally:
+                        server.close()
+                worker = threading.Thread(target=serve)
+                worker.start()
+                started = time.monotonic()
+                try:
+                    with patch('scanner.TIMEOUT', 0.2), patch('scanner.resolve_public', return_value=['93.184.216.34']), patch('scanner.PinnedHTTPSConnection', return_value=conn):
+                        with self.assertRaises(ScanError) as error:
+                            fetch_once('https://example.com/product')
+                    self.assertEqual(error.exception.code, 'timeout')
+                    self.assertLess(time.monotonic() - started, 0.6)
+                finally:
+                    stop.set()
+                    conn.close()
+                    client.close()
+                    worker.join(timeout=1)
+                self.assertFalse(worker.is_alive())
+
+    def test_wire_normal_responses_and_connection_close(self):
+        for wire in [
+            b'HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello',
+            b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n',
+            b'HTTP/1.1 200 OK\r\nConnection: close\r\n\r\nhello',
+        ]:
+            with self.subTest(wire=wire):
+                client, server = socket.socketpair()
+                conn = PinnedHTTPSConnection('example.com', '93.184.216.34')
+                def connect(): conn.sock = client
+                conn.connect = connect
+                server.sendall(wire)
+                server.shutdown(socket.SHUT_WR)
+                try:
+                    with patch('scanner.resolve_public', return_value=['93.184.216.34']), patch('scanner.PinnedHTTPSConnection', return_value=conn):
+                        status, _, body = fetch_once('https://example.com/product')
+                    self.assertEqual((status, body), (200, b'hello'))
+                    self.assertEqual(client.fileno(), -1)
+                finally:
+                    conn.close()
+                    client.close()
+                    server.close()
 
     def test_peer_mismatch_and_tls_name(self):
         conn=PinnedHTTPSConnection('example.com','93.184.216.34')
