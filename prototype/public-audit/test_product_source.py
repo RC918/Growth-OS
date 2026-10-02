@@ -149,6 +149,87 @@ class TransportTests(unittest.TestCase):
             with self.assertRaises(ScanError) as e:fetch_once('https://example.com/x')
             self.assertEqual(e.exception.code,'timeout')
 
+    def test_connect_tls_send_share_absolute_deadline(self):
+        # Keep real connect/request/send orchestration; emulate only socket I/O.
+        for delays, expected in [((2, 2, 2), 'timeout'), ((1, 5, 0), 'timeout'),
+                                 ((6, 0, 0), 'timeout'), ((1, 1, 5), 'timeout'),
+                                 ((1, 1, 1), 'ok')]:
+            with self.subTest(delays=delays):
+                now = [0.0]
+                budgets = []
+                raw, tls = MagicMock(), MagicMock()
+                raw.getpeername.return_value = ('93.184.216.34', 443)
+                for sock in (raw, tls):
+                    sock.budget = 5
+                    sock.settimeout.side_effect = lambda value, sock=sock: setattr(sock, 'budget', value)
+                def phase(name, delay, budget):
+                    budgets.append((name, budget))
+                    now[0] += min(delay, budget)
+                    if delay >= budget: raise socket.timeout()
+                def tcp(address, timeout):
+                    phase('tcp', delays[0], timeout)
+                    raw.budget = timeout
+                    return raw
+                def handshake(sock, server_hostname):
+                    phase('tls', delays[1], sock.budget)
+                    tls.budget = sock.budget
+                    return tls
+                def send(data): phase('send', delays[2], tls.budget)
+                tls.sendall.side_effect = send
+                conn = PinnedHTTPSConnection('example.com', '93.184.216.34')
+                conn._context = MagicMock()
+                conn._context.wrap_socket.side_effect = handshake
+                response = MagicMock()
+                response.length = 0; response.status = 200
+                response.getheaders.return_value = []; response.read1.return_value = b''
+                conn.getresponse = MagicMock(return_value=response)
+                with patch('scanner.time.monotonic', side_effect=lambda: now[0]), patch('scanner.resolve_public', return_value=['93.184.216.34']), patch('scanner.socket.create_connection', side_effect=tcp), patch('scanner.PinnedHTTPSConnection', return_value=conn):
+                    if expected == 'timeout':
+                        with self.assertRaises(ScanError) as error: fetch_once('https://example.com/product')
+                        self.assertEqual(error.exception.code, 'timeout')
+                    else:
+                        self.assertEqual(fetch_once('https://example.com/product'), (200, {}, b''))
+                self.assertLessEqual(now[0], 5, budgets)
+                if delays[0] < 5:
+                    if delays[0] + delays[1] >= 5: raw.close.assert_called()
+                    else: tls.close.assert_called()
+                if expected == 'ok':
+                    self.assertEqual(budgets, [('tcp', 5), ('tls', 4), ('send', 3)])
+                    conn._context.wrap_socket.assert_called_once_with(raw, server_hostname='example.com')
+                    response.close.assert_called()
+
+    def test_real_tls_stall_uses_time_remaining_after_tcp(self):
+        # A local TCP peer never answers TLS. Exercise real wrap_socket/handshake.
+        listener = socket.socket()
+        listener.bind(('127.0.0.1', 0)); listener.listen(1)
+        stop = threading.Event()
+        def serve():
+            peer, _ = listener.accept()
+            try: stop.wait(1)
+            finally: peer.close()
+        worker = threading.Thread(target=serve)
+        worker.start()
+        create = socket.create_connection
+        sockets = []
+        def tcp(address, timeout):
+            time.sleep(0.15)
+            sock = create(listener.getsockname(), timeout=timeout)
+            sockets.append(sock)
+            return sock
+        conn = PinnedHTTPSConnection('example.com', '127.0.0.1')
+        started = time.monotonic()
+        try:
+            with patch('scanner.TIMEOUT', 0.3), patch('scanner.resolve_public', return_value=['93.184.216.34']), patch('scanner.socket.create_connection', side_effect=tcp), patch('scanner.PinnedHTTPSConnection', return_value=conn):
+                with self.assertRaises(ScanError) as error: fetch_once('https://example.com/product')
+            self.assertEqual(error.exception.code, 'timeout')
+            self.assertLess(time.monotonic() - started, 0.42)
+            self.assertTrue(sockets)
+            self.assertTrue(all(sock.fileno() == -1 for sock in sockets))
+            self.assertIsNone(conn.sock)
+        finally:
+            stop.set(); conn.close(); listener.close(); worker.join(timeout=1)
+        self.assertFalse(worker.is_alive())
+
     def test_wire_deadline_covers_status_headers_and_chunk_headers(self):
         # Real HTTPResponse parser and local sockets, without external requests.
         for prefix, tail in [

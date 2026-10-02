@@ -117,18 +117,33 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
     def __init__(self, host: str, ip: str):
         super().__init__(host, port=443, timeout=TIMEOUT, context=ssl.create_default_context())
         self.pinned_ip = ip
+        self.remaining = lambda: self.timeout
 
     def connect(self):
         # DNS is checked before each request; connect to that exact address while
         # preserving TLS SNI and hostname certificate verification.
-        sock = socket.create_connection((self.pinned_ip, 443), timeout=self.timeout)
+        sock = socket.create_connection((self.pinned_ip, 443), timeout=self.remaining())
         try:
             if ipaddress.ip_address(sock.getpeername()[0]) != ipaddress.ip_address(self.pinned_ip):
                 raise ScanError("peer_mismatch", "Connected address differs from the validated target.")
+            sock.settimeout(self.remaining())
             self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+            self.sock.settimeout(self.remaining())
         except Exception:
+            if self.sock is not None:
+                self.sock.close()
+                self.sock = None
             sock.close()
             raise
+
+    def send(self, data):
+        # HTTPConnection.send may connect implicitly. Connect first so TLS time
+        # is deducted before sendall starts its own total-operation timeout.
+        if self.sock is None:
+            self.connect()
+        self.sock.settimeout(self.remaining())
+        super().send(data)
+        self.remaining()
 
 
 def fetch_once(url: str) -> tuple[int, dict[str, str], bytes]:
@@ -140,6 +155,7 @@ def fetch_once(url: str) -> tuple[int, dict[str, str], bytes]:
         left = deadline - time.monotonic()
         if left <= 0: raise ScanError("timeout", "The public request exceeded its deadline.")
         return left
+    conn.remaining = remaining
     conn.response_class = lambda sock, **kwargs: http.client.HTTPResponse(
         DeadlineSocket(sock, remaining), **kwargs)
     response = None

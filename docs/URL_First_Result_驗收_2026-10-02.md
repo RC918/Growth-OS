@@ -76,3 +76,15 @@ Remaining reproduced issues, outside this transport slice:
 - A temporary SQLite fixture filled with 100 snapshots still rejected the next snapshot with `snapshot_capacity` after JSON export; all 100 rows remained. UI code clears the current result on submit/input before the new request succeeds. Export does not reclaim capacity; no recovery path has been validated. Preserve recoverable results and define bounded cache lifecycle without deleting production data.
 
 PR #19 API previously returned Forbidden. Do not retry or bypass; parent must update the PR description and independently verify checks for the new head. Cross-login persistence, SSO runtime interaction, real product quality, Review/Publish/Measure and pilot acceptance remain open.
+
+## TCP / TLS / send deadline follow-up (2026-10-02)
+
+Parent independently accepted `1ec65b42e7b1aa3cc7f8c1462d3d8c5028973af1`: push CI 37032327865 (literal head), PR CI 37032335907 (merge ref), 26 scanner/API tests and fresh 1280/390 URL E2E PASS; parent synchronized PR #19. Those checks apply to the preceding parser fix, not this follow-up.
+
+Reproduction kept the actual PinnedHTTPSConnection connect/request/send orchestration and replaced only socket I/O with operations that consume their configured timeout against a controlled clock. TCP/TLS/send delays of 2/2/2 seconds consumed 6 seconds; 1/5/0 consumed 6 seconds; 1/1/5 consumed 7 seconds against the 5-second deadline. All stages incorrectly reused a 5-second budget. A normal 1/1/1 case also exposed the unchanged TLS/send budgets.
+
+Fix: bind the fetch's existing remaining-time callback to the pinned connection; recompute before TCP, before and after TLS wrapping, and before/after request send. Explicitly connect before inherited send so handshake time is deducted from sendall's operation timeout. On handshake/setup failure close the raw socket and any assigned TLS socket. DNS/peer/SNI validation and HTTP parser behavior remain intact.
+
+Validation: **28 scanner/API tests PASS** with the existing four-module unittest command. New phase test covers TCP, TLS and send timeouts, combined elapsed <=5 seconds, successful TLS/send with budgets 5/4/3, hostname forwarding and resource cleanup. A real local TLS handshake stalled after a delayed TCP phase also times out within 0.42 seconds for a configured 0.3-second deadline (0.15-second injected TCP delay), closing its socket; this uses no external requests, credentials or certificates. Normal TLS completion is exercised with a controlled SSL context, not claimed as a real external TLS acceptance. Existing real HTTP parser/body and connection-close tests remain PASS. `git diff --check` PASS.
+
+This commit is restricted to the transport deadline. Product-fact ownership and snapshot-capacity recovery remain queued for separate slices after independent acceptance. New-head CI/Preview and PR description synchronization remain with the parent; no PR API retry, model/ledger run, login, production or publishing action.
