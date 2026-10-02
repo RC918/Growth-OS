@@ -44,3 +44,14 @@
 ## 最小下一步
 
 先在**已授權且具既有安全外連能力**的 Preview 完成一次同路徑 robots→商品讀取，取得第一個真頁分類證據；仍無支援頁就明確記錄 coverage gap。只有取得內容後證實屬普通 scope bug，才轉成最小合成 fixture 修復。當前沒有足以支持 parser 擴張的 live 證據，不新增模型／架構，也不解除現有安全邊界。容量生命週期與跨登入保存不屬這次品質評估。
+
+## 父提供的受限 Preview 觀察（後續證據）
+
+Owner 另批准父提交 Books to Scrape／ScrapeMe 兩個指定 URL 各一次，最多 2 筆暫存。父回報已於 17:37 核對 GitHub HEAD `3ad934a23afb5c54ba7fbe5242da063268fd212f`、deployment `GQKPriANVwhGWtoickXj2s8rCdZa` 與固定分支 alias 一致，瀏覽器可直接載入／提交，當次不需 SSO 登入。這更新了前文「尚未進行 cloud 互動」的時間點；不表示移除部署保護或未來都不需 SSO。
+
+- 17:39 Books to Scrape：UI 顯示無法核對 robots、已停止；網址保留。
+- 17:40 ScrapeMe Bulbasaur：UI 顯示已找到名稱但無法歸屬必要公開描述，沒有產生可用成果。
+- 以上時刻依父回報，未另提供時區或逐請求部署 response metadata；版本證據是提交前的 GitHub deployment/alias 映射。分支 alias 可移動，不能視為每個 request 的 immutable SHA 證明。
+- 兩次提交／UI 安全 fallback 有實際證據；snapshot 寫入數沒有直接讀 DB，**不能記為 0**。本輪 agent 沒有追加 live POST 或重抓任何相關域名。
+
+父另以唯讀 DOM 觀察確認 ScrapeMe 的 `main#main` → `div#product-759.product.type-product` → `div.summary.entry-summary` → `h1.product_title.entry-title`，同產品的 `div.woocommerce-product-details__short-description` 與 `#tab-description` 含一致描述，related products 為另一區；沒有 Product microdata。此結構證據支持下方狹窄 parser 修復；未保存網站長文。真實可用成果品質仍未 PASS，修復後 live 重測須由父另處理授權。

@@ -15,6 +15,14 @@ PRODUCT = b'''<html><head><title>Workshop - Bolt A | Shop</title><meta name="des
 # Explicit product ownership for the supported single-product fixture.
 PRODUCT = PRODUCT.replace(b'<main>', b'<main itemscope itemtype="https://schema.org/Product">').replace(b'<h1>', b'<h1 itemprop="name">').replace(b'<p>', b'<p itemprop="description">').replace(b'<li>', b'<li itemprop="additionalProperty">')
 MIXED_PRODUCT = PRODUCT.replace(b'<h1 itemprop="name">', b'<p>Free delivery on orders over fifty dollars.</p><ul><li>Free returns forever</li></ul><h1 itemprop="name">').replace(b'</main>', b'<aside><p itemprop="description">Other drill offers a powerful motor.</p><li itemprop="additionalProperty">900 watt motor</li></aside><section itemscope itemtype="https://schema.org/Product"><h2 itemprop="name">Drill B</h2><p itemprop="description">Other drill for professional projects.</p><li itemprop="additionalProperty">1200 watt motor</li></section></main>')
+WOO_PRODUCT = b'''<html><head><title>Workshop Bolt A</title></head><body><main id="main">
+<div id="product-101" class="product type-product"><div class="summary entry-summary">
+<h1 class="product_title entry-title">Bolt A</h1><p>Free delivery for every order.</p>
+<div class="woocommerce-product-details__short-description"><p>Steel bolt for workshop assembly.</p></div>
+<ul><li>Shipping worldwide</li></ul></div>
+<div id="tab-description"><h2>Description</h2><p>Steel bolt for workshop assembly.</p></div>
+<section class="related products"><h2>Related products</h2><ul><li class="product"><h2>Drill B</h2><p>Powerful unrelated drill.</p></li></ul></section>
+</div></main></body></html>'''
 def fixture(url):
     if url.endswith('/robots.txt'): return 200, {'content-type':'text/plain'}, b'User-agent: *\nAllow: /\n'
     return 200, {'content-type':'text/html'}, PRODUCT
@@ -79,6 +87,49 @@ class ProductTests(unittest.TestCase):
         body=PRODUCT.replace(b'</main>',b'<h1>Drill B</h1><p>Other drill for professional projects.</p></main>')
         r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
         self.assertIsNone(r['preview']); self.assertFalse(r['facts'])
+
+    def test_woocommerce_scoped_description_and_duplicate_evidence(self):
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},WOO_PRODUCT))
+        self.assertIsNotNone(r['preview'])
+        self.assertEqual(r['facts']['product_name']['value'],'Bolt A')
+        self.assertEqual(r['facts']['description']['value'],'Steel bolt for workshop assembly.')
+        self.assertEqual(r['facts']['features'],[])
+        self.assertEqual(r['extraction']['method'],'woocommerce_single_product')
+        citations={c['id']:c for c in r['snapshot']['citations']}
+        for f in r['preview']['fields'].values():
+            self.assertTrue(f['suggested'])
+            for ref in f['citations']:
+                self.assertEqual(citations[ref]['source_version'],r['snapshot']['version'])
+        self.assertNotIn('delivery',json.dumps(r['facts']))
+        self.assertNotIn('Shipping',json.dumps(r['preview']))
+        self.assertNotIn('unrelated',json.dumps(r['preview']))
+        self.assertGreaterEqual(len(r['facts']['description']['citations']),3)
+
+    def test_woocommerce_excludes_recommendation_and_shipping_regions(self):
+        noisy=WOO_PRODUCT.replace(b'</div>\n<div id="tab-description">',b'<section class="shipping"><div class="woocommerce-product-details__short-description"><p>Free worldwide delivery guarantee.</p></div></section><section class="recommendations"><div id="tab-description"><p>Other product with a fast motor.</p></div></section></div>\n<div id="tab-description">')
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},noisy))
+        self.assertIsNotNone(r['preview'])
+        self.assertNotIn('Free worldwide delivery guarantee.',json.dumps(r['preview']))
+        self.assertNotIn('fast motor',json.dumps(r['preview']))
+        short_only=WOO_PRODUCT.replace(b'<div id="tab-description"><h2>Description</h2><p>Steel bolt for workshop assembly.</p></div>',b'')
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},short_only))
+        self.assertIsNotNone(r['preview'])
+
+    def test_woocommerce_ambiguity_and_missing_context_degrade(self):
+        for body in [
+            WOO_PRODUCT.replace(b'<p>Steel bolt for workshop assembly.</p></div>\n<section',b'<p>Different product description.</p></div>\n<section'),
+            WOO_PRODUCT.replace(b'id="product-101"',b'id="generic"'),
+            WOO_PRODUCT.replace(b'class="summary entry-summary"',b'class="generic"'),
+            WOO_PRODUCT.replace(b'</main>',b'<div id="product-202" class="product type-product"></div></main>'),
+            WOO_PRODUCT.replace(b'Steel bolt for workshop assembly.',b''),
+            WOO_PRODUCT.replace(b'Steel bolt for workshop assembly.',b'<span class="shipping">Free delivery for every order.</span>'),
+            WOO_PRODUCT.replace(b'<p>Steel bolt for workshop assembly.</p>',b'<div itemscope><p>Foreign product description only.</p></div>'),
+            WOO_PRODUCT.replace(b'</head>',b'<script type="application/ld+json">{"@type":"Product","name":"Drill B"}</script></head>'),
+            WOO_PRODUCT.replace(b'<h1 class="product_title entry-title">Bolt A</h1>',b'<h1>Unbound name</h1>'),
+        ]:
+            with self.subTest(body=body):
+                r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+                self.assertIsNone(r['preview'])
 
     def test_redirect_and_final_source(self):
         calls=[]

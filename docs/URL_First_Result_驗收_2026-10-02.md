@@ -126,3 +126,15 @@ Root cause confirmed by source and controlled real-browser experiment: [Chromium
 Correction is test-only: all exports share one helper; after every ten completed downloads it allows at least 1100 ms from the last observed event before activating the next export (the source's one-second reset plus margin). No event timeout increase, retries, synthetic download success or removed content checks. Each viewport explicitly asserts **12 actual downloads**, preserving keyboard activation, complete JSON equality, snapshot/version/original-byte hash, cancelled/late response and last-success checks. Product UI/API behavior is unchanged.
 
 Fresh local E2E after correction: **1280 PASS / 390 PASS**, 12 real downloads each, no remote/storage/errors/overflow, using the unchanged system Chromium override. `git diff --check` PASS. Existing 32 Python/API PASS evidence is unaffected by this test-only patch; new-head Chromium 145 CI remains for independent parent acceptance. This does not resolve storage capacity or change any production/publishing boundary.
+
+## 狹窄 WooCommerce 產品歸屬切片
+
+動機與 cloud 證據見[真頁品質評估增補](Public_Product_Quality_2026-10-02.md#父提供的受限-preview-觀察後續證據)。父的受限兩次 Preview 提交證實 UI／request／安全 fallback，未產生可用成果；snapshot 寫入數未知。修復前合成 WooCommerce fixture 無 preview（測試 FAIL），不以複製網站長文建立測試，也未追加 live requests。
+
+新增 `woocommerce_single_product` 路徑只接受：單一 `main#main` 內 `div#product-N.product.type-product`，直接 `div.summary.entry-summary`，唯一直接 `h1.product_title.entry-title`，及直接 `div.woocommerce-product-details__short-description`。描述僅取明確區塊內直接段落；若有同產品 `div#tab-description`，其段落必須與短描述完全一致。缺短描述、巢狀異 scope／混雜段落、不同描述、缺 summary/title/root、多目標、結構化名稱衝突皆不生成 WooCommerce preview。沒有退回任意 main 首段。related／recommendations／shipping 等區塊排除；WooCommerce 一般 list 不抽為 features。原 microdata 路徑及安全 transport 保留。
+
+正常支援頁可產出 title/meta/description，description 具兩個一致來源位置及產品名稱引用；`product_scope` 保留 root/name locator。結果新增 extraction.method／limitations，未解 scope 會明示 unresolved；這是來源陳述，不獨立核實，不宣稱支援所有 WooCommerce、所有 JSON-LD 或任意主題模板。短／長描述實際不同的常見頁型仍會安全降級。
+
+驗證：**35 scanner/API tests PASS**。新增合成測試涵蓋無 microdata 正常单品、兩處一致描述、僅短描述、來源版本／引用、配送／推薦排除、內嵌異 scope、矛盾描述／JSON-LD 名稱、多產品及缺目標結構。一次測試誤將 missing 欄位名稱 `guarantees` 當成污染字串，已改為檢查完整合成污染句；未改產品輸出來迎合斷言。
+
+**Fresh 1280/390 E2E PASS，各 13 次真下載**，新增 WooCommerce 本機 API→SQLite→parser→preview→keyboard Copy/Export，核對內容、方法、引用、來源版本与原 bytes hash；既有最後成功成果、取消／晚回覆與下載節奏斷言保留。`git diff --check` PASS。本機 Chromium 151；新 HEAD CI Chromium 145 待父獨立驗收。未登入、未 live POST／重抓指定域名、未模型呼叫或對外發布；未刪快照／改儲存架構。

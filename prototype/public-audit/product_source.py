@@ -19,6 +19,7 @@ class ProductParser(HTMLParser):
         self.stack, self.entries, self.scripts = [], [], []
         self.og_product = False
         self.counter = 0
+        self.nodes = []
 
     def handle_starttag(self, tag, attrs):
         if self.counter >= 20000 or len(self.stack) >= 128:
@@ -37,6 +38,14 @@ class ProductParser(HTMLParser):
         scope = entry if "itemscope" in attrs else parent_scope
         entry["scope"] = scope["locator"] if scope else None
         entry["scope_type"] = scope["attrs"].get("itemtype", "").split() if scope else []
+        entry["ancestors"] = tuple(e["locator"] for e in self.stack)
+        entry["parent"] = self.stack[-1]["locator"] if self.stack else None
+        excluded_classes = {"related", "upsells", "cross-sells", "recommendations", "shipping", "shipping-info", "delivery"}
+        entry["woo_excluded"] = blocked or bool(set(attrs.get("class", "").split()) & excluded_classes) or any(e["woo_excluded"] for e in self.stack)
+        if entry["woo_excluded"]:
+            for ancestor in self.stack:
+                if ancestor["tag"] == "p": ancestor["mixed_woo"] = True
+        self.nodes.append(entry)
         if tag == "meta" and attrs.get("property", "").lower() == "og:type":
             self.og_product = attrs.get("content", "").lower() in ("product", "og:product")
         if tag not in ("meta", "link", "input", "img", "br", "hr", "source", "area", "wbr", "embed"):
@@ -85,6 +94,39 @@ class ProductParser(HTMLParser):
                         found.append((clean(item["name"])[:200], index))
         return found
 
+def woocommerce_context(parser, headings):
+    """Narrow visible WooCommerce ownership, never a main/article text fallback."""
+    def classes(node): return set(node["attrs"].get("class", "").split())
+    mains = {n["locator"] for n in parser.nodes if n["tag"] == "main" and n["attrs"].get("id") == "main"}
+    roots = [n for n in parser.nodes if not n["woo_excluded"] and n["tag"] == "div"
+             and {"product", "type-product"} <= classes(n)
+             and re.fullmatch(r"product-\d+", n["attrs"].get("id", ""))
+             and mains.intersection(n["ancestors"])]
+    if len(roots) != 1 or len(headings) != 1: return None
+    root = roots[0]
+    summaries = [n for n in parser.nodes if not n["woo_excluded"] and n["tag"] == "div"
+                 and n["parent"] == root["locator"] and {"summary", "entry-summary"} <= classes(n)]
+    if len(summaries) != 1: return None
+    summary = summaries[0]; heading = headings[0]
+    if heading["parent"] != summary["locator"] or not {"product_title", "entry-title"} <= classes(heading): return None
+    short = [n for n in parser.nodes if not n["woo_excluded"] and n["tag"] == "div"
+             and n["parent"] == summary["locator"] and "woocommerce-product-details__short-description" in classes(n)]
+    tabs = [n for n in parser.nodes if not n["woo_excluded"] and n["tag"] == "div"
+            and n["attrs"].get("id") == "tab-description" and root["locator"] in n["ancestors"]]
+    descriptions = []
+    if len(short) == 1 and len(tabs) <= 1:
+        for region in short + tabs:
+            paragraphs = [e for e in parser.entries if e["tag"] == "p" and region["locator"] in e["ancestors"]]
+            # Do not salvage part of a marked description with mixed ownership.
+            if not paragraphs or any(e["woo_excluded"] or e["parent"] != region["locator"] or e["scope"] != heading["scope"] or e.get("mixed_scope") or e.get("mixed_woo") for e in paragraphs):
+                descriptions = []; break
+            text = clean(" ".join(e["value"] for e in paragraphs))
+            if not 15 <= len(text) <= 2000:
+                descriptions = []; break
+            descriptions.append({"value": text, "locator": region["locator"], "attrs": {}})
+        if len({e["value"] for e in descriptions}) != 1: descriptions = []
+    return {"root": root, "heading": heading, "descriptions": descriptions}
+
 def product_url(raw):
     value = normalize_url(raw)
     if urlsplit(raw.strip()).query:
@@ -117,7 +159,9 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
     products = parser.products()
     matches = [(name, index, h) for name, index in products for h in headings if name == h["value"]]
     distinct = {m[0] for m in matches}
-    supported = len(headings) == 1 and (len(distinct) == 1 or (not products and parser.og_product))
+    woo = woocommerce_context(parser, headings)
+    if woo and products and {name for name, _ in products} != {headings[0]["value"]}: woo = None
+    supported = bool(woo) or len(headings) == 1 and (len(distinct) == 1 or (not products and parser.og_product))
     if not supported:
         candidates = []
         for e in parser.entries:
@@ -135,7 +179,10 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
         return {"snapshot": snapshot, "page_type": "not_supported_product", "facts": {}, "inferences": candidates,
                 "missing": ["Choose a product page" if candidates else "Provide a public product page or its public description"],
                 "preview": None}
-    if matches:
+    if woo:
+        heading = woo["heading"]; name = heading["value"]
+        type_ref = cite(woo["root"]["locator"] + "@class", woo["root"]["attrs"]["class"])
+    elif matches:
         name, script_index, heading = matches[0]
         type_ref = cite("jsonld[" + str(script_index+1) + "].@type", "Product")
     else:
@@ -155,10 +202,18 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
     if len({e["value"] for e in descriptions}) != 1:
         descriptions = []
     features = [e for e in parser.entries if e["tag"] == "li" and owned(e, "additionalProperty")][:8]
+    method = "explicit_product_microdata" if scope else "unresolved_product_scope"
+    if woo:
+        scope = woo["root"]["locator"]
+        descriptions = woo["descriptions"]
+        features = []  # WooCommerce lists outside a declared property are not features.
+        method = "woocommerce_single_product"
     facts = {"product_name": fact(name, heading["locator"]),
              "title": fact(page.title, "title"), "meta_description": fact(page.meta_description, 'meta[name=description]'),
              "description": fact(descriptions[0]["value"], descriptions[0]["locator"]) if descriptions else None,
              "features": [fact(e["value"], e["locator"]) for e in features]}
+    if facts["description"]:
+        facts["description"]["citations"] += [cite(e["locator"], e["value"]) for e in descriptions[1:]]
     for item in [facts["description"], *facts["features"]]:
         if item:
             item["product_scope"] = {"locator": scope, "name_locator": heading["locator"], "product_name": name}
@@ -170,8 +225,9 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
     if not descriptions: missing.append("No unambiguous public description bound to the target product; provide a product-scoped source.")
     missing += ["specifications", "price", "certifications", "performance", "comparisons", "guarantees"]
     result = {"snapshot": snapshot, "page_type": "product", "facts": facts,
+              "extraction": {"method": method, "limitations": ["Source assertions only; no independent verification.", "WooCommerce support requires one main#main product-N container, direct summary/title/short-description, and consistent optional description tab; arbitrary layouts and lists are not supported."]},
               "inferences": [{"kind": "inference", "value": "Supported single product page",
-                              "basis": "Visible name agrees with Product structured data" if matches else "Product Open Graph type and one visible main heading",
+                              "basis": "Unique WooCommerce product container and summary/title" if woo else "Visible name agrees with Product structured data" if matches else "Product Open Graph type and one visible main heading",
                               "citations": facts["product_name"]["citations"] + [type_ref]}],
               "missing": missing, "preview": None}
     if facts["description"]:

@@ -80,7 +80,16 @@ try{
  await input.fill('not-a-url');await page.getByRole('button',{name:'取得第一份成果',exact:true}).click();assert.equal(await input.inputValue(),'not-a-url');assert.equal(await input.evaluate(e=>e.checkValidity()),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(await page.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
  assert.equal(await page.getByText('已發布',{exact:true}).count(),0);
- assert.equal(downloadCount,12);
- await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 12 real downloads; no remote/storage/errors/overflow');
+ server.kill('SIGUSR1');
+ await submit('/woo');assert.equal(await page.locator('#result-section').isVisible(),true);
+ assert.match(await page.locator('#result-fields').innerText(),/Steel bolt for workshop assembly/);
+ assert.doesNotMatch(await page.locator('#result-fields').innerText(),/Shipping|delivery|unrelated drill/);
+ await page.getByRole('button',{name:'複製全部文本'}).focus();await page.keyboard.press('Enter');assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/Steel bolt for workshop assembly/);
+ const wooReport=await exportReport(true);assert.equal(wooReport.extraction.method,'woocommerce_single_product');
+ assert.equal(createHash('sha256').update(Buffer.from(wooReport.snapshot.content_base64,'base64')).digest('hex'),wooReport.snapshot.version);
+ assert.ok(Object.values(wooReport.preview.fields).every(f=>f.suggested&&f.citations.every(id=>wooReport.snapshot.citations.some(c=>c.id===id&&c.source_version===wooReport.snapshot.version))));
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
+ assert.equal(downloadCount,13);
+ await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 13 real downloads; no remote/storage/errors/overflow');
  }
 }finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));await rm(temp,{recursive:true,force:true});}
