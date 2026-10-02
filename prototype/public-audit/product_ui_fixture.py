@@ -13,6 +13,7 @@ def fetch(url):
     parts=urlsplit(url)
     if parts.hostname!='example.com':raise ScanError('private_target','Fixture boundary rejects all other hosts.')
     if parts.path=='/robots.txt':return fixture(url)
+    if parts.path=='/capacity':raise ScanError('snapshot_capacity','Preview snapshot capacity reached; export does not free capacity.')
     if parts.path=='/timeout':raise ScanError('timeout','Synthetic transport timeout')
     if parts.path=='/oversized':raise ScanError('too_large','Synthetic oversized transport response')
     if parts.path=='/old':return 302,{'location':'/products/bolt'},b''

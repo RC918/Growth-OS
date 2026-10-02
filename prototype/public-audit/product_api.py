@@ -29,7 +29,7 @@ def save_report(path, report):
         db.execute('CREATE TABLE IF NOT EXISTS public_source_snapshots (id TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, payload TEXT NOT NULL)')
         db.execute('BEGIN IMMEDIATE')
         if db.execute('SELECT count(*) FROM public_source_snapshots').fetchone()[0] >= MAX_REPORTS:
-            raise ScanError('snapshot_capacity', 'Preview snapshot capacity reached; export existing results.')
+            raise ScanError('snapshot_capacity', 'Preview snapshot capacity reached; existing snapshots are retained. Export is a backup and does not free capacity.')
         db.execute('INSERT INTO public_source_snapshots VALUES (?,?,?)',
                    (report['snapshot']['id'], report['snapshot']['fetched_at'], payload))
         stored = json.loads(db.execute('SELECT payload FROM public_source_snapshots WHERE id=?',(report['snapshot']['id'],)).fetchone()[0])

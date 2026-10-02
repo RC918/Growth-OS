@@ -52,6 +52,25 @@ class ApiTests(unittest.TestCase):
                     with sqlite3.connect(path) as db:self.assertEqual(db.execute('SELECT count(*) FROM public_source_snapshots').fetchone()[0],2)
                 finally:
                     server.shutdown();server.server_close();thread.join()
+    def test_capacity_rejection_and_export_preserve_all_snapshots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'sources.sqlite3'
+            report=build_snapshot('https://example.com/products/bolt',fixture)
+            for index in range(product_api.MAX_REPORTS):
+                report['snapshot']['id']=str(index)
+                product_api.save_report(path,report)
+            with sqlite3.connect(path) as db:
+                before=db.execute('SELECT id,payload FROM public_source_snapshots ORDER BY id').fetchall()
+            exported=json.dumps(report)
+            self.assertEqual(json.loads(exported)['snapshot']['id'],'99')
+            report['snapshot']['id']='new'
+            from scanner import ScanError
+            with self.assertRaises(ScanError) as error:product_api.save_report(path,report)
+            self.assertEqual(error.exception.code,'snapshot_capacity')
+            self.assertIn('does not free capacity',str(error.exception))
+            with sqlite3.connect(path) as db:
+                self.assertEqual(db.execute('SELECT id,payload FROM public_source_snapshots ORDER BY id').fetchall(),before)
+
     def test_preview_rate_limit_is_bounded(self):
         product_api.RECENT.clear()
         class Handler:
