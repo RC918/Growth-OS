@@ -12,6 +12,12 @@
 
 ## 尚未完成
 
-純函式回傳副本，尚無版本集合、工作台入口、資料庫保存、跨登入讀回、遠端租戶驗收、模型生成或發布。fingerprint 是內容一致性欄位，並非簽章或 Auth；JSON 或呼叫端角色可被修改，可信服務端必須重新驗證 membership、版本和核准。不能宣稱完整 M2 或自然語言 M1 完成。
+純函式回傳副本，尚無工作台入口、資料庫保存、跨登入讀回、遠端租戶驗收、模型生成或發布。fingerprint 是內容一致性欄位，並非簽章或 Auth；JSON 或呼叫端角色可被修改，可信服務端必須重新驗證 membership、版本和核准。不能宣稱完整 M2 或自然語言 M1 完成。
 
-下一項：提供明示 memory-only 的版本 session，保留舊計畫版本及狀態事件，處理取消／登出／目標切換與版本衝突，再做離線操作介面。真實持久化與 Auth/RLS 整合另需增量 schema/API 設計與验收。
+下一項：建立離線操作介面，使用下列版本 session。真實持久化與 Auth/RLS 整合另需增量 schema/API 設計與验收。
+
+## 第二階段：memory-only 版本 session
+
+`growth-plan-session.mjs` 接受同步 getContext/getTurns，open 時重新驗證計畫。核准／修訂／工作狀態須匹配 plan version 與 stateRevision；每次成功才追加不可變副本事件，舊計畫版本與結果仍留在事件內。失敗不追加；登出、session／角色／org／goal 切換或來源漂移清除所有本地狀態。view 回傳副本；invalid open 不保留前一目標。沒有 storage、Auth、fetch 或模型呼叫。
+
+6 項 session 測試 PASS、module syntax 與 diff 檢查 PASS；CI 同時執行契約和 session 測試。viewer 能讀取計畫，嘗試修改會拒絕並清除本地 session。事件內容是合成／呼叫者聲明，不能當作遠端審核或已執行證據。重新整理會失去記憶體內容；跨登入持久化尚未完成。
