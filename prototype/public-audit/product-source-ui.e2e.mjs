@@ -16,6 +16,21 @@ try{
  const context=await browser.newContext({viewport:{width,height:844},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true,serviceWorkers:'block'}),page=await context.newPage(),remote=[],errors=[];
  await context.route('**/*',route=>{if(new URL(route.request().url()).origin!==origin){remote.push(route.request().url());return route.abort();}return route.continue();});
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('422')&&!m.text().includes('400'))errors.push(m.text());});
+ // Chromium silently drops download #11 in a one-second renderer burst.
+ // Use real downloads throughout; pace each batch, not the event timeout.
+ // https://github.com/chromium/chromium/blob/145.0.7632.6/third_party/blink/renderer/core/frame/local_frame.cc#L3897-L3912
+ let downloadCount=0,lastDownloadAt=0;
+ async function exportReport(keyboard=false){
+  if(downloadCount>0&&downloadCount%10===0){
+   const delay=Math.max(0,1100-(performance.now()-lastDownloadAt));
+   if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+  }
+  const event=page.waitForEvent('download');
+  const button=page.getByRole('button',{name:'匯出成果與來源 JSON'});
+  if(keyboard){await button.focus();await page.keyboard.press('Enter');}else await button.click();
+  const file=await event;lastDownloadAt=performance.now();downloadCount++;
+  return JSON.parse(await readFile(await file.path(),'utf8'));
+ }
  await page.goto(origin+'/first-result.html');const input=page.getByLabel('產品頁網址');
  async function submit(path){await input.fill('https://example.com'+path);await page.getByRole('button',{name:'取得第一份成果',exact:true}).click();await page.locator('#source-submit:not([disabled])').waitFor();}
  await submit('/capacity');assert.equal(await page.locator('#result-section').isVisible(),false);assert.match(await page.locator('#source-feedback').innerText(),/不會釋放容量/);
@@ -26,13 +41,13 @@ try{
  assert.match(await page.locator('#source-facts').innerText(),/fact/);assert.match(await page.locator('#source-facts').innerText(),/inference/);assert.match(await page.locator('#source-facts').innerText(),/unknown/);assert.match(await page.locator('#result-missing').innerText(),/價格/);
  assert.match(await page.locator('#source-citations').innerText(),/Public steel bolt/);
  await page.getByRole('button',{name:'複製全部文本'}).click();assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/Bolt A/);const copiedText=await page.evaluate(()=>navigator.clipboard.readText());
- const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'匯出成果與來源 JSON'}).click();const download=await downloadPromise;const report=JSON.parse(await readFile(await download.path(),'utf8'));
+ const report=await exportReport();
  const bytes=Buffer.from(report.snapshot.content_base64,'base64');assert.equal(createHash('sha256').update(bytes).digest('hex'),report.snapshot.version);assert.equal(report.preview.published,false);assert.ok(Object.values(report.preview.fields).every(f=>f.suggested&&f.citations.length));
  await page.evaluate(()=>{window.originalClipboardWrite=navigator.clipboard.writeText.bind(navigator.clipboard);navigator.clipboard.writeText=async()=>{throw Error('denied');};});await page.getByRole('button',{name:'複製全部文本'}).click();await page.locator('#copy-fallback:not([hidden])').waitFor();assert.match(await page.locator('#copy-fallback').inputValue(),/Bolt A/);
  await page.evaluate(()=>{navigator.clipboard.writeText=window.originalClipboardWrite;});
  async function retained(expected){
   await page.getByRole('button',{name:'複製全部文本'}).focus();await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),copiedText);
-  const event=page.waitForEvent('download');await page.getByRole('button',{name:'匯出成果與來源 JSON'}).focus();await page.keyboard.press('Enter');const file=await event;const value=JSON.parse(await readFile(await file.path(),'utf8'));
+  const value=await exportReport(true);
   assert.deepEqual(value,expected);assert.equal(createHash('sha256').update(Buffer.from(value.snapshot.content_base64,'base64')).digest('hex'),value.snapshot.version);
  }
  await input.fill('https://example.com/changed');await retained(report);
@@ -45,7 +60,7 @@ try{
  await submit('/mixed');assert.equal(await page.locator('#result-section').isVisible(),true);
  assert.match(await page.locator('#result-fields').innerText(),/Public steel bolt/);
  assert.doesNotMatch(await page.locator('#result-fields').innerText(),/Free delivery|Free returns|900 watt|1200 watt|Other drill/);
- const mixedDownload=page.waitForEvent('download');await page.getByRole('button',{name:'匯出成果與來源 JSON'}).click();const mixedFile=await mixedDownload;const mixedReport=JSON.parse(await readFile(await mixedFile.path(),'utf8'));
+ const mixedReport=await exportReport();
  await submit('/unscoped');assert.equal(await page.locator('#result-section').isVisible(),true);assert.match(await page.locator('#source-fallback').innerText(),/無法將公開描述明確歸屬/);
  await submit('/multiple');assert.equal(await page.locator('#result-section').isVisible(),true);assert.match(await page.locator('#source-fallback').innerText(),/選擇/);await retained(mixedReport);
  // Controlled late responses deliberately ignore AbortSignal to prove epoch isolation.
@@ -65,6 +80,7 @@ try{
  await input.fill('not-a-url');await page.getByRole('button',{name:'取得第一份成果',exact:true}).click();assert.equal(await input.inputValue(),'not-a-url');assert.equal(await input.evaluate(e=>e.checkValidity()),false);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(await page.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
  assert.equal(await page.getByText('已發布',{exact:true}).count(),0);
- await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; no remote/storage/errors/overflow');
+ assert.equal(downloadCount,12);
+ await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 12 real downloads; no remote/storage/errors/overflow');
  }
 }finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));await rm(temp,{recursive:true,force:true});}
