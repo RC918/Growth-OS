@@ -5,6 +5,9 @@ import http.client
 import ipaddress
 import socket
 import ssl
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
@@ -13,6 +16,8 @@ USER_AGENT = "CommerceGrowthAudit/0.1 (+public-page-diagnostics)"
 MAX_BYTES = 1_000_000
 MAX_REDIRECTS = 2
 TIMEOUT = 5
+DNS_POOL = ThreadPoolExecutor(max_workers=2)
+DNS_SLOTS = threading.BoundedSemaphore(2)
 
 
 class ScanError(Exception):
@@ -31,7 +36,7 @@ def normalize_url(raw: str) -> str:
         raise ScanError("invalid_url", "The URL has an invalid port or host.") from exc
     if u.scheme.lower() != "https" or not u.hostname or port not in (None, 443):
         raise ScanError("invalid_url", "Only public HTTPS URLs on port 443 are supported.")
-    if u.username or u.password or "\\" in raw or any(ord(c) < 32 for c in raw):
+    if u.username is not None or u.password is not None or "\\" in raw or any(ord(c) < 32 for c in raw):
         raise ScanError("invalid_url", "Credentials and control characters are not allowed.")
     host = u.hostname.rstrip(".").lower()
     if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
@@ -50,7 +55,17 @@ def normalize_url(raw: str) -> str:
 
 def resolve_public(host: str) -> list[str]:
     try:
-        answers = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+        if not DNS_SLOTS.acquire(blocking=False):
+            raise ScanError("dns_busy", "DNS lookup capacity is busy; try again later.")
+        try:
+            pending = DNS_POOL.submit(socket.getaddrinfo, host, 443, type=socket.SOCK_STREAM)
+        except Exception:
+            DNS_SLOTS.release()
+            raise
+        pending.add_done_callback(lambda _future: DNS_SLOTS.release())
+        answers = pending.result(timeout=TIMEOUT)
+    except (FutureTimeout, socket.timeout, TimeoutError) as exc:
+        raise ScanError("timeout", "DNS lookup exceeded the request deadline.") from exc
     except OSError as exc:
         raise ScanError("dns_failed", "The hostname could not be resolved.") from exc
     addresses = sorted({entry[4][0] for entry in answers})
@@ -68,25 +83,46 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         # DNS is checked before each request; connect to that exact address while
         # preserving TLS SNI and hostname certificate verification.
         sock = socket.create_connection((self.pinned_ip, 443), timeout=self.timeout)
-        self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+        try:
+            if ipaddress.ip_address(sock.getpeername()[0]) != ipaddress.ip_address(self.pinned_ip):
+                raise ScanError("peer_mismatch", "Connected address differs from the validated target.")
+            self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+        except Exception:
+            sock.close()
+            raise
 
 
 def fetch_once(url: str) -> tuple[int, dict[str, str], bytes]:
+    deadline = time.monotonic() + TIMEOUT
     u = urlsplit(normalize_url(url))
     ip = resolve_public(u.hostname)[0]
     conn = PinnedHTTPSConnection(u.hostname, ip)
+    def remaining():
+        left = deadline - time.monotonic()
+        if left <= 0: raise ScanError("timeout", "The public request exceeded its deadline.")
+        return left
     try:
+        conn.timeout = remaining()
         path = urlunsplit(("", "", u.path or "/", u.query, ""))
         conn.request("GET", path, headers={"Host": u.hostname, "User-Agent": USER_AGENT,
                                            "Accept": "text/html,text/plain;q=0.8", "Accept-Encoding": "identity"})
+        conn.sock.settimeout(remaining())
         response = conn.getresponse()
         headers = {k.lower(): v for k, v in response.getheaders()}
         if response.length is not None and response.length > MAX_BYTES:
             raise ScanError("too_large", "The page exceeds the scan size limit.")
-        body = response.read(MAX_BYTES + 1)
-        if len(body) > MAX_BYTES:
-            raise ScanError("too_large", "The page exceeds the scan size limit.")
+        chunks, size = [], 0
+        while True:
+            conn.sock.settimeout(remaining())
+            chunk = response.read1(min(65536, MAX_BYTES + 1 - size))
+            if not chunk: break
+            size += len(chunk)
+            if size > MAX_BYTES: raise ScanError("too_large", "The page exceeds the scan size limit.")
+            chunks.append(chunk)
+        body = b"".join(chunks)
         return response.status, headers, body
+    except (socket.timeout, TimeoutError) as exc:
+        raise ScanError("timeout", "The public request exceeded its deadline.") from exc
     except (OSError, ssl.SSLError, http.client.HTTPException) as exc:
         raise ScanError("fetch_failed", "The public page could not be retrieved.") from exc
     finally:
@@ -145,7 +181,7 @@ class PageParser(HTMLParser):
         elif self._capture in ("button", "a") and len(self.ctas) < 50: self.ctas.append(value[:80])
 
 
-def audit(url: str, fetch=fetch_once) -> dict:
+def fetch_public_html(url: str, fetch=fetch_once) -> tuple[str, str, bytes]:
     initial = normalize_url(url)
     host = urlsplit(initial).hostname
     robots_url = f"https://{host}/robots.txt"
@@ -163,10 +199,17 @@ def audit(url: str, fetch=fetch_once) -> dict:
         raise ScanError("robots_disallowed", "The site does not permit this scan.")
     final_url, status, headers, body = fetch_following_redirects(
         initial, fetch, allowed=lambda destination: robots.can_fetch(USER_AGENT, destination))
+    if status in (401, 403):
+        raise ScanError("restricted_content", "The page requires access; only public content is supported.")
     if status != 200:
         raise ScanError("http_status", f"The page returned HTTP {status}.")
     if "text/html" not in headers.get("content-type", "").lower():
         raise ScanError("not_html", "The destination did not return HTML.")
+    return initial, final_url, body
+
+
+def audit(url: str, fetch=fetch_once) -> dict:
+    initial, final_url, body = fetch_public_html(url, fetch)
     page = PageParser()
     page.feed(body.decode("utf-8", errors="replace"))
     findings = []

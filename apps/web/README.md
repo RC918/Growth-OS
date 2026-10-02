@@ -1,6 +1,6 @@
 # Growth OS Web 預覽
 
-首頁是靜態產品說明頁；`workspace.html` 是隔離測試工作台，連接測試 Supabase Auth／Data API 的合成資料。沒有公開掃描或匯入 API，也沒有分析碼或追蹤腳本；工作台只在分頁記憶體保存短期 access token。`noindex` 與 `robots.txt` 避免預覽頁被搜尋引擎收錄。
+首頁是靜態產品說明頁；`workspace.html` 是隔離測試工作台，連接測試 Supabase Auth／Data API 的合成資料。新增 first-result.html 的公開來源 API 最小切片；沒有匯入 API，也沒有分析碼或追蹤腳本；工作台只在分頁記憶體保存短期 access token。`noindex` 與 `robots.txt` 避免預覽頁被搜尋引擎收錄。
 
 在專案根目錄執行：
 
@@ -32,3 +32,7 @@ python3 -m http.server 8081 --directory apps/web
 `offline-growth-plan.html` 使用獨立手寫合成已確認目標，不接收草稿頁或真實工作台資料。支援來源查看、修訂、確認、模擬開始／完成／失敗／重試及本頁歷史；CSP connect-src none，無 Auth/model/DB/storage。契約與 session 19 項測試 PASS，1280px/390px E2E PASS。
 
 本機：`node prototype/owner-workspace/growth-plan-ui.e2e.mjs`；此環境 Chromium 放在 /tmp，需加 `PLAYWRIGHT_BROWSERS_PATH=/tmp/growth-os-playwright`。真實保存／跨登入／Auth/RLS 未實作。
+
+## URL-first 第一成果預覽
+
+first-result.html 使用 /api/product-source；首頁提供主要入口。本機須啟動 prototype/public-audit/app.py，靜態 http.server 不提供 API。三項來源支持文本可對照、複製與匯出；快照只有本機／Preview SQLite 暫存，沒有跨登入保存或發布。21 項 scanner/API 與桌面／手機 E2E PASS，詳見 [驗收](../../docs/URL_First_Result_驗收_2026-10-02.md)。

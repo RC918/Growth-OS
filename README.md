@@ -25,6 +25,6 @@ python3 app.py
 
 ## 接下來
 
-本輪僅產品藍圖對齊，暫停功能擴張。藍圖確認後按新 M1–M6：URL 理解 → 第一可用成果 → Review → Publish → Measure → 完整試點。先做安全公開來源／產品事實最小切片及成果預覽，不先擴張通用計畫／工作卡或對話 onboarding。
+藍圖 v2.0 已確認，新增 URL 主入口、來源快照／產品事實與第一份文本預覽最小切片，見 [驗收紀錄](docs/URL_First_Result_驗收_2026-10-02.md)。本機 scanner server 的 /first-result.html 提供 API 接線；Preview 使用 /api/product-source。來源暫存不等於跨登入保存。繼續按新 M1–M6：URL 理解 → 第一可用成果 → Review → Publish → Measure → 完整試點。先做安全公開來源／產品事實最小切片及成果預覽，不先擴張通用計畫／工作卡或對話 onboarding。
 
 限 Growth OS 獨立環境，不改 morningai、owner-console、production、正式網域或付費設定；不採 Render。既有預算並非新增支出批准。未授權或未接線的發布／數據明示未知；草稿、匯出與內部完成不算發布。

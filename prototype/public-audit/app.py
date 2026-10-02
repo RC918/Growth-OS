@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from scanner import ScanError, audit, normalize_url
+from product_api import handle_product
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.getenv("COMMERCE_GROWTH_DB", str(ROOT / "scans.sqlite3")))
@@ -86,6 +87,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path in ("/first-result.html", "/first-result.mjs", "/first-result.css"):
+            static = Path(__file__).resolve().parents[2] / "apps" / "web" / path.lstrip("/")
+            body = static.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript" if path.endswith(".mjs") else "text/css" if path.endswith(".css") else "text/html; charset=utf-8")
+            self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers();self.wfile.write(body);return
         if path == "/":
             body = (ROOT / "index.html").read_bytes()
             self.send_response(200)
@@ -118,6 +127,8 @@ class Handler(BaseHTTPRequestHandler):
         self.json_response(404, {"code": "not_found", "detail": "Path not found."})
 
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/product-source":
+            handle_product(self, DB_PATH);return
         if urlsplit(self.path).path != "/api/v1/scans":
             self.json_response(404, {"code": "not_found", "detail": "Path not found."})
             return
