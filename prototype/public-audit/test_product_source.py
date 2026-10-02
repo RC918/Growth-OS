@@ -23,6 +23,9 @@ WOO_PRODUCT = b'''<html><head><title>Workshop Bolt A</title></head><body><main i
 <div id="tab-description"><h2>Description</h2><p>Steel bolt for workshop assembly.</p></div>
 <section class="related products"><h2>Related products</h2><ul><li class="product"><h2>Drill B</h2><p>Powerful unrelated drill.</p></li></ul></section>
 </div></main></body></html>'''
+WOO_MICRO = WOO_PRODUCT.replace(b'class="product type-product"',b'class="product type-product" itemscope itemtype="https://schema.org/Product"').replace(b'class="product_title entry-title"',b'class="product_title entry-title" itemprop="name"').replace(b'<p>Steel bolt for workshop assembly.</p>',b'<p itemprop="description">Steel bolt for workshop assembly.</p>').replace(b'<li>Shipping worldwide</li>',b'<li itemprop="additionalProperty">Hexagonal head</li>')
+WOO_MICRO_NO_SHORT = WOO_MICRO.replace(b'class="woocommerce-product-details__short-description"',b'class="product-copy"').replace(b'<div id="tab-description"><h2>Description</h2><p itemprop="description">Steel bolt for workshop assembly.</p></div>',b'')
+WOO_MICRO_NAME_CONFLICT = WOO_MICRO.replace(b'</h1>',b'</h1><span itemprop="name">Drill B</span>')
 def fixture(url):
     if url.endswith('/robots.txt'): return 200, {'content-type':'text/plain'}, b'User-agent: *\nAllow: /\n'
     return 200, {'content-type':'text/html'}, PRODUCT
@@ -130,6 +133,43 @@ class ProductTests(unittest.TestCase):
             with self.subTest(body=body):
                 r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
                 self.assertIsNone(r['preview'])
+
+    def test_woocommerce_preserves_valid_microdata_with_or_without_short(self):
+        for body in [WOO_MICRO,WOO_MICRO_NO_SHORT, WOO_MICRO_NO_SHORT.replace(b'<div class="product-copy">',b'<div class="woocommerce-product-details__short-description"></div><div class="product-copy">')]:
+            with self.subTest(body=body):
+                r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+                self.assertIsNotNone(r['preview'])
+                self.assertEqual(r['extraction']['method'],'explicit_product_microdata')
+                self.assertEqual([f['value'] for f in r['facts']['features']],['Hexagonal head'])
+                self.assertEqual(r['facts']['description']['value'],'Steel bolt for workshop assembly.')
+                citations={c['id']:c for c in r['snapshot']['citations']}
+                for f in [r['facts']['description'],*r['facts']['features']]:
+                    self.assertEqual(f['product_scope']['product_name'],'Bolt A')
+                    self.assertTrue(set(r['facts']['product_name']['citations'])<=set(f['citations']))
+                    self.assertTrue(all(citations[c]['source_version']==r['snapshot']['version'] for c in f['citations']))
+
+    def test_woo_can_fill_missing_description_without_losing_microdata_features(self):
+        body=WOO_MICRO.replace(b' itemprop="description"',b'')
+        r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+        self.assertIsNotNone(r['preview'])
+        self.assertEqual(r['extraction']['method'],'woocommerce_single_product')
+        self.assertEqual([f['value'] for f in r['facts']['features']],['Hexagonal head'])
+        self.assertEqual(r['facts']['description']['value'],'Steel bolt for workshop assembly.')
+        self.assertIn('Hexagonal head',r['preview']['fields']['description']['suggested'])
+
+    def test_mixed_format_conflicts_cannot_be_overridden_by_woo(self):
+        for body in [
+            WOO_MICRO_NAME_CONFLICT,
+            WOO_MICRO.replace(b' itemprop="description"',b'').replace(b'</h1>',b'</h1><p itemprop="description">A different microdata description.</p>'),
+            WOO_MICRO.replace(b'</h1>',b'</h1><p itemprop="description">A different conflicting product description.</p>'),
+            WOO_MICRO.replace(b'<p itemprop="description">Steel bolt for workshop assembly.</p>',b'<p>Unmarked alternative product description.</p>',1),
+            WOO_MICRO.replace(b'itemprop="name"',b'').replace(b'</h1>',b'</h1><span itemprop="name">Drill B</span>'),
+        ]:
+            with self.subTest(body=body):
+                r=build_snapshot('https://example.com/products/bolt',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+                self.assertIsNone(r['preview'])
+                self.assertIn('conflict',r['extraction']['method'])
+                self.assertEqual(r['facts']['features'],[])
 
     def test_redirect_and_final_source(self):
         calls=[]

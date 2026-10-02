@@ -89,7 +89,17 @@ try{
  assert.equal(createHash('sha256').update(Buffer.from(wooReport.snapshot.content_base64,'base64')).digest('hex'),wooReport.snapshot.version);
  assert.ok(Object.values(wooReport.preview.fields).every(f=>f.suggested&&f.citations.every(id=>wooReport.snapshot.citations.some(c=>c.id===id&&c.source_version===wooReport.snapshot.version))));
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
- assert.equal(downloadCount,13);
- await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 13 real downloads; no remote/storage/errors/overflow');
+ await submit('/woo-micro');assert.match(await page.locator('#result-fields').innerText(),/Hexagonal head/);
+ await page.getByRole('button',{name:'複製全部文本'}).focus();await page.keyboard.press('Enter');assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/Hexagonal head/);
+ const microReport=await exportReport(true);assert.equal(microReport.extraction.method,'explicit_product_microdata');assert.equal(microReport.facts.features[0].value,'Hexagonal head');
+ assert.equal(createHash('sha256').update(Buffer.from(microReport.snapshot.content_base64,'base64')).digest('hex'),microReport.snapshot.version);
+ for(const f of [microReport.facts.description,...microReport.facts.features]){assert.equal(f.product_scope.product_name,'Bolt A');assert.ok(microReport.facts.product_name.citations.every(id=>f.citations.includes(id)));}
+ const conflictResponse=page.waitForResponse(r=>r.url().endsWith('/api/product-source')&&r.request().method()==='POST');
+ await submit('/woo-conflict');const conflictReport=await (await conflictResponse).json();assert.equal(conflictReport.preview,null);assert.equal(conflictReport.extraction.method,'conflicting_product_evidence');
+ assert.match(await page.locator('#source-feedback').innerText(),/本次未產生新成果/);assert.match(await page.locator('#result-fields').innerText(),/Hexagonal head/);
+ assert.deepEqual(await exportReport(true),microReport);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
+ assert.equal(downloadCount,15);
+ await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 15 real downloads; no remote/storage/errors/overflow');
  }
 }finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));await rm(temp,{recursive:true,force:true});}

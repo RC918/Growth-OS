@@ -114,18 +114,24 @@ def woocommerce_context(parser, headings):
     tabs = [n for n in parser.nodes if not n["woo_excluded"] and n["tag"] == "div"
             and n["attrs"].get("id") == "tab-description" and root["locator"] in n["ancestors"]]
     descriptions = []
-    if len(short) == 1 and len(tabs) <= 1:
+    short_value_present = False
+    invalid = len(short) > 1 or len(tabs) > 1
+    if not invalid:
         for region in short + tabs:
             paragraphs = [e for e in parser.entries if e["tag"] == "p" and region["locator"] in e["ancestors"]]
             # Do not salvage part of a marked description with mixed ownership.
-            if not paragraphs or any(e["woo_excluded"] or e["parent"] != region["locator"] or e["scope"] != heading["scope"] or e.get("mixed_scope") or e.get("mixed_woo") for e in paragraphs):
-                descriptions = []; break
+            if not paragraphs: continue
+            if any(e["woo_excluded"] or e["parent"] != region["locator"] or e["scope"] != heading["scope"] or e.get("mixed_scope") or e.get("mixed_woo") for e in paragraphs):
+                invalid = True; descriptions = []; break
             text = clean(" ".join(e["value"] for e in paragraphs))
             if not 15 <= len(text) <= 2000:
-                descriptions = []; break
+                invalid = True; descriptions = []; break
+            if region in short: short_value_present = True
             descriptions.append({"value": text, "locator": region["locator"], "attrs": {}})
-        if len({e["value"] for e in descriptions}) != 1: descriptions = []
-    return {"root": root, "heading": heading, "descriptions": descriptions}
+    values = {e["value"] for e in descriptions}
+    conflict = invalid or len(values) > 1
+    if conflict or not short_value_present: descriptions = []
+    return {"root": root, "heading": heading, "descriptions": descriptions, "description_values": values, "description_conflict": conflict}
 
 def product_url(raw):
     value = normalize_url(raw)
@@ -190,24 +196,34 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
         type_ref = cite("meta[property=og:type]", "product")
     # A page-wide main/article is not product ownership. Only explicit visible
     # microdata properties in the heading's own Product scope can supply facts.
-    scope = heading["scope"] if "name" in heading["attrs"].get("itemprop", "").split() and any(
+    product_scope = heading["scope"] if any(
         t in ("https://schema.org/Product", "http://schema.org/Product") for t in heading["scope_type"]) else None
-    scoped_names = {e["value"] for e in parser.entries if e["scope"] == scope and "name" in e["attrs"].get("itemprop", "").split()}
-    if scoped_names != {name}:
-        scope = None
+    scoped_names = {e["value"] for e in parser.entries if product_scope is not None and e["scope"] == product_scope and "name" in e["attrs"].get("itemprop", "").split()}
+    name_conflict = bool(scoped_names - {name})
+    scope = product_scope if "name" in heading["attrs"].get("itemprop", "").split() and scoped_names == {name} else None
     def owned(entry, prop):
-        return scope is not None and not entry.get("mixed_scope") and entry["scope"] == scope and prop in entry["attrs"].get("itemprop", "").split()
+        return scope is not None and not entry.get("mixed_scope") and (not woo or not (entry["woo_excluded"] or entry.get("mixed_woo"))) and entry["scope"] == scope and prop in entry["attrs"].get("itemprop", "").split()
     descriptions = [e for e in parser.entries if e["tag"] == "p" and owned(e, "description") and len(e["value"]) >= 15]
     # Conflicting descriptions cannot be resolved by taking the first paragraph.
-    if len({e["value"] for e in descriptions}) != 1:
+    micro_values = {e["value"] for e in descriptions}
+    micro_conflict = len(micro_values) > 1
+    if len(micro_values) != 1:
         descriptions = []
     features = [e for e in parser.entries if e["tag"] == "li" and owned(e, "additionalProperty")][:8]
     method = "explicit_product_microdata" if scope else "unresolved_product_scope"
+    description_scope = scope
+    conflict = name_conflict or micro_conflict
     if woo:
-        scope = woo["root"]["locator"]
-        descriptions = woo["descriptions"]
-        features = []  # WooCommerce lists outside a declared property are not features.
-        method = "woocommerce_single_product"
+        conflict = conflict or woo["description_conflict"] or bool(micro_values and woo["description_values"] and micro_values != woo["description_values"])
+        # Preserve valid explicit properties. Woo may fill only an absent
+        # description, never erase microdata features or override disagreement.
+        if not descriptions and not conflict and woo["descriptions"]:
+            descriptions = woo["descriptions"]
+            description_scope = woo["root"]["locator"]
+            method = "woocommerce_single_product"
+    if conflict:
+        descriptions, features = [], []
+        method = "conflicting_product_evidence"
     facts = {"product_name": fact(name, heading["locator"]),
              "title": fact(page.title, "title"), "meta_description": fact(page.meta_description, 'meta[name=description]'),
              "description": fact(descriptions[0]["value"], descriptions[0]["locator"]) if descriptions else None,
@@ -216,11 +232,12 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
         facts["description"]["citations"] += [cite(e["locator"], e["value"]) for e in descriptions[1:]]
     for item in [facts["description"], *facts["features"]]:
         if item:
-            item["product_scope"] = {"locator": scope, "name_locator": heading["locator"], "product_name": name}
+            item["product_scope"] = {"locator": description_scope if item is facts["description"] else scope, "name_locator": heading["locator"], "product_name": name}
             item["citations"] += facts["product_name"]["citations"]
     known_use = [e for e in descriptions if e["attrs"].get("data-product-usage") is not None]
     facts["use"] = fact(known_use[0]["value"], known_use[0]["locator"]) if known_use else None
     missing = [key for key in ("title", "meta_description", "description", "use") if not facts[key]]
+    if conflict: missing.append("Conflicting product identity or description evidence; resolve the source before generating a preview.")
     if not features: missing.append("features")
     if not descriptions: missing.append("No unambiguous public description bound to the target product; provide a product-scoped source.")
     missing += ["specifications", "price", "certifications", "performance", "comparisons", "guarantees"]

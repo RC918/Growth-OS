@@ -138,3 +138,13 @@ Fresh local E2E after correction: **1280 PASS / 390 PASS**, 12 real downloads ea
 驗證：**35 scanner/API tests PASS**。新增合成測試涵蓋無 microdata 正常单品、兩處一致描述、僅短描述、來源版本／引用、配送／推薦排除、內嵌異 scope、矛盾描述／JSON-LD 名稱、多產品及缺目標結構。一次測試誤將 missing 欄位名稱 `guarantees` 當成污染字串，已改為檢查完整合成污染句；未改產品輸出來迎合斷言。
 
 **Fresh 1280/390 E2E PASS，各 13 次真下載**，新增 WooCommerce 本機 API→SQLite→parser→preview→keyboard Copy/Export，核對內容、方法、引用、來源版本与原 bytes hash；既有最後成功成果、取消／晚回覆與下載節奏斷言保留。`git diff --check` PASS。本機 Chromium 151；新 HEAD CI Chromium 145 待父獨立驗收。未登入、未 live POST／重抓指定域名、未模型呼叫或對外發布；未刪快照／改儲存架構。
+
+## WooCommerce／microdata 重疊一致性修正
+
+父 review 指出 `874d071` 即使兩組既有 CI 37043580219／37043585334 綠燈，仍有測試未涵蓋的 blocking regression：WooCommerce root 無條件覆寫安全 microdata 描述／特性，亦可能越過 visible itemprop=name 衝突。前一切片不能因 CI 綠燈視為已驗收。
+
+已先用合成 mixed fixture 重現兩項 FAIL，再修選擇規則：有效明確 microdata 為優先來源，WooCommerce 沒有或空短描述不覆寫它；WooCommerce 只補缺失描述，保留已驗證同產品 microdata features。每項 fact 的 scope locator 依真正來源分別保存，名稱引用與 content-version citations 保留。WooCommerce 描述抽取另保留一致性狀態，區別「缺值」與「格式內衝突／無效混雜」；microdata 名稱／描述衝突或兩種格式陳述不一致時，清除描述與特性候選、method=`conflicting_product_evidence`、preview=null，並記錄原因。不退回任意 main 段落，也不讓 Woo 的已排除推薦／配送區透過 mixed microdata 路徑進入。
+
+驗證：**38 scanner/API tests PASS**；新增有／無／空 Woo short-description 下有效 microdata 保留、Woo 補描述而不丟特性、名稱（含未標記 h1 的其他 visible name）衝突、microdata 多份描述、兩種格式各自一致但彼此不同，以及來源 scope／名稱引用／version 檢查。**Fresh 1280/390 E2E PASS，各 15 次真下載**，保留原 microdata 與 Woo 路徑，新增 mixed 成功的 keyboard Copy/Export/bytes hash，衝突 response 明確 preview=null，UI 保留前次成功成果且 export JSON 完全相同。`git diff --check` PASS。
+
+僅合成 fixture／本機 HTTP/SQLite/Chromium 151。未 live POST、未重抓域名、未模型呼叫。新 SHA 的 CI 與 review 待父獨立驗收；真實 ScrapeMe 的修復後有效成果品質仍未驗收。
