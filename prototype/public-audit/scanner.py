@@ -16,6 +16,8 @@ USER_AGENT = "CommerceGrowthAudit/0.1 (+public-page-diagnostics)"
 MAX_BYTES = 1_000_000
 MAX_REDIRECTS = 2
 TIMEOUT = 5
+# Azure host-platform virtual endpoint is globally classified but not public content.
+BLOCKED_PLATFORM_IPS = {ipaddress.ip_address("168.63.129.16")}
 DNS_POOL = ThreadPoolExecutor(max_workers=2)
 DNS_SLOTS = threading.BoundedSemaphore(2)
 
@@ -69,7 +71,12 @@ def resolve_public(host: str) -> list[str]:
     except OSError as exc:
         raise ScanError("dns_failed", "The hostname could not be resolved.") from exc
     addresses = sorted({entry[4][0] for entry in answers})
-    if not addresses or any(not ipaddress.ip_address(ip).is_global for ip in addresses):
+    def public_address(value):
+        address = ipaddress.ip_address(value)
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+            address = address.ipv4_mapped
+        return address.is_global and address not in BLOCKED_PLATFORM_IPS
+    if not addresses or any(not public_address(ip) for ip in addresses):
         raise ScanError("private_target", "The hostname resolves to a non-public address.")
     return addresses
 

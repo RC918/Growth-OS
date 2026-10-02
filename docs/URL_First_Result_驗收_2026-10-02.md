@@ -14,7 +14,7 @@ Fact 僅表示來源陳述（source_asserted），不代表已獨立核實；產
 
 ## 驗收證據
 
-`python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py` 在 prototype/public-audit 執行：23 tests PASS。包含既有 scanner/app 回歸及新增 17 項測試。
+`python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py` 在 prototype/public-audit 執行：24 tests PASS。包含既有 scanner/app 回歸及新增 18 項測試。
 
 | 驗收 | 證據 |
 |---|---|
@@ -57,3 +57,5 @@ SQLite 只在本機／serverless /tmp 暫存，最多 100 筆；不是 tenant DB
 新 M1/M2 仍不視為全面完成：真實目標產品頁品質、雲端 runtime、跨登入保存與成果適用性需逐項驗收。下一個最小工程切片應補當前契約／品質缺口，然後接來源版本約束的 Review；發布與 Measure 不以匯出替代。
 
 Follow-up security regression: malformed candidate URL no longer hides valid candidates; HTML depth <=128, elements <=20000 and per-element captured text <=2000. Both added cases PASS; parser-limit recovery also checked on desktop/mobile. First slice 3bb7245 same-head CI runs 36990198565 / 36990203644 and Preview checks PASS. Preview HTTP redirects to Vercel SSO; cloud UI/POST runtime is not verified and no login bypass was attempted.
+
+SSRF follow-up: Azure host-platform virtual address 168.63.129.16 and IPv4-mapped variants are explicitly blocked, in addition to all non-global or mixed public/private DNS answers. Regression reproduced before correction and passes afterwards. [Platform IP documentation](https://learn.microsoft.com/en-us/azure/virtual-network/what-is-ip-address-168-63-129-16). No actual platform endpoint was contacted.

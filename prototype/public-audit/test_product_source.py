@@ -74,6 +74,13 @@ class ProductTests(unittest.TestCase):
             with patch('socket.getaddrinfo',return_value=[(2,1,6,'',(ip,443))]),self.assertRaises(ScanError):
                 resolve_public('shop.example')
 
+    def test_cloud_platform_address_and_mixed_dns_are_rejected(self):
+        for addresses in [['168.63.129.16'],['::ffff:168.63.129.16'],['93.184.216.34','10.0.0.1']]:
+            with self.subTest(addresses=addresses):
+                with patch('socket.getaddrinfo',return_value=[(2,1,6,'',(ip,443)) for ip in addresses]):
+                    with self.assertRaises(ScanError) as e:resolve_public('shop.example')
+                    self.assertEqual(e.exception.code,'private_target')
+
     def test_redirect_to_private_and_request_cap(self):
         calls=[]
         def redirect(url):
