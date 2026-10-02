@@ -14,7 +14,7 @@ Fact 僅表示來源陳述（source_asserted），不代表已獨立核實；產
 
 ## 驗收證據
 
-`python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py` 在 prototype/public-audit 執行：21 tests PASS。包含既有 scanner/app 回歸及新增 15 項測試。
+`python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py` 在 prototype/public-audit 執行：23 tests PASS。包含既有 scanner/app 回歸及新增 17 項測試。
 
 | 驗收 | 證據 |
 |---|---|
@@ -55,3 +55,5 @@ CI 會正常安裝 Chromium，本機 browser path 依實際安裝調整。
 SQLite 只在本機／serverless /tmp 暫存，最多 100 筆；不是 tenant DB、跨登入保存或永久來源庫。Preview throttle 為 process-local，不宣稱分散式防濫用。部署整合沿用 PR 自動 Preview，未改 production／Auth/RLS／付費／OAuth。官方設定依據：[Python API function](https://vercel.com/docs/functions/runtimes/python/api-directory)、[functions includeFiles/maxDuration](https://vercel.com/docs/project-configuration/vercel-json#functions)。
 
 新 M1/M2 仍不視為全面完成：真實目標產品頁品質、雲端 runtime、跨登入保存與成果適用性需逐項驗收。下一個最小工程切片應補當前契約／品質缺口，然後接來源版本約束的 Review；發布與 Measure 不以匯出替代。
+
+Follow-up security regression: malformed candidate URL no longer hides valid candidates; HTML depth <=128, elements <=20000 and per-element captured text <=2000. Both added cases PASS; parser-limit recovery also checked on desktop/mobile. First slice 3bb7245 same-head CI runs 36990198565 / 36990203644 and Preview checks PASS. Preview HTTP redirects to Vercel SSO; cloud UI/POST runtime is not verified and no login bypass was attempted.

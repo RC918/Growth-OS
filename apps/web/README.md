@@ -35,4 +35,4 @@ python3 -m http.server 8081 --directory apps/web
 
 ## URL-first 第一成果預覽
 
-first-result.html 使用 /api/product-source；首頁提供主要入口。本機須啟動 prototype/public-audit/app.py，靜態 http.server 不提供 API。三項來源支持文本可對照、複製與匯出；快照只有本機／Preview SQLite 暫存，沒有跨登入保存或發布。21 項 scanner/API 與桌面／手機 E2E PASS，詳見 [驗收](../../docs/URL_First_Result_驗收_2026-10-02.md)。
+first-result.html 使用 /api/product-source；首頁提供主要入口。本機須啟動 prototype/public-audit/app.py，靜態 http.server 不提供 API。三項來源支持文本可對照、複製與匯出；快照只有本機／Preview SQLite 暫存，沒有跨登入保存或發布。23 項 scanner/API 與桌面／手機 E2E PASS，詳見 [驗收](../../docs/URL_First_Result_驗收_2026-10-02.md)。

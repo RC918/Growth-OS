@@ -21,11 +21,13 @@ class ProductParser(HTMLParser):
         self.counter = 0
 
     def handle_starttag(self, tag, attrs):
+        if self.counter >= 20000 or len(self.stack) >= 128:
+            raise ScanError("page_complexity", "The public HTML exceeds parsing complexity limits; choose a simpler product page.")
         attrs = dict(attrs)
         blocked = any(e["blocked"] for e in self.stack) or tag in ("style", "noscript", "nav", "footer")
         blocked = blocked or "hidden" in attrs or attrs.get("aria-hidden") == "true"
         self.counter += 1
-        entry = {"tag": tag, "attrs": attrs, "text": [], "blocked": blocked,
+        entry = {"tag": tag, "attrs": attrs, "text": [], "text_size": 0, "blocked": blocked,
                  "locator": tag + "[" + str(self.counter) + "]",
                  "in_main": tag in ("main", "article") or any(e["tag"] in ("main", "article") for e in self.stack)}
         if tag == "meta" and attrs.get("property", "").lower() == "og:type":
@@ -38,7 +40,11 @@ class ProductParser(HTMLParser):
             self.stack[-1]["text"].append(value); return
         if any(e["blocked"] for e in self.stack): return
         for entry in self.stack:
-            entry["text"].append(value)
+            remaining = 2000 - entry["text_size"]
+            if remaining > 0:
+                fragment = value[:remaining]
+                entry["text"].append(fragment)
+                entry["text_size"] += len(fragment)
 
     def handle_endtag(self, tag):
         match = next((i for i in range(len(self.stack)-1, -1, -1) if self.stack[i]["tag"] == tag), None)
@@ -109,9 +115,12 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
         candidates = []
         for e in parser.entries:
             href = e["attrs"].get("href", "")
-            if e["tag"] != "a" or not href or not re.search(r"/(?:products?|items?|p)/[^/]+", urlsplit(urljoin(final, href)).path): continue
-            try: url = product_url(urljoin(final, href))
-            except ScanError: continue
+            if e["tag"] != "a" or not href: continue
+            try:
+                joined = urljoin(final, href)
+                if not re.search(r"/(?:products?|items?|p)/[^/]+", urlsplit(joined).path): continue
+                url = product_url(joined)
+            except (ScanError, ValueError): continue
             if urlsplit(url).hostname != urlsplit(final).hostname or url in [c["url"] for c in candidates]: continue
             candidates.append({"kind": "inference", "url": url, "label": e["value"], "verified_product_page": False,
                                "citations": [cite(e["locator"] + "@href", e["value"] + " -> " + href)]})
