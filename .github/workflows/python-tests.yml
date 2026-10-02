@@ -75,3 +75,5 @@ jobs:
         run: node prototype/owner-workspace/goal-intake-ui.e2e.mjs
       - name: Offline draft confirmation desktop and mobile acceptance (no remote requests)
         run: node prototype/owner-workspace/offline-draft-ui.e2e.mjs
+      - name: Offline growth plan desktop and mobile acceptance (memory only)
+        run: node prototype/owner-workspace/growth-plan-ui.e2e.mjs
