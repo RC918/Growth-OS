@@ -4,9 +4,11 @@
 
 ## 當前授權與基準
 
-目前HEAD沿 `c911d4fc` 已驗收基準推進，6663只屬歷史。Owner新M3隔離工程envelope來源 `Sentinel_10d81d4907e0819193fc417ce458fc71`：服務Save→Logout→Login→Readback→權限/tenant驗證，至M3驗收完成失效；不是v2專案Completed。已repo準備 [19:30 UTC execution manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T193000Z/execution-manifest.json)，保留固定IDs/payload/最多1Save與1/1/1，僅重綁技術截止2026-10-03T19:30:00Z，cleanup不變。候選待Reviewer/CI；本輪無remote或runtime enable，兩config仍false/false/null。
+已驗產品基準為 `75e92e5562831258d9d0c6a84c0fd55c0745384d`，branch `feat/passwordless-workspace`／PR #19。父提供 CI `37147223203` success、Preview `21UoWpB2Lw8qG9AVg25GhNN2t2AF` success；Reviewer `01a1033d-5d00-757c-9736-76c260242193` 最終 APPROVE。**bounded M3 fixed case 已成立**：1 次 Save、3 次真 Owner login、跨登入精確讀回、正向 1 row／跨 tenant 成功 0 rows，以及 cleanup／原資料保留；詳見 [固定案例驗收記錄](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md)。完整產品 M3、完整角色矩陣、Publish／Measure 仍未完成。
 
-舊opening `url_result_bound_open_20261003_1430` 的receipt遺失及後續安全拒絕均保留；新Owner envelope不是繞過平台拒絕的許可。父先同正式route核可執行性及fresh authoritative reconciliation，仍拒絕即停。改截止是artifact revision而非相同SQL重試；未知舊operation未核清不得dispatch新revision，已套用不重播，STATE_DIVERGED停mutation。原14:30已過期、舊快照不代表目前遠端狀態。後續最小預算2migration/2config部署/2既有登入/1logout/最多1Save/0fixture mutation；具體pre/postflight、收尾與tenant驗證見候選README。
+這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
+
+一般 repo 治理持續有效。本輪只歸檔證據；下一個待父核分配的最小 Core 是「已保存成果的續編與取消恢復（離線整合）」，沿用既有 Review 與精確版本讀取，驗收準則見同一記錄。未自行啟動實作或新的遠端操作。
 
 ## 產品方向
 
@@ -163,3 +165,10 @@ CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀�
 依父轉述的 Owner 17:26 envelope（`Sentinel_10d81d4907e0819193fc417ce458fc71`，含 CI/E2E/login/logout/readback/tenant 驗收、至 M3 完成），最小操作計畫明確修訂：增加 1 次既有 Owner login，**累計 3 次**，追加 1 次唯讀診斷 Preview 部署。這超出原 manifest 的兩次登入／兩次 config 部署計畫，並非宣稱仍在原預算；不增加 Save／DB mutation，不延展 SQL 技術 lease。父於確需人工登入時通知 Owner；此 executor 未操作遠端或登入。待 CI／既有 Reviewer／Preview 核對後，由父完成這唯一缺口，再判定 M3；不啟動其他功能。
 
 本地驗證：23 API／marker tests 通過；新增固定 Owner 診斷 UI 1280/390px 通過 positive/negative/error/leak/wrong actor/logout-late-response、零 POST；原 typed UI 1280/390px 回歸通過。新 UI 已接既有 CI。兩份 runtime config 仍為 reviewed closed SHA256 `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`；所有 SQL／payload 未改。新 HEAD 的 CI、Reviewer、Preview 與 live negative GET 待父端確認。
+
+
+## 2026-10-03 19:27 UTC bounded M3 fixed case 收尾
+
+本段更新上述「尚缺 negative GET／待 CI」的歷史狀態。父在 `19:27:19.973Z` 的第三次真 signed Owner session 點一次已審核診斷，OrgA 固定 parent 精確 1 row，OrgB 既有 parent 成功回應 0 rows；結合 19:08 authoritative 存在性／無 membership 控制，必要 P2 已解除。Reviewer 最終 APPROVE，且父已通知 Owner 此完整子里程碑成立；不是全產品 M3 或 v2 專案完成。
+
+[驗收記錄](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md) 保存完整 IDs、時序、1 Save／3 login、DB history 21／ACL closed、證據來源及未驗範圍。CoreMilestoneProgress 是使用者真保存後可重新登入讀回同一成果、固定 tenant 隔離已實測；本次文件 commit 本身不另計產品能力。下一 Core 僅提出既有成果續編／取消恢復的離線切片供父分配，不重做已 PASS、不新增診斷或處理 P3。
