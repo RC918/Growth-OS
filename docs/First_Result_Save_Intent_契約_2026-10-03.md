@@ -44,3 +44,15 @@ legacy `content_versions` 只有 title（1–160）及 draft_body，不能完整
 `node --test prototype/public-audit/first-result-save-intent.test.mjs`：**11 tests PASS**。涵蓋來源／引用／digest tamper、stale receipt、scope／映射漂移、缺資格、大小／JSON／Unicode、原文與修改歸屬完整保留、候選不可變、完整請求摘要及 UTF-8 BOM。最後一項由實際 Python snapshot builder 使用注入的合成 HTML，經現有 Review export 送入新契約；DNS／connection 設為拒絕，不跑既有 scanner suite、不進行 live 抓取。
 
 只將新測試加進既有 CI；新 SHA 的 CI／Preview 結果仍待父獨立核對。本輪沒有模型、費用、secret、遠端 DB、權限變更、登入、發布或 merge。
+
+## 父審查 P2 修正：必備證據結構與原建議長度
+
+`69ce9b1de348f513b0097285bb42787b9a021775` 雖有 push 37083625550／PR 37083629483 綠燈，父仍 HOLD：原 validator 只遞迴尋找部分 fact／citations，漏掉必備證據；也誤將目前編輯欄上限套到不可變原建議。CI 綠燈不取代這兩項修正。
+
+先只補合成回歸、未修改 validator，執行同一 save-intent suite 得 **11 PASS／2 FAIL**：114 個逐項刪除／型別破壞案例中 80 個仍錯誤成為 candidate；實際 Python builder 產生超過 2000 UTF-16 code units 的原描述建議，經 Review 縮短目前描述並確認後仍被 `INVALID_FIELD_SIZE` 誤拒。
+
+修正後以当前 producer 的完整型別驗證：product page／extraction／limitations／generation，六個 facts 必備鍵（product_name、title、meta_description、description、features、use），fact 的 kind／verification／value／citations，description／features 的產品 scope，以及 inference 的 kind／value／basis／citations。title、meta_description、use 可為明確 null；features 可為空陣列，不能省略。missing 須保留 producer 的未知項及相應空 facts／features，pending_confirmation 須含提示並完整對應 missing；原建議理由亦須存在。這些是結構完整性檢查，不把呼叫者陳述當成可信事實，完整 request hash 也不代替 schema 驗證。
+
+2000 UTF-16 code-unit 上限**僅限制目前可編輯三欄**；original_suggestions 保留非空原文，受既有整體 payload／evidence 大小限制，不截斷、不改已接受 Review 上限。真 builder → 使用者修短／確認 → export → validator 回歸逐項核對長原建議、目前修改、snapshot 與 facts 均無損。
+
+最終 `node --test prototype/public-audit/first-result-save-intent.test.mjs`：**14 tests PASS／0 FAIL**，包含全部 114 個破壞案例拒絕，以及真 builder 的 WooCommerce nullable facts、microdata features、明確 usage 合成合法案例。所有 builder 案例僅注入合成 HTML，DNS／connection 禁止。未重跑無關 Review／scanner／E2E；未改 CI、UI、migration、RPC 或接線。新提交仍待父獨立審查。

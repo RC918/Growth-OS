@@ -63,3 +63,5 @@ Woo／microdata 重疊 review 修正：`874d071` 原 CI 綠燈不涵蓋優先序
 父已接受本頁 Review `1a21d5486c1640b591aa686944767d99d208b307`：push 37082152873／PR 37082156670 success；logs 39 scanner/API、6 Review contracts、Chromium 145 1280/390 各 22 真下載，Preview `ErnefHeALQZuKdtatikv6CGHDcNx` Ready。本頁確認仍非持久 owner 授權。
 
 後續最小切片僅新增未接線 First Result save-intent 純契約／validator：完整保留匯出與獨立 fixture context，重算來源／內容／完整請求摘要，缺映射或資格拒絕；輸出只 draft candidate，明示 legacy title 160／title-body 與三欄 2000／來源 Review 不相容。11 項針對性合成測試 PASS；新 CI 待父核對。沒有 migration／RPC／generic review 改動、adapter dispatch、Auth／UI 接線、remoteSave 或新 store；不把完整 Business Profile 帶回 URL onboarding。詳見 [save-intent 契約與限制](docs/First_Result_Save_Intent_契約_2026-10-03.md)。
+
+save-intent 父審查修正：`69ce9b1` 兩 CI 37083625550／37083629483 綠燈但 HOLD，因必備 evidence 可缺漏及長 Unicode 原建議誤拒。先補回歸重現 11 PASS／2 FAIL（114 個結構破壞案例中 80 個誤收、真 builder 長原建議 INVALID_FIELD_SIZE），再最小修為完整 producer typed evidence／unknown 檢查，2000 限制僅用於目前編輯欄。最終 14 tests PASS，原建議／來源無損，合法 Woo／microdata／usage 合成案例仍通過。僅純契約、fixtures 與文件，無遠端／UI／RPC／migration；新提交待父審查，詳見 save-intent 契約 P2 增補。

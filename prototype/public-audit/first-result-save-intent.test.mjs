@@ -10,8 +10,10 @@ async function fixture({confirmed = true, title = '使用者微調 🔩 e\u0301'
   const bytes = Buffer.from(html), version = hash(bytes), url = 'https://example.com/products/bolt';
   const citation = {id:'s1',snapshot_id:id(1),source_version:version,url,locator:'p[1]',quote:'合成產品 Bolt A'};
   const fact = {kind:'fact',verification:'source_asserted',value:'合成產品 Bolt A',citations:['s1']};
-  const source = {snapshot:{schema_version:1,id:id(1),version,original_url:'https://example.com/bolt',final_url:url,fetched_at:'2026-10-03T00:00:00+00:00',encoding:'utf-8-with-replacement',html,content_base64:bytes.toString('base64'),content_fingerprint:'sha256:'+version,citations:[citation],limitations:['Synthetic source only']},facts:{product_name:fact,description:structuredClone(fact),features:[],price:null},inferences:[{kind:'inference',value:'Synthetic product page',citations:['s1']}],missing:['price'],preview:{generation:'extractive_rules',source_snapshot_id:id(1),source_version:version,fields:Object.fromEntries(reviewFields.map(key=>[key,{original:' 原文 '+key+' ',suggested:'原建議 '+key,citations:['s1'],reason:'Synthetic reason'}])),pending_confirmation:['price']}};
+  const source = {snapshot:{schema_version:1,id:id(1),version,original_url:'https://example.com/bolt',final_url:url,fetched_at:'2026-10-03T00:00:00+00:00',encoding:'utf-8-with-replacement',html,content_base64:bytes.toString('base64'),content_fingerprint:'sha256:'+version,citations:[citation],limitations:['Synthetic source only']},facts:{product_name:fact,description:structuredClone(fact),features:[],use:null},inferences:[{kind:'inference',value:'Synthetic product page',basis:'Synthetic type evidence',citations:['s1']}],page_type:'product',extraction:{method:'explicit_product_microdata',limitations:['Synthetic only']},missing:['use','features','specifications','price','certifications','performance','comparisons','guarantees'],preview:{generation:'extractive_rules',source_snapshot_id:id(1),source_version:version,fields:Object.fromEntries(reviewFields.map(key=>[key,{original:' 原文 '+key+' ',suggested:'原建議 '+key,citations:['s1'],reason:'Synthetic reason'}])),pending_confirmation:['price']}};
   for (const key of reviewFields) { source.facts[key] = {...structuredClone(fact),value:' 原文 '+key+' '}; }
+  source.facts.description.product_scope={locator:'main[1]',name_locator:'h1[2]',product_name:source.facts.product_name.value};
+  source.preview.pending_confirmation=['Confirm source assertions and suitability before applying.',...source.missing];
   const session = createResultReview(source);
   session.edit('title',title);
   if (confirmed) { for(const key of reviewFields) session.check(key,true); await session.confirm(); }
@@ -90,7 +92,7 @@ test('whole request fingerprint changes with evidence or originals, but does not
 });
 test('drafts need no local approval; unknowns preserved; all fields retain existing 1–2000 code-unit bounds',async()=>{
   const {report,context}=await fixture({confirmed:false});const r=await createFirstResultSaveIntent(report,context);
-  assert.equal(r.status,'candidate');assert.equal(r.intent.report.review.confirmation,null);assert.deepEqual(r.intent.report.missing,['price']);
+  assert.equal(r.status,'candidate');assert.equal(r.intent.report.review.confirmation,null);assert.deepEqual(r.intent.report.missing,report.missing);
   for(const key of reviewFields)for(const value of ['', '   ', 'x'.repeat(2001), '🔩'.repeat(1001)])await check(r=>r.preview.fields[key].suggested=value,'INVALID_FIELD_SIZE');
   for(const title of ['e\u0301','é','🔩','x'.repeat(160),'x'.repeat(161),'x'.repeat(2000)]){
     const f=await fixture({title});const result=await createFirstResultSaveIntent(f.report,f.context);assert.equal(result.status,'candidate');assert.equal(result.intent.report.preview.fields.title.suggested,title);
@@ -134,4 +136,76 @@ with patch.object(socket, 'getaddrinfo', side_effect=AssertionError('No DNS allo
   context.mapped_source=session.view().binding;context.expected_review_revision=report.review.revision;context.expected_content_digest=report.review.content_digest;
   const result=await createFirstResultSaveIntent(report,context);
   assert.equal(result.status,'candidate');assert.deepEqual(result.intent.report,report);assert.deepEqual(result.intent.report.snapshot,raw.snapshot);assert.deepEqual(result.intent.report.facts,raw.facts);
+});
+
+// P2 regressions: run against 69ce9b1 before changing the validator.
+test('producer required evidence cannot be deleted or replaced by untyped values',async()=>{
+  const cases=[];
+  function required(path,invalid){
+    cases.push([path.join('.')+' deleted',r=>{let node=r;for(const key of path.slice(0,-1))node=node[key];delete node[path.at(-1)];}]);
+    for(const value of invalid)cases.push([path.join('.')+' = '+JSON.stringify(value),r=>{let node=r;for(const key of path.slice(0,-1))node=node[key];node[path.at(-1)]=value;}]);
+  }
+  required(['inferences'],[null,{},[],['untyped']]);required(['missing'],[null,{},[],[42],['']]);
+  required(['preview','pending_confirmation'],[null,{},[],[42],['']]);
+  required(['facts','features'],[null,{},['untyped']]);
+  for(const key of ['product_name','title','meta_description','description','use']){
+    required(['facts',key],[42,'untyped',[],{kind:'inference',value:'wrong type',citations:['s1']}]);
+  }
+  for(const key of ['kind','verification','value','citations'])required(['facts','title',key],[null,42]);
+  required(['facts','title','kind'],['inference']);required(['facts','title','verification'],['verified']);
+  for(const key of ['kind','value','basis','citations'])required(['inferences',0,key],[null,42]);
+  required(['inferences',0,'kind'],['fact']);
+  required(['page_type'],[null,'not_supported_product']);required(['extraction'],[null,{}]);
+  required(['extraction','method'],[null,42]);required(['extraction','limitations'],[null,[],[42]]);
+  required(['snapshot','limitations'],[null,[],[42]]);required(['preview','generation'],[null,42]);
+  required(['preview','fields','title','reason'],[null,42]);
+  required(['facts','description','product_scope'],[null,{}]);
+  for(const key of ['locator','name_locator','product_name'])required(['facts','description','product_scope',key],[null,42]);
+  cases.push(['typed feature required',r=>r.facts.features=[{kind:'inference',value:'bad',citations:['s1']}]]);
+  cases.push(['missing/pending agreement',r=>r.preview.pending_confirmation.pop()]);
+  cases.push(['required unknown omitted from both',r=>{r.missing=r.missing.filter(x=>x!=='price');r.preview.pending_confirmation=r.preview.pending_confirmation.filter(x=>x!=='price');}]);
+  const accepted=[];
+  for(const [name,change] of cases){const {report,context}=await fixture();change(report);const result=await createFirstResultSaveIntent(report,context);if(result.status!=='invalid')accepted.push(name);}
+  assert.deepEqual(accepted,[],`Producer schema omissions accepted (${accepted.length}/${cases.length})`);
+});
+test('builder long supplementary-Unicode original survives a shortened and confirmed current description',async()=>{
+  const raw=JSON.parse(execFileSync('python3',['-B','-c',`
+import json, socket
+from unittest.mock import patch
+from product_source import build_snapshot
+from test_product_source import PRODUCT, fixture
+body=PRODUCT.replace(b'Public steel bolt for workshop assembly.', ('🧪'*1000).encode('utf-8'))
+def synthetic(url):
+    return fixture(url) if url.endswith('/robots.txt') else (200, {'content-type':'text/html'}, body)
+with patch.object(socket, 'getaddrinfo', side_effect=AssertionError('No DNS allowed')), patch.object(socket, 'create_connection', side_effect=AssertionError('No connection allowed')):
+    print(json.dumps(build_snapshot('https://example.com/products/bolt',synthetic,lambda:'2026-10-03T00:00:00Z')))
+`],{cwd:new URL('.',import.meta.url),encoding:'utf8'}));
+  const original=raw.preview.fields.description.suggested;assert.ok(original.length>2000);
+  const session=createResultReview(raw);session.edit('description','使用者縮短的產品描述 🧪');
+  for(const key of reviewFields)session.check(key,true);await session.confirm();
+  const report=await session.export(),{context}=await fixture();context.mapped_source=session.view().binding;context.expected_review_revision=report.review.revision;context.expected_content_digest=report.review.content_digest;
+  const result=await createFirstResultSaveIntent(report,context);
+  assert.equal(result.status,'candidate',result.reason);
+  assert.equal(result.intent.report.review.original_suggestions.description,original);
+  assert.equal(result.intent.report.preview.fields.description.suggested,'使用者縮短的產品描述 🧪');
+  assert.equal(result.intent.report.preview.fields.description.user_edited,true);
+  assert.deepEqual(result.intent.report.snapshot,raw.snapshot);assert.deepEqual(result.intent.report.facts,raw.facts);
+});
+test('producer WooCommerce null facts and explicit usage/features remain structurally eligible',async()=>{
+  const sources=JSON.parse(execFileSync('python3',['-B','-c',`
+import json, socket
+from unittest.mock import patch
+from product_source import build_snapshot
+from test_product_source import PRODUCT, WOO_PRODUCT, WOO_MICRO, fixture
+bodies=[WOO_PRODUCT, WOO_MICRO, PRODUCT.replace(b'itemprop="description"', b'itemprop="description" data-product-usage="true"')]
+with patch.object(socket, 'getaddrinfo', side_effect=AssertionError('No DNS allowed')), patch.object(socket, 'create_connection', side_effect=AssertionError('No connection allowed')):
+    print(json.dumps([build_snapshot('https://example.com/products/bolt', lambda url: fixture(url) if url.endswith('/robots.txt') else (200, {'content-type':'text/html'}, body), lambda:'2026-10-03T00:00:00Z') for body in bodies]))
+`],{cwd:new URL('.',import.meta.url),encoding:'utf8'}));
+  assert.equal(sources[0].facts.meta_description,null);assert.equal(sources[0].facts.use,null);assert.equal(sources[0].facts.features.length,0);
+  assert.ok(sources[1].facts.features.length>0);assert.equal(sources[2].facts.use.kind,'fact');
+  for(const raw of sources){
+    const session=createResultReview(raw),report=await session.export(),{context}=await fixture();
+    context.mapped_source=session.view().binding;context.expected_review_revision=report.review.revision;context.expected_content_digest=report.review.content_digest;
+    const result=await createFirstResultSaveIntent(report,context);assert.equal(result.status,'candidate',result.reason);assert.deepEqual(result.intent.report,report);
+  }
 });

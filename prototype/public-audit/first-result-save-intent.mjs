@@ -8,6 +8,7 @@ const exactKeys = (value, keys) => record(value) && Object.keys(value).sort().jo
 const whole = value => Number.isSafeInteger(value) && value >= 0;
 const text = value => typeof value === 'string';
 const nonempty = value => text(value) && value.trim().length > 0;
+const stringList = value => Array.isArray(value) && value.length > 0 && value.every(nonempty);
 const canonical = value => JSON.stringify(sort(value));
 function sort(value) {
   if (Array.isArray(value)) return value.map(sort);
@@ -78,20 +79,43 @@ async function validateReport(r) {
   function references(value) {
     requireThat(Array.isArray(value) && value.length > 0 && value.every(id => text(id) && ids.has(id)), 'CITATION_REFERENCE_MISMATCH');
   }
-  requireThat(record(r.facts) && record(r.facts.product_name) && record(r.facts.description), 'INVALID_FACTS');
-  function evidence(value) {
-    if (Array.isArray(value)) { value.forEach(evidence); return; }
-    if (!record(value)) return;
-    if ('citations' in value) references(value.citations);
-    if (value.kind === 'fact') requireThat(value.verification === 'source_asserted' && nonempty(value.value) && 'citations' in value, 'INVALID_FACTS');
-    for (const [key, child] of Object.entries(value)) if (key !== 'citations') evidence(child);
+  // The supported producer has a complete typed evidence envelope, not arbitrary
+  // recursively discovered citations. A hash alone cannot detect missing sections.
+  requireThat(r.page_type === 'product' && record(r.extraction) &&
+    ['explicit_product_microdata', 'woocommerce_single_product'].includes(r.extraction.method) &&
+    stringList(r.extraction.limitations) && stringList(s.limitations) && p.generation === 'extractive_rules', 'INVALID_EVIDENCE_SCHEMA');
+  requireThat(exactKeys(r.facts, ['product_name','title','meta_description','description','features','use']), 'INVALID_FACTS');
+  function fact(value, scoped = false) {
+    const keys = ['kind','verification','value','citations', ...(scoped ? ['product_scope'] : [])];
+    requireThat(exactKeys(value, keys) && value.kind === 'fact' && value.verification === 'source_asserted' && nonempty(value.value), 'INVALID_FACTS');
+    references(value.citations);
+    if (scoped) {
+      const scope = value.product_scope;
+      requireThat(exactKeys(scope, ['locator','name_locator','product_name']) && nonempty(scope.locator) && nonempty(scope.name_locator) &&
+        scope.product_name === r.facts.product_name.value && r.facts.product_name.citations.every(id => value.citations.includes(id)), 'INVALID_PRODUCT_SCOPE');
+    }
   }
-  requireThat(r.facts.product_name.kind === 'fact' && r.facts.description.kind === 'fact', 'INVALID_FACTS');
-  evidence(r.facts); evidence(r.inferences);
+  fact(r.facts.product_name); fact(r.facts.description, true);
+  for (const key of ['title','meta_description','use']) if (r.facts[key] !== null) fact(r.facts[key]);
+  requireThat(Array.isArray(r.facts.features), 'INVALID_FACTS');
+  r.facts.features.forEach(value => fact(value, true));
+  requireThat(Array.isArray(r.inferences) && r.inferences.length > 0, 'INVALID_INFERENCES');
+  for (const inference of r.inferences) {
+    requireThat(exactKeys(inference, ['kind','value','basis','citations']) && inference.kind === 'inference' && nonempty(inference.value) && nonempty(inference.basis), 'INVALID_INFERENCES');
+    references(inference.citations);
+  }
+  const missing = ['title','meta_description','use'].filter(key => r.facts[key] === null);
+  if (r.facts.features.length === 0) missing.push('features');
+  missing.push('specifications','price','certifications','performance','comparisons','guarantees');
+  requireThat(stringList(r.missing) && canonical(r.missing) === canonical(missing) && stringList(p.pending_confirmation) &&
+    canonical(p.pending_confirmation.slice(1)) === canonical(r.missing), 'INVALID_UNKNOWNS');
   const fields = {};
   for (const key of reviewFields) {
     const f = p.fields[key];
-    requireThat(record(f) && nonempty(f.suggested) && f.suggested.length <= 2000 && text(f.original) && nonempty(v.original_suggestions[key]) && v.original_suggestions[key].length <= 2000, 'INVALID_FIELD_SIZE');
+    // Only current editable text has the UI's 2000-code-unit bound. Immutable
+    // original suggestions retain producer text under the overall payload limit.
+    requireThat(record(f) && nonempty(f.suggested) && f.suggested.length <= 2000 && text(f.original) && nonempty(v.original_suggestions[key]), 'INVALID_FIELD_SIZE');
+    requireThat(nonempty(f.reason), 'INVALID_FIELD_REASON');
     references(f.citations);
     requireThat(f.original === (r.facts[key]?.value ?? ''), 'ORIGINAL_FACT_MISMATCH');
     const edited = f.suggested !== v.original_suggestions[key];
