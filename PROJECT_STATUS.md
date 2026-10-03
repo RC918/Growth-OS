@@ -6,7 +6,7 @@
 
 初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿 accepted HEAD 推進，本輪合法 package 基準 `0614100535175c0109d9d4f964d96629002af219`。父轉述 Owner 2026-10-03 13:18 UTC 批准同固定資料新截止 **14:30 UTC／台北22:30**；已離線重綁 [新 manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T143000Z/approval-manifest.json)，08:00／09:30 歷史包原樣保留。父確認現有雲端登入成功，allowlist 仍待唯讀核對；preflight 成功後的 opening/config部署/login1/最多1Save/立即cleanup及closed部署/login2只讀均由父另行處理。本輪沒有執行這些操作，實際 flags 仍 false/null；14:30 不自動延展。
 
-目前 opening 操作 `url_result_bound_open_20261003_1430`：父回報13:35:24首次 dispatch 回傳遺失，13:38–13:40 baseline 未變；記為工具 `UNCERTAIN_RESULT`，不是 FAIL。最新 committed-state 待父fresh authoritative reconciliation。[精確重試條件與pipeline](docs/Bound_URL_Operation_Reconciliation_2026-10-03.md)：CONFIRMED_APPLIED續行，完整CONFIRMED_NOT_APPLIED且runner/in-flight/期限等安全條件齊備才同操作retry一次，STATE_DIVERGED停mutation。Frozen SQL／runtime flags未改。
+目前 opening `url_result_bound_open_20261003_1430` 首次回傳遺失，保留工具UNCERTAIN_RESULT；父新增13:49完整authoritative baseline未變，分類該觀察時CONFIRMED_NOT_APPLIED。[更新判定與官方來源](docs/Bound_URL_Operation_Reconciliation_2026-10-03.md)：本包非IFNOTEXISTS DDL防並發重放，配合官方hosted失敗rollback契約，支持14:30前同name/SQL/route重試一次，不要求queue空；history不留失敗紀錄屬文件支持的合理推論，不冒充hosted exactly-once已證實。已套用續行，分歧停mutation；本子執行緒未做remote，Frozen SQL／flags未改。
 
 ## 產品方向
 
