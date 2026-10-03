@@ -6,12 +6,21 @@ export async function contentDigest(text){
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
  return 'sha256:'+Array.from(new Uint8Array(bytes),v=>v.toString(16).padStart(2,'0')).join('');
 }
-export function createResultReview(report,{digest=contentDigest}={}){
+export function createResultReview(report,{digest=contentDigest}={}){return buildReview(report,{digest});}
+export async function restoreResultReview(report,options={}){
+ const source=clone(report);
+ const {validateReport}=await import('./first-result-payload.mjs');
+ await validateReport(source);
+ if(!Number.isSafeInteger(source.review.revision+1))fail('INVALID_REVIEW_REVISION');
+ return buildReview(source,{...options,restored:true});
+}
+function buildReview(report,{digest=contentDigest,restored=false}={}){
  const source=clone(report),s=source?.snapshot,p=source?.preview;
  if(!s?.id||!s.version||!s.original_url||!s.final_url||p?.source_snapshot_id!==s.id||p?.source_version!==s.version||!reviewFields.every(k=>typeof p.fields?.[k]?.suggested==='string'))fail('INVALID_REVIEW_SOURCE');
  const binding={original_url:s.original_url,final_url:s.final_url,snapshot_id:s.id,source_version:s.version};
- const original=Object.fromEntries(reviewFields.map(k=>[k,p.fields[k].suggested]));
- let values=clone(original),checks=Object.fromEntries(reviewFields.map(k=>[k,false])),revision=0,epoch=0,receipt=null,pending=null;
+ const initial=Object.fromEntries(reviewFields.map(k=>[k,p.fields[k].suggested]));
+ const original=restored?clone(source.review.original_suggestions):clone(initial);
+ let values=clone(initial),checks=Object.fromEntries(reviewFields.map(k=>[k,false])),revision=restored?source.review.revision+1:0,epoch=0,receipt=null,pending=null;
  const valid=()=>reviewFields.every(k=>values[k].trim().length>0&&values[k].length<=2000);
  function invalidate(){epoch++;receipt=null;pending=null;}
  function payload(){return {schema_version:1,...binding,revision,fields:clone(values)};}
@@ -28,7 +37,7 @@ export function createResultReview(report,{digest=contentDigest}={}){
    if(!reviewFields.includes(key)||typeof value!=='boolean')fail('INVALID_FACT_CHECK');
    invalidate();checks[key]=value;return view();
   },
-  cancel(){invalidate();revision++;values=clone(original);checks=Object.fromEntries(reviewFields.map(k=>[k,false]));return view();},
+  cancel(){invalidate();revision++;values=clone(initial);checks=Object.fromEntries(reviewFields.map(k=>[k,false]));return view();},
   confirm(){
    if(pending)return pending.promise;
    if(!valid())return Promise.reject(Error('INVALID_REVIEW_TEXT'));

@@ -1,4 +1,5 @@
 import {typedDraft} from './typed-draft.mjs';
+import {savedResultReview} from './saved-result-review.mjs';
 import {createUrlSavePanel} from './url-result-save.mjs';
 import * as urlConfig from './url-result-config.mjs';
 const {urlSaveEnabled,urlResultSchemaEnabled,urlSaveTrial=null}=urlConfig;
@@ -95,7 +96,7 @@ function revealVersion(opportunityId, versionId, text) {
 const isTyped = version => !!version && contentVersionKind(version) !== 'legacy';
 const typedNotice = '待專用審核 · 未發布 · 僅供唯讀；不能使用一般草稿審核、兩欄修訂或執行方案。';
 
-function typedVersion(version, current, history = null) {
+function typedVersion(version, current, history = null, editable = false) {
   const wrapper = document.createElement('section'); wrapper.className = 'typed-version'; wrapper.dataset.versionId = version.id;
   const notice = document.createElement('p'); notice.className = 'draft-state'; notice.textContent = typedNotice; wrapper.append(notice);
   if (contentVersionKind(version) !== 'typed') {
@@ -122,7 +123,9 @@ function typedVersion(version, current, history = null) {
     try {
       const row = await api.readContentVersion(version);
       if (!active()) return;
-      body.replaceChildren(typedDraft(row)); loaded = true; feedback.textContent = '';
+      body.replaceChildren(typedDraft(row));
+      if(editable)body.append(savedResultReview({api,version,isCurrent:visible}));
+      loaded = true; feedback.textContent = '';
     } catch (error) {
       if (!active()) return;
       feedback.textContent = error.message; feedback.setAttribute('role', 'alert'); retry.hidden = false;
@@ -155,7 +158,8 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
     card.append(title,source);
     const cardState=state,cardEpoch=epoch,generation=renderGeneration;
     const current=()=>card.isConnected&&state===cardState&&epoch===cardEpoch&&renderGeneration===generation;
-    for(const version of versions.toSorted((a,b)=>b.version_number-a.version_number)) card.append(typedVersion(version,current));
+    const ordered=versions.toSorted((a,b)=>b.version_number-a.version_number);
+    for(const version of ordered) card.append(typedVersion(version,current,null,owner && version===ordered[0] && version.status==='draft'));
     return card;
   }
   if (item.entry_kind && item.entry_kind !== 'legacy_opportunity') {card.textContent='項目類型未知；操作已阻擋。';return card;}

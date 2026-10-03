@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。本輪只歸檔證據；下一個待父核分配的最小 Core 是「已保存成果的續編與取消恢復（離線整合）」，沿用既有 Review 與精確版本讀取，驗收準則見同一記錄。未自行啟動實作或新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；repo 實作與合成驗證完成，待 Reviewer／新 HEAD CI，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -172,3 +172,10 @@ CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀�
 本段更新上述「尚缺 negative GET／待 CI」的歷史狀態。父在 `19:27:19.973Z` 的第三次真 signed Owner session 點一次已審核診斷，OrgA 固定 parent 精確 1 row，OrgB 既有 parent 成功回應 0 rows；結合 19:08 authoritative 存在性／無 membership 控制，必要 P2 已解除。Reviewer 最終 APPROVE，且父已通知 Owner 此完整子里程碑成立；不是全產品 M3 或 v2 專案完成。
 
 [驗收記錄](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md) 保存完整 IDs、時序、1 Save／3 login、DB history 21／ACL closed、證據來源及未驗範圍。CoreMilestoneProgress 是使用者真保存後可重新登入讀回同一成果、固定 tenant 隔離已實測；本次文件 commit 本身不另計產品能力。下一 Core 僅提出既有成果續編／取消恢復的離線切片供父分配，不重做已 PASS、不新增診斷或處理 P3。
+
+
+## 2026-10-03 已保存成果續編／取消恢復：離線 Core
+
+父接受 `7563bd2` 文件（Reviewer `01a10343`、CI `37148329617` success、Preview `AkEUDCrgq54cYkoSeBTP4U959rYm` success）後，明確分配本次普通 repo/offline 工程。現在 Owner 可从已保存最新 URL draft 精確讀回進入既有 Review 引擎；保留來源、原建議及已存修改，清除舊確認；取消回到原已保存版本。viewer 仍唯讀，進入／確認重新核對最新版本，來源／tenant／session 漂移與晚回覆拒絕。沒有新 store、schema、ACL 或 Save 接線。
+
+本地 32 unit/API/mirror tests、新續編 E2E 1280/390、既有 typed 及 URL Save 合成 UI 回歸通過；新測試接入既有 CI。詳見 [離線驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。closed config／所有 SQL／frozen payload 未改，既有遠端 1/1/1 保留且未觸碰；没有 live POST／login。CoreMilestoneProgress 是已保存版本可安全開始本頁續編並取消恢復的離線能力，不計為第二輪 live M3 驗收或完整 M3 完成。

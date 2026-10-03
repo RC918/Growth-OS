@@ -235,6 +235,22 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       }
       return row;
     },
+    async readReviewBase(version) {
+      const org=ownerOnly(),session=membership,expected=copyJSON(version);
+      if(!urlResultSchemaEnabled || expected.status!=='draft' || contentVersionKind(expected)!=='typed')throw new Error('此版本不可續編');
+      const current=()=>{if(membership!==session)throw new Error('工作區已變更，請重新讀取');};
+      const parents=await select('growth_opportunities','id,entry_kind',{organization_id:`eq.${org}`,id:`eq.${expected.opportunity_id}`,limit:'1'});
+      current();
+      if(parents.length!==1 || parents[0]?.id!==expected.opportunity_id || parents[0]?.entry_kind!=='url_result')throw new Error('成果來源項目已變更');
+      const latest=await select('content_versions',versionColumns,{organization_id:`eq.${org}`,opportunity_id:`eq.${expected.opportunity_id}`,order:'version_number.desc',limit:'1'});
+      current();
+      if(latest.length!==1 || versionColumns.split(',').some(key=>latest[0]?.[key]!==expected[key]))throw new Error('已有不同版本，請重新整理後續編');
+      const row=await this.readContentVersion(expected);
+      await validateReport(row.first_result_payload);
+      current();
+      if(row.title!==row.first_result_payload.preview.fields.title.suggested || row.draft_body!==row.first_result_payload.preview.fields.description.suggested)throw new Error('成果內容與版本不一致');
+      return row;
+    },
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
