@@ -56,3 +56,33 @@
 驗證：28 API／marker／mirror tests PASS，含 closed dispatch 拒絕、篡改 actor/base/request/digest、取消／logout 的 dispatch 前拒絕，及錯 creator／UUID／org／status／payload 讀回拒絕。新增 `saved-result-save.e2e.mjs` 已接 CI，1280/390px 各六案（success、unknown→空 GET→精確 GET、SQL conflict、cancel、logout、wrong UUID readback）通過；每案一個 synthetic POST，disposable SQL 1 parent／2 versions／2 audits、v1 全 row 未變，成功案 v2 payload 等於意圖。使用既有 SQL，沒有新 SQL／DDL／ACL artifact。
 
 既有 `saved-result-review.e2e.mjs`、`url-result-ui.e2e.mjs` 桌面／手機與 `url-result-races.e2e.mjs` 12 案回歸通過。logs：`/tmp/revision-save-api.log`、`/tmp/revision-save-ui.log`、`/tmp/revision-save-review-regression.log`、`/tmp/revision-save-url-regression.log`、`/tmp/revision-save-races.log`。當前 config SHA 仍為前述 `c37e2d…` closed 原 bytes；live 1/1/1、SQL／frozen artifact 完全不動，無新 remote/login/live POST。
+
+
+## 後續：保存 v2 → 結束 session → 新 session 精確恢復 → v1 歷史
+
+父確認 `e7209e7ee1e77bf6c73a594cad4296f29ca35623` 已由 Reviewer `01a10370` APPROVE、CI `37151322250` success、Preview `HHaXKYiwoVZ7Eqjiybyns2reWzDg` success。本輪先檢查 `workspace.mjs` 的 dashboard／URL 版本降序清單／按 UUID lazy read，以及既有 logout／epoch 防護；目標流程已有實作，新增完整整合證據即可，沒有改產品檔或再造 editor／store／意圖層。
+
+同一 `saved-result-save.e2e.mjs` 新增 `session_restore` 案例，保留同一 disposable DB，完成一條使用者流程：
+
+1. 原合成 Owner session 從 v1 續編、確認、準備意圖、唯一一次合成 POST 保存 v2 並精確讀回。
+2. 明確結束 session 並關閉舊 browser context；新 context／新合成 token 登入，沒有繼承意圖或成功 panel。透過既有 dashboard／Data API，確認清單順序 v2→v1，展開精確 v2 UUID 並比對完整 payload，再展開 v1 比對完整舊 payload。僅最新 v2 提供 Owner 續編，歷史 v1 不提供覆寫入口。
+3. 暫停 v2 detail 回應後登出，釋放晚回應，舊 DOM 不再出現資料。新 viewer session 可讀完整兩版但無續編入口；將 detail 回應版本改成不符列表的值時 fail closed。
+4. 新 foreign tenant session 的 dashboard 不顯示該既有 parent；同一 isolated PostgreSQL RLS 身份下，既有 v2 UUID SELECT 也回 0 rows。最後核 v1 全 row 不變、兩版／兩 audit 保留，所有新 session 無追加 POST。
+
+執行：`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node prototype/owner-workspace/saved-result-save.e2e.mjs session_restore`，1280/390px PASS；log `/tmp/revision-session-ui.log`。新增情境已由既有 CI 的預設全案例命令納入；測試選擇參數只接受明確列出的案例。因本輪調整共用合成身份／transport 以支援新 session，亦跑一次預設全案例回歸（14 案，log `/tmp/revision-session-full-ui.log`），不重演任何 live fixed case。
+
+以上是 synthetic Auth／transport＋實際 disposable SQL 的新 session 整合，不是新遠端登入／live rollout。runtime config、產品 JS/HTML、SQL、frozen artifact 均不修改，live 1/1/1 不觸碰。
+
+## M3 使用者流程收斂與剩餘項
+
+依 v2 第 6／8 節（成果微調、版本確認、必要登入保存、重新登入恢復，含 owner/viewer／tenant／漂移／舊核准失效／重複與取消），以使用者可完成的流程作單位，不再把已通過的成功路徑拆為新 micro-slice：
+
+| 使用者流程 | 目前證據 | 明確尚未完成／完成門檻 |
+|---|---|---|
+| 首次成果核對後保存，離開再登入讀回 | 固定 Owner／固定 synthetic 內容的 bounded live v1、1/1/1、tenant negative GET、cleanup 已 APPROVE；一般 Review／交接／SQL 有離線證據 | 尚未代表一般產品／全部角色 live rollout；不重做該已 PASS 固定案例。 |
+| 從已保存版微調、確認、保存新版本，重新登入查看最新與歷史 | v1→v2→新 session→完整 v2／v1，以及 owner/viewer／外租戶／版本与晚回應拒絕已 offline 組裝 PASS；來源與原建議保留、舊確認失效、取消／衝突保留資料已有相關證據 | 實際 v2 runtime Save 仍 closed；真 signed v2 保存／跨 session／viewer 整合未 live 驗收。之後須先具備安全恢復，再由父另行核遠端權限／試點範圍；舊 envelope 不可復用。 |
+| 保存回應未知時，離開後回來辨識結果並安全繼續 | 同一 editor 內僅原 request GET、不盲目 POST、已知 UUID 精確核對已 PASS | **主要剩餘 repo Core**：跨 editor/reload／新 session 尚無完整的未決 operation 恢復；目前生命周期限制不能放行 live。門檻是已提交與未確認兩種情況都能恢復核對；空 GET 保持 unknown、錯 actor/org/base/source 不接受，始終不自動重送。 |
+
+下一個最小 Core 提案：一次交付「保存回應未知 → 離頁／新 session → 原 request 唯讀核對 → 已保存成果恢復或明確仍未知」完整 offline 流程；只延伸既有 request／marker／登入契約，範圍限定既有 Owner 與一筆未決保存，避免新通用 store、背景 retry 系統或更多意圖層。保留錯身份、取消及 stale callback 拒絕，1280/390 同流程驗收後即收尾，不把各個查詢／畫面再拆成無限小里程碑。**本輪僅提出，待父分配；未開始實作或授權遠端操作。**
+
+來源／版本漂移、舊確認失效是上述流程的必要防護，不另立無限補強專案；P3 美化／通用治理不追。M3 全產品、完整 live 角色矩陣仍未完成；M4 Publish／M5 Measure 仍是未完成的後續里程碑，不能由這些離線 PASS 推定完成。

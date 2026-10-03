@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；目前完整續編保存／v2 讀回離線組裝已完成、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；本輪已驗既有新 session 恢復 v2／v1 歷史能力，僅補整合測試與收尾文件、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -197,3 +197,12 @@ CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀�
 保存前重新核對 actor／Owner membership／base UUID／expected version／完整 payload 與意圖摘要；最後仍走既有 Save flag、bound gate、session／同步 live guard。合成回應成功後必須精確 UUID、creator、org、request、版本、draft status、payload 讀回吻合才顯示 v2 成功，v1 仍保留。已送出結果未知或衝突只查原 request、不重送；衝突保留修改供複製／核對並停用保存，不自動換新 base。取消已送出操作只停止等待，不能宣稱回滾；仍可 GET 核對已提交結果。
 
 28 API／marker／mirror tests 通過；新完整 UI 1280/390 各 success、unknown、SQL conflict、cancel、logout、wrong-readback 六案通過，每案僅一個 synthetic POST、isolated 1 parent／2 versions／2 audits、v1 原樣。既有續編／意圖 UI、URL Save 與 12 races 回歸通過。這些是 synthetic transport＋disposable SQL 的 offline 結果，不是第二輪 live Save；兩份 config exact closed、所有 SQL／bound artifact 不變，沒有 remote/login/live POST／費用／lease 延展。新 HEAD CI／Reviewer 待父核對，完整 M3 尚未宣告完成。
+
+
+## 2026-10-03 v2 保存後新 session 恢復與 v1 歷史（offline 完整流程）
+
+父提供 `e7209e7ee1e77bf6c73a594cad4296f29ca35623` 的 Reviewer `01a10370` APPROVE、PR CI `37151322250` success、Preview `HHaXKYiwoVZ7Eqjiybyns2reWzDg` success。先檢查既有產品能力：dashboard 已依 DB 版本建立最新／歷史清單、按 UUID lazy GET、Owner 最新 draft 才能續編，結束 session 會清除舊 DOM。新整合測試證實這些能力足以完成本 slice，**沒有產品缺口需要新程式或新 store**。
+
+擴充同一 `saved-result-save.e2e.mjs`：真 DOM 合成保存 v2 後結束 session、關閉舊 browser context、以新 context／新合成 token 登入同一 isolated DB，精確 v2 UUID／完整 payload 及 v1 完整 payload 讀回；僅 v2 有 Owner 續編入口。再以新 viewer session 驗兩版唯讀、新 foreign tenant session 驗既有成果不可見，並驗錯版本回應／登出後 late detail 不渲染。1280/390 均 PASS；每 viewport 僅原一次 synthetic POST，新 session 全 GET，DB v1 全 row 不變、維持 1/2/2。不是重新執行 live 登入，也不是新 runtime 功能宣稱。
+
+M3 的已完成使用者閉環與剩餘項已集中列於 [續編驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md#m3-使用者流程收斂與剩餘項)。本輪 CoreMilestoneProgress 是完成跨新 session 的整合證據，不另拆更多已 PASS 成功路徑。主要剩餘 repo Core 是「unknown 保存後離頁／新 session 的安全核對與成果恢復」；只提出一個完整流程供父分配，不在本輪展開。現有 editor 生命周期限制仍在，不能據此 live rollout；遠端 fixed-case envelope 已收尾，仍禁止新 remote/login/mutation。P3 不追，完整 M3／Publish／Measure 未完成。
