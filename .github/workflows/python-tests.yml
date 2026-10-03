@@ -73,6 +73,8 @@ jobs:
       - name: URL pending result independent PG17 backends (no network)
         timeout-minutes: 3
         run: node supabase/drafts/url_result/native.mjs
+      - name: New bounded v2 candidate on existing closed schema (offline only)
+        run: node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs
       - name: Bound URL PG17 deadline locks and single-request concurrency
         timeout-minutes: 3
         run: node supabase/drafts/url_result/bound/native.mjs

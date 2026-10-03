@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；新 session v2／v1 歷史 `ea87cc0` 亦已接受；本輪同 origin/tab 未決續編恢復已完成離線組裝、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；新 session v2／v1 歷史 `ea87cc0` 亦已接受；同 origin/tab 未決續編恢復 `495516b` 已接受；本輪準備新 bounded v2 遠端驗收方案與離線候選（尚未授權執行），詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -217,3 +217,12 @@ dispatch 緊前同步寫入／讀回核對單筆識別與摘要，storage 拒絕
 32 API／marker／mirror tests PASS；1280/390 完整組裝 28 案（既有 14＋本輪恢復／storage 14）PASS，含已提交 unknown、未提交空 GET、known UUID mismatch、錯 actor、損壞 pending reload、拒絕／no-op storage；恢復不新增 POST、v1 完整不變。既有續編及 URL Save 桌面手機回歸亦 PASS。初次合成新登入失敗因同頁僅改 hash 沒有 document load，已改同 tab 真導頁後通過，沒有放寬身份防護。
 
 明確限制：僅同 origin／仍存在的 tab；不保證 destroyed tab/context、跨設備或人為清除 sessionStorage。未落庫文案只留原 editor 記憶體；reload 後若 GET 空，不能用摘要重建修改，必須明示 unknown；若已提交，從精確 DB payload 恢復修改。已解本輪限定恢復流程，不能因此宣稱全面 live rollout；新 v2 remote／完整 live role matrix 仍未驗收，實際 Save closed、舊遠端 envelope 已收尾。沒有 remote/login/live POST、新 SQL、ACL、費用或 lease 延展。詳細 scope 見 [驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。
+
+
+## 2026-10-03 新 bounded v2 驗收準備（offline candidate only）
+
+父確認 `495516b71d20bd975f6f1afa88eb160883409160` Reviewer `01a1039a` APPROVE、PR CI `37153710795` success、Preview `BTuUpxFXMNHJJU7EVK8dQnNMk6NX` success。新 Core 收斂為已保存 v1 真續編一次 → 新 bounded v2 保存 → 重登入精確 v2/v1 history；原 first-case envelope 已收尾，不能沿用舊批准。
+
+已交付 [完整候選與安全順序](supabase/drafts/url_result/revision-bound/README.md)：固定原 Owner/org/parent/base，唯一新 request，既有 Review engine 從原 payload 產生 frozen v2，expected1；僅既有 private implementation 窄patch template＋保留資料的tracked cleanup＋readonly pre/postflight。cutoff=null，不猜 Owner 可用時間、不做短期freeze。隔離PGlite 7 tests PASS，驗基準漂移、錯bound、到期rollback、最大增量0parent/1version/1audit、v1全row不變和closed讀回。
+
+CoreMilestoneProgress：新 bounded v2 的可審核 scope／payload／SQL 離線可行性成立，尚未形成 live 使用者驗收。現有 trial 預期0而續編入口要求無trial，需最小revision discriminator接線與desktop/mobile/nativePG驗證後才可由父整包向Owner請新批准；本輪未實作runtime接線，不能直接開旗標。沒有新架構、remote、login、live POST、實際config或既有frozen artifacts變更。準備結果交父review，不自動開始遠端或其他Core。
