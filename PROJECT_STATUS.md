@@ -4,7 +4,7 @@
 
 ## 當前授權與基準
 
-初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿後續 accepted HEAD 推進，目前父已驗收 `7467fa2227e39be6e095dd39da8c9b58ca780257`。新的直接 Owner 指令才會改變當前授權。 父已驗收同 SHA push 37101477830／PR 37101480378 的 42 steps（無 skip），含 PG17.6 與 Chromium145；這是先前 accepted 基準證據，不是本次候選包的新 CI 結果。10/3 05:14 授權與父 06:11 派工限於 bound 離線包、測試、文件及 PR19 commit／非強制 push；實際 UTC、Preview 開放與遠端驗收仍待另行批准。
+初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿後續 accepted HEAD 推進，目前父已驗收 `cffdec89c30faaad523cb3af1a64108e335d3b92`。新的直接 Owner 指令才會改變當前授權。父核 push 37104398407／PR 37104401072 各 45 steps 成功，含 Chromium145 與 PG17.6。本輪僅離線凍結 [08:00 UTC 具體候選](supabase/drafts/url_result/bound/owner-candidate-20261003T080000Z/approval-manifest.json)供 Owner 批准；實際 flags 仍 false/null。截止 2026-10-03T08:00:00Z（台北16:00）不延展；repo 登入 redirect 為同源 `/workspace.html`，遠端 allowlist 與安全 handoff 未核對。父瀏覽器能力讀取遭安全審核拒絕，未重試；待 Owner 批准瀏覽器檢查／登入並成功 preflight 才可開 grant。
 
 ## 產品方向
 

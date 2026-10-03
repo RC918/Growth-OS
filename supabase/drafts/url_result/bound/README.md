@@ -1,5 +1,7 @@
 # URL 待審成果：固定範圍離線驗收候選包
 
+最新具體提案：[2026-10-03 08:00 UTC 候選](owner-candidate-20261003T080000Z/README.md)，尚未批准。父已驗收 `cffdec89` 兩組 CI 各45 steps；下方各輪本機／待驗記錄保留為歷史，不代表現行 CI 尚失敗。
+
 本包依 Owner 2026-10-03 05:14 離線設計批准及父 06:11 派工準備，沿已驗收 `7467fa2227e39be6e095dd39da8c9b58ca780257`。不是遠端執行授權。沒有 remote DDL／ACL／查詢、登入、POST、模型或費用操作；04:01 closed 部署是已完成且過期的歷史批准。`apps/web` 與 prototype 的 schema/save flag 仍為 false，trial 為 null。此目錄不在自動 migration 路徑，也不在靜態站點根目錄。
 
 ## 固定輸入

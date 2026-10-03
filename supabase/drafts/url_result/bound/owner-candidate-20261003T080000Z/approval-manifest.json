@@ -1,0 +1,92 @@
+{
+  "status": "PROPOSED_ONLY_NOT_APPROVED",
+  "accepted_code_head": "cffdec89c30faaad523cb3af1a64108e335d3b92",
+  "parent_verified_ci": {
+    "push": 37104398407,
+    "pull_request": 37104401072,
+    "steps_each": 45,
+    "chromium_major": 145,
+    "native_postgres": "17.6"
+  },
+  "supabase_project_ref": "vhzryhibmpvglzcmfnaa",
+  "supabase_origin": "https://vhzryhibmpvglzcmfnaa.supabase.co",
+  "absolute_deadline_utc": "2026-10-03T08:00:00.000Z",
+  "deadline_asia_taipei": "2026-10-03T16:00:00+08:00",
+  "automatic_extension": false,
+  "workspace_url": "https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html",
+  "auth_redirect": {
+    "url": "https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html",
+    "derived_from": [
+      "apps/web/workspace.mjs:476",
+      "apps/web/workspace-api.mjs:96"
+    ],
+    "remote_allowlist_and_safe_handoff_verified": false,
+    "note": "Existing code redirects directly to same-origin workspace.html; no auth/callback.html path is used. No redirect configuration changes authorized."
+  },
+  "fixed_input": {
+    "schema_version": 1,
+    "purpose": "offline candidate; remote approval and absolute UTC window required",
+    "actor_id": "e85f1a90-3565-4fc1-a7e0-3b7d08830d0e",
+    "organization_id": "93a88055-0a0b-40c0-b22f-a6d312320001",
+    "opportunity_id": "9bafbb2f-eea7-48ea-bc23-3896897f19c3",
+    "request_id": "4d602b3f-272f-4282-9906-b0cc0155e1c7",
+    "expected_version": 0,
+    "payload_file": "synthetic-export.json",
+    "payload_file_sha256": "56ea3d35c799f63eb780aa7e1b2b1b6e850a96a4ead6ac913e479fc506cae424",
+    "payload_canonical_sha256": "5fd32cb8424a2efe1dfa3f93ba251d0637d34fcd6e77d2b21c342ffb8ed86241",
+    "source_digest": "sha256:8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+    "content_digest": "sha256:567d484e3ce732527be30b7c0093ec5ebd0763f6ac446d3366c1524f423214d0",
+    "request_digest": "pg-jsonb-sha256:4cc5a9523bbccf6f0d976ce08b78ed3b7763cd69d18ee7bf34b00310e5f5f7a5"
+  },
+  "payload_relative_path": "../synthetic-export.json",
+  "artifact_hashes": {
+    "opening_sha256": "5338b219b419a14bb276bc0dbaa54eb5e4ecb3bc424c1dc04b93be66e4d5a203",
+    "cleanup_sha256": "2932e50569d486e8d4251f20ac8b9c30be1180068ba8b6a897abd8814eb5b80c",
+    "open_config_sha256": "81f914ac47c4c1d04158ef2ea3dd191438da5894a5714ee346ab0d906633e2e2",
+    "closed_config_sha256": "bc857656790c1bed36c7f086a1b6b54d13f0e4b2a53e8582f7bcecc24368915d"
+  },
+  "migration_history": {
+    "before": 19,
+    "after_opening": 20,
+    "after_cleanup": 21,
+    "existing_closed_marker": "20261003040602"
+  },
+  "maximum_new_persistent_rows": {
+    "growth_opportunities": 1,
+    "content_versions": 1,
+    "audit_events": 1
+  },
+  "preserve": [
+    "all existing business data",
+    "private model ledger",
+    "saved frozen payload",
+    "bounded function body after cleanup"
+  ],
+  "proposed_operations_requiring_owner_approval": {
+    "existing_login_count": 2,
+    "save_rpc_post_count": 1,
+    "migration_count": 2,
+    "browser_preflight": true
+  },
+  "gate_preconditions": [
+    "Explicit Owner approval before the fixed deadline",
+    "Owner-authorized browser check/login and successful safe handoff",
+    "Verify existing redirect allowlist and branch alias/config without changing settings",
+    "No grant opening until safe preflight succeeds"
+  ],
+  "browser_review_block": "Parent reports browser capability read rejected by safety review; do not retry or change route. Await Owner approval; stop if no safe handoff. Never request pasted secrets or substitute a backend JWT.",
+  "unknown_result_policy": "Same controlled origin/tab: GET only, no POST retry, preserve sessionStorage attempt/known UUID marker through reload and relogin.",
+  "closeout": "Revoke both URL Save entries, verify effective ACL closed, keep readonly access and persistent 1/1/1 rows.",
+  "config_patch": {
+    "targets": [
+      "apps/web/url-result-config.mjs",
+      "prototype/owner-workspace/url-result-config.mjs"
+    ],
+    "after_approval_open_source": "preview-open-config.mjs",
+    "after_approval_close_source": "preview-closed-config.mjs",
+    "current_served_schema_enabled": false,
+    "current_served_save_enabled": false,
+    "current_served_trial": null
+  },
+  "no_execution_if_late": "If Owner does not approve in time, do not execute or revise/extend this deadline."
+}
