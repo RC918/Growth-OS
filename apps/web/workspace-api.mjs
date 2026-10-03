@@ -24,7 +24,9 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
   let membership = null;
   let actorId = null;
   const bound = urlSaveTrial ? Object.freeze(copyJSON(urlSaveTrial)) : null;
-  const boundAvailable = () => !bound || (bound.expected_version===0 && actorId===bound.actor_id && membership?.organization_id===bound.organization_id && membership?.role==='owner' && bound.workspace_url===redirectOrigin+'/workspace.html' && Date.now()<Date.parse(bound.expires_at));
+  const revisionBound=bound?.kind==='revision';
+  const revisionPermit=Symbol('bound revision dispatch');
+  const boundAvailable = () => !bound || (((bound.kind===undefined&&bound.expected_version===0)||(revisionBound&&bound.expected_version===1&&uuid(bound.base_version_id))) && actorId===bound.actor_id && membership?.organization_id===bound.organization_id && membership?.role==='owner' && bound.workspace_url===redirectOrigin+'/workspace.html' && Date.now()<Date.parse(bound.expires_at));
   // Fixed, read-only M3 acceptance controls; independent of the expired Save lease.
   const tenantOwner='e85f1a90-3565-4fc1-a7e0-3b7d08830d0e';
   const tenantOrgA='93a88055-0a0b-40c0-b22f-a6d312320001',tenantOrgB='93a88055-0a0b-40c0-b22f-a6d312320002';
@@ -164,6 +166,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     },
     context() { return membership; },
     boundSaveAvailable() { return boundAvailable(); },
+    revisionTrialAvailable(version) {return revisionBound&&urlSaveEnabled&&urlResultSchemaEnabled&&boundAvailable()&&version.id===bound.base_version_id&&version.opportunity_id===bound.opportunity_id&&version.version_number===1;},
     tenantDiagnosticAvailable() { return tenantAvailable(); },
     async verifyOwnerTenantRead() {
       if(!tenantAvailable())throw new Error('固定唯讀驗收身份或設定不符');
@@ -184,19 +187,20 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(membership!==session)throw new Error('工作區已變更');
       if(!rows.length)return null;
       const row=rows[0];
-      if(rows.length!==1||row.version_number!==1||row.status!=='draft'||contentVersionKind(row)!=='typed'||(knownId&&row.id!==knownId)||row.organization_id!==org||row.created_by!==bound.actor_id||row.opportunity_id!==bound.opportunity_id||row.first_result_request_id!==bound.request_id||row.first_result_expected_version!==0||row.first_result_request_digest!==bound.request_digest)throw new Error('固定版本讀回不一致');
+      if(rows.length!==1||row.version_number!==bound.expected_version+1||row.status!=='draft'||contentVersionKind(row)!=='typed'||(knownId&&row.id!==knownId)||row.organization_id!==org||row.created_by!==bound.actor_id||row.opportunity_id!==bound.opportunity_id||row.first_result_request_id!==bound.request_id||row.first_result_expected_version!==bound.expected_version||row.first_result_request_digest!==bound.request_digest)throw new Error('固定版本讀回不一致');
       await validateReport(row.first_result_payload);
       if(await contentDigest(canonical(row.first_result_payload))!=='sha256:'+bound.payload_canonical_sha256||row.title!==row.first_result_payload.preview.fields.title.suggested||row.draft_body!==row.first_result_payload.preview.fields.description.suggested)throw new Error('固定成果讀回不一致');
       if(membership!==session)throw new Error('工作區已變更');return row;
     },
-    async saveUrlResult(intent, {isCurrent, onDispatch=()=>{}}={}) {
+    async saveUrlResult(intent, {isCurrent, onDispatch=()=>{},permit}={}) {
       if (!urlSaveEnabled || !urlResultSchemaEnabled) throw new Error('URL 保存尚未開放');
+      if(revisionBound&&permit!==revisionPermit)throw new Error('固定續編只能經續編意圖保存');
       const org=ownerOnly(), session=membership, frozen=copyJSON(intent);
       if(typeof isCurrent!=='function' || typeof onDispatch!=='function') throw new Error('缺少有效的保存意圖檢查');
       if (frozen.organization_id!==org || !uuid(frozen.opportunity_id) || !uuid(frozen.request_id) ||
           !Number.isSafeInteger(frozen.expected_version) || frozen.expected_version<0 || frozen.expected_version>2147483646) throw new Error('保存識別不完整');
       await validateReport(frozen.payload);
-      if(bound && (!boundAvailable() || frozen.organization_id!==bound.organization_id || frozen.opportunity_id!==bound.opportunity_id || frozen.request_id!==bound.request_id || frozen.expected_version!==0 || await contentDigest(canonical(frozen.payload))!=='sha256:'+bound.payload_canonical_sha256)) throw new Error('固定驗收範圍不符或已到期');
+      if(bound && (!boundAvailable() || frozen.organization_id!==bound.organization_id || frozen.opportunity_id!==bound.opportunity_id || frozen.request_id!==bound.request_id || frozen.expected_version!==bound.expected_version || await contentDigest(canonical(frozen.payload))!=='sha256:'+bound.payload_canonical_sha256)) throw new Error('固定驗收範圍不符或已到期');
       if(frozen.expected_version>0){const pending=revisionMarker.read();if(pending&&!pending.resolved)throw new Error('先核對原續編 request；不會重送');}
       // No async gap between live intent/session validation and dispatch.
       if (membership!==session || !boundAvailable() || isCurrent()!==true) throw new Error('保存意圖或工作區已失效；未送出保存');
@@ -253,10 +257,11 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(row.title!==row.first_result_payload.preview.fields.title.suggested || row.draft_body!==row.first_result_payload.preview.fields.description.suggested)throw new Error('成果內容與版本不一致');
       return row;
     },
-    async prepareUrlRevisionIntent(baseVersion,exported,{isCurrent,requestId=crypto.randomUUID()}={}) {
+    async prepareUrlRevisionIntent(baseVersion,exported,{isCurrent,requestId=revisionBound?bound.request_id:crypto.randomUUID()}={}) {
       const org=ownerOnly(),session=membership,actor=actorId,base=copyJSON(baseVersion),payload=copyJSON(exported);
       const current=()=>{if(membership!==session || actorId!==actor || typeof isCurrent!=='function' || isCurrent()!==true)throw new Error('續編意圖或工作階段已失效');};
       current();
+      if(revisionBound&&(!boundAvailable()||requestId!==bound.request_id||base.id!==bound.base_version_id||base.opportunity_id!==bound.opportunity_id||base.version_number!==1||base.first_result_request_digest!==bound.base_request_digest||await contentDigest(canonical(base.first_result_payload))!=='sha256:'+bound.base_payload_canonical_sha256))throw new Error('固定續編基準不符或已到期');
       if(!uuid(requestId) || !uuid(actor) || base.organization_id!==org || !uuid(base.id) || !Number.isSafeInteger(base.version_number) || base.version_number<1 || base.version_number>2147483646)throw new Error('續編基準識別不符');
       // Recheck the same signed identity/membership, without replacing the session.
       const user=await request('/auth/v1/user');current();
@@ -280,11 +285,13 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const binding={actor_id:actor,base_version_id:base.id,base_request_digest:base.first_result_request_digest};
       // Local intent digest is NOT PostgreSQL's authoritative pg-jsonb request digest.
       const intentDigest=await contentDigest(canonical({binding,request:requestBody}));current();
+      if(revisionBound&&(intentDigest!==bound.intent_digest||await contentDigest(canonical(payload))!=='sha256:'+bound.payload_canonical_sha256||payload.review.content_digest!==bound.content_digest||payload.snapshot.content_fingerprint!==bound.source_digest))throw new Error('固定續編內容或意圖不符');
+      current();
       return freeze({status:'prepared',binding,request:requestBody,intent_digest:intentDigest,source_digest:payload.snapshot.content_fingerprint,content_digest:payload.review.content_digest,authority:{persisted:false,published:false,owner_approved:false,server_authorized:false}});
     },
     async saveUrlRevision(candidate,{isCurrent,onDispatch}={}) {
       if(!urlSaveEnabled || !urlResultSchemaEnabled)throw new Error('URL 保存尚未開放');
-      const prior=revisionMarker.read();if(prior&&!prior.resolved)throw new Error('先核對原續編 request；不會重送');
+      const prior=revisionMarker.read();if(prior&&(!prior.resolved||revisionBound&&prior.request_id===bound.request_id))throw new Error('先核對原續編 request；不會重送');
       const intent=copyJSON(candidate),session=membership;
       const live=()=>membership===session && typeof isCurrent==='function' && isCurrent()===true;
       if(!live() || intent.binding?.actor_id!==actorId || !uuid(intent.binding?.base_version_id))throw new Error('續編基準或身份不符');
@@ -293,7 +300,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const checked=await this.prepareUrlRevisionIntent(rows[0],intent.request?.payload,{isCurrent:live,requestId:intent.request?.request_id});
       if(canonical(checked)!==canonical(intent))throw new Error('保存意圖與目前基準不一致');
       const operation={...intent.binding,organization_id:intent.request.organization_id,opportunity_id:intent.request.opportunity_id,request_id:intent.request.request_id,expected_version:intent.request.expected_version,base_payload_digest:await contentDigest(canonical(rows[0].first_result_payload)),source_digest:intent.source_digest,content_digest:intent.content_digest,payload_digest:await contentDigest(canonical(intent.request.payload)),intent_digest:intent.intent_digest};
-      const id=await this.saveUrlResult(intent.request,{isCurrent:live,onDispatch:()=>{revisionMarker.attempt(operation);onDispatch();}});
+      const id=await this.saveUrlResult(intent.request,{isCurrent:live,permit:revisionPermit,onDispatch:()=>{revisionMarker.attempt(operation);onDispatch();}});
       if(revisionMarker.read()?.request_id===operation.request_id)revisionMarker.remember(operation.request_id,id);return id;
     },
     revisionRecovery() {return revisionMarker.read();},
@@ -314,6 +321,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(!rows.length)return null;
       const row=rows[0],payload=row?.first_result_payload;
       if(rows.length!==1||row.organization_id!==org||row.created_by!==actor||row.opportunity_id!==op.opportunity_id||row.first_result_request_id!==op.request_id||row.version_number!==op.expected_version+1||row.first_result_expected_version!==op.expected_version||row.status!=='draft'||contentVersionKind(row)!=='typed'||op.known_id&&row.id!==op.known_id)throw new Error('恢復版本識別不符');
+      if(revisionBound&&(op.request_id!==bound.request_id||op.base_version_id!==bound.base_version_id||op.intent_digest!==bound.intent_digest||row.first_result_request_digest!==bound.request_digest))throw new Error('固定續編恢復範圍不符');
       await validateReport(payload);
       const binding={actor_id:actor,base_version_id:op.base_version_id,base_request_digest:op.base_request_digest};
       const requestBody={organization_id:org,opportunity_id:op.opportunity_id,request_id:op.request_id,expected_version:op.expected_version,payload};

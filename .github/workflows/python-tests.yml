@@ -74,7 +74,10 @@ jobs:
         timeout-minutes: 3
         run: node supabase/drafts/url_result/native.mjs
       - name: New bounded v2 candidate on existing closed schema (offline only)
-        run: node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs
+        run: node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs prototype/owner-workspace/revision-bound.test.mjs
+      - name: Revision-bound v2 PG17 locks, expiry, replay and cleanup
+        timeout-minutes: 3
+        run: node supabase/drafts/url_result/revision-bound/native.mjs
       - name: Bound URL PG17 deadline locks and single-request concurrency
         timeout-minutes: 3
         run: node supabase/drafts/url_result/bound/native.mjs
@@ -96,6 +99,9 @@ jobs:
       - name: Saved exact version Review continuation (synthetic transport, zero POST)
         timeout-minutes: 3
         run: node prototype/owner-workspace/saved-result-review.e2e.mjs
+      - name: Bound v2 exact edit, two logins and closed-config readback
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/revision-bound.e2e.mjs
       - name: Continued revision Save and exact readback (synthetic transport and isolated SQL)
         timeout-minutes: 3
         run: node prototype/owner-workspace/saved-result-save.e2e.mjs

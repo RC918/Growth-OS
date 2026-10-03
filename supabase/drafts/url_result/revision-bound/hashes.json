@@ -4,5 +4,7 @@
   "opening.sql.template": "5bb007cd17c31fa1c01beaa4fd3158d316cbdf0cdcbaae0bc30ffa562c165c96",
   "cleanup.sql": "7bf358d889268321a4292e803eb154bbd689e5754f68517031aedbf8dd04778f",
   "preflight.sql": "f28d16d4ebb120c3387ba3c384353d0233c0f39811320686c7c81da2cd1378bd",
-  "postflight.sql": "7bdb5e4e5899ffb6d1a4eb3213ed25d5e77e48f05de8836771889595398244b7"
+  "postflight.sql": "7bdb5e4e5899ffb6d1a4eb3213ed25d5e77e48f05de8836771889595398244b7",
+  "preview-open-config.mjs": "e0bcc97f74c14d71aed40feeacea2118f1ca10cb6e611b4674f03c09a111cc8a",
+  "preview-closed-config.mjs": "a675cd02230d665e6652bfa8e693b75079df82362822507ccdc640b232efab9e"
 }

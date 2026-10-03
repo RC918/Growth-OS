@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdtemp,rm} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
 import {PGlite} from '@electric-sql/pglite';
 import {baselineSQL} from '../bound/baseline.mjs';
 import {source,render,root,baseId,sha} from './candidate.mjs';
@@ -31,6 +32,16 @@ test('offline bounded v2: existing closed schema, exact base, at most 0/1/1, ret
    assert.equal(await scalar('select private.fr_request_digest($1,$2,$3,$4,1,$5)',[m.organization_id,m.opportunity_id,m.actor_id,m.request_id,JSON.stringify(s.payload)]),m.request_digest);
    const template=await render(m);assert.equal(template.opening,await readFile(new URL('opening.sql.template',root),'utf8'));assert.equal(template.cleanup,await readFile(new URL('cleanup.sql',root),'utf8'));
    await tx(()=>assert.rejects(db.exec(template.opening)));await assert.rejects(render(m,{cutoff:'2099-02-30T00:00:00.000Z'}));assert.equal(m.cutoff,null);
+  });
+  await t.test('explicit offline binder freezes paired configs and SQL; invalid time and overwrite refused',async()=>{
+   const temp=await mkdtemp('/tmp/revision-bind-test-'),output=temp+'/bound',cli=new URL('bind.mjs',root);
+   try{
+    assert.throws(()=>execFileSync(process.execPath,[cli.pathname,'null',output],{stdio:'pipe'}));
+    execFileSync(process.execPath,[cli.pathname,'2099-01-01T00:00:00.000Z',output],{stdio:'pipe'});
+    assert.throws(()=>execFileSync(process.execPath,[cli.pathname,'2099-01-01T00:00:00.000Z',output],{stdio:'pipe'}));
+    const hashes=JSON.parse(await readFile(output+'/hashes.json','utf8'));for(const [name,hash]of Object.entries(hashes))assert.equal(sha(await readFile(output+'/'+name)),hash);
+    const open=await import(output+'/preview-open-config.mjs'),closed=await import(output+'/preview-closed-config.mjs');assert.equal(open.urlSaveEnabled,true);assert.equal(closed.urlSaveEnabled,false);assert.deepEqual(open.urlSaveTrial,closed.urlSaveTrial);assert.equal(open.urlSaveTrial.kind,'revision');assert.equal(open.urlSaveTrial.expires_at,'2099-01-01T00:00:00.000Z');assert.equal(open.urlSaveTrial.request_id,m.request_id);assert.equal(open.urlSaveTrial.intent_digest,m.intent_digest);assert.equal(await readFile(output+'/opening.sql','utf8'),pack.opening);
+   }finally{await rm(temp,{recursive:true});}
   });
   await t.test('history, implementation, base identity and ACL drift reject opening',async()=>{
    for(const sql of ["delete from supabase_migrations.schema_migrations where version='synthetic-1'",s.implementation.replace('create function private.','create or replace function private.').replace('URL acceptance expired','drift'),`update public.content_versions set id='10000000-0000-4000-8000-000000000099' where id='${baseId}'`,`grant execute on function public.save_url_result_draft(uuid,uuid,uuid,integer,jsonb) to public`])await tx(async()=>{await db.exec(sql);await assert.rejects(db.exec(pack.opening));});

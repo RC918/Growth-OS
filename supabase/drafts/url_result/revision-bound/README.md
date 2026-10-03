@@ -2,7 +2,7 @@
 
 本輪 Core 是為「既有成果真續編一次 → 重登入 → 精確 v2 與 v1 history」形成可 review 的新 envelope。不是重做 first Save，不是新架構，不擴大 unknown 恢復範圍。起點 `495516b71d20bd975f6f1afa88eb160883409160`，父提供 Reviewer `01a1039a` APPROVE、PR CI `37153710795` success、Preview `BTuUpxFXMNHJJU7EVK8dQnNMk6NX` success；這些不表示本候選已獲遠端批准。
 
-**這是方案＋離線 SQL／payload 候選，不是可立即執行的包。** cutoff=null；`opening.sql.template` 的 `__OWNER_APPROVED_UTC_CUTOFF__` 無法轉成 timestamptz，未綁定即拒絕。尚需下述 bounded-v2 UI/API 局部接線、完整離線整合及 Reviewer 核准，父才一次向 Owner 提交完整批准。原 17:26 first-case 批准已收尾，不能繼承。這輪沒有 remote、login、live POST、runtime config、部署或現有 frozen artifacts 修改。
+**這是完整 repo 整合候選，不是遠端授權。** cutoff=null；`opening.sql.template` 的 `__OWNER_APPROVED_UTC_CUTOFF__` 無法轉成 timestamptz，未綁定即拒絕。bounded-v2 UI/API 局部接線與完整離線整合已完成；仍須新 HEAD 的 Reviewer／CI 核准，父才一次向 Owner 提交完整批准。原 17:26 first-case 批准已收尾，不能繼承。這輪沒有 remote、login、live POST、runtime config、部署或現有 frozen artifacts 修改。
 
 ## 固定資料與版本
 
@@ -27,19 +27,19 @@
 
 [v2-payload.json](v2-payload.json) 由原已驗收 frozen v1 經 `restoreResultReview` → **只一次** `edit('title','Bolt A — steel bolt for workshop assembly')` → 三欄 check → confirm → export 產生，Review revision=3。其餘 title 原文、meta、description、snapshot、來源、citations、original suggestions 不變。這是原 synthetic 測試成果的真續編持久化候選，不宣稱真客戶內容品質。live 必須先讀回精確 v1 與 frozen payload 相等，否則停止；不能直接假設本機 frozen 即最新 DB。UI 也必須經相同一次 edit 產生完全相同 payload／intent，不可手改 revision 來硬湊 hash；多 edit 或結果不等就不 dispatch。
 
-## 最小局部接線需求（尚未實作，是執行前必要條件）
+## 已完成的最小局部接線
 
-目前 runtime `urlSaveTrial` 限 expected=0；`workspace.mjs` 在存在 trial 時隱藏續編入口，故**不能**把舊 config 的 expected 改成 1 就宣稱可用，也不能設 trial=null 開一般 Save。
+原 runtime fixed-trial 限 expected=0；本輪保留原路徑，新增明確 revision discriminator。**不能**把舊 config 的 expected 改成 1 或設 trial=null 開一般 Save。實際 served config 仍保留原 closed bytes。
 
-局部方案沿用 `urlSaveTrial`，新增明確 `kind:'revision'` discriminator 和本 manifest 的 base UUID/digest、expected=1、request、payload／intent digest、actor/org、現有 workspace URL、明確 cutoff。既有 first-trial kind/expected=0 行為及 artifacts 完全保留。
+已完成接線沿用 `urlSaveTrial`，新增明確 `kind:'revision'` discriminator 和本 manifest 的 base UUID/digest、expected=1、request、payload／intent digest、actor/org、現有 workspace URL、明確 cutoff。既有 first-trial kind/expected=0 行為及 artifacts 完全保留。
 
 - `workspace.mjs`：revision trial 禁用 first-result 匯入 Save 面板，僅在 manifest 的 exact v1 row 顯示既有續編 editor。關旗標後保留 v1/v2 唯讀及既有 pending GET 恢復。
 - `prepareUrlRevisionIntent`：revision trial 強制固定 request/base，檢查同 actor/org/exact base/payload/intent，禁止隨機新 request；正常模式維持原行為。
 - `boundAvailable`／`saveUrlResult`／`saveUrlRevision`：保留原 expected=0 模式；revision discriminator 僅允許 expected=1 的精確意圖、來源、內容與 full payload；dispatch 前再次核對 cutoff、身份、metadata。不得放寬為任意 expected>0。
 - 續編 marker 仍只有現有一筆 IDs/digests；dispatch 前可靠儲存。unknown 原 request GET-only，不新 outbox、不加 token/payload store、不跨 tab/device；resolved 後也不能在此 envelope 追加第三版。
-- bounded-v2 必須新增桌面／手機全路徑離線組裝，驗當前 runtime closed、固定 v1→編輯→固定 intent→1 POST→known UUID/unknown GET→cleanup→第二合成登入兩版 payload；錯 bound、過期、storage 失敗零 POST。復用既有 fixture/API/SQL，不重做 tenant 診斷。這些**本候選尚未跑**，既有一般續編 E2E PASS 不能代替。
+- bounded-v2 已新增桌面／手機全路徑離線組裝，驗當前 runtime closed、固定 v1→編輯→固定 intent→1 POST→known UUID/unknown GET→cleanup→第二合成登入兩版 payload；錯 bound、過期、storage 失敗零 POST。復用既有 fixture/API/SQL，不重做 tenant 診斷。這些由新的 bounded-v2 E2E 實跑，不以一般續編 E2E 冒充。
 
-以上是既有 config／API／editor 的局部繫結，不需要新 schema、RPC、權限模型或新產品架構。本輪先提交可 review 方案及 SQL 候選；未偷偷實作此 runtime 接線。
+以上是既有 config／API／editor 的局部繫結，不需要新 schema、RPC、權限模型或新產品架構。本輪在父明確授權後完成全部局部接線，沒有新 store/framework/意圖層；API 內部不可偽造 permit 僅限制 revision-bound dispatch 必須經既有 saveUrlRevision。resolved 的固定 request 也禁止第二次 POST。
 
 ## 必要方法、預算與安全順序
 
@@ -47,12 +47,12 @@ Owner 必須一次批准整個新 envelope：固定 project/actor/org/base/reque
 
 1. **repo 完成接線與離線驗證，Reviewer 通過。** 父端核對完整 HEAD、PR CI、Preview；owner 審閱固定 payload 與完整預算。先取得 Owner 可用時間再一次綁 cutoff，離線重算 SQL/config hashes、Reviewer 核對最終 bytes，由父一次提交完整批准。截止的唯一變更不能順帶換 request/payload/scope。此候選生成器沒有預設 UTC。
 2. **批准後的只讀 preflight**：官方 Supabase `execute_sql`（或已批准等效只讀介面）指定唯一 project；執行 [preflight.sql](preflight.sql)。核 history=21 且既有 21 筆 version/name/statements 逐一保存；不是只信 count。兩個 URL Save entry 的 PUBLIC/anon/authenticated/service_role 有效 EXECUTE 全關，舊 first-result entry 仍關；public wrapper、RLS、其他函式／ACL 與已验快照相同。記錄既有 private body hash、Owner membership、唯一 parent、exact v1 full row/payload、最大版=1、此 parent 只有 v1、新 request/audit 不存在。既有 24 個資料投影及 schema/ACL 快照保存作後續精確比較，不輸出 token。current config 兩份 SHA 均為 `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`、Save=false；任何漂移停止，不修 remote。
-3. **login 1，尚未開 Save**：既有 Preview／同一 tab，登入同一 Owner，GET 精確 v1/base/source/full payload。確認 scope 後經 Review 一次 title edit、check/confirm 的最終操作於已核准 bounded UI 完成；若未準備好或接近 cutoff，保持關閉，不擅延時。
-4. **新的 tracked opening**：官方 `apply_migration`，name=`url_revision_bound_open_v2`，提交綁定後的 opening bytes；不使用 execute_sql 執行 mutation、不 replay 舊 opening/fixture/19-record schema installer。只 `CREATE OR REPLACE` 同一 private implementation，保留 signature/search_path/security definer／wrapper／schema/RLS，替換 bound request/expected/cutoff/digest，加 exact v1 驗證，再授予 authenticated 對既有 public+private entry 執行權。既有 actor/org/parent/source、鎖、截止多點檢查、payload驗證、樂觀版本及 request 冪等保留。預期 history21→22，只追加此次記錄。
-5. **config transition 1**：經批准 repo/Preview 流程將兩份 runtime 設為 manifest 的 revision trial + explicit cutoff + schema=true/save=true，核對同一新 HEAD 與部署的 exact bytes／alias；不得用 console/manual REST 繞過 editor。先開 SQL、最後開 UI；任何部署/身份/時間不符立即 cleanup。這些部署是在未來 Owner 批准內執行，本輪未執行。
+3. **新的 tracked opening**：官方 `apply_migration`，name=`url_revision_bound_open_v2`，提交綁定後的 opening bytes；不使用 execute_sql 執行 mutation、不 replay 舊 opening/fixture/19-record schema installer。只 `CREATE OR REPLACE` 同一 private implementation，保留 signature/search_path/security definer／wrapper／schema/RLS，替換 bound request/expected/cutoff/digest，加 exact v1 驗證，再授予 authenticated 對既有 public+private entry 執行權。既有 actor/org/parent/source、鎖、截止多點檢查、payload驗證、樂觀版本及 request 冪等保留。預期 history21→22，只追加此次記錄。
+4. **config transition 1**：經批准 repo/Preview 流程將兩份 runtime 設為 manifest 的 revision trial + explicit cutoff + schema=true/save=true，核對同一新 HEAD 與部署的 exact bytes／alias；不得用 console/manual REST 繞過 editor。先開 SQL、最後開 UI；任何部署/身份/時間不符立即 cleanup。這些部署是在未來 Owner 批准內執行，本輪未執行。部署後先 reload 載入 exact open config；此時沒有 signed session，不計作已登入。
+5. **login 1，在 open 部署重載後**：才寄第一封 magic link，於同 origin/tab 完成登入；GET 精確 v1/base/source/full payload。進入既有 Review editor，一次全選貼上固定 title（不是逐字鍵入多次 edit），三欄 check/confirm，核對精確 frozen payload／Review revision3／固定 request／intent digest。不得再 reload 假裝保有登入；session 僅頁面記憶體。若意外 reload 或連結失效，不隱含追加 login；停止並按已批准 cleanup 收尾，額外操作須新批准。
 6. **唯一產品 Save**：同一 signed Owner，既有 `saveUrlRevision` → `POST /rest/v1/rpc/save_url_result_draft`；body 僅五參數 `p_organization_id`、`p_opportunity_id`、`p_request_id`、`p_expected_version:1`、`p_payload`。先核 intent/request hash 與 sessionStorage pending metadata 已可靠保存，再 dispatch。最多 1 POST，結果 v2 UUID 記錄。一個 HTTP timeout 不代表未提交；此後只 `GET /rest/v1/content_versions`，org+原 request filter（limit2），known UUID 若有必須一致。查無仍 unknown，不重送、不換 request、不刪 marker、不再 login 診斷；逾時也 cleanup。DB 冪等只是重複防禦，不增加 live POST 預算。
 7. **立即 close**：無論成功、失敗、unknown 或 cutoff，官方 `apply_migration` name=`url_revision_bound_close_v2` 執行 [cleanup.sql](cleanup.sql)。首先撤銷兩 entry 的 PUBLIC/anon/authenticated/service_role EXECUTE，保留 bounded body與全部資料；預期 history22→23。config transition2 設 schema=true/save=false，保留已審 revision scope 供讀回；驗兩份 bytes/部署，不能只是 UI 顯示關閉。SQL cutoff 過期只是第二道拒絕，不能代替 ACL cleanup。
-8. **postflight＋login 2**：先執行 [postflight.sql](postflight.sql)，比對原 21 migration records 未改、新增名字正確、其他 ACL/schema不变；v1 full row（包括原 title Unicode bytes）、parent及所有既有投影不變，只多 exact v2與audit各一。logout → login2（Owner第二次 magic-link，closed狀態），GET exact v2 UUID/full payload及原v1 UUID/full payload/history，桌面可見 version2 draft/未發布和version1；不再 POST。不清理成功資料。
+8. **postflight＋login 2**：先執行 [postflight.sql](postflight.sql)，比對原 21 migration records 未改、新增名字正確、其他 ACL/schema不变；v1 full row（包括原 title Unicode bytes）、parent及所有既有投影不變，只多 exact v2與audit各一。closed config 部署完 → logout → reload（確認未登入）→ login2（Owner第二次 magic-link，closed狀態），GET exact v2 UUID/full payload及原v1 UUID/full payload/history，桌面可見 version2 draft/未發布和version1；不再 POST。不清理成功資料。
 9. **停止與交付**：保存完整 HEAD、CI/Preview identity、migration IDs、request/returned UUID、hash/count/GET證據與關閉證據；Owner確認，不自動跑其他 remote。已有 fixed-case Owner/RLS/tenant正負控制可引用，無新 OrgB 查詢或診斷 login；不能宣稱完整 live role matrix／全面 M3／Publish／Measure。
 
 ## Pre/post 與 rollback 限制
@@ -65,6 +65,20 @@ rollback 是**關閉權限＋runtime**，不是刪資料、覆寫v1、重設requ
 
 ## 離線證據與缺口
 
-`node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs`：7 tests PASS（含6個子案例）。PGlite 只在記憶體重建既有 closed schema＋v1，舊 opening 僅作 disposable fixture，沒有網路、远端讀写或新登入。驗 frozen生成／hash、未綁定cutoff拒絕、history/body/base/ACL漂移、錯 actor/parent/request/expected/payload、direct private拒絕、return-time expiry事務rollback、0/1/1增量、v1及全部public既有row不變、SQL duplicate safety（僅離線fault injection）、cleanup有效ACL、closed下兩版GET。初次測試錯用不可成立的 `in_review` 狀態（schema只允許draft），改以合法UUID身份漂移實際觸發base guard，沒有放寬產品約束。
+`node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs`：8 tests PASS（含7個子案例）。PGlite 只在記憶體重建既有 closed schema＋v1，舊 opening 僅作 disposable fixture，沒有網路、远端讀写或新登入。驗 frozen生成／hash、未綁定cutoff拒絕、history/body/base/ACL漂移、錯 actor/parent/request/expected/payload、direct private拒絕、return-time expiry事務rollback、0/1/1增量、v1及全部public既有row不變、SQL duplicate safety（僅離線fault injection）、cleanup有效ACL、closed下兩版GET。初次測試錯用不可成立的 `in_review` 狀態（schema只允許draft），改以合法UUID身份漂移實際觸發base guard，沒有放寬產品約束。
 
-不是 native PG concurrency 或 browser runtime v2-bound 整合證據；接線後需要 native PG17 對窄patch實際跑一次（既有 lock/deadline harness可復用），以及上述 desktop/mobile整合。既有 `495516b` 的同tab恢復／一般續編與tenant證據沿用，不為湊數重跑。本輪 readiness=**proposal/offline SQL candidate ready for review；live execution blocked pending local binding + final validation + new Owner envelope**。
+本輪新增 browser runtime bounded-v2 整合及 native PG17 harness，詳見下方實際結果；PGlite 不替代 native concurrency。既有 tenant／角色產品證據沿用，不新增遠端診斷。本輪 readiness=**完整 repo 候選待新 HEAD Reviewer／CI；live execution 仍須新 Owner envelope 及 cutoff 綁定**。
+
+
+## 完整 config、一次時間繫結與整合證據
+
+`preview-open-config.mjs`／`preview-closed-config.mjs` 都是 draft 目錄內的完整模組，除 save true/false 外同一 revision scope；`expires_at:null` 時 open 候選也不能 dispatch。實際 apps/web 與 prototype 的 config bytes 未改。可審模板及SQL/payload hashes 全在 hashes.json；不把 null 當無限期授權。
+
+Owner 可用時段確定後，以 `node supabase/drafts/url_result/revision-bound/bind.mjs <YYYY-MM-DDTHH:mm:ss.sssZ> <全新/tmp目錄>` **離線**產生 opening.sql、cleanup.sql、兩份完整config、bound manifest、frozen payload、pre/postflight與所有bytes hashes。命令先驗未綁定候選hash，不接受預設/非法UTC，不覆寫已有目錄，不寫served目錄或連remote；綁定不等於批准。綁定只改cutoff相關欄位/SQLliteral，不換IDs/payload；父整包交Reviewer/Owner，然後才按上文依序操作。opened config會經一次部署/reload，closed config又一次部署/reload，總共仍2次login，不隱藏第三次。任何意外reload導致需要額外login都停止，不自行寄信。
+
+本輪驗證（新 HEAD CI/Preview仍由父獨立核對）：
+
+- API/marker/mirror及SQL候選合計42 tests PASS：新增revision bound全部識別/hash/expiry拒絕、generic Save繞過拒絕、resolved不得重送、DB request digest錯誤GET拒絕，原firsttrial與一般續編回歸保留。
+- `revision-bound.e2e.mjs`：1280/390各8案共16 PASS。精確成功、已提交unknown、未提交空GET、錯payload、dispatch前過期、storage拒絕、錯request、未綁定cutoff；成功/unknown每案最多1 synthetic Save POST，負向0；每案恰2 synthetic OTP requests，先open部署reload後login1，後cleanup/closed部署/logout/reload/login2，完整v2/v1 payload及v1全row保留、closed入口無Save。HTTPS synthetic origin由route轉送loopback靜態檔，Auth/API全攔截；沒有真寄信。初次HTTP loopback的OTP被既有HTTPS redirect guard拒絕，已改測試origin而非放寬產品安全。
+- 一般續編完整28案及舊firsttrial桌面/手機4組回歸全部PASS；沒有改其frozen payload/config/marker。
+- `revision-bound/native.mjs`：沿用固定PG17.6 digest的無網路／無hostport容器，驗org/member/parent鎖等待跨cutoff拒絕、不同backend同request並發只增0/1/1、到期重放拒絕、cleanup有效ACL關閉及兩版可讀；v1 row完整比較。本機原無該image，取得與CI相同公開pinned測試依賴後實跑，非遠端Supabase操作。本輪6組native assertions全PASS；各競爭案例記錄不同holder/contender/observer PID與pg_blocking_pids，不以語法檢查報native PASS。

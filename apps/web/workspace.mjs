@@ -126,7 +126,7 @@ function typedVersion(version, current, history = null, editable = false) {
       const row = await api.readContentVersion(version);
       if (!active()) return;
       body.replaceChildren(typedDraft(row));
-      if(editable)body.append(savedResultReview({api,version,isCurrent:visible,enabled:urlSaveEnabled&&urlResultSchemaEnabled&&!urlSaveTrial}));
+      if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
       loaded = true; feedback.textContent = '';
     } catch (error) {
       if (!active()) return;

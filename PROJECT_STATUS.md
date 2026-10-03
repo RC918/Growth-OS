@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；新 session v2／v1 歷史 `ea87cc0` 亦已接受；同 origin/tab 未決續編恢復 `495516b` 已接受；本輪準備新 bounded v2 遠端驗收方案與離線候選（尚未授權執行），詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；新 session v2／v1 歷史 `ea87cc0` 亦已接受；同 origin/tab 未決續編恢復 `495516b` 已接受；新 bounded v2 的完整 repo 整合已離線驗證（待新 HEAD 審查與新 Owner envelope，尚未授權遠端執行），詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -226,3 +226,12 @@ dispatch 緊前同步寫入／讀回核對單筆識別與摘要，storage 拒絕
 已交付 [完整候選與安全順序](supabase/drafts/url_result/revision-bound/README.md)：固定原 Owner/org/parent/base，唯一新 request，既有 Review engine 從原 payload 產生 frozen v2，expected1；僅既有 private implementation 窄patch template＋保留資料的tracked cleanup＋readonly pre/postflight。cutoff=null，不猜 Owner 可用時間、不做短期freeze。隔離PGlite 7 tests PASS，驗基準漂移、錯bound、到期rollback、最大增量0parent/1version/1audit、v1全row不變和closed讀回。
 
 CoreMilestoneProgress：新 bounded v2 的可審核 scope／payload／SQL 離線可行性成立，尚未形成 live 使用者驗收。現有 trial 預期0而續編入口要求無trial，需最小revision discriminator接線與desktop/mobile/nativePG驗證後才可由父整包向Owner請新批准；本輪未實作runtime接線，不能直接開旗標。沒有新架構、remote、login、live POST、實際config或既有frozen artifacts變更。準備結果交父review，不自動開始遠端或其他Core。
+
+
+## 2026-10-03 bounded-v2 完整 repo 整合（未遠端啟用）
+
+父确认 `d5f1eb11a04d2e17808559fa767fc4e0db3bca55` Reviewer `01a103a8` APPROVE（僅候選準備）、CI `37154980520` success、Preview `PzDAAkV8a8RJXUVY4BG3ZV6FbUtx` success，再授權完成同scope整合。本輪 `kind:revision` 固定 expected1/base UUID/request/full payload/intent，沿既有config/editor/API，保留firsttrial；不設trial=null泛開、不新增store/framework/意圖層。revision trial不建立firstSave匯入面板；generic Save無法繞過saveUrlRevision，resolved固定request也不可再次POST。
+
+CoreMilestoneProgress：同一v1→單次title edit→精確意圖→一次synthetic POST→unknown原request GET-only→cleanup/closedconfig→logout/reload/login2→exact v2及v1 history 的完整bounded流程已離線成立。1280/390共16案PASS（成功與unknown至多1 Save POST、每案恰2 synthetic OTP requests）；一般續編28案與舊firsttrial4組回歸PASS；API/marker/mirror/候選42tests PASS。固定PG17.6原生6組鎖/截止/並發去重/到期重放/撤權讀回驗證PASS，v1不變；本機缺image時先取得與CI相同公開pinned依賴，容器network=none且無hostports，沒有遠端Supabase操作。
+
+[完整包與操作順序](supabase/drafts/url_result/revision-bound/README.md) 修正為open部署/reload後login1；Save後先SQLcleanup與closedconfig部署，再logout/reload/login2，沒有把頁面記憶體session假設成跨reload持續，也沒有隱含第3次登入。完整open/closed候選config、SQL模板/hash、pre/postflight及離線bind工具已備；cutoff仍null/template，綁定前不能dispatch/remoteexecute。actual runtime config兩份仍是原closed SHA `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`；舊frozen包/已部署SQL未動。待新HEAD Reviewer/CI後父一次提交Owner新envelope，本輪不remote/login/livePOST，M3真v2驗收尚未成立。

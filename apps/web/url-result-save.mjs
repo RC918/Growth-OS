@@ -5,6 +5,8 @@ const identity=p=>({original_url:p.snapshot.original_url,final_url:p.snapshot.fi
 const node=(tag,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
 // Directly mounted in the existing workspace. Bounded metadata only; no token transfer or auto-POST.
 export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=null}) {
+ // Revision trials use only the existing saved-version editor, never first Save/import.
+ if(trial?.kind==='revision'){root.hidden=true;return {update(){},refreshing(){},open(){},close(){}};}
  let context=null,data=null,payload=null,intent=null,ticket=0,busy=false,unresolved=false,transfer=null,expectedWindow=window.opener;
  let trialChecked=false,trialAttempted=false,trialSaved=false,trialKnownId=null,trialReadError=false,timer=null;
  const marker=trial?createTrialMarker(trial):null;let markerError=false;
