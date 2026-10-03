@@ -74,7 +74,7 @@ DDL 自帶 BEGIN／COMMIT；尚未提交時可整體 rollback，本地已驗證�
 
 先只加入回歸後執行 `node --test supabase/drafts/first_result_save/offline.test.mjs`：15 PASS／2 FAIL（含外層；URL 群組失敗）。`https://:/`、`:99999` 等完整重綁 original/final URL、citations、page receipt 並重新計算 content digest，仍被舊 SQL 接受，故失敗不是因 stale digest。沒有網路請求，這是格式契約缺口，不稱為 SSRF exploit。
 
-Trim 的原寫法在本機**沒有重現**：直接查得 PostgreSQL 18.3（PGlite 0.5.8）把 `E'\v'` 解作 hex `0b`，`v`／` vv `及 whitespace-only VT 回歸均通過。修正仍改用明確 `chr(11)`，不依賴版本 escape 行為。native 腳本另以 PG17.6 執行舊 trim expression 的具體對照，要求輸出 escape hex／v／vv／VT 判定，再驗固定版；不能拿 PG18 結果冒充 PG17 重現。
+Trim 的原寫法在本機**沒有重現**：直接查得 PostgreSQL 18.3（PGlite 0.5.8）把 `E'\v'` 解作 hex `0b`，`v`／` vv `及 whitespace-only VT 回歸均通過。父後續讀取 PG17.6 CI 也確認相同結果，撤回 trim bug 判定。`chr(11)` 僅保留為明確且語義相同的寫法，不稱為已重現 bug 的修復；native 原寫法／明確寫法比較皆必須符合 JS trim。
 
 候選 SQL 最小鎖變更：organization 的 `FOR UPDATE` 改為 `FOR NO KEY UPDATE`，保留同 org typed request 序列化，但容許 legacy INSERT 的 organization FK `KEY SHARE`。parent `FOR UPDATE`、等待後 membership 重查／`FOR SHARE`、owner gates、完整 request 冪等及 audit 原子性不改。舊模式與 legacy create/review 反向等待的 deadlock 是靜態風險；本機未有 PG17 實跑，不宣稱已發生遠端故障。
 
@@ -90,3 +90,9 @@ native.mjs 保留原三個 typed/typed 案例，新增以下真多 backend asser
 - 每案要求 holder／contender／observer 三個不同 PID 與 `pg_blocking_pids` 證據；保留原一次版本一次 audit、history／帳務與其他業務資料比對。
 
 本機 native 腳本語法檢查 PASS；執行仍因缺指定 image 在啟動前 BLOCKED／exit 2，沒有下載、啟動容器或修改安全設定。**新增 PG17 trim 對照、兩組混合鎖修復及 membership overlap 尚待新 SHA CI 輸出／父獨立驗收，不能以之前三案 PASS 代替。** CI 沿用既有 native step，不改成功條件。未部署或啟用真保存。
+
+### PG17 trim 控制預期更正
+
+`db953e501d29d8bbc9274dce55ec0b0ef0042129` 的 push 37088718035／PR 37088720542 均失敗。父讀取兩份實際 logs：PG17.6 控制結果是 `escape_hex=0b, v=true, vv=true, vt=false`，與 PG18.3 本機結果一致；先前 assertion 硬設為 `76/false/false/true` 是測試錯誤。父亦核對 REL_17_6 的 `src/backend/parser/scan.l:1334–1335` 支持 `\v`，原靜態 bug 判定撤回。
+
+本次只修正 native 控制期待值及不實 REPRODUCED FAIL 標籤，保留具體四欄斷言、chr(11) 比較及全部後續 native assertions。SQL 未改。上述失敗在控制處先中止，新的 legacy create/review deadlock／fixed overlap、三個 membership revoke 時序與最終資料保留斷言尚未到達；downstream browser／closed-gate 亦 skip，不能算 PASS。新提交須由 CI 完整跑到上述案例，再由父獨立讀 logs 驗收。

@@ -35,12 +35,12 @@ try{
  const oldTrim=String.raw`E' \t\n\r\v\f'||chr(160)||chr(5760)||chr(8192)||chr(8193)||chr(8194)||chr(8195)||chr(8196)||chr(8197)||chr(8198)||chr(8199)||chr(8200)||chr(8201)||chr(8202)||chr(8232)||chr(8233)||chr(8239)||chr(8287)||chr(12288)||chr(65279)`;
  const control=JSON.parse(sql(`select json_build_object('escape_hex',encode(convert_to(E'\\v','UTF8'),'hex'),'v',length(btrim('v',${oldTrim}))>0,'vv',length(btrim(' vv ',${oldTrim}))>0,'vt',length(btrim(chr(11),${oldTrim}))>0)`));
  console.log('CONTROL native PG17 original trim '+JSON.stringify(control));
- assert.deepEqual(control,{escape_hex:'76',v:false,vv:false,vt:true},'PG17 control must reproduce the original trim defect; report a mismatch rather than assuming reproduction');
- console.log('REPRODUCED original PG17 trim FAIL against JS trim');
+ assert.deepEqual(control,{escape_hex:'0b',v:true,vv:true,vt:false},'PG17 original escape semantics must agree with the observed engine result and JS trim');
+ console.log('PASS native PG17 original trim agrees with JS; reported trim defect not reproduced');
  for(const value of ['v',' vv ','\u000B','\u000B v \u000B']){
   assert.equal(sql(`select private.fr_text(${quote(JSON.stringify(value))}::jsonb)`),value.trim().length?'t':'f');
  }
- console.log('PASS native explicit trim valid v / whitespace-only VT');
+ console.log('PASS native chr(11) regression comparison preserves original trim semantics');
  for(const [url,allowed] of urlCases){
   assert.equal(jsURLAllowed(url),allowed);assert.equal(sql(`select private.fr_url(${quote(JSON.stringify(url))}::jsonb)`),allowed?'t':'f',url);
   const payload=await rebind(report,url,contentDigest);
