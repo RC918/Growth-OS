@@ -4,6 +4,9 @@ import {PGlite} from '@electric-sql/pglite';
 import {readFile,readdir} from 'node:fs/promises';
 import {fixtures,ids,parent,request,bootstrapSQL,seedSQL} from './fixtures.mjs';
 import {evidenceMutations} from './evidence-mutations.mjs';
+import {urlCases,jsURLAllowed,rebind} from './url-cases.mjs';
+import {contentDigest,createResultReview,reviewFields} from '../../../apps/web/first-result-review.mjs';
+import {createFirstResultSaveIntent} from '../../../prototype/public-audit/first-result-save-intent.mjs';
 
 test('undeployed first-result SQL on isolated PGlite (synthetic Auth, no concurrent-session claim)',async t=>{
  const db=await PGlite.create();let reports;
@@ -67,6 +70,37 @@ test('undeployed first-result SQL on isolated PGlite (synthetic Auth, no concurr
    const unconfirmed=structuredClone(reports[0]);unconfirmed.review.confirmation=null;unconfirmed.preview.status='awaiting_review';unconfirmed.review.fact_checks={title:false,meta_description:false,description:false};
    const draftId=await save(unconfirmed,{req:request(9),expected:reports.length+1});
    assert.deepEqual((await q('select first_result_payload from public.content_versions where id=$1',[draftId])).rows[0].first_result_payload,unconfirmed);
+  }));
+  await t.test('SQL nonempty text agrees with JS trim including v and vertical tab',()=>tx(async()=>{
+   const whitespace=[9,10,11,12,13,32,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288,65279].map(n=>String.fromCodePoint(n));
+   const values=['v',' vv ','V','vowel','',...whitespace,whitespace.join(''),...whitespace.map(w=>w+'v'+w)];
+   const mismatches=[];
+   for(const text of values){const actual=await scalar('select private.fr_text($1::jsonb)',[JSON.stringify(text)]);if(actual!==(text.trim().length>0))mismatches.push({text,actual,expected:text.trim().length>0});}
+   assert.deepEqual(mismatches,[]);
+  }));
+  await t.test('fully rebound current text accepts v unchanged and rejects whitespace-only VT',()=>tx(async()=>{
+   await auth();let expected=1;
+   for(const title of ['v',' vv ','\u000B']){
+    const session=createResultReview(reports[0]);session.edit('title',title);const report=await session.export();
+    if(title.trim().length){const id=await save(report,{req:request(40+expected),expected:expected++});assert.equal(await scalar('select title from public.content_versions where id=$1',[id]),title);}
+    else await reject(()=>save(report,{req:request(49),expected}),'22023');
+   }
+  }));
+  await t.test('authority/port differential agrees with accepted JS and rejects fully rebound malformed URLs',()=>tx(async()=>{
+   const mismatches=[];let expected=1;
+   for(const [url,allowed] of urlCases){
+    assert.equal(jsURLAllowed(url),allowed,url);
+    await db.exec('reset role');const actual=await scalar('select private.fr_url($1::jsonb)',[JSON.stringify(url)]);
+    if(actual!==allowed)mismatches.push({url,actual,expected:allowed});
+    const report=await rebind(reports[0],url,contentDigest),v=report.review;
+    const pure=await createFirstResultSaveIntent(report,{schema_version:1,fixture_only:true,organization_id:ids.org,opportunity_id:parent(1),request_id:request(50),expected_version:1,role:'owner',opportunity_status:'approved',has_source:true,has_approved_decision:true,mapped_source:{original_url:url,final_url:url,snapshot_id:v.snapshot_id,source_version:v.source_version},expected_review_revision:v.revision,expected_content_digest:v.content_digest});
+    assert.equal(pure.status,allowed?'candidate':'invalid',url);
+    // Execute all rebinding cases even if the helper is wrong, collecting failures.
+    await auth();await db.exec('savepoint url_case');let saved=false;
+    try{await save(report,{req:request(100+expected),expected:1});saved=true;}catch(e){if(e.code!=='22023')throw e;}finally{await db.exec('rollback to savepoint url_case;release savepoint url_case');}
+    if(saved!==allowed)mismatches.push({url,rpc_saved:saved,expected:allowed});expected++;
+   }
+   assert.deepEqual(mismatches,[]);
   }));
   await t.test('PostgreSQL UTF-8 replacement/BOM and UTF-16 length agree with independent JS decoding',()=>tx(async()=>{
    const vectors=[[239,187,191,65],[240,159,167,170],[224,128,128],[237,160,128],[244,144,128,128],[240,159],[194],[255],[226,130,65]];

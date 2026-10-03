@@ -67,3 +67,26 @@ DDL 自帶 BEGIN／COMMIT；尚未提交時可整體 rollback，本地已驗證�
 舊 dashboard 只顯示 title／正文，未顯示 meta／typed 來源，也尚未收起 generic review 按鈕；服務端 guard 會拒絕，但不代表產品互動完成。typed 新版會使同 parent 舊版本不再是最新版，歷史核准保留，不移植到新版。Auth／UI 接線需下一獨立範圍。
 
 公共 SQLite 100 筆上限與非破壞保留不變；本地 DB fixture 不是公共快照可回收的證據。沒有公開商品抓取、live POST、secret 存取、模型／費用、遠端 DB／權限／migration、Production、merge 或發布。
+
+## 父審查後 P2：trim、混合鎖及 URL authority
+
+父已核對 `c9ab0d8a6d74ec6b0cb2c5404ceeccef55adf94e` 的 push 37087663932／PR 37087667022 成功；兩份 logs 均包含 PGlite 14 tests、真 PG17.6 原三個 typed/typed Lock overlap、39 scanner/API、6 Review、14 save-intent及 1280/390 各 22 真下載；Preview `CE4aQ6ZDS2q6m3BwBvz6fMp3SZK9` Ready。先前本機缺 image 的三案證據已由 CI 補齊，無需 Owner 處理本機環境；但不取代以下新回歸。
+
+先只加入回歸後執行 `node --test supabase/drafts/first_result_save/offline.test.mjs`：15 PASS／2 FAIL（含外層；URL 群組失敗）。`https://:/`、`:99999` 等完整重綁 original/final URL、citations、page receipt 並重新計算 content digest，仍被舊 SQL 接受，故失敗不是因 stale digest。沒有網路請求，這是格式契約缺口，不稱為 SSRF exploit。
+
+Trim 的原寫法在本機**沒有重現**：直接查得 PostgreSQL 18.3（PGlite 0.5.8）把 `E'\v'` 解作 hex `0b`，`v`／` vv `及 whitespace-only VT 回歸均通過。修正仍改用明確 `chr(11)`，不依賴版本 escape 行為。native 腳本另以 PG17.6 執行舊 trim expression 的具體對照，要求輸出 escape hex／v／vv／VT 判定，再驗固定版；不能拿 PG18 結果冒充 PG17 重現。
+
+候選 SQL 最小鎖變更：organization 的 `FOR UPDATE` 改為 `FOR NO KEY UPDATE`，保留同 org typed request 序列化，但容許 legacy INSERT 的 organization FK `KEY SHARE`。parent `FOR UPDATE`、等待後 membership 重查／`FOR SHARE`、owner gates、完整 request 冪等及 audit 原子性不改。舊模式與 legacy create/review 反向等待的 deadlock 是靜態風險；本機未有 PG17 實跑，不宣稱已發生遠端故障。
+
+URL helper 改為有界的 HTTPS authority／port 解析，處理非空 hostname、IPv6 bracket、數字 port 0–65535、domain percent decoding 與 numeric IPv4 的合法／非法格式，拒絕壞 authority、overflow port及非法 host 字元。保持現有 JS 對 empty credentials、empty query/hash、特殊 HTTPS slash 寫法的判定，不修改儲存 URL、不抓取或做 DNS。測試有 51 個合法／非法案例（含 Unicode/punycode domain、IPv4／IPv6、空／上限／超界 port）；這是該輸入集合的 differential 證據，不宣稱已完成整份 WHATWG／IDNA conformance。
+
+最終本機 PGlite：**16 群組 PASS，Node 含外層 17 tests PASS／0 FAIL**。新 trim 群組比對 JS trim 的全部 whitespace 集合與有效 v 文字；完整 RPC 保留 `v`／` vv `原字串，拒絕只含 U+000B。URL 群組每例同時比對既有純 save-intent 判定、SQL helper 與完整 RPC 行為。舊相關 SQL 群組保留，沒有重跑無關 scanner／Review／UI suites。
+
+native.mjs 保留原三個 typed/typed 案例，新增以下真多 backend assertions，均只在一次性合成 PG17.6 容器內：
+
+- 原 `FOR UPDATE` 對照只替換隔離 impl 的 org lock clause；legacy create及review 各要求一方 40P01、一方成功，兩方交易回滾。恢復候選 `FOR NO KEY UPDATE` 後同兩案要求都成功、沒有永久 append/review；這些控制不能在遠端執行。
+- 保存等待 org lock 時，另一交易提交 membership 刪除：新 request及既有 request retry 都必須在等待後 42501，沒有新版本／audit。
+- 保存先取得 membership SHARE 時，撤銷必須真 Lock 等待保存提交；撤銷提交後相同 request retry 42501。只有隔離 fixture 會還原 membership 以核對前後原資料，沒有任何遠端恢復或權限操作。
+- 每案要求 holder／contender／observer 三個不同 PID 與 `pg_blocking_pids` 證據；保留原一次版本一次 audit、history／帳務與其他業務資料比對。
+
+本機 native 腳本語法檢查 PASS；執行仍因缺指定 image 在啟動前 BLOCKED／exit 2，沒有下載、啟動容器或修改安全設定。**新增 PG17 trim 對照、兩組混合鎖修復及 membership overlap 尚待新 SHA CI 輸出／父獨立驗收，不能以之前三案 PASS 代替。** CI 沿用既有 native step，不改成功條件。未部署或啟用真保存。

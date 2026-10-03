@@ -13,7 +13,7 @@ language sql immutable set search_path='' as $$
 create function private.fr_text(v jsonb) returns boolean
 language sql immutable set search_path='' as $$
  select coalesce(jsonb_typeof(v)='string' and length(btrim(v#>>'{}',
- E' \t\n\r\v\f'||chr(160)||chr(5760)||chr(8192)||chr(8193)||chr(8194)||chr(8195)||chr(8196)||chr(8197)||chr(8198)||chr(8199)||chr(8200)||chr(8201)||chr(8202)||chr(8232)||chr(8233)||chr(8239)||chr(8287)||chr(12288)||chr(65279)))>0,false) $$;
+ E' \t\n\r\f'||chr(11)||chr(160)||chr(5760)||chr(8192)||chr(8193)||chr(8194)||chr(8195)||chr(8196)||chr(8197)||chr(8198)||chr(8199)||chr(8200)||chr(8201)||chr(8202)||chr(8232)||chr(8233)||chr(8239)||chr(8287)||chr(12288)||chr(65279)))>0,false) $$;
 create function private.fr_strings(v jsonb) returns boolean
 language plpgsql immutable set search_path='' as $$
 declare x jsonb;
@@ -26,9 +26,76 @@ create function private.fr_utf16_length(t text) returns integer
 language sql immutable strict set search_path='' as $$
  select coalesce(sum(case when ascii(substr(t,i,1))>65535 then 2 else 1 end),0)::integer from generate_series(1,length(t)) i $$;
 create function private.fr_url(v jsonb) returns boolean
-language sql immutable set search_path='' as $$
- select coalesce(jsonb_typeof(v)='string' and length(v#>>'{}')<=2048 and
- (v#>>'{}') ~ '^https://[^/?#@[:space:]\\]+(/[^?#[:space:]\\]*)?$',false) $$;
+language plpgsql immutable set search_path='' as $$
+declare raw text:=v#>>'{}'; rest text; authority text; host text; port text:=''; tail text; close_at integer;
+ i integer; j integer; cp integer; bytes bytea:=''::bytea; parts text[]; part text; base integer; digit integer; num numeric;
+ spaces text:=E' \t\n\r\f'||chr(11)||chr(160)||chr(5760)||chr(8192)||chr(8193)||chr(8194)||chr(8195)||chr(8196)||chr(8197)||chr(8198)||chr(8199)||chr(8200)||chr(8201)||chr(8202)||chr(8232)||chr(8233)||chr(8239)||chr(8287)||chr(12288)||chr(65279);
+begin
+ if jsonb_typeof(v) is distinct from 'string' or private.fr_utf16_length(raw)>2048 or translate(raw,spaces,'')<>raw or strpos(raw,chr(92))>0 or raw !~* '^https:' then return false; end if;
+ -- HTTPS special-scheme parsing also accepts https:host / https:/host. Empty
+ -- query/fragment markers have empty URL.search/hash in the accepted JS parser.
+ rest:=regexp_replace(substr(raw,7),'^/+','');
+ if strpos(rest,'#')>0 then if strpos(rest,'#')<>length(rest) then return false; end if; rest:=left(rest,-1); end if;
+ if strpos(rest,'?')>0 then if strpos(rest,'?')<>length(rest) then return false; end if; rest:=left(rest,-1); end if;
+ authority:=split_part(rest,'/',1);
+ if strpos(authority,'@')>0 then
+  if split_part(authority,'@',1) not in ('',':') then return false; end if;
+  authority:=substr(authority,strpos(authority,'@')+1);
+  if strpos(authority,'@')>0 then return false; end if;
+ end if;
+ if left(authority,1)='[' then
+  close_at:=strpos(authority,']'); if close_at=0 then return false; end if;
+  host:=substr(authority,2,close_at-2); tail:=substr(authority,close_at+1);
+  if tail<>'' and left(tail,1)<>':' then return false; end if;
+  port:=substr(tail,2);
+  if host='' or family(host::inet)<>6 or masklen(host::inet)<>128 then return false; end if;
+ else
+  close_at:=strpos(authority,':');
+  if close_at>0 then host:=left(authority,close_at-1); port:=substr(authority,close_at+1); else host:=authority; end if;
+ end if;
+ if port<>'' then
+  if port !~ '^[0-9]+$' then return false; end if;
+  if port::numeric>65535 then return false; end if;
+ end if;
+ if left(authority,1)='[' then return true; end if;
+ -- Decode domain escapes before checking forbidden host characters / numeric
+ -- hosts, without changing the stored URL or making any DNS/network request.
+ i:=1;
+ while i<=length(host) loop
+  if substr(host,i,1)='%' then
+   if substr(host,i+1,2) !~ '^[0-9a-fA-F]{2}$' then return false; end if;
+   bytes:=bytes||decode(substr(host,i+1,2),'hex'); i:=i+3;
+  else bytes:=bytes||convert_to(substr(host,i,1),'UTF8'); i:=i+1; end if;
+ end loop;
+ host:=convert_from(bytes,'UTF8');
+ if host='' or translate(host,spaces,'')<>host then return false; end if;
+ for i in 1..length(host) loop
+  cp:=ascii(substr(host,i,1));
+  if cp<=32 or cp=127 or strpos('/:#?@[]\^|<>%',substr(host,i,1))>0 then return false; end if;
+ end loop;
+ parts:=string_to_array(lower(case when right(host,1)='.' then left(host,-1) else host end),'.');
+ part:=parts[array_length(parts,1)];
+ -- WHATWG numeric hosts: include shortened / hex / octal IPv4 forms, but reject
+ -- malformed or overflowing numeric hosts instead of treating them as DNS names.
+ if part ~ '^[0-9]+$' or part ~ '^0x[0-9a-f]*$' then
+  if array_length(parts,1)>4 then return false; end if;
+  for i in 1..array_length(parts,1) loop
+   part:=parts[i]; if part='' then return false; end if; base:=10;
+   if left(part,2)='0x' then base:=16;part:=substr(part,3);
+   elsif length(part)>1 and left(part,1)='0' then base:=8;part:=substr(part,2); end if;
+   num:=0;
+   for j in 1..length(part) loop
+    digit:=strpos('0123456789abcdef',substr(part,j,1))-1;
+    if digit<0 or digit>=base then return false; end if;
+    num:=num*base+digit;if num>4294967295 then return false; end if;
+   end loop;
+   if i<array_length(parts,1) and num>255 then return false; end if;
+  end loop;
+  if num>=power(256::numeric,5-array_length(parts,1)) then return false; end if;
+ end if;
+ return true;
+exception when invalid_text_representation or character_not_in_repertoire or numeric_value_out_of_range then return false;
+end $$;
 
 -- WHATWG-style replacement decoding, preserving BOM. PostgreSQL text cannot
 -- represent NUL: reject rather than silently changing bytes/HTML or JSON strings.
@@ -219,8 +286,8 @@ declare actor uuid:=auth.uid(); old public.content_versions%rowtype; latest inte
 begin
  if actor is null or not private.has_org_role(p_organization_id,array['owner']) then raise exception 'Owner required' using errcode='42501'; end if;
  perform private.fr_require(p_opportunity_id is not null and p_request_id is not null and p_expected_version between 0 and 2147483646 and p_payload is not null,'INVALID_REQUEST');
- -- Org first: serialize organization-scoped request IDs even across parents.
- perform 1 from public.organizations where id=p_organization_id for update;
+ -- Org first: serialize request IDs without conflicting with legacy INSERT FK KEY SHARE.
+ perform 1 from public.organizations where id=p_organization_id for no key update;
  -- Recheck membership after waiting; share-lock the membership until commit so
  -- a simultaneous revocation serializes with this write instead of racing it.
  perform 1 from public.organization_members where organization_id=p_organization_id and user_id=actor and role='owner' for share;

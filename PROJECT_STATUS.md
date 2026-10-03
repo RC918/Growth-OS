@@ -73,3 +73,5 @@ save-intent 父審查修正：`69ce9b1` 兩 CI 37083625550／37083629483 綠燈�
 新增 [未部署草案與驗收](supabase/drafts/first_result_save/README.md)，位於 migration runner 不載入的 drafts 目錄。只擴 content_versions 四欄／條件約束與 org-request 唯一鍵、owner append RPC、必要 private validators、typed generic-review guard；保留三欄／長原建議／來源、原有 tenant／門檻／共用版本與 audit。沒有新 store、Profile onboarding、Auth／UI／dispatch 接線。
 
 PGlite 13 個群組（Node 含外層 14 tests）PASS，含 114 個證據破壞拒絕、Unicode／來源與內容摘要重算、完整讀回、冪等與異請求拒絕、membership 撤銷、audit 回滾、typed 審核拒絕及 legacy 相容；合成 20 表原欄位、13 筆歷史與帳務比較不變。PG17.6 腳本語法 PASS，但實跑因本機缺固定映像 BLOCKED／exit 2，未下載或啟動容器；真多連線競爭尚缺證，CI 新步驟待父核對。所有 SQL 只在本地合成 DB 執行，沒有遠端資料／權限變更；真 Auth／保存／一般新用戶流程仍未放行。
+
+保存 SQL 草案父審查增補：`c9ab0d8` 的 CI 37087663932／37087667022 已補齊真 PG17.6 原三案，Preview `CE4aQ6ZDS2q6m3BwBvz6fMp3SZK9` Ready；但三項 P2 HOLD。新增回歸先得到 PGlite 15 PASS／2 FAIL，完整重綁 URL／引用／receipt／digest 後仍重現非法 authority／port 誤收。trim 在 PG18.3 未重現（`E'\v'`→0b），改用 chr(11)，保留 PG17 專屬原寫法對照。org lock 改 NO KEY UPDATE 以容許 legacy FK KEY SHARE；新增原模式 deadlock 控制、legacy create/review 混合及三種 membership 撤銷重疊 assertions。最終 PGlite 16 群組／含外層 17 tests PASS，51 URL differential 案例完整通過；native 語法 PASS，本機仍缺 image，新增真 PG17 案例待新 CI，不能當作已重現遠端故障。僅離線 SQL／合成測試與文件，未部署、未碰遠端權限或資料。
