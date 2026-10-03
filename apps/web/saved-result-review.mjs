@@ -1,8 +1,9 @@
 // Unsaved continuation of one exact stored version, using the existing Review engine.
 import {restoreResultReview,reviewFields} from './first-result-review.mjs';
+import {typedDraft} from './typed-draft.mjs';
 import {canonical} from './first-result-payload.mjs';
 const labels={title:'標題',meta_description:'Meta description',description:'產品描述'};
-export function savedResultReview({api,version,isCurrent}){
+export function savedResultReview({api,version,isCurrent,enabled=false}){
  const root=document.createElement('section');root.className='saved-result-review';
  const start=document.createElement('button');start.type='button';start.textContent='續編此已保存版本（未保存）';start.className='resume-review';
  const status=document.createElement('p');status.className='resume-status';status.setAttribute('role','status');
@@ -24,7 +25,7 @@ export function savedResultReview({api,version,isCurrent}){
   finally{if(active(operation)){pending=false;start.disabled=false;}}
  }
  function render(){
-  editor.replaceChildren();const own=review;let prepared=null;
+  editor.replaceChildren();const own=review;let prepared=null,attempted=false,knownId=null,blocked=false,feedback='',saved=null;
   const intentView=document.createElement('details');intentView.className='resume-intent';intentView.hidden=true;
   const fields=document.createElement('div');const inputs=new Map(),checks=new Map(),origins=new Map();
   for(const key of reviewFields){
@@ -33,23 +34,35 @@ export function savedResultReview({api,version,isCurrent}){
    const origin=document.createElement('p');origin.style.overflowWrap='anywhere';
    const checkLabel=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.dataset.check=key;checkLabel.append(check,document.createTextNode('已核對 '+labels[key]+' 目前內容及相關事實'));
    fields.append(label,origin,checkLabel);inputs.set(key,input);checks.set(key,check);origins.set(key,origin);
-   input.addEventListener('input',()=>{if(!current()){clear();return;}own.edit(key,input.value);invalidateIntent();paint();});
-   check.addEventListener('change',()=>{if(!current()){clear();return;}own.check(key,check.checked);invalidateIntent();paint();});
+   input.addEventListener('input',()=>{if(!current()){clear();return;}if(attempted||blocked)return;own.edit(key,input.value);invalidateIntent();paint();});
+   check.addEventListener('change',()=>{if(!current()){clear();return;}if(attempted||blocked)return;own.check(key,check.checked);invalidateIntent();paint();});
   }
   const confirm=document.createElement('button');confirm.type='button';confirm.className='resume-confirm';confirm.textContent='確認本頁修改（未保存）';
   const prepare=document.createElement('button');prepare.type='button';prepare.className='resume-prepare';prepare.textContent='準備新版本保存意圖（不送出）';
   function invalidateIntent(){prepared=null;intentView.replaceChildren();intentView.hidden=true;}
-  const cancelButton=document.createElement('button');cancelButton.type='button';cancelButton.className='resume-cancel';cancelButton.textContent='取消續編，返回已保存版本';cancelButton.addEventListener('click',cancel);
+  const cancelButton=document.createElement('button');cancelButton.type='button';cancelButton.className='resume-cancel';cancelButton.textContent='取消續編，返回已保存版本';cancelButton.addEventListener('click',()=>{
+   if(!attempted){cancel();return;}
+   ticket++;pending=false;blocked=true;own.invalidate();feedback='已停止等待；可能已保存，只可查詢原 request，不會重送。';paint();
+  });
+  const save=document.createElement('button');save.type='button';save.className='resume-save';save.textContent=enabled?'保存為新版本':'新版本保存尚未開放';
+  const reconcile=document.createElement('button');reconcile.type='button';reconcile.className='resume-reconcile';reconcile.textContent='只查詢這次保存結果';
+  const result=document.createElement('div');result.className='resume-saved-result';
   function paint(){
    const view=own.view();
    status.textContent=`基於第 ${version.version_number} 版（${version.id}）續編 · ${view.receipt?'本頁已確認':'待重新確認'} · 未保存 · 未發布。重新整理或離開將失去本次修改。`;
+   if(feedback)status.textContent=feedback;
    status.style.overflowWrap='anywhere';
    for(const key of reviewFields){checks.get(key).checked=view.fact_checks[key];origins.get(key).textContent=`原建議：${view.original_suggestions[key]}；${view.edited[key]?'使用者修改，引用僅供原建議對照':'原建議文字'}`;}
-   confirm.disabled=pending||!view.canConfirm||!!view.receipt;
-   prepare.disabled=pending||!view.receipt||!!prepared;
+   confirm.disabled=blocked||attempted||pending||!view.canConfirm||!!view.receipt;
+   prepare.disabled=blocked||attempted||pending||!view.receipt||!!prepared;
+   save.disabled=!enabled||blocked||attempted||pending||!prepared;
+   reconcile.hidden=!attempted||!!saved;reconcile.disabled=pending;
+   for(const input of inputs.values())input.readOnly=attempted||blocked;
+   for(const check of checks.values())check.disabled=attempted||blocked;
+   cancelButton.disabled=!!saved;
   }
   confirm.addEventListener('click',async()=>{
-   if(!current()||pending||review!==own)return;
+   if(!current()||pending||blocked||attempted||review!==own)return;
    pending=true;confirm.disabled=true;const operation=++ticket,reviewToken=own.view().token;
    try{
     const row=await api.readReviewBase(version);
@@ -59,11 +72,11 @@ export function savedResultReview({api,version,isCurrent}){
     await own.confirm();
     if(!active(operation)||review!==own)return;
    }catch(error){
-    if(active(operation)){clear();status.textContent=`續編已失效：${error.message}；原已保存版本未變。`;}
+    if(active(operation)){blocked=true;own.invalidate();invalidateIntent();feedback=`續編已失效：${error.message}；修改保留於本頁，不會覆蓋新基準。`;}
    }finally{if(active(operation)&&review===own){pending=false;paint();}}
   });
   prepare.addEventListener('click',async()=>{
-   if(!current()||pending||!own.view().receipt||prepared)return;
+   if(!current()||pending||blocked||attempted||!own.view().receipt||prepared)return;
    pending=true;paint();const operation=++ticket,reviewToken=own.view().token;
    const live=()=>active(operation)&&review===own&&own.view().token===reviewToken;
    try{
@@ -74,10 +87,33 @@ export function savedResultReview({api,version,isCurrent}){
     const summary=document.createElement('summary');summary.textContent=`第 ${intent.request.expected_version+1} 版保存意圖已備妥 · 尚未送出／未保存／未發布`;
     const detail=document.createElement('pre');detail.className='resume-intent-json';detail.style.whiteSpace='pre-wrap';detail.style.overflowWrap='anywhere';detail.textContent=JSON.stringify(intent,null,2);
     intentView.replaceChildren(summary,detail);intentView.hidden=false;
-   }catch(error){if(active(operation)){clear();status.textContent=`保存意圖未建立：${error.message}；原已保存版本未變。`;}}
+   }catch(error){if(active(operation)){blocked=true;own.invalidate();invalidateIntent();feedback=`保存意圖未建立：${error.message}；修改保留於本頁。`;}}
    finally{if(active(operation)&&review===own){pending=false;paint();}}
   });
-  editor.append(fields,confirm,prepare,cancelButton,intentView);pending=false;paint();
+  async function readback(operation){
+   const row=await api.reconcileUrlResult(prepared.request,knownId,prepared.binding.actor_id);
+   if(!active(operation)||review!==own)return;
+   if(!row){feedback='結果仍未知；只查詢原 request，不重送保存。';return;}
+   saved=row;knownId=row.id;blocked=true;feedback=`已保存第 ${row.version_number} 版 · ${row.id} · 精確讀回 · 未發布；原版本仍保留於上方。`;
+   result.replaceChildren(typedDraft(row));
+  }
+  save.addEventListener('click',async()=>{
+   if(save.disabled||!current()||!prepared)return;
+   pending=true;feedback='重新核對保存基準中…';paint();const operation=++ticket,reviewToken=own.view().token;
+   const live=()=>active(operation)&&review===own&&own.view().token===reviewToken;
+   try{
+    knownId=await api.saveUrlRevision(prepared,{isCurrent:live,onDispatch:()=>{attempted=true;feedback='保存中；未知結果只查詢，不重送。';paint();}});
+    if(!live())return;await readback(operation);
+   }catch(error){if(active(operation)){blocked=true;own.invalidate();if(!attempted)invalidateIntent();feedback=attempted?`${error.message}；結果未確認，只查詢原 request，不重送。`:`${error.message}；未送出，修改保留於本頁，不會覆蓋新基準。`;}}
+   finally{if(active(operation)){pending=false;paint();}}
+  });
+  reconcile.addEventListener('click',async()=>{
+   if(!current()||pending||!attempted||saved)return;
+   pending=true;paint();const operation=++ticket;
+   try{await readback(operation);}catch(error){if(active(operation))feedback=`${error.message}；只查詢原 request，不重送。`;}
+   finally{if(active(operation)){pending=false;paint();}}
+  });
+  editor.append(fields,confirm,prepare,save,reconcile,cancelButton,intentView,result);pending=false;paint();
  }
  start.addEventListener('click',()=>void open());
  return root;

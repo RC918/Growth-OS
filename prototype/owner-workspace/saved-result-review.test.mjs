@@ -22,14 +22,15 @@ test('cancel invalidates late restored confirmation',async()=>{
  let release;const review=await restoreResultReview(payload,{digest:()=>new Promise(r=>release=r)});
  for(const key of reviewFields)review.check(key,true);const pending=review.confirm();await Promise.resolve();review.cancel();release('stale');await assert.rejects(pending,/STALE_REVIEW/);assert.equal(review.view().receipt,null);
 });
-async function fixture({role='owner',latest=row,detail=row,parentKind='url_result',hold=false,freshActor=actor,freshRole=role,freshOrg=org}={}){
+async function fixture({role='owner',latest=row,detail=row,parentKind='url_result',hold=false,freshActor=actor,freshRole=role,freshOrg=org,enabled=false,reconcileRow=null}={}){
  let release,started,userReads=0,memberReads=0;const pending=new Promise(r=>started=r),calls=[];
- const api=createWorkspaceApi({origin:'https://synthetic.supabase.co',key:'sb_publishable_synthetic',redirectOrigin:'https://offline.invalid',urlResultSchemaEnabled:true,urlSaveEnabled:false,fetchImpl:async(url,options)=>{
-  const u=new URL(url);calls.push({u,options});assert.equal(options.method,'GET');assert.equal(options.headers.Authorization,'Bearer synthetic');let body;
+ const api=createWorkspaceApi({origin:'https://synthetic.supabase.co',key:'sb_publishable_synthetic',redirectOrigin:'https://offline.invalid',urlResultSchemaEnabled:true,urlSaveEnabled:enabled,fetchImpl:async(url,options)=>{
+  const u=new URL(url);calls.push({u,options});assert.equal(options.headers.Authorization,'Bearer synthetic');if(options.method==='POST'){assert.equal(u.pathname,'/rest/v1/rpc/save_url_result_draft');return {ok:true,json:async()=> '50000000-0000-4000-8000-000000000002'};}assert.equal(options.method,'GET');let body;
   if(u.pathname.endsWith('/user'))body={id:++userReads===1?actor:freshActor};
   else if(u.pathname.endsWith('/organization_members'))body=[{organization_id:++memberReads===1?org:freshOrg,role:memberReads===1?role:freshRole}];
   else{assert.equal(u.searchParams.get('organization_id'),'eq.'+org);
    if(u.pathname.endsWith('/growth_opportunities'))body=[{id:row.opportunity_id,entry_kind:parentKind}];
+   else if(u.searchParams.has('first_result_request_id'))body=reconcileRow?[reconcileRow]:[];
    else if(u.searchParams.has('opportunity_id')){assert.equal(u.searchParams.get('opportunity_id'),'eq.'+row.opportunity_id);assert.equal(u.searchParams.get('order'),'version_number.desc');body=[latest];}
    else{assert.equal(u.searchParams.get('id'),'eq.'+row.id);if(hold){started();await new Promise(r=>release=r);}body=[detail];}
   }
@@ -54,4 +55,14 @@ test('new-version intent binds authoritative actor/base/expected version and imm
  for(const base of [{...row,organization_id:'wrong'},{...row,id:'wrong'},{...row,version_number:2}]){const f=await fixture();await assert.rejects(f.api.prepareUrlRevisionIntent(base,next,{isCurrent:()=>true}));}
  for(const changed of [{},payload,{...next,snapshot:{...next.snapshot,fetched_at:'2026-10-03T01:00:00Z'}},{...next,review:{...next.review,original_suggestions:{...next.review.original_suggestions,title:'changed original'}}}]){const f=await fixture();await assert.rejects(f.api.prepareUrlRevisionIntent(row,changed,{isCurrent:()=>true}));}
  for(const stop of ['cancel','logout','replace']){const f=await fixture({hold:true});let live=true;const task=f.api.prepareUrlRevisionIntent(row,next,{isCurrent:()=>live});await f.pending;if(stop==='cancel')live=false;else{f.api.signOut();if(stop==='replace')await f.api.completeMagicLink(fragment);}f.release();await assert.rejects(task);}
+});
+
+test('assembled revision dispatch rechecks binding/base and uses existing gated Save; exact actor/UUID reconciliation',async()=>{
+ const next=await revised(),source=await fixture(),intent=await source.api.prepareUrlRevisionIntent(row,next,{isCurrent:()=>true});
+ await assert.rejects(source.api.saveUrlRevision(intent,{isCurrent:()=>true,onDispatch:()=>{throw Error('must stay closed');}}),/尚未開放/);
+ const f=await fixture({enabled:true});let dispatched=0;const id=await f.api.saveUrlRevision(intent,{isCurrent:()=>true,onDispatch:()=>dispatched++});assert.equal(dispatched,1);assert.equal(id,'50000000-0000-4000-8000-000000000002');assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);
+ for(const patch of [{binding:{...intent.binding,actor_id:row.id}},{binding:{...intent.binding,base_version_id:'wrong'}},{binding:{...intent.binding,base_version_id:'50000000-0000-4000-8000-000000000099'}},{request:{...intent.request,expected_version:2}},{request:{...intent.request,organization_id:row.id}},{request:{...intent.request,payload:{}}},{intent_digest:'sha256:wrong'}]){const f=await fixture({enabled:true});await assert.rejects(f.api.saveUrlRevision({...intent,...patch},{isCurrent:()=>true,onDispatch:()=>{}}));assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);}
+ for(const stop of ['cancel','logout']){const f=await fixture({enabled:true,hold:true});let live=true;const task=f.api.saveUrlRevision(intent,{isCurrent:()=>live,onDispatch:()=>{}});await f.pending;if(stop==='cancel')live=false;else f.api.signOut();f.release();await assert.rejects(task);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);}
+ const saved={...row,id,created_by:actor,version_number:2,first_result_expected_version:1,first_result_request_id:intent.request.request_id,first_result_payload:next,title:next.preview.fields.title.suggested};
+ for(const patch of [{},{id:row.id},{created_by:row.id},{status:'approved'},{organization_id:row.id},{first_result_payload:payload}]){const f=await fixture({reconcileRow:{...saved,...patch}});if(Object.keys(patch).length)await assert.rejects(f.api.reconcileUrlResult(intent.request,id,actor));else assert.equal((await f.api.reconcileUrlResult(intent.request,id,actor)).id,id);assert.ok(f.calls.every(c=>c.options.method==='GET'));}
 });

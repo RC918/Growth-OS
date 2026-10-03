@@ -94,6 +94,9 @@ jobs:
       - name: Saved exact version Review continuation (synthetic transport, zero POST)
         timeout-minutes: 3
         run: node prototype/owner-workspace/saved-result-review.e2e.mjs
+      - name: Continued revision Save and exact readback (synthetic transport and isolated SQL)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/saved-result-save.e2e.mjs
       - name: URL Review to pending Save desktop/mobile (synthetic transport and isolated SQL)
         timeout-minutes: 3
         run: |

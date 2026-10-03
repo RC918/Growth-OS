@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；後續新版本保存意圖切片已完成 repo 合成驗證、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；目前完整續編保存／v2 讀回離線組裝已完成、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -188,3 +188,12 @@ CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀�
 建立前重新 GET 同一 Auth user／Owner membership、URL parent、最新版本及精確 payload，拒絕錯 actor/org/UUID/version/source、malformed、過期 base、取消或替換 session／晚回應；來源與原建議完全保留。修改使舊意圖消失，取消回到原已存版；不鎖住跨 session 未來變更。`saveUrlResult` 仍 closed，不新增 store、SQL、schema、ACL 或 dispatcher。
 
 27 API／marker／mirror tests、新版意圖 UI 1280/390 通過；既有 URL SQL isolated PGlite 10 tests 通過，新增組裝驗證使用實際產生的 intent 追加 v2、相同 request 冪等返回、v1 保留、舊 base 拒絕，隔離資料量 1 parent／2 versions／2 audits。這不是改動遠端既有 1/1/1。原生 Date 的測試轉接層已改為真 JSON roundtrip 後 PASS；沒有變動 SQL 契約或部署包。詳細限制見 [續編驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。新 HEAD CI／Reviewer 待父核對，沒有 remote/login/live POST 或 lease 延展。
+
+
+## 2026-10-03 完整續編保存／精確 v2 讀回（offline，runtime 仍 closed）
+
+父確認 `101185d229f75c0370d6781e9fc248a5f49f437a` 已由 Reviewer `01a10360` APPROVE、PR CI `37150266068` success、Preview `C3fbf5TPnERXbcEeQYXxTkzxTJ6o` success。依下一最小 Core 分配，現已把同一續編 editor／意圖接到既有 `saveUrlResult`、隔離 SQL 及精確 v2 reconcile；沒有新增意圖層、store、SQL 或通用 retry 系統。
+
+保存前重新核對 actor／Owner membership／base UUID／expected version／完整 payload 與意圖摘要；最後仍走既有 Save flag、bound gate、session／同步 live guard。合成回應成功後必須精確 UUID、creator、org、request、版本、draft status、payload 讀回吻合才顯示 v2 成功，v1 仍保留。已送出結果未知或衝突只查原 request、不重送；衝突保留修改供複製／核對並停用保存，不自動換新 base。取消已送出操作只停止等待，不能宣稱回滾；仍可 GET 核對已提交結果。
+
+28 API／marker／mirror tests 通過；新完整 UI 1280/390 各 success、unknown、SQL conflict、cancel、logout、wrong-readback 六案通過，每案僅一個 synthetic POST、isolated 1 parent／2 versions／2 audits、v1 原樣。既有續編／意圖 UI、URL Save 與 12 races 回歸通過。這些是 synthetic transport＋disposable SQL 的 offline 結果，不是第二輪 live Save；兩份 config exact closed、所有 SQL／bound artifact 不變，沒有 remote/login/live POST／費用／lease 延展。新 HEAD CI／Reviewer 待父核對，完整 M3 尚未宣告完成。

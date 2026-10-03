@@ -36,3 +36,23 @@
 既有 `supabase/drafts/url_result/offline.test.mjs` 的 isolated PGlite 10 tests PASS；新增測試把組裝 API 產生的 request 明確交給既有 SQL 函式，證明 v2 append／同 request 冪等、v1 不變、stale expected version 拒絕及 1/2/2 預算；沒有新增或修改 SQL 檔、函式、bound artifact。API 轉接層使用 HTTP 等價 JSON roundtrip，與原生 DB Date 物件區分；log `/tmp/revision-intent-sql.log`。所有 grants／測試寫入僅在既有 disposable DB 測試範圍，未操作遠端。
 
 本次仍保持兩份 closed config 原 bytes，以及全部部署 SQL／frozen payload／遠端 fixed-case 1/1/1。持久化新版本的 runtime dispatch、live acceptance 均未開放；不宣稱永久跨 session 鎖定或完整 M3 完成。
+
+
+## 後續：同一續編 UI → Save → 精確 v2 讀回（完整 offline slice）
+
+前一 intent 切片 `101185d229f75c0370d6781e9fc248a5f49f437a` 已由父提供 Reviewer `01a10360` APPROVE、CI `37150266068` success、Preview `C3fbf5TPnERXbcEeQYXxTkzxTJ6o` success。本段是其後獲分配的離線組裝，新 HEAD 仍待獨立核對。
+
+`saveUrlRevision` 重新 GET base，沿用 `prepareUrlRevisionIntent` 的身份／完整內容核對並保留同一 request UUID，對比整個意圖後才交既有 `saveUrlResult`。沒有第二個 RPC 或新 store；原 Save flag／bound gate／session／同步 dispatch guard 都保留。真 config false 時 UI 停用且 API 拒絕；完整 E2E 只在攔截的 loopback synthetic config 開 gate，不修改 repo config。
+
+同一 editor 增加明確保存與「只查詢這次保存結果」按鈕，成功才在旁邊渲染精確 v2；原 v1 唯讀內容不變。延用 `reconcileUrlResult`，新增可選的預期 creator 核對，其他首次 Save caller 原契約不變；續編要求 exact acknowledged UUID（若已知）、org／creator／request／expected version／typed metadata／draft status／完整 payload 一致。
+
+- 保存前基準不符：撤銷意圖／确认，保留使用者修改但停用保存，不自動 rebase。
+- 已 dispatch 的 HTTP failure／unknown／衝突：保留原 request、已知 UUID 與修改；保存永久停用於該操作，只可 GET 核對。空 GET 不等於未套用，也不恢復 POST。
+- 取消已 dispatch 操作：僅停止 UI 等待，保留原 request 供查詢，不宣稱 rollback；晚 ack UUID 可保留供核對，但不自動顯示取消操作成功。
+- logout／session／scope 或晚回覆：不更新舊 editor；錯 UUID／creator／內容不當成功。無 retry、背景重送或新 request 替換。
+
+此 slice 的未決操作控制屬目前分頁／editor 生命周期，未新增跨 reload／跨 session 的持久 outbox 或恢復保證；runtime 仍 closed，不能據此直接放行新的 live trial。這一限制與既有固定 first-save marker 的範圍不同，沒有改動該 marker 或 frozen trial。
+
+驗證：28 API／marker／mirror tests PASS，含 closed dispatch 拒絕、篡改 actor/base/request/digest、取消／logout 的 dispatch 前拒絕，及錯 creator／UUID／org／status／payload 讀回拒絕。新增 `saved-result-save.e2e.mjs` 已接 CI，1280/390px 各六案（success、unknown→空 GET→精確 GET、SQL conflict、cancel、logout、wrong UUID readback）通過；每案一個 synthetic POST，disposable SQL 1 parent／2 versions／2 audits、v1 全 row 未變，成功案 v2 payload 等於意圖。使用既有 SQL，沒有新 SQL／DDL／ACL artifact。
+
+既有 `saved-result-review.e2e.mjs`、`url-result-ui.e2e.mjs` 桌面／手機與 `url-result-races.e2e.mjs` 12 案回歸通過。logs：`/tmp/revision-save-api.log`、`/tmp/revision-save-ui.log`、`/tmp/revision-save-review-regression.log`、`/tmp/revision-save-url-regression.log`、`/tmp/revision-save-races.log`。當前 config SHA 仍為前述 `c37e2d…` closed 原 bytes；live 1/1/1、SQL／frozen artifact 完全不動，無新 remote/login/live POST。
