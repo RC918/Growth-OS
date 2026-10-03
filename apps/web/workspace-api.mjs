@@ -24,6 +24,11 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
   let actorId = null;
   const bound = urlSaveTrial ? Object.freeze(copyJSON(urlSaveTrial)) : null;
   const boundAvailable = () => !bound || (bound.expected_version===0 && actorId===bound.actor_id && membership?.organization_id===bound.organization_id && membership?.role==='owner' && bound.workspace_url===redirectOrigin+'/workspace.html' && Date.now()<Date.parse(bound.expires_at));
+  // Fixed, read-only M3 acceptance controls; independent of the expired Save lease.
+  const tenantOwner='e85f1a90-3565-4fc1-a7e0-3b7d08830d0e';
+  const tenantOrgA='93a88055-0a0b-40c0-b22f-a6d312320001',tenantOrgB='93a88055-0a0b-40c0-b22f-a6d312320002';
+  const tenantParentA='9bafbb2f-eea7-48ea-bc23-3896897f19c3',tenantParentB='93a88055-0a0b-40c0-b22f-a6d3123c0002';
+  const tenantAvailable=()=>origin==='https://vhzryhibmpvglzcmfnaa.supabase.co' && urlResultSchemaEnabled===true && urlSaveEnabled===false && actorId===tenantOwner && membership?.role==='owner' && membership?.organization_id===tenantOrgA;
   let linkedSite = null;
   let linkedSiteVerified = false;
 
@@ -158,6 +163,19 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     },
     context() { return membership; },
     boundSaveAvailable() { return boundAvailable(); },
+    tenantDiagnosticAvailable() { return tenantAvailable(); },
+    async verifyOwnerTenantRead() {
+      if(!tenantAvailable())throw new Error('固定唯讀驗收身份或設定不符');
+      const session=membership;
+      const current=()=>{if(membership!==session || !tenantAvailable())throw new Error('工作區已變更；驗收結果失效');};
+      const positive=await select('growth_opportunities','id,organization_id',{organization_id:`eq.${tenantOrgA}`,id:`eq.${tenantParentA}`,limit:'2'});
+      current();
+      if(positive.length!==1 || positive[0]?.id!==tenantParentA || positive[0]?.organization_id!==tenantOrgA)throw new Error('正向控制未取得精確一筆；驗收未通過');
+      const negative=await select('growth_opportunities','id,organization_id',{organization_id:`eq.${tenantOrgB}`,id:`eq.${tenantParentB}`,limit:'2'});
+      current();
+      if(negative.length!==0)throw new Error('跨工作區控制回傳資料；驗收未通過');
+      return {positiveId:tenantParentA,negativeId:tenantParentB,positiveCount:1,negativeCount:0,checkedAt:new Date().toISOString()};
+    },
     async readBoundUrlResult(knownId=null) {
       const org=activeOrg(),session=membership;
       if(!bound || bound.organization_id!==org) throw new Error('固定驗收工作區不符');

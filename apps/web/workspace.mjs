@@ -441,12 +441,36 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   return card;
 }
 
+let tenantTicket=0;
+function clearTenantDiagnostic() {
+  tenantTicket++;
+  $('owner-tenant-diagnostics').hidden=true;
+  $('owner-tenant-result').textContent='';
+  $('verify-owner-tenant').disabled=false;
+}
+$('verify-owner-tenant').addEventListener('click',async()=>{
+  if(!state || !api.tenantDiagnosticAvailable() || $('verify-owner-tenant').disabled)return;
+  const ticket=++tenantTicket,currentEpoch=epoch,currentState=state;
+  const current=()=>ticket===tenantTicket && epoch===currentEpoch && state===currentState && api.tenantDiagnosticAvailable();
+  $('verify-owner-tenant').disabled=true;
+  $('owner-tenant-result').textContent='唯讀驗收中…';
+  try {
+    const result=await api.verifyOwnerTenantRead();
+    if(current())$('owner-tenant-result').textContent=`通過：本工作區精確 ${result.positiveCount} 筆（${result.positiveId}）；無成員資格工作區成功回應 ${result.negativeCount} 筆（${result.negativeId}）。時間：${result.checkedAt}`;
+  } catch(error) {
+    if(current())$('owner-tenant-result').textContent=`驗收未通過：${error.message}`;
+  } finally {if(current())$('verify-owner-tenant').disabled=false;}
+}
+);
+
 async function refresh({urlSaved=false}={}) {
+  clearTenantDiagnostic();
   if(!urlSaved)urlSave.refreshing();
   const current = epoch, generation = ++renderGeneration;
   const next = await api.dashboard();
   if (current !== epoch || generation !== renderGeneration) return false;
   state = next;
+  $('owner-tenant-diagnostics').hidden=!api.tenantDiagnosticAvailable();
   urlSave.update(next);
   const owner = next.role === 'owner';
   $('organization-name').textContent = next.organization.name;
@@ -506,7 +530,7 @@ async function acceptRedirect() {
 void acceptRedirect();
 
 // A restored page must refresh before any retained card can mutate.
-window.addEventListener('pagehide', () => { epoch++; urlSave.close(); });
+window.addEventListener('pagehide', () => { epoch++; clearTenantDiagnostic(); urlSave.close(); });
 window.addEventListener('pageshow', event => {
   if (event.persisted && state) void refresh().then(ok=>{if(ok)urlSave.open(state);}).catch(error => message(error.message, true));
 });
@@ -514,6 +538,7 @@ window.addEventListener('pageshow', event => {
 $('sign-out').addEventListener('click', () => {
   epoch++;
   api.signOut();
+  clearTenantDiagnostic();
   urlSave.close();
   state = null;
   observations.close();

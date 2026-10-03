@@ -151,3 +151,15 @@ URL 保存父審查 HOLD 修正：`97ce6ede23032c60e19546f3fc8975a360aad758` 的
 ## 2026-10-03 bounded 同 tab 防重送修正
 
 父對 `6bab3bef` 指出 unknown POST 後 reload／空 GET 可重送；先在 1280/390 重現第二 POST 的 FAIL，再加入僅限本次驗收的 sessionStorage 非敏感 metadata。固定 scope/expiry/request、attempted 與 known UUID 在 POST 前同步寫入／讀回，reload/relogin 只 GET；錯誤或不可用標記 fail closed，logout/cleanup/expiry 不清除。21 API/marker tests 與兩 viewport 的 unknown／acknowledged UUID、bad storage、cleanup/expiry cases PASS；原 E2E/races 保留。SQL、候選 hashes 與 false/null flags 未改，沒有遠端 DB/Auth/POST。限定同一受控 tab，不宣稱跨新 tab／裝置的全球一次 HTTP；詳見 bound README。
+
+## 2026-10-03 M3 真保存／重新登入成果與必要 tenant 驗收補口
+
+父端提供、Reviewer 總驗 `01a10328` 核對：18:26 既有 Owner login1，18:48–49 唯一一次 Save；18:50 authoritative 證明固定 parent `9bafbb2f-eea7-48ea-bc23-3896897f19c3`、request `4d602b3f-272f-4282-9906-b0cc0155e1c7` 對應 1 parent／1 version／1 audit，version UUID `4595e34a-0b2d-4a73-984b-d7439b52325c`，payload/request digest 吻合。cleanup、ACL/history、資料 preservation，以及 logout→login2→精確 readback 已獲證實。closed config commit `e645de8b97c0d40aa52ee2843e15f3d6a120b934` 保持 schema=true/save=false；原 19:30 UTC SQL lease 不延展、不再 opening 或 Save。
+
+CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀回與 cleanup。完整 M3 **尚未完成**：Reviewer 判必要 P2，缺同一 signed Owner 對確有資料、但無 membership 的 OrgB negative GET。父 19:08 authoritative SELECT 已證 OrgB parent `93a88055-0a0b-40c0-b22f-a6d3123c0002` 存在，該 Owner 在 OrgB membership=0；舊 viewer 控制不能替代此驗收。
+
+本次 Blocking 修復僅提供固定 Owner／OrgA、schema 開/save 關的唯讀診斷，沿用既有 authenticated client。OrgA 精確 1 row 是正向控制，OrgB 成功回應 0 rows 才能通過；HTTP/網路/格式錯誤不能當隔離 PASS。固定最小欄位與 IDs，無任意輸入／token 匯出／POST／新 fixture、DDL 或 ACL；登出與晚回覆失效保護保留。合成 API/UI 證據不替代待執行的真 signed negative GET。
+
+依父轉述的 Owner 17:26 envelope（`Sentinel_10d81d4907e0819193fc417ce458fc71`，含 CI/E2E/login/logout/readback/tenant 驗收、至 M3 完成），最小操作計畫明確修訂：增加 1 次既有 Owner login，**累計 3 次**，追加 1 次唯讀診斷 Preview 部署。這超出原 manifest 的兩次登入／兩次 config 部署計畫，並非宣稱仍在原預算；不增加 Save／DB mutation，不延展 SQL 技術 lease。父於確需人工登入時通知 Owner；此 executor 未操作遠端或登入。待 CI／既有 Reviewer／Preview 核對後，由父完成這唯一缺口，再判定 M3；不啟動其他功能。
+
+本地驗證：23 API／marker tests 通過；新增固定 Owner 診斷 UI 1280/390px 通過 positive/negative/error/leak/wrong actor/logout-late-response、零 POST；原 typed UI 1280/390px 回歸通過。新 UI 已接既有 CI。兩份 runtime config 仍為 reviewed closed SHA256 `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`；所有 SQL／payload 未改。新 HEAD 的 CI、Reviewer、Preview 與 live negative GET 待父端確認。

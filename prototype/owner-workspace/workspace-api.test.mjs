@@ -295,3 +295,40 @@ test('late typed read rejects after signout or replacement session even with the
   f.release();await assert.rejects(pending,/工作區已變更/);
  }
 });
+
+test('fixed Owner tenant GET: positive/negative controls, errors, identity/gates and stale session; zero POST',async()=>{
+ const actor='e85f1a90-3565-4fc1-a7e0-3b7d08830d0e',parentA='9bafbb2f-eea7-48ea-bc23-3896897f19c3',parentB='93a88055-0a0b-40c0-b22f-a6d3123c0002';
+ const good=[{id:parentA,organization_id:orgA}];
+ async function make({user=actor,org=orgA,role='owner',schema=true,save=false,positive=good,negative=[],status=200,network=false,hold=false}={}){
+  const calls=[];let release,started;
+  const pending=new Promise(r=>started=r);
+  const api=createWorkspaceApi({origin,key,redirectOrigin:'https://offline.invalid',urlResultSchemaEnabled:schema,urlSaveEnabled:save,fetchImpl:async(url,options)=>{
+   const u=new URL(url);calls.push({u,options});assert.equal(options.method,'GET');assert.equal(options.headers.Authorization,'Bearer synthetic-owner-token');
+   let value;
+   if(u.pathname.endsWith('/user'))value={id:user};
+   else if(u.pathname.endsWith('/organization_members'))value=[{organization_id:org,role}];
+   else {
+    assert.equal(u.pathname,'/rest/v1/growth_opportunities');assert.equal(u.searchParams.get('select'),'id,organization_id');assert.equal(u.searchParams.get('limit'),'2');
+    const own=u.searchParams.get('organization_id')==='eq.'+orgA;
+    assert.equal(u.searchParams.get('organization_id'),'eq.'+(own?orgA:orgB));assert.equal(u.searchParams.get('id'),'eq.'+(own?parentA:parentB));
+    if(hold && !own){started();await new Promise(r=>release=r);}
+    if(!own && network)throw Error('network');
+    if(!own && status!==200)return {ok:false,status,json:async()=>({})};
+    value=own?positive:negative;
+   }
+   return {ok:true,json:async()=>value};
+  }});
+  await api.completeMagicLink(fragment('owner'));
+  return {api,calls,pending,release:()=>release()};
+ }
+ const f=await make();const result=await f.api.verifyOwnerTenantRead();assert.equal(result.positiveCount,1);assert.equal(result.negativeCount,0);assert.equal(result.positiveId,parentA);assert.equal(result.negativeId,parentB);assert.ok(Number.isFinite(Date.parse(result.checkedAt)));assert.equal(f.calls.length,4);
+ for(const opts of [{positive:[]},{positive:[...good,...good]},{positive:[{id:parentB,organization_id:orgA}]},{positive:[null]},{positive:{}},{negative:[{id:parentB,organization_id:orgB}]},{negative:{}},{status:401},{status:403},{status:500},{network:true}]){
+  const f=await make(opts);await assert.rejects(f.api.verifyOwnerTenantRead());assert.ok(f.calls.every(c=>c.options.method==='GET'));
+ }
+ for(const opts of [{user:'wrong'},{org:orgB},{role:'viewer'},{role:'editor'},{schema:false},{save:true}]){
+  const f=await make(opts);assert.equal(f.api.tenantDiagnosticAvailable(),false);await assert.rejects(f.api.verifyOwnerTenantRead());assert.equal(f.calls.length,2);
+ }
+ for(const replace of [false,true]){
+  const f=await make({hold:true});const read=f.api.verifyOwnerTenantRead();await f.pending;f.api.signOut();if(replace)await f.api.completeMagicLink(fragment('owner'));f.release();await assert.rejects(read,/已變更/);
+ }
+});

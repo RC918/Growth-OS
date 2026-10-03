@@ -99,6 +99,8 @@ jobs:
       - name: Bound URL desktop/mobile GET-first and cleanup readonly
         timeout-minutes: 3
         run: node prototype/owner-workspace/url-result-bound.e2e.mjs
+      - name: Fixed Owner readonly tenant acceptance (synthetic transport)
+        run: node prototype/owner-workspace/owner-tenant-ui.e2e.mjs
       - name: Workspace observation desktop and mobile UI acceptance
         run: node prototype/owner-workspace/observations-ui.e2e.mjs
       - name: Guided goal desktop and mobile UI acceptance
