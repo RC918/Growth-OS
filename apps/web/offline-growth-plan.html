@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Growth OS｜離線計畫與工作卡</title><link rel="stylesheet" href="./workspace.css"><script type="module" src="./offline-growth-plan.mjs"></script></head>
+<body><header class="topbar"><a href="/" class="brand">Growth OS</a><span class="environment">離線示範 · 合成資料</span></header>
+<main class="draft-demo"><section class="panel"><h1>把目標整理成一張工作卡</h1>
+<p class="explain">本頁使用已確認的手寫合成目標與固定規則，不是 AI 生成。紀錄只留在記憶體，重新整理會清空。不登入、不寫入遠端或發布。請勿輸入真實客戶資料。</p>
+<details><summary>目標與來源</summary><p id="plan-source"></p></details>
+<label for="plan-deliverable">預覽交付物</label><textarea id="plan-deliverable" maxlength="2000"></textarea>
+<div class="actions"><button id="plan-revise" type="button">建立修訂版本</button><button id="plan-cancel" type="button" class="quiet">捨棄未保存修改</button></div>
+<p id="plan-feedback" class="notice" role="status" aria-live="polite" tabindex="-1"></p>
+<div id="plan-current"></div><div class="actions"><button id="plan-approve" type="button">確認目前計畫</button><button id="plan-start" type="button">模擬開始工作</button></div>
+<label for="plan-result">內部結果位置或失敗原因</label><textarea id="plan-result" maxlength="2000"></textarea>
+<div class="actions"><button id="plan-complete" type="button">記錄模擬完成</button><button id="plan-fail" type="button">記錄模擬失敗</button></div>
+<p class="hint">完成只代表你提供的內部結果紀錄；沒有網站發布或真實流量成效。</p><a href="./workspace.html">返回工作台</a></section>
+<section class="panel queue"><h2>本頁版本與狀態紀錄</h2><div id="plan-history"></div></section></main></body></html>

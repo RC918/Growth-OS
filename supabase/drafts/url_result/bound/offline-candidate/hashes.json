@@ -1,0 +1,8 @@
+{
+  "opening_sha256": "a353f811b5977550fe9a43c7d9959d6c58d69330958406119cd9bb30d3b6aff2",
+  "cleanup_sha256": "2932e50569d486e8d4251f20ac8b9c30be1180068ba8b6a897abd8814eb5b80c",
+  "open_config_sha256": "175c60f00b7fdbddbb2c04ad8339e8e53292867fa9b4982bacb1580b68c34c69",
+  "closed_config_sha256": "6dd7d6b4cdcd7801c72aba65e0f29df604c3372f4fae86b23e0f464076fce407",
+  "expires_at": "2099-01-01T00:00:00.000Z",
+  "workspace_url": "https://offline.invalid/workspace.html"
+}

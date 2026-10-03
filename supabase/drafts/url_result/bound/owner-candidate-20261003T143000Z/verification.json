@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "scope": "Offline deterministic checks only",
+  "checks": [
+    "4 artifacts byte-identical to unchanged generator output and exact manifest hashes",
+    "Only literal deadline differs from 09:30 generated artifacts; cleanup bytes identical",
+    "Fixed actor/org/parent/request/expected0/payload/hashes/Preview and operation limits unchanged",
+    "Entire 08:00 and 09:30 historical directories unchanged from accepted HEAD",
+    "Generator and frozen input unchanged",
+    "Actual runtime configs unchanged false/false/null"
+  ],
+  "not_performed": [
+    "remote DB/Auth/browser preflight",
+    "login",
+    "runtime config patch or deployment",
+    "grant/ACL/Save POST",
+    "rerun unchanged full PASS suites"
+  ]
+}

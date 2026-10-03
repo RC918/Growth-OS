@@ -1,116 +1,36 @@
-# Commerce Growth｜系統設計 v0.1
+# Growth OS｜系統設計 v0.2
 
-2026-09-27　工作標題：Growth OS by Good Morning Digital。正式產品品牌與網域待定。此文件是開工設計；目前沒有已連接客戶網站、真實漏斗或上線成效。
+更新：2026-10-02（台北）。產品方向及 M0–M6 唯一依據為 [執行藍圖 v2.0](AI_Company_Growth_OS_執行藍圖_v1.md)。[原技術設計完整歷史](Commerce_Growth_系統設計_歷史_2026-10-02.md)保留；其中對話／計畫先行拓撲不是現行產品入口。
 
-> 2026-09-28 定位校正：本版保留 Visitor-to-Customer Leak Map 的技術契約，但它是流量進站後的第二層診斷。產品主流程與下一階段順序以《Growth_OS_定位修正_2026-09-28.md》為準。
+## 1. 現行主流程
 
-## 1. 產品決策
+URL → 安全公開來源快照 → 產品事實／推論／必要缺口 → 第一可用成果 → 版本 review → 授權發布 → 發布證據與觀測 → 效果回訪。
 
-服務對象：有自營網站的中小電商與貿易商。第一個模組是 **Visitor-to-Customer Leak Map**，從創辦人「FB、TG、LINE／簡訊導流後訪客不註冊」的真實問題出發。主要成果依商業模式分別為淨訂單或合格詢盤；註冊是中途事件。既有 SEO/GEO、內容、AI 引用與 Ahrefs 情報屬後續擴張，資料介面先預留，不讓第一版被它們阻塞。
+沿用 apps/web 的靜態 HTML／ES modules、既有 Supabase Auth/API 與獨立 Preview，不因方向調整重寫框架。URL 讀取／模型協調需受控服務端邊界，不能由瀏覽器任意 fetch 或透過既有高權限 key 代理。具體服務端路由與增量 schema 尚待設計；本文件不是部署或 API 已完成宣告。
 
-第一版兩種模式：
+## 2. 模組定位與復用
 
-| 模式 | 輸入 | 可主張的輸出 | 禁止的主張 |
-|---|---|---|---|
-| Public Audit | URL、商業模式、目標市場 | 可見頁面摩擦、具證據的網址／元素、待查問題 | 真實流失率、廣告 ROI、AI 引用或訂單歸因 |
-| Connected Diagnosis | 已授權的 GA4、廣告、商店/CRM；初期允許 CSV | 各來源及頁面漏斗、資料缺口、建議與事後觀測 | 單靠前後變化聲稱因果、跨平台數字無定義相加 |
+| 模組 | 現行責任 |
+|---|---|
+| URL/Source（新增） | 正規化、安全讀取、頁型與產品識別、immutable 快照與來源引用；復用 scanner 可用部分 |
+| Result（新增） | 產品頁 title/meta/描述改善包；事實驗證、缺口及實際可用文本，不先要求完整目標表單 |
+| Review/Auth（整合） | 復用版本、receipt、owner/viewer、tenant、取消／漂移失效及跨登入恢復 |
+| Plan/Work（內部） | 重用契約／stateRevision／事件；只保存閉環必需的進度，不暴露複雜管理 onboarding |
+| Publish（新增） | 一個授權試點平台的預覽、冪等發布、讀回／audit／恢復；未接線時只匯出、未發布 |
+| Measure（整合） | 復用 CSV／observation 契約，連結頁面、成果版、發布時間與授權來源；SEO/GEO 分開 |
+| Conversation/Profile（fallback） | 只有關鍵缺口才詢問，保存補充資料；不作主入口 |
+| Conversion／多渠道 | 延後，原安全與口徑約束保留在歷史設計 |
 
-Public Audit 可匿名試用且受速率限制；儲存報告、接入資料與執行建議需要工作區。對任何第三方網址均只掃描公開頁，禁止探測內網與敏感路徑。新網站本身從上線起建立 GA4/GSC，不能展示尚不存在的成果。
+## 3. 不變的安全／資料契約
 
-## 2. 架構
+公開網域／redirect／DNS／实际連線位址验证，拒絕 credentials、loopback、private/link-local/metadata、登入內容與任意 JS 執行；限制超時、bytes、跳轉及每站請求數。來源內容為未受信任資料，不得驅使工具擴權；來源快照需有 URL／擷取時間／版本／引用。
 
-```mermaid
-flowchart TB
-  A["Web UI / Landing"] --> B["Application API"]
-  B --> C["Postgres / Auth"]
-  B --> D["Job Queue"]
-  D --> E["Public Page Scanner"]
-  D --> F["Import Adapters"]
-  E --> C
-  F --> C
-  C --> G["Rules + Evidence Engine"]
-  G --> B
-```
+所有保存與平台操作有 organization scope、實際 session membership／API／RLS 檢查；前端角色、memory session 或內容 fingerprint 不代替 Auth。來源／版本／內容修改令核准失效；所有版本／audit 不覆寫。發布是獨立狀態，結果不明先核查，禁止盲目重試或把內部 completed 當發布。
 
-部署候選：Next.js/TypeScript Web 與 API 放 Vercel；PostgreSQL/Auth 使用 Supabase；DNS/WAF 用 Cloudflare；排程與工作者使用受管佇列或獨立執行環境，由負載測試後決定。先避免把耗時外部掃描放在同步 HTTP 請求。遵守既有專案偏好，不採 Render。這是候選拓撲，沒有聲稱已取得或配置帳號。
+資料來源、定義、期間／時區、覆蓋、蒐集時間、限制可查。缺資料保持未知，不當 0；合成、提供者聲明、系統核查分開。原觀測／轉換口徑保留，轉換模組不阻塞首版。
 
-**執行路徑**：UI 提交 URL → API 正規化與速率限制 → 工作排隊 → 安全掃描 → 存原始證據摘要／抓取時間 → 規則產生 finding → UI 顯示信心與限制 → 使用者選擇建立工作區 → 匯入授權資料 → 重新診斷漏斗 → 建議實驗 → 人核准 → 記錄動作與結果。
+## 4. 畫面與驗收
 
-## 3. 安全掃描與資料權限
+主要 UI 是貼網址、成果對照、必要確認／授權、發布狀態、效果及下一步。來源／版本／稽核展開；plan/work 等內部事件隱藏。錯誤在相關操作旁，保留输入並可恢復；手機／桌面／鍵盤皆可完成。已知資訊不重問，不能用假進度或模型未接線的占位成果表示成功。
 
-- URL 僅接受 HTTPS 公開網域；解析每次跳轉並拒絕 loopback、private、link-local、metadata IP 及非 HTTP(S)；限制跳轉、bytes、回應時間、每網域請求數。DNS 解析與實際連線地址一致驗證，避免 DNS rebinding。標明 user agent，遵守 robots 與站點限制。
-- HTML 抽取只讀公開頁；不登入、不提交表單、不執行任意站點 JS 或下載未知檔；如需瀏覽器截圖，放隔離工作者並限制網路權限與資源。
-- 免費掃描結果可短期快取，但第三方網站的公開掃描不等於該站所有權。只有驗證網域的工作區才能連接一方數據或存長期報告。
-- OAuth token 只存加密服務端，最小 scope，可撤銷；初期 CSV 由已驗證工作區管理者上傳，顯示來源與欄位映射預覽。不要收廣告帳號密碼。
-- 日誌不寫表單內容、客戶姓名、電話、電郵或 token；事件用內部不可逆 ID。提出預設保存期限：匿名掃描 30 天、匯入批次 90 天、聚合與審計紀錄 13 個月，正式公開前依產品實際需求與適用政策審核。
-- 工作區隔離以 `organization_id`、Postgres RLS 與服務層檢查雙重執行；跨租戶 ID 猜測應回 404。所有資料匯出和刪除要有審計事件。
-
-## 4. 資料口徑與契約
-
-三個資料層級：`observed`（一方來源真實事件）、`associated`（同來源、頁面與時間窗的關聯）、`estimated`（模型估計）。每個數字保留 `source`, `collected_at`, `window_start/end`, `definition_version`, `coverage`, `limitations`。
-
-| 指標 | 口徑 | 主要來源 |
-|---|---|---|
-| Ad click | 廣告平台所報的點擊，非網站工作階段 | 廣告平台或 CSV |
-| Landing session | GA4 中帶來源的登陸會話；可能受同意/瀏覽器影響 | GA4 |
-| Engaged action | CTA、商品瀏覽或表單開始；事件去重 | GA4 / 網站事件 |
-| Lead | 提交詢問；另由 CRM 判定是否合格 | GA4 + CRM |
-| Net order | 唯一交易 ID 的付款減退款，若可取得再計毛利 | 商店/訂單系統 |
-| Signup | 建立帳戶；不得當作電商與貿易的最終成果 | GA4 / Auth |
-
-以 GA4 官方建議事件作基礎：`view_item`, `add_to_cart`, `begin_checkout`, `purchase`, `refund`, `generate_lead`, `sign_up`；自訂 `landing_cta_click`, `quote_request_start`, `form_error`。UTM 命名表：`utm_source=facebook|telegram|line|sms`, `utm_medium=paid_social|paid_message|sms`, `utm_campaign`, `utm_content`。渠道廣告點擊與 GA4 登陸工作階段不是相同計數，不直接相減稱為「流失人數」。
-
-資料處理：先保存匯入批次及校驗結果，再按日期、來源、活動、裝置、落地頁聚合；同一來源同一筆交易去重。缺失欄位保留 `null` 而非 0；樣本量過低時只展示原值，預設不產出百分比勝出結論。`net_revenue` 必須有同幣別與退款資訊，否則保持未知。
-
-## 5. 模組與責任
-
-| 模組 | MVP 交付 | 下一階段 |
-|---|---|---|
-| Intake & Scan | URL 驗證、非同步公開掃描、證據快照、規則 findings | JS 截圖與多頁巡檢 |
-| Workspace & Auth | 單站工作區、角色 owner/editor/viewer、網域驗證 | 多站、Agency |
-| Import | GA4/廣告/商店 CSV 欄位映射與冪等批次 | 官方 OAuth/API、排程同步 |
-| Funnel | 按來源/落地頁/裝置的階段計數、缺口與定義 | cohort、跨設備、增量試驗 |
-| Recommendation | 規則分數：影響、信心、工作量；來源與理由 | AI 補充說明、建議排序 |
-| Action & Proof | 預覽/核准/記錄實驗，前後觀測與限制 | 自動發布、嚴格對照實驗 |
-| SEO/GEO Adapter | 公開技術檢查、GSC 匯入介面預留 | Ahrefs、AI citation、多市場 |
-
-LLM 第一版只協助把已驗證 finding 改寫成可讀建議；不得生成不存在的訪客、訂單或競品數據。核心漏斗、金額與證據鏈由程式計算。
-
-## 6. 主要畫面
-
-1. **Landing**：網址欄、商業模式選擇、公開掃描說明；不用信用卡。
-2. **Public Report**：3 個具證據的摩擦點、截取來源、信心、未知資料；CTA 為「連接數據，找出實際流失步驟」。
-3. **Connect**：驗證網域、選 GA4/CSV、欄位預覽、同意與撤銷。
-4. **Funnel**：來源 × 落地頁 × 裝置篩選；各階段分母與資料完整度；電商與貿易指標不同。
-5. **Action**：一項建議、證據、預期風險、核准、實驗版本與停止條件。
-6. **Proof**：發布/變更時間、觀測窗、對照（若有）、leads/淨訂單、未知與推論。
-
-全產品導航可維持 Home、Opportunities、Growth、Visibility、Business；初期把上述六步整合在 Home/Opportunities/Growth。未接數據時不能出現模擬報表當真實數值。
-
-## 7. API 與資料庫交付
-
-- `Commerce_Growth_openapi_v0.1.yaml`：公開掃描、工作區、匯入、漏斗、建議與行動的 HTTP 契約。
-- `Commerce_Growth_schema_v0.1.sql`：Postgres 起始 schema、索引與租戶隔離方向。
-- API 對外回傳 `data_quality`，包含資料來源、最後同步時間與缺口。掃描/匯入採非同步狀態機 `queued → running → completed|failed`。反覆提交相同匯入 batch key 不得重複計入。
-
-## 8. 開發順序與可驗收門檻
-
-| Sprint | 必須做出的東西 | 驗收方式 |
-|---|---|---|
-| 1 | Repo、Web 首頁、公開掃描 API/worker、findings 規則 | 用三個授權測試網址驗證安全限制、報告證據與未能判斷狀態 |
-| 2 | Auth/工作區、網域驗證、CSV 匯入、事件字典 | 重複匯入不重算；跨租戶不可讀；缺欄報錯可理解 |
-| 3 | 漏斗頁、貿易/電商口徑、建議與 Action Log | 模擬資料與手算一致；低樣本、退款、未知口徑正確 |
-| 4 | Staging 端到端、真實站量測、自用試驗 | Deployment/API/DB/E2E 四項雲端證據；真實數據與模擬資料嚴格分離 |
-
-任何對外發布或花費單筆預算的動作由 Owner 核准；設計與本地/Staging 可先行。90 天現金上限 NT$100,000，Sprint 1 前的第一關最多 NT$15,000；若外包工程，人力預算另列。
-
-## 9. 待實作風險與明確非目標
-
-初期不宣稱真正跨平台完整歸因、AI 推薦保證、Ahrefs 等價資料或自主改動客戶網站。廣告平台報表與 GA4 可能因統計口徑和同意狀態不同；只展示各自來源與可比性。公開掃描不得成為任意 URL 代理或內部網路探測。大規模 pSEO 發布、購買 Ahrefs API、品牌/商標註冊、支付系統與全自動部署留到相應驗收後。
-
-## 10. 官方參考
-
-- GA4 recommended events：https://support.google.com/analytics/answer/9267735
-- GA4 traffic source dimensions：https://support.google.com/analytics/answer/15612152
-- Google consent mode：https://developers.google.com/tag-platform/security/concepts/consent-mode
-- Google Search Analytics API：https://developers.google.com/webmaster-tools/v1/searchanalytics/query
+歷史固定問答／草稿／plan demo 的 PASS 保留，不代表新 URL 路線已完成。現有遠端邊界與新整合各自驗收；工程順序／放行條件只引用 [藍圖第 8 節](AI_Company_Growth_OS_執行藍圖_v1.md#8-更新後的工程路線圖與驗收)。本輪無程式、migration、Auth、DB、model 或發布變更。

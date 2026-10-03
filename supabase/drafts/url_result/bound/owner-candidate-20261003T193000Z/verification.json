@@ -1,0 +1,20 @@
+{
+  "result": "PASS",
+  "scope": "Offline consistency checks; unchanged accepted SQL is not re-executed",
+  "checks": [
+    "Four generated artifacts byte-identical to generator and hashes",
+    "Only literal hard cutoff differs from 14:30 SQL/config; cleanup identical",
+    "Fixed actor/org/parent/request/expected0/payload/digests/target/1-1-1 unchanged",
+    "All prior candidate directories unchanged",
+    "Generator and frozen input unchanged",
+    "Both actual configs false/false/null; candidate module content exact",
+    "Known opening operation and previous SHA retained; max1Save/noSaveRetry/zeroFixtureMutation"
+  ],
+  "not_performed": [
+    "remote query or mutation",
+    "runtime enable/deployment",
+    "login/logout/Save",
+    "role/tenant live verification",
+    "rerun unchanged full tests"
+  ]
+}

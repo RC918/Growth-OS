@@ -1,0 +1,269 @@
+{
+  "snapshot": {
+    "schema_version": 1,
+    "id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+    "original_url": "https://example.com/products/bolt",
+    "final_url": "https://example.com/products/bolt",
+    "fetched_at": "2026-10-03T00:00:00Z",
+    "content_fingerprint": "sha256:8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+    "version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+    "encoding": "utf-8-with-replacement",
+    "html": "<html><head><title>Workshop - Bolt A | Shop</title><meta name=\"description\" content=\"Old generic catalog\">\n<script type=\"application/ld+json\">{\"@type\":\"Product\",\"name\":\"Bolt A\",\"price\":\"FAKE\",\"description\":\"UNSUPPORTED SECRET CLAIM\"}</script>\n</head><body><main itemscope itemtype=\"https://schema.org/Product\"><h1 itemprop=\"name\">Bolt A</h1><p itemprop=\"description\">Public steel bolt for workshop assembly.</p>\n<ul><li itemprop=\"additionalProperty\">Hexagonal head</li><li itemprop=\"additionalProperty\">Reusable package</li></ul></main></body></html>",
+    "content_base64": "PGh0bWw+PGhlYWQ+PHRpdGxlPldvcmtzaG9wIC0gQm9sdCBBIHwgU2hvcDwvdGl0bGU+PG1ldGEgbmFtZT0iZGVzY3JpcHRpb24iIGNvbnRlbnQ9Ik9sZCBnZW5lcmljIGNhdGFsb2ciPgo8c2NyaXB0IHR5cGU9ImFwcGxpY2F0aW9uL2xkK2pzb24iPnsiQHR5cGUiOiJQcm9kdWN0IiwibmFtZSI6IkJvbHQgQSIsInByaWNlIjoiRkFLRSIsImRlc2NyaXB0aW9uIjoiVU5TVVBQT1JURUQgU0VDUkVUIENMQUlNIn08L3NjcmlwdD4KPC9oZWFkPjxib2R5PjxtYWluIGl0ZW1zY29wZSBpdGVtdHlwZT0iaHR0cHM6Ly9zY2hlbWEub3JnL1Byb2R1Y3QiPjxoMSBpdGVtcHJvcD0ibmFtZSI+Qm9sdCBBPC9oMT48cCBpdGVtcHJvcD0iZGVzY3JpcHRpb24iPlB1YmxpYyBzdGVlbCBib2x0IGZvciB3b3Jrc2hvcCBhc3NlbWJseS48L3A+Cjx1bD48bGkgaXRlbXByb3A9ImFkZGl0aW9uYWxQcm9wZXJ0eSI+SGV4YWdvbmFsIGhlYWQ8L2xpPjxsaSBpdGVtcHJvcD0iYWRkaXRpb25hbFByb3BlcnR5Ij5SZXVzYWJsZSBwYWNrYWdlPC9saT48L3VsPjwvbWFpbj48L2JvZHk+PC9odG1sPg==",
+    "citations": [
+      {
+        "id": "s1",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "jsonld[1].@type",
+        "quote": "Product"
+      },
+      {
+        "id": "s2",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "h1[8]",
+        "quote": "Bolt A"
+      },
+      {
+        "id": "s3",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "title",
+        "quote": "Workshop - Bolt A | Shop"
+      },
+      {
+        "id": "s4",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "meta[name=description]",
+        "quote": "Old generic catalog"
+      },
+      {
+        "id": "s5",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "p[9]",
+        "quote": "Public steel bolt for workshop assembly."
+      },
+      {
+        "id": "s6",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "li[11]",
+        "quote": "Hexagonal head"
+      },
+      {
+        "id": "s7",
+        "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+        "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+        "url": "https://example.com/products/bolt",
+        "locator": "li[12]",
+        "quote": "Reusable package"
+      }
+    ],
+    "limitations": [
+      "Public static HTML only.",
+      "Source assertions, not independent factual verification.",
+      "No cookies, login, JavaScript execution or model calls."
+    ]
+  },
+  "page_type": "product",
+  "facts": {
+    "product_name": {
+      "kind": "fact",
+      "verification": "source_asserted",
+      "value": "Bolt A",
+      "citations": [
+        "s2"
+      ]
+    },
+    "title": {
+      "kind": "fact",
+      "verification": "source_asserted",
+      "value": "Workshop - Bolt A | Shop",
+      "citations": [
+        "s3"
+      ]
+    },
+    "meta_description": {
+      "kind": "fact",
+      "verification": "source_asserted",
+      "value": "Old generic catalog",
+      "citations": [
+        "s4"
+      ]
+    },
+    "description": {
+      "kind": "fact",
+      "verification": "source_asserted",
+      "value": "Public steel bolt for workshop assembly.",
+      "citations": [
+        "s5",
+        "s2"
+      ],
+      "product_scope": {
+        "locator": "main[7]",
+        "name_locator": "h1[8]",
+        "product_name": "Bolt A"
+      }
+    },
+    "features": [
+      {
+        "kind": "fact",
+        "verification": "source_asserted",
+        "value": "Hexagonal head",
+        "citations": [
+          "s6",
+          "s2"
+        ],
+        "product_scope": {
+          "locator": "main[7]",
+          "name_locator": "h1[8]",
+          "product_name": "Bolt A"
+        }
+      },
+      {
+        "kind": "fact",
+        "verification": "source_asserted",
+        "value": "Reusable package",
+        "citations": [
+          "s7",
+          "s2"
+        ],
+        "product_scope": {
+          "locator": "main[7]",
+          "name_locator": "h1[8]",
+          "product_name": "Bolt A"
+        }
+      }
+    ],
+    "use": null
+  },
+  "extraction": {
+    "method": "explicit_product_microdata",
+    "limitations": [
+      "Source assertions only; no independent verification.",
+      "WooCommerce support requires one main#main product-N container, direct summary/title/short-description, and consistent optional description tab; arbitrary layouts and lists are not supported."
+    ]
+  },
+  "inferences": [
+    {
+      "kind": "inference",
+      "value": "Supported single product page",
+      "basis": "Visible name agrees with Product structured data",
+      "citations": [
+        "s2",
+        "s1"
+      ]
+    }
+  ],
+  "missing": [
+    "use",
+    "specifications",
+    "price",
+    "certifications",
+    "performance",
+    "comparisons",
+    "guarantees"
+  ],
+  "preview": {
+    "generation": "extractive_rules",
+    "status": "locally_confirmed",
+    "published": false,
+    "source_snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+    "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+    "fields": {
+      "title": {
+        "original": "Workshop - Bolt A | Shop",
+        "suggested": " 保留 \"引號\" \\ slash\n é é 🧪    ",
+        "citations": [
+          "s2"
+        ],
+        "reason": "Make the existing product name the focused page title.",
+        "user_edited": true,
+        "citation_role": "reference_only_for_user_edit"
+      },
+      "meta_description": {
+        "original": "Old generic catalog",
+        "suggested": "Public steel bolt for workshop assembly.",
+        "citations": [
+          "s5",
+          "s2"
+        ],
+        "reason": "Use a concise excerpt of the public product description.",
+        "user_edited": false,
+        "citation_role": "source_support"
+      },
+      "description": {
+        "original": "Public steel bolt for workshop assembly.",
+        "suggested": "Bolt A. Public steel bolt for workshop assembly. Hexagonal head Reusable package",
+        "citations": [
+          "s2",
+          "s5",
+          "s6",
+          "s7"
+        ],
+        "reason": "Group the existing name, description and stated features without inventing claims.",
+        "user_edited": false,
+        "citation_role": "source_support"
+      }
+    },
+    "pending_confirmation": [
+      "Confirm source assertions and suitability before applying.",
+      "use",
+      "specifications",
+      "price",
+      "certifications",
+      "performance",
+      "comparisons",
+      "guarantees"
+    ]
+  },
+  "review": {
+    "schema_version": 1,
+    "scope": "page_only",
+    "persisted": false,
+    "original_url": "https://example.com/products/bolt",
+    "final_url": "https://example.com/products/bolt",
+    "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+    "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+    "revision": 1,
+    "content_digest": "sha256:567d484e3ce732527be30b7c0093ec5ebd0763f6ac446d3366c1524f423214d0",
+    "original_suggestions": {
+      "title": "Bolt A",
+      "meta_description": "Public steel bolt for workshop assembly.",
+      "description": "Bolt A. Public steel bolt for workshop assembly. Hexagonal head Reusable package"
+    },
+    "edited": {
+      "title": true,
+      "meta_description": false,
+      "description": false
+    },
+    "fact_checks": {
+      "title": true,
+      "meta_description": true,
+      "description": true
+    },
+    "confirmation": {
+      "scope": "page_only",
+      "original_url": "https://example.com/products/bolt",
+      "final_url": "https://example.com/products/bolt",
+      "snapshot_id": "4f3cf8d4-1fa3-4e0f-b2b8-d053c053ab95",
+      "source_version": "8ca0a58dd453a35f7ad39f3715c2b1afdb621115f22c145586a2faac18158056",
+      "revision": 1,
+      "content_digest": "sha256:567d484e3ce732527be30b7c0093ec5ebd0763f6ac446d3366c1524f423214d0",
+      "fact_checks": {
+        "title": true,
+        "meta_description": true,
+        "description": true
+      }
+    }
+  }
+}

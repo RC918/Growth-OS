@@ -1,0 +1,44 @@
+[
+  {
+    "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
+    "checked_at": "2026-10-02T17:08:00.084318+00:00",
+    "requests": [
+      {
+        "url": "https://books.toscrape.com/robots.txt",
+        "error": "dns_failed",
+        "elapsed_seconds": 0.002
+      }
+    ],
+    "outcome": "stopped",
+    "error": "robots_unavailable",
+    "detail": "Robots rules could not be checked; scan stopped."
+  },
+  {
+    "url": "https://scrapeme.live/shop/Bulbasaur/",
+    "checked_at": "2026-10-02T17:08:00.087041+00:00",
+    "requests": [
+      {
+        "url": "https://scrapeme.live/robots.txt",
+        "error": "timeout",
+        "elapsed_seconds": 5.0
+      }
+    ],
+    "outcome": "stopped",
+    "error": "robots_unavailable",
+    "detail": "Robots rules could not be checked; scan stopped."
+  },
+  {
+    "url": "https://webscraper.io/test-sites/e-commerce/allinone/product/1",
+    "checked_at": "2026-10-02T17:08:05.087470+00:00",
+    "requests": [
+      {
+        "url": "https://webscraper.io/robots.txt",
+        "error": "dns_failed",
+        "elapsed_seconds": 0.002
+      }
+    ],
+    "outcome": "stopped",
+    "error": "robots_unavailable",
+    "detail": "Robots rules could not be checked; scan stopped."
+  }
+]
