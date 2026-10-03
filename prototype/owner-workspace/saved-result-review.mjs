@@ -18,6 +18,7 @@ export function savedResultReview({api,version,isCurrent,enabled=false}){
   if(!current()||pending)return;
   pending=true;start.disabled=true;const operation=++ticket;status.textContent='正在核對已保存版本…';
   try{
+   const unresolved=api.revisionRecovery();if(unresolved&&!unresolved.resolved)throw Error('有未決續編；請先在恢復面板只查詢原 request');
    const row=await api.readReviewBase(version);if(!active(operation))return;
    const next=await restoreResultReview(row.first_result_payload);if(!active(operation)){next.invalidate();return;}
    base=canonical(row);review=next;start.hidden=true;render();
@@ -91,10 +92,10 @@ export function savedResultReview({api,version,isCurrent,enabled=false}){
    finally{if(active(operation)&&review===own){pending=false;paint();}}
   });
   async function readback(operation){
-   const row=await api.reconcileUrlResult(prepared.request,knownId,prepared.binding.actor_id);
+   const row=await api.recoverUrlRevision({isCurrent:()=>active(operation)&&review===own});
    if(!active(operation)||review!==own)return;
    if(!row){feedback='結果仍未知；只查詢原 request，不重送保存。';return;}
-   saved=row;knownId=row.id;blocked=true;feedback=`已保存第 ${row.version_number} 版 · ${row.id} · 精確讀回 · 未發布；原版本仍保留於上方。`;
+   saved=row;knownId=row.id;blocked=true;window.dispatchEvent(new Event('url-revision-pending'));feedback=`已保存第 ${row.version_number} 版 · ${row.id} · 精確讀回 · 未發布；原版本仍保留於上方。`;
    result.replaceChildren(typedDraft(row));
   }
   save.addEventListener('click',async()=>{
@@ -102,7 +103,7 @@ export function savedResultReview({api,version,isCurrent,enabled=false}){
    pending=true;feedback='重新核對保存基準中…';paint();const operation=++ticket,reviewToken=own.view().token;
    const live=()=>active(operation)&&review===own&&own.view().token===reviewToken;
    try{
-    knownId=await api.saveUrlRevision(prepared,{isCurrent:live,onDispatch:()=>{attempted=true;feedback='保存中；未知結果只查詢，不重送。';paint();}});
+    knownId=await api.saveUrlRevision(prepared,{isCurrent:live,onDispatch:()=>{attempted=true;window.dispatchEvent(new Event('url-revision-pending'));feedback='保存中；未知結果只查詢，不重送。';paint();}});
     if(!live())return;await readback(operation);
    }catch(error){if(active(operation)){blocked=true;own.invalidate();if(!attempted)invalidateIntent();feedback=attempted?`${error.message}；結果未確認，只查詢原 request，不重送。`:`${error.message}；未送出，修改保留於本頁，不會覆蓋新基準。`;}}
    finally{if(active(operation)){pending=false;paint();}}
@@ -117,4 +118,37 @@ export function savedResultReview({api,version,isCurrent,enabled=false}){
  }
  start.addEventListener('click',()=>void open());
  return root;
+}
+
+
+// Same-tab recovery shares the API's single metadata marker; it never dispatches.
+export function createRevisionRecovery({api,root}){
+ const title=document.createElement('h2');title.textContent='續編保存結果恢復';
+ const status=document.createElement('p');status.setAttribute('role','status');status.className='revision-recovery-status';
+ const button=document.createElement('button');button.type='button';button.textContent='只查詢原續編保存結果';button.className='revision-recovery-read';
+ const result=document.createElement('div');result.className='revision-recovery-result';root.append(title,status,button,result);root.hidden=true;
+ let ticket=0,session=null,pending=false;
+ const current=operation=>operation===ticket&&session&&api.context()===session&&root.isConnected;
+ async function read(){
+  if(pending||!session)return;pending=true;button.disabled=true;const operation=++ticket;status.textContent='正在查詢原 request，不會送出保存…';
+  try{
+   const row=await api.recoverUrlRevision({isCurrent:()=>current(operation)});if(!current(operation))return;
+   if(!row){status.textContent='結果仍未知；只可查詢原 request，不重送。此分頁未儲存修改文案，只有已落庫版本可恢復。';return;}
+   result.replaceChildren(typedDraft(row));status.textContent=`已恢復第 ${row.version_number} 版 · ${row.id} · 精確讀回 · 未發布`;button.hidden=true;
+  }catch(error){if(current(operation))status.textContent=`恢復未完成：${error.message}；不會重送保存。`;}
+  finally{if(current(operation)){pending=false;button.disabled=false;}}
+ }
+ button.addEventListener('click',()=>void read());
+ return {
+  close(){ticket++;session=null;pending=false;root.hidden=true;result.replaceChildren();status.textContent='';},
+  open({probe=true}={}){
+   ticket++;session=api.context();pending=false;result.replaceChildren();button.hidden=false;button.disabled=false;root.hidden=true;
+   try{
+    const op=api.revisionRecovery();if(!op||op.resolved)return;
+    root.hidden=false;status.textContent='此分頁有未決續編；只可查詢原 request，不會自動重送。';
+    if(!session||session.role!=='owner'||session.organization_id!==op.organization_id){button.disabled=true;status.textContent='此分頁有不同身份／工作區的未決續編；禁止保存。';return;}
+    if(probe)void read();
+   }catch(error){root.hidden=false;button.disabled=true;status.textContent=error.message;}
+  },
+ };
 }

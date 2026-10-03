@@ -81,8 +81,37 @@
 |---|---|---|
 | 首次成果核對後保存，離開再登入讀回 | 固定 Owner／固定 synthetic 內容的 bounded live v1、1/1/1、tenant negative GET、cleanup 已 APPROVE；一般 Review／交接／SQL 有離線證據 | 尚未代表一般產品／全部角色 live rollout；不重做該已 PASS 固定案例。 |
 | 從已保存版微調、確認、保存新版本，重新登入查看最新與歷史 | v1→v2→新 session→完整 v2／v1，以及 owner/viewer／外租戶／版本与晚回應拒絕已 offline 組裝 PASS；來源與原建議保留、舊確認失效、取消／衝突保留資料已有相關證據 | 實際 v2 runtime Save 仍 closed；真 signed v2 保存／跨 session／viewer 整合未 live 驗收。之後須先具備安全恢復，再由父另行核遠端權限／試點範圍；舊 envelope 不可復用。 |
-| 保存回應未知時，離開後回來辨識結果並安全繼續 | 同一 editor 內僅原 request GET、不盲目 POST、已知 UUID 精確核對已 PASS | **主要剩餘 repo Core**：跨 editor/reload／新 session 尚無完整的未決 operation 恢復；目前生命周期限制不能放行 live。門檻是已提交與未確認兩種情況都能恢復核對；空 GET 保持 unknown、錯 actor/org/base/source 不接受，始終不自動重送。 |
+| 保存回應未知時，離開後回來辨識結果並安全繼續 | 同一 editor 內僅原 request GET、不盲目 POST、已知 UUID 精確核對已 PASS | 本輪已完成同 origin/tab 的跨 editor/reload／logout/login metadata 恢復離線流程（見下節），已提交可精確讀回、空 GET 保持 unknown且不重送。destroyed tab/context／跨設備及人為清空 storage 不支持；新 v2 live 放行仍未授權／驗收。 |
 
 下一個最小 Core 提案：一次交付「保存回應未知 → 離頁／新 session → 原 request 唯讀核對 → 已保存成果恢復或明確仍未知」完整 offline 流程；只延伸既有 request／marker／登入契約，範圍限定既有 Owner 與一筆未決保存，避免新通用 store、背景 retry 系統或更多意圖層。保留錯身份、取消及 stale callback 拒絕，1280/390 同流程驗收後即收尾，不把各個查詢／畫面再拆成無限小里程碑。**本輪僅提出，待父分配；未開始實作或授權遠端操作。**
 
 來源／版本漂移、舊確認失效是上述流程的必要防護，不另立無限補強專案；P3 美化／通用治理不追。M3 全產品、完整 live 角色矩陣仍未完成；M4 Publish／M5 Measure 仍是未完成的後續里程碑，不能由這些離線 PASS 推定完成。
+
+
+## 同 origin/tab 的 unknown 恢復：本輪限定流程已組裝
+
+父確認前一證據切片 `ea87cc0acaa45a9120f5fde9c0aedcec68c2c402`：Reviewer `01a1037d` APPROVE、CI `37152160413` success、Preview `48jS9KPVHYhA4ZdMJ9wqWngcAQNm` success。本輪依核定範圍一次完成上節的下一 Core；上文「僅提出／未實作」及只限 editor 生命周期的段落是歷史状态，由本節更新。新 HEAD CI／Reviewer 尚待父核對。
+
+### 同一 marker 後端與單筆 metadata
+
+在既有 `url-result-trial-marker.mjs` 追加 `createRevisionMarker`，使用同一原生 sessionStorage 後端的 `growth-os:url-revision-attempt:v1` key；原 `createTrialMarker` 實作前綴原 bytes、既有 key 及所有 frozen bound artifacts 不動。只有一筆未決 revision，不新增 DB/store/outbox／通用 retry 框架。
+
+marker 僅含 actor/org/parent/base UUID、原 base request digest、base payload digest、原 request UUID、expected version、source/content/payload/intent digests、known UUID、resolved。沒有 token、payload、來源 bytes、修改文案。API 在 dispatch 前同步 setItem→getItem exact bytes 核對；storage 拒絕、no-op 寫入、損壞、已初始化後消失／外部變更皆 fail closed。不因空 GET、logout 或 reload 清除／換 request，未決時共用 URL append API 亦拒絕重送。
+
+### 使用者可完成的恢復流程
+
+- 原 editor 保留修改與一次 dispatch 的 request；取消只停止等待。關閉／重開 editor 時發現 pending 不再建立新的意圖，workspace 的恢復面板只提供查詢。
+- 同 origin/tab reload 後，沿用既有登入流程；新 session 先核 Auth user／單一 Owner membership，再讀 exact base 與原 request，全部 GET。錯 actor/org/base/version/source/digest、malformed、known UUID 不符不接受，empty GET 明示仍 unknown。
+- 精確讀回時同時驗 base payload digest、v2 creator/org/parent/request/expected version/draft status、完整 payload digest、來源與 content digest，以及重算本地 intent digest。只有全部吻合才顯示恢復成果並標 resolved；保存結果可能晚到，known UUID 單調保留，舊 ack 不得污染下一個操作。
+- session／頁面生命週期 guard 拒絕舊回覆；storage 損壞不自動重設或改用另一 request。成功核對後可在原 metadata 槽處理下一筆，未決時不覆蓋。
+
+**範圍邊界**：同 origin、同一仍存在的 tab，涵蓋跨 editor／reload／logout/login；不支持 destroyed tab/context、跨設備或使用者手動清除 sessionStorage 後的防重送恢復。未提交的修改只在原 editor 記憶體中保留；storage 不存 payload，故 reload 後若資料庫仍空，無法從摘要恢復文案，UI 明示 unknown 而不假造恢復。已提交的修改則從精確 DB 版本完整讀回。沒有把未支持範圍列 PASS 或擴張成新的維護工程。
+
+### 證據與收尾
+
+- 32 API／marker／mirror tests PASS：`saved-result-review.test.mjs`、新增 `revision-marker.test.mjs`、既有 workspace／URL／bound API tests。覆盖各識別／摘要不符、storage 拒絕/no-op/corrupt/disappear、known UUID 單調性、empty GET 不解鎖共用 Save，以及 stale session；log `/tmp/unknown-recovery-api.log`。
+- 同一 `saved-result-save.e2e.mjs`，1280/390px 共 28 案 PASS；本輪新增 14 案涵蓋 committed unknown、uncommitted empty GET、known UUID 拒絕／恢复、pending 損壞 reload、storage denied/corrupt/no-op。驗 dispatch 前 metadata 已可靠存在、same-tab 跨 editor/reload/logout/login、新 actor 拒絕、原 request 不變、恢復零追加 POST、v1 全 row 不變；logs `/tmp/unknown-recovery-ui.log`、最終 `/tmp/unknown-recovery-full-ui.log`。使用既有 disposable SQL，不修改 SQL。
+- 既有續編／意圖 UI 1280/390、URL Save UI 1280/390 回歸 PASS；logs `/tmp/unknown-recovery-review-regression.log`、`/tmp/unknown-recovery-url-regression.log`。新增 unit 已接既有 CI。
+- 第一次合成恢復 login 只改同 URL hash，未觸發 document load，workspace 保持隱藏；實際錯誤提示仍為登入初始文字，無 API/page errors。測試改為同 tab 導頁（不銷毀 context，sessionStorage 保留）後通過；沒有更改產品 Auth 或放寬驗收。
+
+本輪限定 offline 恢復已完成，不再拆 marker／GET／畫面小任務。真 Save 仍 closed（两份 config exact SHA `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`）、live SQL／frozen artifacts／既有 live 1/1/1 不變；沒有 remote/login/live POST／費用。後續產品放行仍需父核新 v2 live 試點權限與驗收範圍，不能沿用已收尾 envelope，也不宣稱完整 M3／Publish／Measure 完成。

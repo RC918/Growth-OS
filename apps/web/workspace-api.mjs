@@ -1,3 +1,4 @@
+import {createRevisionMarker} from './url-result-trial-marker.mjs';
 import {contentDigest} from './first-result-review.mjs';
 import {validateReport,copyJSON,canonical,freeze} from './first-result-payload.mjs';
 const versionMetadata = ['first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
@@ -15,7 +16,7 @@ export function contentVersionKind(version) {
 const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
 
 // Isolated Staging client. An access token exists only in this page's memory.
-export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null }) {
+export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker() }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
@@ -196,6 +197,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
           !Number.isSafeInteger(frozen.expected_version) || frozen.expected_version<0 || frozen.expected_version>2147483646) throw new Error('保存識別不完整');
       await validateReport(frozen.payload);
       if(bound && (!boundAvailable() || frozen.organization_id!==bound.organization_id || frozen.opportunity_id!==bound.opportunity_id || frozen.request_id!==bound.request_id || frozen.expected_version!==0 || await contentDigest(canonical(frozen.payload))!=='sha256:'+bound.payload_canonical_sha256)) throw new Error('固定驗收範圍不符或已到期');
+      if(frozen.expected_version>0){const pending=revisionMarker.read();if(pending&&!pending.resolved)throw new Error('先核對原續編 request；不會重送');}
       // No async gap between live intent/session validation and dispatch.
       if (membership!==session || !boundAvailable() || isCurrent()!==true) throw new Error('保存意圖或工作區已失效；未送出保存');
       onDispatch();
@@ -282,6 +284,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     },
     async saveUrlRevision(candidate,{isCurrent,onDispatch}={}) {
       if(!urlSaveEnabled || !urlResultSchemaEnabled)throw new Error('URL 保存尚未開放');
+      const prior=revisionMarker.read();if(prior&&!prior.resolved)throw new Error('先核對原續編 request；不會重送');
       const intent=copyJSON(candidate),session=membership;
       const live=()=>membership===session && typeof isCurrent==='function' && isCurrent()===true;
       if(!live() || intent.binding?.actor_id!==actorId || !uuid(intent.binding?.base_version_id))throw new Error('續編基準或身份不符');
@@ -289,7 +292,33 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(!live() || rows.length!==1)throw new Error('續編基準已失效');
       const checked=await this.prepareUrlRevisionIntent(rows[0],intent.request?.payload,{isCurrent:live,requestId:intent.request?.request_id});
       if(canonical(checked)!==canonical(intent))throw new Error('保存意圖與目前基準不一致');
-      return this.saveUrlResult(intent.request,{isCurrent:live,onDispatch});
+      const operation={...intent.binding,organization_id:intent.request.organization_id,opportunity_id:intent.request.opportunity_id,request_id:intent.request.request_id,expected_version:intent.request.expected_version,base_payload_digest:await contentDigest(canonical(rows[0].first_result_payload)),source_digest:intent.source_digest,content_digest:intent.content_digest,payload_digest:await contentDigest(canonical(intent.request.payload)),intent_digest:intent.intent_digest};
+      const id=await this.saveUrlResult(intent.request,{isCurrent:live,onDispatch:()=>{revisionMarker.attempt(operation);onDispatch();}});
+      if(revisionMarker.read()?.request_id===operation.request_id)revisionMarker.remember(operation.request_id,id);return id;
+    },
+    revisionRecovery() {return revisionMarker.read();},
+    async recoverUrlRevision({isCurrent=()=>true}={}) {
+      const op=revisionMarker.read(),session=membership,org=ownerOnly(),actor=actorId;
+      if(!op)return null;
+      const current=()=>{if(membership!==session || !isCurrent() || canonical(revisionMarker.read())!==canonical(op))throw new Error('恢復工作階段或標記已變更');};
+      if(op.actor_id!==actor || op.organization_id!==org)throw new Error('未決續編身份或工作區不符');
+      const user=await request('/auth/v1/user');current();if(user?.id!==actor)throw new Error('登入身份已變更');
+      const memberships=await select('organization_members','organization_id,role',{user_id:`eq.${actor}`,limit:'2'});current();
+      if(memberships.length!==1||memberships[0]?.organization_id!==org||memberships[0]?.role!=='owner')throw new Error('擁有者工作區資格已變更');
+      const bases=await select('content_versions',`organization_id,${versionColumns},first_result_payload`,{organization_id:`eq.${org}`,id:`eq.${op.base_version_id}`,limit:'1'});current();
+      const base=bases[0];
+      if(bases.length!==1||base.organization_id!==org||base.id!==op.base_version_id||base.opportunity_id!==op.opportunity_id||base.version_number!==op.expected_version||base.status!=='draft'||contentVersionKind(base)!=='typed'||base.first_result_request_digest!==op.base_request_digest)throw new Error('未決續編基準不符');
+      await validateReport(base.first_result_payload);
+      if(await contentDigest(canonical(base.first_result_payload))!==op.base_payload_digest||base.first_result_payload.snapshot.content_fingerprint!==op.source_digest)throw new Error('未決續編來源或基準摘要不符');current();
+      const rows=await select('content_versions',`organization_id,created_by,${versionColumns},first_result_payload`,{organization_id:`eq.${org}`,first_result_request_id:`eq.${op.request_id}`,limit:'2'});current();
+      if(!rows.length)return null;
+      const row=rows[0],payload=row?.first_result_payload;
+      if(rows.length!==1||row.organization_id!==org||row.created_by!==actor||row.opportunity_id!==op.opportunity_id||row.first_result_request_id!==op.request_id||row.version_number!==op.expected_version+1||row.first_result_expected_version!==op.expected_version||row.status!=='draft'||contentVersionKind(row)!=='typed'||op.known_id&&row.id!==op.known_id)throw new Error('恢復版本識別不符');
+      await validateReport(payload);
+      const binding={actor_id:actor,base_version_id:op.base_version_id,base_request_digest:op.base_request_digest};
+      const requestBody={organization_id:org,opportunity_id:op.opportunity_id,request_id:op.request_id,expected_version:op.expected_version,payload};
+      if(await contentDigest(canonical(payload))!==op.payload_digest||payload.review.content_digest!==op.content_digest||payload.snapshot.content_fingerprint!==op.source_digest||await contentDigest(canonical({binding,request:requestBody}))!==op.intent_digest||row.title!==payload.preview.fields.title.suggested||row.draft_body!==payload.preview.fields.description.suggested)throw new Error('恢復內容或意圖摘要不符');
+      current();revisionMarker.remember(op.request_id,row.id,true);return row;
     },
     async dashboard() {
       const org = activeOrg();

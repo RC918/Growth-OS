@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；本輪已驗既有新 session 恢復 v2／v1 歷史能力，僅補整合測試與收尾文件、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；新 session v2／v1 歷史 `ea87cc0` 亦已接受；本輪同 origin/tab 未決續編恢復已完成離線組裝、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -206,3 +206,14 @@ CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀�
 擴充同一 `saved-result-save.e2e.mjs`：真 DOM 合成保存 v2 後結束 session、關閉舊 browser context、以新 context／新合成 token 登入同一 isolated DB，精確 v2 UUID／完整 payload 及 v1 完整 payload 讀回；僅 v2 有 Owner 續編入口。再以新 viewer session 驗兩版唯讀、新 foreign tenant session 驗既有成果不可見，並驗錯版本回應／登出後 late detail 不渲染。1280/390 均 PASS；每 viewport 僅原一次 synthetic POST，新 session 全 GET，DB v1 全 row 不變、維持 1/2/2。不是重新執行 live 登入，也不是新 runtime 功能宣稱。
 
 M3 的已完成使用者閉環與剩餘項已集中列於 [續編驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md#m3-使用者流程收斂與剩餘項)。本輪 CoreMilestoneProgress 是完成跨新 session 的整合證據，不另拆更多已 PASS 成功路徑。主要剩餘 repo Core 是「unknown 保存後離頁／新 session 的安全核對與成果恢復」；只提出一個完整流程供父分配，不在本輪展開。現有 editor 生命周期限制仍在，不能據此 live rollout；遠端 fixed-case envelope 已收尾，仍禁止新 remote/login/mutation。P3 不追，完整 M3／Publish／Measure 未完成。
+
+
+## 2026-10-03 同 origin/tab 未決續編恢復（一次完整 offline Core）
+
+父確認 `ea87cc0acaa45a9120f5fde9c0aedcec68c2c402` 的 Reviewer `01a1037d` APPROVE、PR CI `37152160413` success、Preview `48jS9KPVHYhA4ZdMJ9wqWngcAQNm` success，分配同 origin/tab 跨 editor、reload、logout/login 的單筆 unknown 恢復。本輪在既有 sessionStorage marker 模組新增獨立 revision key，原 fixed-trial 函式 bytes／key 與 frozen artifacts 不變；不建立其他持久 store 或通用重試框架。
+
+dispatch 緊前同步寫入／讀回核對單筆識別與摘要，storage 拒絕／no-op／損壞 fail closed；token、payload、修改文案均不入 storage。未決 request 不可換號，連既有一般 URL append 入口也不能繞過重送限制。跨 editor／reload／logout/login 後只有原 request／known UUID GET，依重新核對的身份、membership、base、版本、來源及 payload／intent 摘要恢復；空 GET 維持 unknown。成功精確核對後才標 resolved；晚 ack 不可覆寫下一筆 metadata。
+
+32 API／marker／mirror tests PASS；1280/390 完整組裝 28 案（既有 14＋本輪恢復／storage 14）PASS，含已提交 unknown、未提交空 GET、known UUID mismatch、錯 actor、損壞 pending reload、拒絕／no-op storage；恢復不新增 POST、v1 完整不變。既有續編及 URL Save 桌面手機回歸亦 PASS。初次合成新登入失敗因同頁僅改 hash 沒有 document load，已改同 tab 真導頁後通過，沒有放寬身份防護。
+
+明確限制：僅同 origin／仍存在的 tab；不保證 destroyed tab/context、跨設備或人為清除 sessionStorage。未落庫文案只留原 editor 記憶體；reload 後若 GET 空，不能用摘要重建修改，必須明示 unknown；若已提交，從精確 DB payload 恢復修改。已解本輪限定恢復流程，不能因此宣稱全面 live rollout；新 v2 remote／完整 live role matrix 仍未驗收，實際 Save closed、舊遠端 envelope 已收尾。沒有 remote/login/live POST、新 SQL、ACL、費用或 lease 延展。詳細 scope 見 [驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {createRevisionMarker} from './url-result-trial-marker.mjs';
 import assert from 'node:assert/strict';
 import {fixtures} from '../../supabase/drafts/first_result_save/fixtures.mjs';
 import {restoreResultReview,reviewFields} from './first-result-review.mjs';
@@ -22,9 +23,10 @@ test('cancel invalidates late restored confirmation',async()=>{
  let release;const review=await restoreResultReview(payload,{digest:()=>new Promise(r=>release=r)});
  for(const key of reviewFields)review.check(key,true);const pending=review.confirm();await Promise.resolve();review.cancel();release('stale');await assert.rejects(pending,/STALE_REVIEW/);assert.equal(review.view().receipt,null);
 });
-async function fixture({role='owner',latest=row,detail=row,parentKind='url_result',hold=false,freshActor=actor,freshRole=role,freshOrg=org,enabled=false,reconcileRow=null}={}){
+async function fixture({role='owner',latest=row,detail=row,parentKind='url_result',hold=false,freshActor=actor,freshRole=role,freshOrg=org,enabled=false,reconcileRow=null,storedOperation=null}={}){
  let release,started,userReads=0,memberReads=0;const pending=new Promise(r=>started=r),calls=[];
- const api=createWorkspaceApi({origin:'https://synthetic.supabase.co',key:'sb_publishable_synthetic',redirectOrigin:'https://offline.invalid',urlResultSchemaEnabled:true,urlSaveEnabled:enabled,fetchImpl:async(url,options)=>{
+ const values=new Map();if(storedOperation)values.set('growth-os:url-revision-attempt:v1',JSON.stringify({schema_version:1,operation:storedOperation}));const marker=createRevisionMarker(()=>({getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)}));
+ const api=createWorkspaceApi({revisionMarker:marker,origin:'https://synthetic.supabase.co',key:'sb_publishable_synthetic',redirectOrigin:'https://offline.invalid',urlResultSchemaEnabled:true,urlSaveEnabled:enabled,fetchImpl:async(url,options)=>{
   const u=new URL(url);calls.push({u,options});assert.equal(options.headers.Authorization,'Bearer synthetic');if(options.method==='POST'){assert.equal(u.pathname,'/rest/v1/rpc/save_url_result_draft');return {ok:true,json:async()=> '50000000-0000-4000-8000-000000000002'};}assert.equal(options.method,'GET');let body;
   if(u.pathname.endsWith('/user'))body={id:++userReads===1?actor:freshActor};
   else if(u.pathname.endsWith('/organization_members'))body=[{organization_id:++memberReads===1?org:freshOrg,role:memberReads===1?role:freshRole}];
@@ -32,10 +34,10 @@ async function fixture({role='owner',latest=row,detail=row,parentKind='url_resul
    if(u.pathname.endsWith('/growth_opportunities'))body=[{id:row.opportunity_id,entry_kind:parentKind}];
    else if(u.searchParams.has('first_result_request_id'))body=reconcileRow?[reconcileRow]:[];
    else if(u.searchParams.has('opportunity_id')){assert.equal(u.searchParams.get('opportunity_id'),'eq.'+row.opportunity_id);assert.equal(u.searchParams.get('order'),'version_number.desc');body=[latest];}
-   else{assert.equal(u.searchParams.get('id'),'eq.'+row.id);if(hold){started();await new Promise(r=>release=r);}body=[detail];}
+   else{if(u.searchParams.get('id')!=='eq.'+row.id)return {ok:true,json:async()=>[]};if(hold){started();await new Promise(r=>release=r);}body=[detail];}
   }
   return {ok:true,json:async()=>structuredClone(body)};
- }});await api.completeMagicLink(fragment);return {api,calls,pending,release:()=>release()};
+ }});await api.completeMagicLink(fragment);return {api,calls,pending,marker,values,setRecovered:value=>reconcileRow=value,holdRead:()=>hold=true,release:()=>release()};
 }
 test('resume reads exact owner URL draft/latest version and validated payload; denies drift/viewer and stale session with zero POST',async()=>{
  const f=await fixture();assert.deepEqual(await f.api.readReviewBase(row),row);assert.equal(f.calls.length,5);
@@ -65,4 +67,24 @@ test('assembled revision dispatch rechecks binding/base and uses existing gated 
  for(const stop of ['cancel','logout']){const f=await fixture({enabled:true,hold:true});let live=true;const task=f.api.saveUrlRevision(intent,{isCurrent:()=>live,onDispatch:()=>{}});await f.pending;if(stop==='cancel')live=false;else f.api.signOut();f.release();await assert.rejects(task);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);}
  const saved={...row,id,created_by:actor,version_number:2,first_result_expected_version:1,first_result_request_id:intent.request.request_id,first_result_payload:next,title:next.preview.fields.title.suggested};
  for(const patch of [{},{id:row.id},{created_by:row.id},{status:'approved'},{organization_id:row.id},{first_result_payload:payload}]){const f=await fixture({reconcileRow:{...saved,...patch}});if(Object.keys(patch).length)await assert.rejects(f.api.reconcileUrlResult(intent.request,id,actor));else assert.equal((await f.api.reconcileUrlResult(intent.request,id,actor)).id,id);assert.ok(f.calls.every(c=>c.options.method==='GET'));}
+});
+
+test('same-tab marker recovery is GET-only, exact, and does not unlock POST on empty or mismatched results',async()=>{
+ const next=await revised(),f=await fixture({enabled:true}),intent=await f.api.prepareUrlRevisionIntent(row,next,{isCurrent:()=>true});
+ const id=await f.api.saveUrlRevision(intent,{isCurrent:()=>true,onDispatch:()=>{}}),op=f.api.revisionRecovery();
+ assert.equal(op.known_id,id);assert.equal(op.resolved,false);assert.equal(op.request_id,intent.request.request_id);assert.equal(Object.values(op).some(v=>v&&typeof v==='object'),false);
+ assert.equal(await f.api.recoverUrlRevision(),null);assert.equal(f.api.revisionRecovery().resolved,false);await assert.rejects(f.api.saveUrlResult(intent.request,{isCurrent:()=>true}),/先核對/);await assert.rejects(f.api.saveUrlRevision(intent,{isCurrent:()=>true,onDispatch:()=>{}}),/先核對/);
+ const saved={...row,id,created_by:actor,version_number:2,first_result_expected_version:1,first_result_request_id:intent.request.request_id,first_result_payload:next,title:next.preview.fields.title.suggested};
+ for(const patch of [{id:row.id},{created_by:row.id},{organization_id:row.id},{opportunity_id:id},{version_number:3},{first_result_payload:payload}]){f.setRecovered({...saved,...patch});await assert.rejects(f.api.recoverUrlRevision());assert.equal(f.api.revisionRecovery().resolved,false);}
+ f.setRecovered(saved);assert.equal((await f.api.recoverUrlRevision()).id,id);assert.equal(f.api.revisionRecovery().resolved,true);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);
+});
+
+test('restored metadata rejects actor/org/base/version/source/digest mismatch and stale session without POST',async()=>{
+ const next=await revised(),source=await fixture({enabled:true}),intent=await source.api.prepareUrlRevisionIntent(row,next,{isCurrent:()=>true});const id=await source.api.saveUrlRevision(intent,{isCurrent:()=>true,onDispatch:()=>{}}),op=source.api.revisionRecovery();
+ const saved={...row,id,created_by:actor,version_number:2,first_result_expected_version:1,first_result_request_id:intent.request.request_id,first_result_payload:next,title:next.preview.fields.title.suggested};
+ const badHash='sha256:'+'f'.repeat(64);
+ for(const patch of [{actor_id:row.id},{organization_id:row.id},{base_version_id:id},{expected_version:2},{base_request_digest:'pg-jsonb-sha256:'+'f'.repeat(64)},{base_payload_digest:badHash},{source_digest:badHash},{content_digest:badHash},{payload_digest:badHash},{intent_digest:badHash},{known_id:row.id}]){
+  const f=await fixture({storedOperation:{...op,...patch},reconcileRow:saved});await assert.rejects(f.api.recoverUrlRevision());assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+ }
+ const f=await fixture({storedOperation:op,reconcileRow:saved,hold:true});const pending=f.api.recoverUrlRevision();await f.pending;f.api.signOut();f.release();await assert.rejects(pending);assert.equal(f.marker.read().resolved,false);
 });

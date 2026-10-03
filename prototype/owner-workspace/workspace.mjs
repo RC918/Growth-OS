@@ -1,5 +1,5 @@
 import {typedDraft} from './typed-draft.mjs';
-import {savedResultReview} from './saved-result-review.mjs';
+import {savedResultReview,createRevisionRecovery} from './saved-result-review.mjs';
 import {createUrlSavePanel} from './url-result-save.mjs';
 import * as urlConfig from './url-result-config.mjs';
 const {urlSaveEnabled,urlResultSchemaEnabled,urlSaveTrial=null}=urlConfig;
@@ -17,6 +17,8 @@ const $ = id => document.getElementById(id);
 let state = null;
 let epoch = 0;
 let renderGeneration = 0;
+const recovery=createRevisionRecovery({api,root:$('revision-recovery-panel')});
+window.addEventListener('url-revision-pending',()=>recovery.open({probe:false}));
 const observations=createObservationPanel(api);
 const goals=createGoalPanel(api);
 const urlSave=createUrlSavePanel({api,root:$('url-result-panel'),render:typedDraft,refresh:()=>refresh({urlSaved:true}),enabled:urlSaveEnabled&&urlResultSchemaEnabled,trial:urlSaveTrial});
@@ -468,6 +470,7 @@ $('verify-owner-tenant').addEventListener('click',async()=>{
 );
 
 async function refresh({urlSaved=false}={}) {
+  recovery.close();
   clearTenantDiagnostic();
   if(!urlSaved)urlSave.refreshing();
   const current = epoch, generation = ++renderGeneration;
@@ -490,6 +493,7 @@ async function refresh({urlSaved=false}={}) {
     next.decisions.filter(decision => decision.opportunity_id === item.id),
     next.versions.filter(version => version.opportunity_id === item.id),
     next.reviews, next.actionPlans, reason)));
+  recovery.open();
   if (!next.opportunities.length) list.textContent = '尚無候選機會。先整理一個值得回答的客戶問題。';
   return true;
 }
@@ -534,7 +538,7 @@ async function acceptRedirect() {
 void acceptRedirect();
 
 // A restored page must refresh before any retained card can mutate.
-window.addEventListener('pagehide', () => { epoch++; clearTenantDiagnostic(); urlSave.close(); });
+window.addEventListener('pagehide', () => { epoch++; recovery.close(); clearTenantDiagnostic(); urlSave.close(); });
 window.addEventListener('pageshow', event => {
   if (event.persisted && state) void refresh().then(ok=>{if(ok)urlSave.open(state);}).catch(error => message(error.message, true));
 });
@@ -542,6 +546,7 @@ window.addEventListener('pageshow', event => {
 $('sign-out').addEventListener('click', () => {
   epoch++;
   api.signOut();
+  recovery.close();
   clearTenantDiagnostic();
   urlSave.close();
   state = null;
