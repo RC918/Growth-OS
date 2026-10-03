@@ -40,3 +40,5 @@ python3 -m http.server 8081 --directory apps/web
 first-result.html 使用 /api/product-source；首頁提供主要入口。本機須啟動 prototype/public-audit/app.py，靜態 http.server 不提供 API。三項來源支持文本可對照、複製與匯出；快照只有本機／Preview SQLite 暫存，沒有跨登入保存或發布。`8f1f17c` 已由父獨立驗收 32 項 scanner/API 與 Chromium 145 桌面／手機 E2E（各 12 次真下載）PASS，詳見 [驗收](../../docs/URL_First_Result_驗收_2026-10-02.md)。
 
 現行最小下一步是取得可核對的真實公開產品頁品質與 protected Preview 互動證據，不擴張通用 Plan／工作卡。最近 3 個 live 嘗試均停在 robots（0 商品頁／snapshot／preview），不算品質 PASS 或 unsupported 判定；[有界評估與最少 Owner 操作](../../docs/Public_Product_Quality_2026-10-02.md)列出精確候選入口及部署 SHA 核對前提。真頁品質、SSO 互動、跨登入永久保存、發布／量測仍未驗收；匯出不解除暫存容量。
+
+2026-10-03 增補：上述 live 嘗試為歷史紀錄，後續父的首次真頁成功及限制見 PROJECT_STATUS。第一成果現已接通本頁 Review：可編輯三欄、核對相關事實、確認目前版本及取消還原原建議；修改或來源變更使舊確認失效。Copy／Export 使用可見版本，來源原文／facts／引用保持不變；使用者新增文字不自動取得來源支持。本頁確認不是保存或發布授權，重新整理會失去 Review。契約 6／API 3 tests 與 1280/390 各 22 真下載 PASS；新 CI／Preview 待父審查，詳見 [Review 驗收](../../docs/First_Result_Review_驗收_2026-10-03.md)。

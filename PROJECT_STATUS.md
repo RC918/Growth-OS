@@ -53,3 +53,9 @@ Woo／microdata 重疊 review 修正：`874d071` 原 CI 綠燈不涵蓋優先序
 首次 live Preview 成功（父證據，2026-10-02 23:52 UTC）：核對 `9874e6b`、兩 CI success 與 deployment `H7TGnzpVFaaYXSuUuSkKyitrKs64`／alias 後，單次 Bulbasaur 得到三份文本與可追溯引用；fetched_at `2026-10-02T23:52:48.839429+00:00`，fingerprint `fb43e63ad4cda608d8ee1edb4ac4614e04652f56b233ae0be31cc5d191ac4361`。詳見真頁評估增補。雲端 Copy 讀回空、Export 等待發生工具 kernel timeout，內容／檔案未獨立驗證；不先判為產品 bug，不代表全 M1/M2／發布／流量完成。
 
 合成重現後修正描述已以完整產品名開頭仍重複加名前綴；保留原句、facts 與引用。25 項受影響 Product/API tests、fresh 1280/390 各 16 次真下載 PASS；未重跑無關 suite，未改 Copy/Export 實作，未追加任何 live／模型請求。新版 CI／真頁修復後品質仍待父核對。
+
+## 2026-10-03 第一成果本頁 Review
+
+父已獨立驗收 `821aab584a295843a588c09d8fdf33d4e0619d37`，push CI 37080100879／PR CI 37080104447 success，Preview `5kCwsw8Xc1yXN8rjFiAfYsKGzPEp` Ready。本次在該基準接通三欄原地編輯、相關事實核對、取消還原與版本確認；編輯／來源變更撤銷舊確認，延遲操作不能覆寫新版本。Copy／Export 使用目前可見版本，保留來源 bytes hash，內容 digest 與本頁確認另列。明示本頁已確認／未保存／未發布，不作權限或永久保存證據。
+
+契約 6 tests、受影響 API 3 tests、最終 1280/390 E2E 各 22 真下載 PASS；最後程式驗證後僅補文件，未重跑無關 PASS。詳見 [Review 驗收](docs/First_Result_Review_驗收_2026-10-03.md)。新 commit CI／Preview 待父獨立審查；沒有新增 live／模型／遠端 DB／Auth 操作，完整 M3、持久保存與發布／量測仍未完成。

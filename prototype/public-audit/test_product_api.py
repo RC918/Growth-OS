@@ -26,6 +26,9 @@ class ApiTests(unittest.TestCase):
                 try:
                     base='http://127.0.0.1:'+str(server.server_address[1])
                     with urlopen(base+'/first-result.html') as response:self.assertIn(b'source-form',response.read())
+                    with urlopen(base+'/first-result-review.mjs') as response:
+                        self.assertIn('text/javascript',response.headers['Content-Type'])
+                        self.assertIn(b'createResultReview',response.read())
                     def post(url,origin=None):
                         h={'Content-Type':'application/json'}
                         if origin:h['Origin']=origin

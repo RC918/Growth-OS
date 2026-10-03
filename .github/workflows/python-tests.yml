@@ -31,6 +31,8 @@ jobs:
           node-version: '24'
       - name: Workspace API contract checks
         run: node --test prototype/owner-workspace/workspace-api.test.mjs
+      - name: First result page review contract checks
+        run: node --test prototype/public-audit/first-result-review.test.mjs
       - name: Browser baseline data contract checks
         run: node --test prototype/csv-import/search-baseline.test.mjs
       - name: Install isolated UI test browser

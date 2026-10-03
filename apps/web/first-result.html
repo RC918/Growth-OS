@@ -10,9 +10,10 @@
 <p class="hint">僅公開 HTTPS、無登入內容及 query 參數。若網址含參數，請改用公開產品的 canonical 路徑。</p>
 <p id="source-feedback" role="status" aria-live="polite" tabindex="-1"></p>
 <div id="source-fallback"></div></section>
-<section id="result-section" hidden><div class="result-heading"><h2>第一份搜尋內容改善包</h2><span class="badge">待確認 · 尚未發布</span></div>
+<section id="result-section" hidden><div class="result-heading"><h2>第一份搜尋內容改善包</h2><span id="review-state" class="badge">待確認 · 未保存 · 未發布</span></div>
 <p>這是可複製的文本預覽；原站陳述尚未獨立查核，不包含新增規格、價格、認證或效果保證。</p>
-<p id="retained-source"></p><div id="result-fields"></div><div class="actions"><button id="copy-result" type="button">複製全部文本</button><button id="export-result" type="button">匯出成果與來源 JSON</button></div>
+<p id="retained-source"></p><p id="review-status" role="status" aria-live="polite"></p><p class="hint">只核對目前三段內容涉及的事實；無關的未知項不必補填。使用者修改不會自動取得來源支持。本頁確認不代表工作區核准或發布授權。</p>
+<div id="result-fields"></div><div class="actions"><button id="review-confirm" type="button">確認目前版本</button><button id="review-cancel" type="button">取消修改，還原原建議</button></div><div class="actions"><button id="copy-result" type="button">複製全部文本</button><button id="export-result" type="button">匯出成果與來源 JSON</button></div>
 <p id="result-feedback" role="status" aria-live="polite"></p>
 <textarea id="copy-fallback" readonly hidden aria-label="手動複製文本"></textarea>
 <h3>待確認／未取得資訊</h3><ul id="result-missing"></ul>

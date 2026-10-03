@@ -87,7 +87,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path in ("/first-result.html", "/first-result.mjs", "/first-result.css"):
+        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result.css"):
             static = Path(__file__).resolve().parents[2] / "apps" / "web" / path.lstrip("/")
             body = static.read_bytes()
             self.send_response(200)
