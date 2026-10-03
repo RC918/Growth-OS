@@ -18,6 +18,8 @@ try{
   const context=await browser.newContext({viewport:{width,height:844}}),page=await context.newPage(),errors=[],versions=[],saves=[];
   let role='owner',failNext=true,loginSequence=0;
   page.on('pageerror',error=>errors.push(error.message));
+  // Observation fixtures have their own synthetic identities and legacy schema.
+  await context.route(origin+'/url-result-config.mjs',route=>route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=false;export const urlResultSchemaEnabled=false;export const urlSaveTrial=null;'}));
   await context.route('https://vhzryhibmpvglzcmfnaa.supabase.co/**',async route=>{
    const request=route.request(),url=new URL(request.url()),org=role==='owner'?orgA:orgB;
    const respond=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});

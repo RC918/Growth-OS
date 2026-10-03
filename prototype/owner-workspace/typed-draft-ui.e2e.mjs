@@ -39,7 +39,12 @@ try {
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());
-   if(url.origin===origin) return route.continue();
+   if(url.origin===origin) {
+    // This legacy/typed transport predates URL entry kinds; deployment flags
+    // must not change its schema or bind its synthetic identities to a trial.
+    if(url.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=false;export const urlResultSchemaEnabled=false;export const urlSaveTrial=null;'});
+    return route.continue();
+   }
    if(url.origin!=='https://vhzryhibmpvglzcmfnaa.supabase.co'){unexpected.push(req.url());return route.abort();}
    const respond=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
    if(req.method()!=='GET') {

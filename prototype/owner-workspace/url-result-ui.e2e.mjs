@@ -23,7 +23,7 @@ try{
   await ctx.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());const respond=(value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
    if(url.origin===origin){
-    if(url.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:`export const urlSaveEnabled=${enabled};export const urlResultSchemaEnabled=true;`});
+    if(url.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:`export const urlSaveEnabled=${enabled};export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;`});
     if(url.pathname==='/api/product-source'){
      const raw=structuredClone(reports[0]);for(const [key,field]of Object.entries(raw.preview.fields)){field.suggested=raw.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete raw.review;raw.preview.status='awaiting_review';return respond(raw);
     }

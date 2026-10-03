@@ -16,7 +16,7 @@ try{
   await context.route('**/*',async route=>{
    const req=route.request(),u=new URL(req.url()),reply=(value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
    if(u.origin===origin){
-    if(u.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=true;export const urlResultSchemaEnabled=true;'});
+    if(u.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=true;export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;'});
     if(u.pathname==='/api/product-source'){
      const raw=structuredClone(report);for(const [key,field]of Object.entries(raw.preview.fields)){field.suggested=raw.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete raw.review;raw.preview.status='awaiting_review';return reply(raw);
     }
