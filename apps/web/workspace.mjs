@@ -72,11 +72,11 @@ const decisionLabels = { approved: '核准', rejected: '不採納' };
 const draftDecisionLabels = { approved: '核准', rejected: '退回' };
 const formatTime = value => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
-function revealVersion(opportunityId, text) {
+function revealVersion(opportunityId, versionId, text) {
   const updated = [...$('opportunities').querySelectorAll('.opportunity-card')]
     .find(candidate => candidate.dataset.opportunityId === opportunityId);
   const panel = updated?.querySelector('.draft-focus');
-  if (!panel) return;
+  if (!panel || panel.dataset.versionId !== versionId) return;
   const result = document.createElement('p');
   result.className = 'draft-result';
   result.setAttribute('role', 'status');
@@ -175,15 +175,21 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
     message('處理中…');
     let refreshing = false;
     try {
-      await operation();
+      const resultId = await operation();
       if (!current()) return;
       refreshing = true;
       const updated = await refresh();
       if (!updated || epoch !== cardEpoch) return;
       const newest = state.versions.filter(row => row.opportunity_id === item.id)
         .reduce((a, b) => !a || b.version_number > a.version_number ? b : a, null);
-      if (!isTyped(newest) && (createsVersion || newest?.id === latestVersion?.id)) revealVersion(item.id, success);
-      message('');
+      // Create returns a version UUID; review/plan return their own record UUIDs.
+      const targetVersionId = createsVersion ? resultId : latestVersion?.id;
+      if (newest && !isTyped(newest) && newest.id === targetVersionId) {
+        revealVersion(item.id, targetVersionId, success);
+        message('');
+      } else {
+        message('已收到操作回覆；目前草稿與本次操作版本不同或尚未讀回，請核對版本歷史或重新整理。');
+      }
     } catch (error) {
       if (current()) message(error.message, true);
       else if (refreshing && state === cardState && epoch === cardEpoch && card.isConnected)
@@ -270,6 +276,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   }
   const focus = document.createElement('section');
   focus.className = 'draft-focus';
+  focus.dataset.versionId = latestVersion?.id || '';
   const focusHeading = document.createElement('h4');
   focusHeading.textContent = latestVersion ? `目前草稿 · 第 ${latestVersion.version_number} 版 · ${formatTime(latestVersion.created_at)}` : '目前草稿';
   focus.append(focusHeading);

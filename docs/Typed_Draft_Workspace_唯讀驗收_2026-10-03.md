@@ -28,3 +28,19 @@ Typed 一律「待專用審核／未發布」；page-only receipt 不是 owner a
 在真實 schema／read contract 尚未接線前，缺少所有辨識欄位的 typed row 無法由 UI 與 legacy 區分；此切片不解決這個傳輸缺口。未來須在明確遠端批准下處理 schema 相容、精簡版本清單辨識、按需精確 org＋version 讀回、真 JWT/RLS 與完整保存／恢復驗收。SQL 仍未部署，UI 保護不代替服務端權限。
 
 URL → First Useful Result → Review → Publish → Measure 不變；不新增 Profile onboarding 門檻，不放行完整 M3 或發布／量測。
+
+## 父審查 P2：新增版本成功訊息歸屬
+
+`1964f6ef10da448e8fd8147e6a4a7a96c5313bd2` 的 push 37089871698／PR 37089874941 success，父已讀得 10 API／mirror、typed E2E 1280/390 及既有回歸 PASS，Preview `4sg87bsJs2ZW7EbMJeg7pBxSw8TQ` Ready；但獨立 review HOLD 新 guard 的版本歸屬問題。CI 綠燈不覆蓋此缺口，不稱服務端錯寫。
+
+原 `mutateLegacy` 忽略 create RPC 回傳的新增 version UUID，`createsVersion=true` 直接允许將成功訊息放入目前卡片。原 fixture 回傳 `synthetic-result`，dashboard 仍為 v1 卻期待新建成功 badge；此錯誤驗收已取代。
+
+先只修改合成 E2E，再執行舊 renderer：每個 viewport 的正常 v1→v2、較新 render 後晚回覆 PASS，但「RPC 回 v2，dashboard 最新為 v3」和「RPC 回 v2，dashboard 仍只含 v1」均 FAIL（實際 badge 1、應為 0），合計四個失敗，exit 1。證據 `/tmp/typed-uuid-before.log`；不是遠端資料寫錯證據。
+
+修正僅捕捉 RPC 結果：create 的成功訊息須綁回傳 version UUID；review/plan 的結果是各自紀錄 UUID，仍綁其原本操作的 version。刷新後最新 row 與確切目標一致且為 legacy 才顯示 badge；DOM panel 也核對相同 version id。新版已改變或該版本尚未讀回時，只顯示「已收到操作回覆；目前草稿與本次操作版本不同或尚未讀回」，不把 v2 的完成貼到 v1/v3。原 epoch／generation／connected guard 保留，較新 render 後的晚回覆不刷新或改動新畫面。
+
+同步加強 fixture：version／parent／request／RPC 結果使用 UUID 格式；正常新增讀回 v2 的文字與提交值相同。每次 pageshow fixture 以唯一合成 organization response 標記等待自己的整次 render 完成；相同 version id、既存 typed-incomplete 不再作刷新完成依據。每種缺損 payload 另逐值核對所呈現的實際 payload。這是測試同步修正，不宣稱另外發現 typed mutation 漏洞。
+
+修正後本地 1280／390px E2E 全部 PASS，包括每 viewport 四個 UUID 歸屬案例；每 viewport 現為六個合成 legacy mutation（review 1、create 4、plan 1），typed 仍為零，取代前段三次 mutation 的舊計數。正常成功 badge 僅出現在回傳 v2；v3／缺 v2 中性提示、晚回覆無 badge。完整既有 typed 驗收保留，API／mirror 10 tests PASS；證據 `/tmp/typed-uuid-after.log`。新 SHA 的 CI／Preview 仍待父獨立驗收。
+
+遠端 SELECT／API／Auth／RPC 與 CSS 未改，無遠端 DB／登入／產品請求。仍僅合成 renderer 相容性，不放行真保存或恢復。
