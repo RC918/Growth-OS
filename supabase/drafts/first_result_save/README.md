@@ -96,3 +96,9 @@ native.mjs 保留原三個 typed/typed 案例，新增以下真多 backend asser
 `db953e501d29d8bbc9274dce55ec0b0ef0042129` 的 push 37088718035／PR 37088720542 均失敗。父讀取兩份實際 logs：PG17.6 控制結果是 `escape_hex=0b, v=true, vv=true, vt=false`，與 PG18.3 本機結果一致；先前 assertion 硬設為 `76/false/false/true` 是測試錯誤。父亦核對 REL_17_6 的 `src/backend/parser/scan.l:1334–1335` 支持 `\v`，原靜態 bug 判定撤回。
 
 本次只修正 native 控制期待值及不實 REPRODUCED FAIL 標籤，保留具體四欄斷言、chr(11) 比較及全部後續 native assertions。SQL 未改。上述失敗在控制處先中止，新的 legacy create/review deadlock／fixed overlap、三個 membership revoke 時序與最終資料保留斷言尚未到達；downstream browser／closed-gate 亦 skip，不能算 PASS。新提交須由 CI 完整跑到上述案例，再由父獨立讀 logs 驗收。
+
+## 停寫部署候選包（離線、尚未批准遠端）
+
+新增 [`closed-package.sql`](closed-package.sql) 與[精確說明／驗收／hosted 限制](CLOSED_PACKAGE.md)。單一 invoker DO 安裝原樣 schema/helpers/typed-review guard，內層 exception 子交易驗固定 fixture 後撤回臨時 grants／角色／claims／測試 rows，外層再核停寫與資料不變；沒有原 proposal 的永久 authenticated GRANT。它仍在 drafts，不會自動部署。PGlite 七組檢查 PASS；固定 PG17.6 本機缺 image，已接原 CI native 工具，待父讀新結果。原 proposal 與 disable_writes.sql 未改。
+
+父已確認 hosted apply_migration 沒有公開外層 transaction／schema-history 共同原子性保證；本包只把資料庫操作收束成一個 statement，不能承諾工具失敗全無殘留。任何未知先唯讀查 schema／ACL／資料／history，不重送、不刪 history。沒有遠端執行批准。

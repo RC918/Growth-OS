@@ -5,13 +5,14 @@ import {readFile,readdir} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {fixtures,ids,parent,request,bootstrapSQL,seedSQL} from './fixtures.mjs';
 import {urlCases,jsURLAllowed,rebind} from './url-cases.mjs';
+import {checkClosedPackage} from './closed-package-checks.mjs';
 import {contentDigest} from '../../../apps/web/first-result-review.mjs';
 const image='postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929';
 const name='growth-first-result-'+randomUUID().slice(0,8);
 const docker=(args,input)=>execFileSync('docker',args,{input,encoding:'utf8',timeout:15000,stdio:['pipe','pipe','pipe']}).trim();
 try{docker(['image','inspect',image]);}catch{console.error('BLOCKED: existing pinned PostgreSQL 17.6 image unavailable; no pull attempted. No native concurrency evidence.');process.exit(2);}
-const args=app=>['exec','-i','-e','PGAPPNAME='+app,name,'psql','-X','-w','-U','postgres','-At','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'];
-const sql=(query,app='first-result-observer')=>docker(args(app),query);
+const args=(app,database='postgres')=>['exec','-i','-e','PGAPPNAME='+app,name,'psql','-X','-w','-U','postgres','-d',database,'-At','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'];
+const sql=(query,app='first-result-observer',database='postgres')=>docker(args(app,database),query);
 const quote=value=>"'"+value.replaceAll("'","''")+"'";
 const pause=()=>new Promise(resolve=>setTimeout(resolve,50));
 async function until(check,timeout=6000){const end=Date.now()+timeout;while(Date.now()<end){try{const result=check();if(result)return result;}catch{}await pause();}throw Error('Native barrier timed out');}
@@ -23,7 +24,11 @@ try{
  docker(['run','--pull=never','--detach','--rm','--network','none','--name',name,'-e','POSTGRES_HOST_AUTH_METHOD=trust',image,'postgres','-c','listen_addresses=']);started=true;
  await until(()=>docker(['exec',name,'cat','/proc/1/comm'])==='postgres'&&sql('select 1')==='1',40000);
  assert.match(sql('show server_version'),/^17\.6/);assert.equal(sql('show listen_addresses'),'');
- sql(bootstrapSQL);
+ // Separate ephemeral database: exact single-DO package, no hosted migration runner.
+ sql('create database closed_package');
+ await checkClosedPackage({exec:async q=>sql(q,'closed-package-check','closed_package'),scalar:async q=>sql(q,'closed-package-check','closed_package')},'native PG17.6');
+ // Roles are cluster-wide and were created by the package database bootstrap.
+ sql(bootstrapSQL.replace('create role anon nologin;create role authenticated nologin;create role service_role nologin;',''));
  for(const file of (await readdir(new URL('../../migrations/',import.meta.url))).filter(x=>x.endsWith('.sql')).sort())sql(await readFile(new URL('../../migrations/'+file,import.meta.url),'utf8'));
  sql(seedSQL);const proposal=await readFile(new URL('./proposal.sql',import.meta.url),'utf8');sql(proposal);
  const [report]=await fixtures();

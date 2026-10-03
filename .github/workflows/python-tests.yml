@@ -52,7 +52,7 @@ jobs:
       - name: Guided goal PostgreSQL engine checks
         run: node supabase/tests/goal_intake_postgres.mjs
       - name: Undeployed first-result SQL on isolated PGlite
-        run: node --test supabase/drafts/first_result_save/offline.test.mjs
+        run: node --test supabase/drafts/first_result_save/offline.test.mjs supabase/drafts/first_result_save/closed-package.test.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
         run: |
           node --check supabase/functions/growth-model-trial/index.js

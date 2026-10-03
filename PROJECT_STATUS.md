@@ -91,3 +91,13 @@ PG17 trim 判定更正：`db953e5` 的 CI 37088718035／37088720542 在錯誤控
 Typed UI 父審查 P2 修正：`1964f6e` 的 push 37089871698／PR 37089874941、typed 1280/390 與既有回歸綠燈，Preview `4sg87bsJs2ZW7EbMJeg7pBxSw8TQ` Ready，但父 HOLD create 成功訊息誤歸屬。先以 UUID fixture 重現兩 viewport 各兩案 FAIL：RPC 回 v2，但 dashboard 最新 v3 或仍為 v1，都誤貼 badge。修為捕捉回傳 version UUID，資料與 DOM panel 均精確相符才顯示版本成功；缺讀回／新版變動只中性提示，保留晚回覆失效防護。fixture 每次 pageshow 等待自己的 response render，缺損 payload 逐值核對；原錯誤 synthetic-result／v1 成功假設移除。
 
 修正後 1280/390 完整 typed E2E PASS（正常 v2、新 v3、缺 v2、新 render 後晚回覆各案），每 viewport 六個合成 legacy mutation、零 typed mutation；API／mirror 10 tests PASS。詳見同一唯讀驗收文件 P2 增補；新 commit CI／Preview 待父驗收。未改遠端 SELECT／API／Auth／RPC，未接真保存或操作遠端。
+
+父已獨立接受 `95a2e679a5078117011bcbfe4c1d2eb8f0665b83`：push 37090367455／PR 37090371967 各 39 steps success、無 skip；10 API/mirror、typed 1280/390 normal/newer/missing/late UUID 四案、零 typed mutation 及既有 full suite 通過，Preview `HjobjeH4qHVULe1JWNv8enHzKViY` Ready。只接受離線 renderer 相容性，remote SELECT 未變。
+
+## 2026-10-03 單句停寫部署候選（未遠端執行）
+
+依父已提供的唯讀 fixture／工具契約，新增 drafts 中的單一 invoker DO [候選包與完整限制](supabase/drafts/first_result_save/CLOSED_PACKAGE.md)。保留已驗 proposal 的 DDL/function bodies，只移除原交易包裝及兩行永久 authenticated GRANT；內層 exception 子交易暫授保存、固定身份與 parent 驗 1 version/1 audit、重送／拒絕／完整讀回，成功 marker 才回滾測試與 grants，外層核有效停寫／原資料後正常完成。無新 store/UI/Auth/API/刪除資料路徑，沒有 migration discovery 接線。
+
+PGlite Node 1 test／七組檢查 PASS：固定 actor 拒絕、authenticated 下與完成測試後真正非 marker failure、過早 marker、內層回滾後最終 failure、繼承 EXECUTE 洩漏拒絕，以及成功安裝保持停寫。原 20 表投影（含 legacy draft/review）、13 history/audit、非零 ledger/attempts 與 caller role/claims 保留；測試 rows 持久 0。native 語法 PASS；PG17.6 本機缺固定映像，啟動前 BLOCKED/exit 2，未下載。新包已接既有 PG17.6 CI runner，尚待父讀新 SHA logs。
+
+hosted applyMigration 僅 POST name/query 並回 success，不提供已證實的 schema＋migration-history 原子性；本包不聲稱解決此未知。未来需父獨立審 hash＋Owner 批准一次正式隔離 migration，預期 history 18→19；未知結果先查不重送，不刪 history／資料。未連遠端、未讀 secret、未登入、未部署或觸發模型／商品請求。
