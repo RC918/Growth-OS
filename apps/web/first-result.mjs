@@ -1,6 +1,8 @@
+import {createResultHandoff} from './first-result-handoff.mjs';
 import {createResultReview,reviewFields} from './first-result-review.mjs';
 const $=id=>document.getElementById(id),node=(tag,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 let current=null,review=null,epoch=0,controller=null,activeExport=null;
+const handoff=createResultHandoff({button:$('handoff-result'),cancelButton:$('cancel-handoff'),getReview:()=>review,isBusy:()=>!!controller,report:actionReport});
 const names={product_name:'產品名稱',title:'Title',meta_description:'Meta description',description:'產品描述',features:'特性',use:'用途',specifications:'规格',price:'價格',certifications:'認證',performance:'效果',comparisons:'比較',guarantees:'保證'};
 const errors={page_complexity:"頁面結構超過安全解析上限。網址已保留，請改用較簡單的公開產品頁。",invalid_url:'請提供公開 HTTPS 產品網址。',private_target:'禁止內網、localhost 或非公開 IP。請選公開產品頁。',unsupported_query:'請改用沒有 query 參數的公開產品 canonical 網址。',restricted_content:'頁面需要登入或含密碼表單；請提供不需登入的公開產品頁。',timeout:'讀取超時。網址已保留，可重試或改用另一公開產品頁。',too_large:'頁面超過 1 MB。請使用較小的公開產品頁。',robots_unavailable:'無法核對 robots 規則，已停止讀取；可改用允許讀取的公開頁。',robots_disallowed:'網站不允許此讀取，請選其他公開來源。',not_html:'目前只支援公開 HTML 產品頁，請更換網址。',cross_domain_redirect:'網址轉到不同網域；請核對並直接提交目的站的公開產品網址。',too_many_redirects:'跳轉超過限制，請提供產品頁的最終網址。',dns_failed:'無法解析網域，請檢查拼字或稍後重試。',dns_busy:'解析服務忙碌，請稍後重試。',peer_mismatch:'實際連線與安全驗證位址不同，已停止讀取。',rate_limit:'本小時請求上限已到，請稍後重試。',busy:'目前有讀取正在處理，請稍後重試。',snapshot_capacity:'暫存來源容量已滿，無法保存新成果。若本頁已有成功成果，仍可複製或匯出備份；匯出不會釋放容量。目前沒有自行清理功能。'};
 function report(text,error=false){$('source-feedback').textContent=text;$('source-feedback').classList.toggle('error',error);}
@@ -9,6 +11,7 @@ function idle(){controller=null;$('source-submit').disabled=false;$('source-canc
 function cancel(message){epoch++;review?.invalidate();controller?.abort();idle();$('source-fallback').replaceChildren();report(message);}
 function textPack(view){return reviewFields.map(key=>names[key]+':\n'+view.fields[key]).join('\n\n');}
 function refreshReview(restore=false){
+ handoff.invalidate();
  if(!review)return;const v=review.view();
  if(activeExport&&(activeExport.review!==review||activeExport.token!==v.token)){
   activeExport.cancelled=true;$('export-result').disabled=false;actionReport('匯出期間內容或來源已變更，請重新匯出目前版本。');

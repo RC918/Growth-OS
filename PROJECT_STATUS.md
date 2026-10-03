@@ -123,3 +123,13 @@ Owner 04:01:01 批准 03:32 提案的限定一次 remote closed deployment（`Se
 最終程式既有驗收：13 API/mirror tests、嚴格 SELECT projection 的 1280/390 合成 E2E PASS；每 viewport 六次 legacy mutation、零 typed mutation。logs 04:35:14 晚於最終程式修改 04:35:03；收尾僅補文件，不重跑無關 suite。詳見 [按需讀取驗收](docs/Typed_Draft_Workspace_唯讀驗收_2026-10-03.md)。新 SHA CI／Preview 待父獨立驗收。
 
 沒有遠端查詢、Save、登入、grants、SQL／migration 或新 Auth 流程；單次部署批准已用完。合成讀取通過不等於真 RLS／Data API／跨 session 恢復驗收，不放行完整 M3 或發布／量測。
+
+## 2026-10-03 URL-first 待審保存：離線整合
+
+父已接受 `2a33ef49e2a35cea7a35648d1dad1a12212c4f6d`：push 37097416575／PR 37097419698 全 39 steps success，Preview `defz8iRhLPEruDLNJZ4XWkHEjRHt` Ready。Owner 05:14 同意 04:55:45 的 URL 待審保存方向；不先 Profile／approved opportunity，僅設計與離線驗證，遠端另批。
+
+新增 growth_opportunities 的互斥 URL subtype／固定待審／immutable source identity、專用原子 Save 草案，沿用 content_versions、tenant RLS、org/request 冪等、版本與 audit。首存 1 parent＋1 version＋1 audit，追加 1 version＋1 audit，拒絕／重送零新增；五個舊 mutation impl 拒 URL，新 Save 拒 legacy，舊 gate 保留。草案不在 migrations，歷史 closed-package SQL/hash 未改，新入口 EXECUTE 全 closed。
+
+實際 product Review→同 origin 指定視窗一次 nonce 交接／完整 JSON 匯入→workspace 唯讀確認→專用 API→精確版本讀回已組裝；無損沿用 export，沒有重新建立 editable Review／demo／store。瀏覽器 dispatch 預設 false；不要求未部署新欄位。owner-only，editor/viewer 只讀；無帳號／無 membership／多 membership 不自行配置資格。未知結果只查原 request、不 retry；page confirmation 非 owner approval。
+
+離線證據、檔案差異、完整命令與限制見 [URL 待審保存候選](supabase/drafts/url_result/README.md)。本地 46 unit/API/mirror/SQL tests、URL Save 1280/390 實際 UI＋隔離 SQL、既有 typed 1280/390 及 product 1280/390 各 22 下載回歸；PG17 新並發本機缺固定 image／exit 2，已加 CI，待父獨立驗收。沒有遠端 DB/Auth/Save/grants/live 商品抓取/模型/費用或部署操作；不放行真保存、一般新用戶 provisioning、完整 M3 或發布／量測。

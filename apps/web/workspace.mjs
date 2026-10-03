@@ -1,3 +1,6 @@
+import {typedDraft} from './typed-draft.mjs';
+import {createUrlSavePanel} from './url-result-save.mjs';
+import {urlSaveEnabled,urlResultSchemaEnabled} from './url-result-config.mjs';
 import { createWorkspaceApi, contentVersionKind } from './workspace-api.mjs';
 import { orderOpportunities } from './opportunity-order.mjs';
 import { createObservationPanel } from './workspace-observations.mjs';
@@ -6,7 +9,7 @@ import { createGoalPanel } from './workspace-goals.mjs';
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
   key: 'sb_publishable_B9pMiED8jrCoxuy2kC0HoA_LmzKex9r',
-  redirectOrigin: location.origin,
+  redirectOrigin: location.origin, urlSaveEnabled, urlResultSchemaEnabled,
 });
 const $ = id => document.getElementById(id);
 let state = null;
@@ -14,6 +17,7 @@ let epoch = 0;
 let renderGeneration = 0;
 const observations=createObservationPanel(api);
 const goals=createGoalPanel(api);
+const urlSave=createUrlSavePanel({api,root:$('url-result-panel'),render:typedDraft,refresh:()=>refresh({urlSaved:true}),enabled:urlSaveEnabled&&urlResultSchemaEnabled});
 
 function message(text, failure = false) {
   const target = $('notice');
@@ -87,76 +91,8 @@ function revealVersion(opportunityId, versionId, text) {
 
 // Only an explicit complete legacy discriminator enables legacy actions.
 // Unknown/missing metadata stays read-only, including while payload is unloaded.
-const typedColumns = ['first_result_payload', 'first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
 const isTyped = version => !!version && contentVersionKind(version) !== 'legacy';
 const typedNotice = '待專用審核 · 未發布 · 僅供唯讀；不能使用一般草稿審核、兩欄修訂或執行方案。';
-const resultFields = {title: '標題', meta_description: 'Meta description', description: '產品描述'};
-function typedDraft(version) {
-  const panel = document.createElement('section');
-  panel.className = 'typed-draft';
-  panel.dataset.versionId = version.id;
-  const add = (parent, tag, text, className = '') => {
-    const node = document.createElement(tag); node.textContent = text; node.className = className; parent.append(node); return node;
-  };
-  const detail = (label, value) => {
-    const box = document.createElement('details');
-    add(box, 'summary', label);
-    add(box, 'pre', value === undefined ? '資料缺漏' : JSON.stringify(value, null, 2));
-    panel.append(box);
-  };
-  add(panel, 'p', typedNotice, 'draft-state');
-  add(panel, 'p', `內容版本：${version.id} · 第 ${version.version_number} 版`);
-  const report = version.first_result_payload;
-  const snapshot = report?.snapshot, preview = report?.preview, review = report?.review;
-  const complete = typedColumns.every(key => version[key] != null) &&
-    Object.keys(resultFields).every(key => typeof preview?.fields?.[key]?.suggested === 'string' &&
-      typeof preview.fields[key].original === 'string' && typeof review?.original_suggestions?.[key] === 'string' &&
-      typeof review?.edited?.[key] === 'boolean' && typeof review?.fact_checks?.[key] === 'boolean') &&
-    typeof snapshot?.html === 'string' && typeof snapshot?.content_base64 === 'string' &&
-    typeof snapshot?.content_fingerprint === 'string' && typeof snapshot?.version === 'string' &&
-    snapshot?.id && snapshot?.original_url && snapshot?.final_url && snapshot?.fetched_at &&
-    Array.isArray(snapshot?.citations) && snapshot.citations.length > 0 && report?.facts?.product_name &&
-    report?.facts?.description && Array.isArray(report?.facts?.features) &&
-    ['title','meta_description','use'].every(key => Object.hasOwn(report.facts, key)) &&
-    Array.isArray(report?.inferences) && Array.isArray(report?.missing) &&
-    review?.scope === 'page_only' && review?.persisted === false && typeof review?.content_digest === 'string' &&
-    Object.hasOwn(review, 'confirmation') && preview?.published === false &&
-    preview?.source_snapshot_id === snapshot?.id && preview?.source_version === snapshot?.version &&
-    review?.snapshot_id === snapshot?.id && review?.source_version === snapshot?.version &&
-    review?.original_url === snapshot?.original_url && review?.final_url === snapshot?.final_url &&
-    Number.isSafeInteger(review?.revision) && review.revision >= 0 &&
-    Number.isSafeInteger(version.first_result_expected_version) && version.first_result_expected_version + 1 === version.version_number &&
-    version.title === preview?.fields?.title?.suggested && version.draft_body === preview?.fields?.description?.suggested;
-  if (!complete) add(panel, 'p', 'Typed 資料不完整或版本對應不一致；僅顯示可讀資料，所有內容操作均已阻擋。', 'typed-incomplete');
-  add(panel, 'p', '來源是提交者提供的資料，未獨立驗證；下列本頁核對與確認紀錄不是 owner approval，也不是發布授權。');
-  for (const [key, label] of Object.entries(resultFields)) {
-    const field = preview?.fields?.[key];
-    add(panel, 'h5', label);
-    const value = add(panel, 'p', typeof field?.suggested === 'string' ? field.suggested : '資料缺漏', 'draft-body typed-current');
-    value.dataset.field = key;
-    add(panel, 'p', `修改狀態：${typeof review?.edited?.[key] === 'boolean' ? review.edited[key] ? '使用者修改；引用僅供原建議對照' : '原建議' : '資料缺漏'}`);
-    detail(`${label}：來源原文／原建議／引用與歷史核對`, {
-      original: field?.original, original_suggestion: review?.original_suggestions?.[key],
-      user_edited: field?.user_edited, edited: review?.edited?.[key],
-      citations: field?.citations, citation_role: field?.citation_role, historical_fact_check: review?.fact_checks?.[key],
-    });
-  }
-  detail('來源識別／來源 bytes 摘要（不同於內容摘要）', snapshot && {
-    id: snapshot.id, original_url: snapshot.original_url, final_url: snapshot.final_url,
-    fetched_at: snapshot.fetched_at, source_version: snapshot.version, source_digest: snapshot.content_fingerprint,
-  });
-  detail('內容修訂／內容摘要／歷史 page-only receipt（非 owner approval）', review);
-  detail('事實 facts（來源宣稱，未獨立驗證）', report?.facts);
-  detail('推論 inferences', report?.inferences);
-  detail('未知與待確認', {missing: report?.missing, pending_confirmation: preview?.pending_confirmation});
-  detail('來源引用 citations', snapshot?.citations);
-  detail('完整來源快照／抽取限制', {snapshot, extraction: report?.extraction});
-  detail('完整版本 payload 與請求識別（僅供查核，不代表驗證通過）', {
-    payload: report, request_id: version.first_result_request_id,
-    expected_version: version.first_result_expected_version, request_digest: version.first_result_request_digest,
-  });
-  return panel;
-}
 
 function typedVersion(version, current, history = null) {
   const wrapper = document.createElement('section'); wrapper.className = 'typed-version'; wrapper.dataset.versionId = version.id;
@@ -212,6 +148,16 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   const card = document.createElement('article');
   card.className = 'opportunity-card';
   card.dataset.opportunityId = item.id;
+  if (item.entry_kind === 'url_result') {
+    const title=document.createElement('h3');title.textContent='URL 成果 · 待專用審核 · 未發布';
+    const source=document.createElement('p');source.textContent=item.source_identity?.final_url || '來源識別缺漏';
+    card.append(title,source);
+    const cardState=state,cardEpoch=epoch,generation=renderGeneration;
+    const current=()=>card.isConnected&&state===cardState&&epoch===cardEpoch&&renderGeneration===generation;
+    for(const version of versions.toSorted((a,b)=>b.version_number-a.version_number)) card.append(typedVersion(version,current));
+    return card;
+  }
+  if (item.entry_kind && item.entry_kind !== 'legacy_opportunity') {card.textContent='項目類型未知；操作已阻擋。';return card;}
   const latestVersion = versions.reduce((latest, version) => !latest || version.version_number > latest.version_number ? version : latest, null);
   const typed = isTyped(latestVersion);
   const cardState = state, cardEpoch = epoch, generation = renderGeneration;
@@ -494,11 +440,13 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   return card;
 }
 
-async function refresh() {
+async function refresh({urlSaved=false}={}) {
+  if(!urlSaved)urlSave.refreshing();
   const current = epoch, generation = ++renderGeneration;
   const next = await api.dashboard();
   if (current !== epoch || generation !== renderGeneration) return false;
   state = next;
+  urlSave.update(next);
   const owner = next.role === 'owner';
   $('organization-name').textContent = next.organization.name;
   $('role-text').textContent = owner ? '企業擁有者 · 可管理資料與審核機會' : '檢視者 · 僅可閱讀';
@@ -544,6 +492,7 @@ async function acceptRedirect() {
     $('login-form').reset();
     $('sign-in').hidden = true;
     $('workspace').hidden = false;
+    urlSave.open(state);
     void observations.open(state.role);
     void goals.open(state.role);
     message('');
@@ -556,14 +505,15 @@ async function acceptRedirect() {
 void acceptRedirect();
 
 // A restored page must refresh before any retained card can mutate.
-window.addEventListener('pagehide', () => { epoch++; });
+window.addEventListener('pagehide', () => { epoch++; urlSave.close(); });
 window.addEventListener('pageshow', event => {
-  if (event.persisted && state) void refresh().catch(error => message(error.message, true));
+  if (event.persisted && state) void refresh().then(ok=>{if(ok)urlSave.open(state);}).catch(error => message(error.message, true));
 });
 
 $('sign-out').addEventListener('click', () => {
   epoch++;
   api.signOut();
+  urlSave.close();
   state = null;
   observations.close();
   goals.close();

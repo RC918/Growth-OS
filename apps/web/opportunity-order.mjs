@@ -1,6 +1,8 @@
 // Workflow readiness only. No traffic, revenue or predicted impact is inferred.
 export function orderOpportunities(opportunities, sources, decisions) {
   const ranked = opportunities.map(item => {
+    if (item.entry_kind === 'url_result') return {item,tier:2,reason:'URL 成果待專用審核；未發布'};
+    if (item.entry_kind && item.entry_kind !== 'legacy_opportunity') return {item,tier:0,reason:'項目類型未知'};
     const sourceCount = sources.filter(row => row.opportunity_id === item.id).length;
     const itemDecisions = decisions.filter(row => row.opportunity_id === item.id);
     const matchingDecision = itemDecisions.some(row => row.decision === item.status);

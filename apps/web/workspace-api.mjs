@@ -1,3 +1,4 @@
+import {validateReport,copyJSON,canonical} from './first-result-payload.mjs';
 const versionMetadata = ['first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 // Missing projection fields are unknown, never evidence that a row is legacy.
@@ -13,7 +14,7 @@ export function contentVersionKind(version) {
 const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
 
 // Isolated Staging client. An access token exists only in this page's memory.
-export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch }) {
+export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
@@ -71,10 +72,10 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const memberships = await select('organization_members', 'organization_id,role', {
         user_id: `eq.${user.id}`, limit: '2',
       });
-      if (memberships.length !== 1 || !['owner', 'viewer'].includes(memberships[0].role)) {
-        throw new Error('此測試版需要恰好一個 owner 或 viewer 工作區');
+      if (memberships.length !== 1 || !['owner', 'editor', 'viewer'].includes(memberships[0].role)) {
+        throw new Error('需要恰好一個既有工作區；沒有成員資格或多工作區時不能保存。不會自動建立帳號或工作區。');
       }
-      membership = memberships[0];
+      membership = Object.freeze(memberships[0]);
       return { ...membership };
     } catch (error) {
       token = null;
@@ -148,6 +149,31 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
         method:'POST',body:{p_organization_id:ownerOnly(),p_request_id:requestId,p_payload:payload},
       });
     },
+    context() { return membership; },
+    async saveUrlResult(intent) {
+      if (!urlSaveEnabled || !urlResultSchemaEnabled) throw new Error('URL 保存尚未開放');
+      const org=ownerOnly(), session=membership, frozen=copyJSON(intent);
+      if (frozen.organization_id!==org || !uuid(frozen.opportunity_id) || !uuid(frozen.request_id) ||
+          !Number.isSafeInteger(frozen.expected_version) || frozen.expected_version<0 || frozen.expected_version>2147483646) throw new Error('保存識別不完整');
+      await validateReport(frozen.payload);
+      if (membership!==session) throw new Error('工作區已變更');
+      const id=await request('/rest/v1/rpc/save_url_result_draft',{method:'POST',body:{p_organization_id:org,p_opportunity_id:frozen.opportunity_id,p_request_id:frozen.request_id,p_expected_version:frozen.expected_version,p_payload:frozen.payload}});
+      if (membership!==session || !uuid(id)) throw new Error('保存結果未知；只可查詢核對');
+      return id;
+    },
+    async reconcileUrlResult(input, versionId=null) {
+      const intent=copyJSON(input);
+      const org=activeOrg(),session=membership;
+      if (intent.organization_id!==org || !uuid(intent.request_id)) throw new Error('工作區已變更');
+      const rows=await select('content_versions',`organization_id,${versionColumns},first_result_payload`,{organization_id:`eq.${org}`,first_result_request_id:`eq.${intent.request_id}`,limit:'2'});
+      if(membership!==session) throw new Error('工作區已變更');
+      if(rows.length===0)return null;
+      const row=rows[0];
+      if(rows.length!==1 || row.organization_id!==org || (versionId && row.id!==versionId) || contentVersionKind(row)!=='typed' ||
+       row.opportunity_id!==intent.opportunity_id || row.first_result_request_id!==intent.request_id || row.first_result_expected_version!==intent.expected_version ||
+       canonical(row.first_result_payload)!==canonical(intent.payload) || row.title!==intent.payload.preview.fields.title.suggested || row.draft_body!==intent.payload.preview.fields.description.suggested) throw new Error('保存讀回不一致');
+      return row;
+    },
     async readContentVersion(version) {
       const org = activeOrg(), sessionMembership = membership, sessionToken = token;
       const expected = { ...version };
@@ -173,7 +199,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const [organizations, profiles, opportunities, sites, sources, decisions, versions, reviews, actionPlans] = await Promise.all([
         select('organizations', 'id,name,business_model', { id: `eq.${org}`, limit: '1' }),
         select('business_profiles', 'id,site_id,display_name,audience_summary,offering_summary,primary_outcome,target_market,review_status', { ...scope, limit: '1' }),
-        select('growth_opportunities', 'id,channel,audience_need,proposed_action,rationale,status,evidence_confidence,created_at', { ...scope, order: 'created_at.desc', limit: '30' }),
+        select('growth_opportunities', (urlResultSchemaEnabled ? 'id,entry_kind,source_identity,' : 'id,')+'channel,audience_need,proposed_action,rationale,status,evidence_confidence,created_at', { ...scope, order: 'created_at.desc', limit: '30' }),
         select('sites', 'id,origin,verified_at', { ...scope, limit: '30' }),
         select('opportunity_sources', 'opportunity_id,source_kind,source_url,evidence_note,observed_at', { ...scope, order: 'observed_at.desc', limit: '500' }),
         select('opportunity_decisions', 'opportunity_id,decision,reason,decided_at', { ...scope, order: 'decided_at.desc', limit: '500' }),
@@ -181,6 +207,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
         select('content_reviews', 'version_id,decision,reason,reviewed_at', { ...scope, order: 'reviewed_at.desc', limit: '500' }),
         select('content_action_plans', 'version_id,proposed_path,success_signal,rollback_plan,created_at', { ...scope, order: 'created_at.desc', limit: '500' }),
       ]);
+      if (urlResultSchemaEnabled && opportunities.some(item=>!['legacy_opportunity','url_result'].includes(item.entry_kind))) throw new Error('項目類型缺漏，請重新整理');
       if (organizations.length !== 1) throw new Error('找不到測試工作區');
       if ([sources, decisions, versions, reviews, actionPlans].some(rows => rows.length === 500)) throw new Error('證據、版本或執行方案筆數超過此測試版可完整顯示的上限');
       linkedSite = profiles[0]?.site_id || null;
