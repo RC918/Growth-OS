@@ -1,6 +1,6 @@
 // CANDIDATE ONLY; never copied into apps/web without separate approval.
 export const urlResultSchemaEnabled = true;
-export const urlSaveEnabled = true;
+export const urlSaveEnabled = false;
 export const urlSaveTrial = Object.freeze({
   "schema_version": 1,
   "purpose": "offline candidate; remote approval and absolute UTC window required",
