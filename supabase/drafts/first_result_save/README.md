@@ -1,4 +1,6 @@
-# 未部署 First Result draft append/readback SQL 草案
+# First Result 保存 SQL｜原草案與已部署停寫包
+
+最新狀態（2026-10-03 04:10 UTC，父提供）：Owner 單次批准後，父已套用 `first_result_closed_package`，migration `20261003040602`，總 migration 19；獨立 postflight 確認新入口停寫、測試 rows 0，原 13 goal history 與業務／ledger 不變。完整結果及證據範圍見 [CLOSED_PACKAGE.md](CLOSED_PACKAGE.md)。唯一 remote attempt 已用完，不重跑、不開 grant；沒有真 JWT／API 保存或跨 session 驗收。以下原 proposal 與候選製作紀錄保留為歷史，不能作新的操作授權。
 
 Owner 於 2026-10-03 01:36 UTC 同意 01:07:25 UTC 提出的「離線 SQL 草案與隔離資料庫測試」（父轉交 Sentinel_31935a6d21e481918051a7d23844ae9e）。只批准本地合成驗證，**不是遠端 migration／grants／真保存／Auth UI 啟用批准**。
 
@@ -97,8 +99,8 @@ native.mjs 保留原三個 typed/typed 案例，新增以下真多 backend asser
 
 本次只修正 native 控制期待值及不實 REPRODUCED FAIL 標籤，保留具體四欄斷言、chr(11) 比較及全部後續 native assertions。SQL 未改。上述失敗在控制處先中止，新的 legacy create/review deadlock／fixed overlap、三個 membership revoke 時序與最終資料保留斷言尚未到達；downstream browser／closed-gate 亦 skip，不能算 PASS。新提交須由 CI 完整跑到上述案例，再由父獨立讀 logs 驗收。
 
-## 停寫部署候選包（離線、尚未批准遠端）
+## 停寫部署候選包製作紀錄（後續部署見頁首）
 
 新增 [`closed-package.sql`](closed-package.sql) 與[精確說明／驗收／hosted 限制](CLOSED_PACKAGE.md)。單一 invoker DO 安裝原樣 schema/helpers/typed-review guard，內層 exception 子交易驗固定 fixture 後撤回臨時 grants／角色／claims／測試 rows，外層再核停寫與資料不變；沒有原 proposal 的永久 authenticated GRANT。它仍在 drafts，不會自動部署。PGlite 七組檢查 PASS；固定 PG17.6 本機缺 image，已接原 CI native 工具，待父讀新結果。原 proposal 與 disable_writes.sql 未改。
 
-父已確認 hosted apply_migration 沒有公開外層 transaction／schema-history 共同原子性保證；本包只把資料庫操作收束成一個 statement，不能承諾工具失敗全無殘留。任何未知先唯讀查 schema／ACL／資料／history，不重送、不刪 history。沒有遠端執行批准。
+父已確認 hosted apply_migration 沒有公開外層 transaction／schema-history 共同原子性保證；本包只把資料庫操作收束成一個 statement，不能承諾工具失敗全無殘留。任何未知先唯讀查 schema／ACL／資料／history，不重送、不刪 history。此為部署前的批准狀態；後續單次批准與已完成部署見頁首，並無剩餘遠端執行授權。

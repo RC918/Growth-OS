@@ -1,10 +1,22 @@
-# 停寫部署候選包（未批准遠端）
+# 停寫部署包｜已部署並保持停寫
 
-候選：[`closed-package.sql`](closed-package.sql)，只在 drafts，migration discovery 不會載入。本輪只離線製作／驗證；沒有呼叫 execute_sql、apply_migration、Data API、Auth、模型或商品抓取。不得用 execute_sql 繞過 hosted 的 DDL 路由要求。
+現況（2026-10-03 UTC）：父已依 Owner 單次批准部署 [`closed-package.sql`](closed-package.sql)，並完成獨立 SELECT-only postflight，保存入口保持停寫。檔案仍只在 drafts，migration discovery 不會載入；不搬檔、不建立另一 migration 或 reconcile 檔名。本次文件更新僅記錄父提供的結果，沒有再次連線、執行或重跑測試。不得用 execute_sql 繞過 hosted 的 DDL 路由要求。
 
 SQL SHA-256：`6a711df72cdf5bd5700f7148aa98b1982ca1209c5b5fe2fdf48a3a1288275beb`。
 
-原 proposal SHA-256：`c7ea292b44cbb038a6384fb178e9542905e99cd36db5e4a09ef3b23ccdb1d87d`；原檔未改。之後只有父審核此 SQL 與精確 hash、Owner 批准固定隔離專案 `vhzryhibmpvglzcmfnaa` 後，才可另議正式 migration。沒有目前執行批准。
+原 proposal SHA-256：`c7ea292b44cbb038a6384fb178e9542905e99cd36db5e4a09ef3b23ccdb1d87d`；原檔未改。Owner 的限定一次執行批准已由父使用完畢；沒有剩餘部署／開 grant／登入／真保存授權。
+
+
+## 2026-10-03 遠端部署與獨立 postflight（父提供）
+
+Owner 04:01:01 明確同意 03:32 的限定一次 closed deployment 問題，批准識別 `Sentinel_ae3797f439c081918dec7fa3929e6d89`。父於 04:05–04:06 對隔離專案 `vhzryhibmpvglzcmfnaa` 只呼叫一次 apply_migration，name=`first_result_closed_package`，使用 `a150bebbe549f862c41dd93a16ea72cd4a74e626` 的本檔 SQL，tool 回 `success:true`。以下為父 04:10 的獨立 SELECT-only postflight，不是本 agent 新查詢：
+
+- 總 migration 紀錄 **18→19**；新增 `20261003040602 first_result_closed_package`。持久記錄的 statement 為 **52,447 bytes**，完整內容／SHA-256 與上述 SQL 相符。**19 是總 migration 數；13 是原 goal history 的 row 數**，兩者不可混稱。
+- 15 個新函式 body／signature／flags 精確符合包：owner=`postgres`、empty search_path；這 15 個之中只有 private save impl 是 SECURITY DEFINER。全部新函式對 PUBLIC／anon／authenticated／service_role 有效 EXECUTE 均為 false，且沒有 non-owner grantee。
+- 四個欄位、約束與既有 typed-review guard 正確。24 個 relation/subset 的 count＋SHA 全部相同；20 張業務表合計 87 rows、audit 30 rows、原 goal 13 history、ledger 與 2 筆 settled attempts 不變。Typed rows、first-result audit、測試 request IDs 的持久 rows 都為 0。
+- 既有 3 個 ancillary functions 與 review 另有獨立前後快照比對。其餘既有 functions 與 PostgreSQL role membership 的保留，是由精確 package 內 security assertions＋apply success 支持；**不宣稱這些都有完整的獨立外部快照**。
+
+此結果驗收 schema 已追蹤部署、入口保持停寫與測試資料無殘留；沒有真 JWT／Data API／登入／Save／跨 session 驗收。唯一 remote attempt 已用完；30 分鐘窗口不是額外次數或操作批准，不重跑、不開 grant。Hosted schema＋history 的通用原子性契約仍未知；這一次成功對帳不能推廣成所有失敗都會共同回滾。
 
 ## 相對 proposal 的精確差異
 
@@ -17,7 +29,7 @@ SQL SHA-256：`6a711df72cdf5bd5700f7148aa98b1982ca1209c5b5fe2fdf48a3a1288275beb`
 
 成功留下的變更只有四欄、org/request UNIQUE（含其索引）、新 typed/legacy CHECK、15 個新函式（13 helper＋兩保存入口）、既有 review guard。兩新入口與 helpers 對 PUBLIC／anon／authenticated／service_role 都不開放；ACL 也拒絕任何非函式 owner 的額外 EXECUTE grantee。對三個 client roles 另用 has_function_privilege 核對有效權限，包含繼承；管理者仍保有管理能力，不能把停寫說成管理者也不能修改資料。
 
-## 固定 fixture 與 preflight
+## 部署前固定 fixture 與 preflight（歷史基準）
 
 父提供的唯讀遠端資料（本輪未重新連線）：PG17.6、20 public 業務表 RLS、18 migration 紀錄（13 business＋5 probe/trial）、原 goal 13 turns/max v13，legacy 定義符合 repo，沒有 proposal 碰名或相關 trigger/sequence/rewrite。
 
@@ -35,7 +47,7 @@ SQL SHA-256：`6a711df72cdf5bd5700f7148aa98b1982ca1209c5b5fe2fdf48a3a1288275beb`
 
 測試預期峰值為 1 version＋1 audit；其他業務列新增 0。任何非預期接受／額外列使整句失敗。成功持久測試 rows 全部為 0；不重跑遠端 deadlock、撤銷會員或故障注入。
 
-## 最小離線證據
+## 製作時的離線證據（歷史紀錄）
 
 `node --test supabase/drafts/first_result_save/closed-package.test.mjs`：PGlite PASS，Node 1 test，內含七組檢查：
 
@@ -51,7 +63,7 @@ SQL SHA-256：`6a711df72cdf5bd5700f7148aa98b1982ca1209c5b5fe2fdf48a3a1288275beb`
 
 `native.mjs` 在既有固定 PG17.6、--pull=never、--network=none 容器另開一次性 DB，跑完全相同候選與上述檢查，再跑原 native suite。roles 是 cluster-wide，後續原 DB bootstrap 重用同容器既有三角色。原生 runner 以 psql autocommit 執行單一 DO；沒有要求額外外層 BEGIN 才能成功。新增的本地測試角色／fixture 只在可丟棄容器，不進候選包。
 
-本機 syntax PASS；原生實跑因缺固定映像在啟動前 BLOCKED／exit 2，未 pull／啟動容器。本輪只有 PGlite 實跑證據，PG17.6 的新證據待新 SHA CI 與父獨立讀 logs。既有 PG17 過關不代替此包已過關。CI 已在原 SQL 步驟加入新 PGlite test，沿原 native step 驗 PG17。
+製作時本機 syntax PASS；原生實跑因缺固定映像在啟動前 BLOCKED／exit 2，未 pull／啟動容器。當時只有 PGlite 本機實跑證據，新 PG17.6 CI 待父獨立核對；此為當時記錄，不代表目前仍未部署。CI 已在原 SQL 步驟加入新 PGlite test，沿原 native step 驗 PG17。本次文件更新不重跑實作測試，也不補造未提供的 CI 編號／結果。
 
 ## Hosted 工具限制與停止規則
 
@@ -59,8 +71,8 @@ SQL SHA-256：`6a711df72cdf5bd5700f7148aa98b1982ca1209c5b5fe2fdf48a3a1288275beb`
 
 本包的 PostgreSQL statement 原子性與子交易回滾可離線驗證；**hosted schema＋migration-history 原子性仍未知**。即使單 DO 全部成功，history 記錄也可能失敗或回覆遺失；不能承諾 hosted 失敗必然無 schema 殘留。不得以本地 history 模型替代這個未知。
 
-未來遠端申請只允許固定隔離專案的一次正式 migration，預期 history 18→19、原 18 不變，保存入口永久保持停寫；這仍需 Owner 明確批准。父須事先記錄獨立唯讀基準，避免包內僅有不回傳的斷言成為唯一證據。
+原申請的一次正式 migration 已由父完成，獨立前後讀回結果見上節；總 migration 現為 19，保存入口保持停寫。這份批准不可重用，不能以本文件的歷史候選流程繼續遠端操作。
 
-不論 tool success／error／timeout，後續先以批准的唯讀路徑核對候選 schema／函式 body／owner／有效 ACL、原 20 表完整投影、13 history/audit、ledger、固定 request 無 rows、原 parent 0 versions，以及唯一預期 migration 紀錄。若 schema 與 history 不一致、部分狀態未知或對帳不同，停止回報，不重送、不改名再套、不刪 history／欄位或補 grants；後續修復另審。非預期 active grant 必須作失敗回報，不能把此候選當事後清理授權。
+原停止規則保留：若任何另行批准的操作有 error／timeout 或結果未知，先以獲准的唯讀路徑核對 schema／ACL／資料／history；本次獨立 postflight 已完成，不再重跑。若 schema 與 history 不一致、部分狀態未知或對帳不同，停止回報，不重送、不改名再套、不刪 history／欄位或補 grants；後續修復另審。非預期 active grant 必須作失敗回報，不能把此候選當事後清理授權。
 
 不包含真 JWT／API／瀏覽器登入／跨 session 讀回／URL mapping／新 Save 接線。遠端 SELECT 未改，停寫狀態下不能宣稱產品保存／恢復完成。

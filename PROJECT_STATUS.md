@@ -1,6 +1,6 @@
 # Growth OS｜專案進度
 
-更新：2026-10-02（台北）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
+更新：2026-10-03（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
 
 ## 產品方向
 
@@ -94,10 +94,21 @@ Typed UI 父審查 P2 修正：`1964f6e` 的 push 37089871698／PR 37089874941�
 
 父已獨立接受 `95a2e679a5078117011bcbfe4c1d2eb8f0665b83`：push 37090367455／PR 37090371967 各 39 steps success、無 skip；10 API/mirror、typed 1280/390 normal/newer/missing/late UUID 四案、零 typed mutation 及既有 full suite 通過，Preview `HjobjeH4qHVULe1JWNv8enHzKViY` Ready。只接受離線 renderer 相容性，remote SELECT 未變。
 
-## 2026-10-03 單句停寫部署候選（未遠端執行）
+## 2026-10-03 單句停寫部署候選製作（當時未遠端執行）
 
 依父已提供的唯讀 fixture／工具契約，新增 drafts 中的單一 invoker DO [候選包與完整限制](supabase/drafts/first_result_save/CLOSED_PACKAGE.md)。保留已驗 proposal 的 DDL/function bodies，只移除原交易包裝及兩行永久 authenticated GRANT；內層 exception 子交易暫授保存、固定身份與 parent 驗 1 version/1 audit、重送／拒絕／完整讀回，成功 marker 才回滾測試與 grants，外層核有效停寫／原資料後正常完成。無新 store/UI/Auth/API/刪除資料路徑，沒有 migration discovery 接線。
 
 PGlite Node 1 test／七組檢查 PASS：固定 actor 拒絕、authenticated 下與完成測試後真正非 marker failure、過早 marker、內層回滾後最終 failure、繼承 EXECUTE 洩漏拒絕，以及成功安裝保持停寫。原 20 表投影（含 legacy draft/review）、13 history/audit、非零 ledger/attempts 與 caller role/claims 保留；測試 rows 持久 0。native 語法 PASS；PG17.6 本機缺固定映像，啟動前 BLOCKED/exit 2，未下載。新包已接既有 PG17.6 CI runner，尚待父讀新 SHA logs。
 
 hosted applyMigration 僅 POST name/query 並回 success，不提供已證實的 schema＋migration-history 原子性；本包不聲稱解決此未知。未来需父獨立審 hash＋Owner 批准一次正式隔離 migration，預期 history 18→19；未知結果先查不重送，不刪 history／資料。未連遠端、未讀 secret、未登入、未部署或觸發模型／商品請求。
+
+
+## 2026-10-03 04:10 UTC 停寫部署完成（父提供）
+
+Owner 04:01:01 批准 03:32 提案的限定一次 remote closed deployment（`Sentinel_ae3797f439c081918dec7fa3929e6d89`）。父於 04:05–04:06 只 apply_migration 一次：project=`vhzryhibmpvglzcmfnaa`、name=`first_result_closed_package`，使用 `a150bebbe549f862c41dd93a16ea72cd4a74e626` 的 SQL，SHA-256 `6a711df72cdf5bd5700f7148aa98b1982ca1209c5b5fe2fdf48a3a1288275beb`；tool success:true。
+
+父 04:10 獨立 SELECT-only postflight PASS：總 migration 18→19，新增 `20261003040602 first_result_closed_package`，持久 statement 52,447 bytes／hash 精確相符。15 新函式 body/signature/flags、postgres owner、empty search_path、僅 private save impl 為新 definer 均吻合；PUBLIC/anon/authenticated/service_role 有效 EXECUTE 全 false、無 non-owner grantee。四欄／約束／typed-review guard 正確；24 relation/subset count＋SHA 不變，20 業務表共 87 rows、audit 30 rows、原 goal 13 history、ledger 與 2 settled attempts 保留。Typed rows／first-result audit／測試 request IDs 持久 0。**19 是 migration 總數，13 是 goal history 筆數。**
+
+既有 3 ancillary functions 與 review 有獨立快照比對；其餘既有 functions／PG role membership 由 exact package 內 security assertions＋apply success 支持，沒有誇稱全數都有獨立外部快照。詳見 [停寫部署紀錄](supabase/drafts/first_result_save/CLOSED_PACKAGE.md)。
+
+唯一 remote attempt 已用完，30 分鐘窗口不是額外授權；不重跑 migration、不開 grant、不 reconcile 本地 migration filenames。沒有真 JWT/API/login/Save/跨 session 驗收，remote SELECT 仍未改。此次 agent 只記錄父的結果，未連遠端或重跑實作測試。後續 schema＋history 一般原子性仍不能由本次成功推定。

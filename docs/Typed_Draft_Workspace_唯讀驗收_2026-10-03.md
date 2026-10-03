@@ -25,7 +25,7 @@ Typed 一律「待專用審核／未發布」；page-only receipt 不是 owner a
 
 **遠端 SELECT 完全不改。** 現行 SELECT 沒有 typed 辨識與 payload；測試刻意提供超出 SELECT 的合成 typed 欄位，以驗證實際 renderer，而不是宣稱遠端已能恢復 typed 草稿。沒有 production fixture 開關、新 demo、store、adapter、Save、RPC 或 Auth 接線；未要求未部署欄位，也未擴大成 500 份 payload 查詢。
 
-在真實 schema／read contract 尚未接線前，缺少所有辨識欄位的 typed row 無法由 UI 與 legacy 區分；此切片不解決這個傳輸缺口。未來須在明確遠端批准下處理 schema 相容、精簡版本清單辨識、按需精確 org＋version 讀回、真 JWT/RLS 與完整保存／恢復驗收。SQL 仍未部署，UI 保護不代替服務端權限。
+在真實 schema／read contract 尚未接線前，缺少所有辨識欄位的 typed row 無法由 UI 與 legacy 區分；此切片不解決這個傳輸缺口。未來須在明確遠端批准下處理 schema 相容、精簡版本清單辨識、按需精確 org＋version 讀回、真 JWT/RLS 與完整保存／恢復驗收。此切片完成時 SQL 尚未部署；後續停寫部署結果見文末，UI 保護始終不代替服務端權限。
 
 URL → First Useful Result → Review → Publish → Measure 不變；不新增 Profile onboarding 門檻，不放行完整 M3 或發布／量測。
 
@@ -44,3 +44,10 @@ URL → First Useful Result → Review → Publish → Measure 不變；不新�
 修正後本地 1280／390px E2E 全部 PASS，包括每 viewport 四個 UUID 歸屬案例；每 viewport 現為六個合成 legacy mutation（review 1、create 4、plan 1），typed 仍為零，取代前段三次 mutation 的舊計數。正常成功 badge 僅出現在回傳 v2；v3／缺 v2 中性提示、晚回覆無 badge。完整既有 typed 驗收保留，API／mirror 10 tests PASS；證據 `/tmp/typed-uuid-after.log`。新 SHA 的 CI／Preview 仍待父獨立驗收。
 
 遠端 SELECT／API／Auth／RPC 與 CSS 未改，無遠端 DB／登入／產品請求。仍僅合成 renderer 相容性，不放行真保存或恢復。
+
+
+## 後續停寫 schema 部署（不等於真讀回）
+
+父提供 2026-10-03 04:10 UTC 的獨立 postflight：Owner 04:01:01 單次批准後，父以 a150beb 的精確 closed SQL 部署 `20261003040602 first_result_closed_package`；總 migration 18→19，原 goal history 仍為 13 筆。15 新函式、四欄／約束／typed review guard 正確，新保存入口及 helpers 的 client EXECUTE 均關閉，typed rows／first-result audit／測試 request IDs 持久 0；業務／ledger 前後不變。完整授權、52,447-byte statement hash 及獨立快照／包內 assertions 的證據區分見 [停寫部署紀錄](../supabase/drafts/first_result_save/CLOSED_PACKAGE.md)。
+
+既有 dashboard 的 SELECT 仍沒有 typed 辨識欄位／按需 payload，因此 renderer 的合成驗收不能當成真 Data API 或跨 session 恢復通過。部署批准僅一次且已用完；未批准開 grant、登入或真 Save。本次只補文件，不重新測試、不連遠端、不實作下一讀取切片。
