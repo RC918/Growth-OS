@@ -22,7 +22,7 @@ try{
    if(u.origin!=='https://vhzryhibmpvglzcmfnaa.supabase.co'){unexpected.push(req.url());return route.abort();}
    if(req.method()!=='GET'){posts.push(u.pathname);return route.abort();}
    const respond=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)}),table=u.pathname.split('/').at(-1);
-   if(table==='user')return respond({id:'synthetic-'+role});
+   if(table==='user')return respond({id:role==='owner'?'10000000-0000-4000-8000-000000000003':'10000000-0000-4000-8000-000000000005'});
    if(table==='organization_members')return respond([{organization_id:activeOrg,role}]);
    if(table==='organizations')return respond([{id:activeOrg,name:'Synthetic restored Review'}]);
    if(table==='growth_opportunities')return respond([{id:parent,entry_kind:'url_result',source_identity:{final_url:payload.snapshot.final_url},status:'in_review'}]);
@@ -43,7 +43,9 @@ try{
   assert.equal(await page.locator('textarea[data-field="title"]').inputValue(),row.title);assert.match(await page.locator('.resume-status').innerText(),/待重新確認.*未保存.*未發布/);
   assert.ok((await page.locator('.resume-editor').innerText()).includes(payload.review.original_suggestions.title));
   await page.locator('textarea[data-field="title"]').fill('Owner continued title');await checkAll();await page.locator('.resume-confirm').click();await page.locator('.resume-status').filter({hasText:'本頁已確認'}).waitFor();
-  await page.locator('textarea[data-field="description"]').fill('Changed again');assert.match(await page.locator('.resume-status').innerText(),/待重新確認/);
+  await page.locator('.resume-prepare').click();await page.locator('.resume-intent').waitFor({state:'visible'});
+  const intent=JSON.parse(await page.locator('.resume-intent-json').textContent());assert.equal(intent.binding.base_version_id,row.id);assert.equal(intent.request.expected_version,1);assert.equal(intent.request.organization_id,org);assert.equal(intent.request.opportunity_id,parent);assert.equal(intent.request.payload.preview.fields.title.suggested,'Owner continued title');assert.deepEqual(intent.request.payload.snapshot,payload.snapshot);assert.deepEqual(intent.request.payload.review.original_suggestions,payload.review.original_suggestions);assert.equal(intent.authority.persisted,false);assert.equal(intent.authority.owner_approved,false);assert.match(intent.intent_digest,/^sha256:/);assert.equal(await page.locator('.resume-prepare').isDisabled(),true);
+  await page.locator('textarea[data-field="description"]').fill('Changed again');assert.equal(await page.locator('.resume-intent').isVisible(),false);assert.match(await page.locator('.resume-status').innerText(),/待重新確認/);
   await page.locator('.resume-cancel').click();assert.equal(await page.locator('.resume-editor textarea').count(),0);assert.match(await page.locator('.resume-status').innerText(),/原已保存版本未變/);assert.equal(await page.locator('.typed-current[data-field="title"]').textContent(),row.title);
   await start();assert.equal(await page.locator('textarea[data-field="title"]').inputValue(),row.title);
   latest={...row,id:'50000000-0000-4000-8000-000000000002',version_number:2};await checkAll();await page.locator('.resume-confirm').click();await page.locator('.resume-status').filter({hasText:'續編已失效'}).waitFor();assert.equal(await page.locator('.resume-editor textarea').count(),0);
@@ -51,10 +53,12 @@ try{
   detail=structuredClone(row);await start();await checkAll();
   detail.first_result_payload.snapshot.fetched_at='2026-10-03T01:00:00Z';await page.locator('.resume-confirm').click();await page.locator('.resume-status').filter({hasText:'已保存來源或內容已變更'}).waitFor();assert.equal(await page.locator('.resume-editor textarea').count(),0);
   detail=structuredClone(row);await start();await checkAll();hold=true;release=null;await page.locator('.resume-confirm').click();await wait(()=>release);await page.locator('.resume-cancel').click();hold=false;release();await page.waitForTimeout(100);assert.match(await page.locator('.resume-status').innerText(),/已取消續編/);assert.equal(await page.locator('.resume-editor textarea').count(),0);
+  await start();await page.locator('textarea[data-field="title"]').fill('Intent cancelled');await checkAll();await page.locator('.resume-confirm').click();await page.locator('.resume-status').filter({hasText:'本頁已確認'}).waitFor();
+  hold=true;release=null;await page.locator('.resume-prepare').click();await wait(()=>release);await page.locator('.resume-cancel').click();hold=false;release();await page.waitForTimeout(100);assert.equal(await page.locator('.resume-intent-json').count(),0);assert.match(await page.locator('.resume-status').innerText(),/已取消續編/);
   hold=true;release=null;await page.locator('.resume-review').click();await wait(()=>release);await page.locator('#sign-out').click();hold=false;release();await page.waitForTimeout(100);assert.equal(await page.locator('.resume-editor textarea').count(),0);
   role='viewer';await login();await expand();assert.equal(await page.locator('.resume-review').count(),0);
   role='owner';activeOrg='10000000-0000-4000-8000-000000000002';await login();await page.locator('.typed-loader > summary').click();await page.locator('.typed-read-feedback').filter({hasText:'版本資料與列表不一致'}).waitFor();assert.equal(await page.locator('.resume-review').count(),0);
   assert.equal(JSON.stringify(payload),snapshot);assert.ok(reads>0);assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
-  console.log(`PASS ${width}px stored version → resume/check/cancel; preserved originals/payload, version/tenant/viewer denial, late confirmation/cancel/logout, zero POST`);await context.close();
+  console.log(`PASS ${width}px stored version → resume/check/new-version intent/cancel; base UUID/expected version, preserved source/originals, drift denial, cancelled late intent, zero POST`);await context.close();
  }
 }finally{if(browser)await browser.close();server.kill();}

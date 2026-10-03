@@ -24,7 +24,8 @@ export function savedResultReview({api,version,isCurrent}){
   finally{if(active(operation)){pending=false;start.disabled=false;}}
  }
  function render(){
-  editor.replaceChildren();const own=review;
+  editor.replaceChildren();const own=review;let prepared=null;
+  const intentView=document.createElement('details');intentView.className='resume-intent';intentView.hidden=true;
   const fields=document.createElement('div');const inputs=new Map(),checks=new Map(),origins=new Map();
   for(const key of reviewFields){
    const label=document.createElement('label');label.textContent=labels[key];
@@ -32,10 +33,12 @@ export function savedResultReview({api,version,isCurrent}){
    const origin=document.createElement('p');origin.style.overflowWrap='anywhere';
    const checkLabel=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.dataset.check=key;checkLabel.append(check,document.createTextNode('已核對 '+labels[key]+' 目前內容及相關事實'));
    fields.append(label,origin,checkLabel);inputs.set(key,input);checks.set(key,check);origins.set(key,origin);
-   input.addEventListener('input',()=>{if(!current()){clear();return;}own.edit(key,input.value);paint();});
-   check.addEventListener('change',()=>{if(!current()){clear();return;}own.check(key,check.checked);paint();});
+   input.addEventListener('input',()=>{if(!current()){clear();return;}own.edit(key,input.value);invalidateIntent();paint();});
+   check.addEventListener('change',()=>{if(!current()){clear();return;}own.check(key,check.checked);invalidateIntent();paint();});
   }
   const confirm=document.createElement('button');confirm.type='button';confirm.className='resume-confirm';confirm.textContent='確認本頁修改（未保存）';
+  const prepare=document.createElement('button');prepare.type='button';prepare.className='resume-prepare';prepare.textContent='準備新版本保存意圖（不送出）';
+  function invalidateIntent(){prepared=null;intentView.replaceChildren();intentView.hidden=true;}
   const cancelButton=document.createElement('button');cancelButton.type='button';cancelButton.className='resume-cancel';cancelButton.textContent='取消續編，返回已保存版本';cancelButton.addEventListener('click',cancel);
   function paint(){
    const view=own.view();
@@ -43,6 +46,7 @@ export function savedResultReview({api,version,isCurrent}){
    status.style.overflowWrap='anywhere';
    for(const key of reviewFields){checks.get(key).checked=view.fact_checks[key];origins.get(key).textContent=`原建議：${view.original_suggestions[key]}；${view.edited[key]?'使用者修改，引用僅供原建議對照':'原建議文字'}`;}
    confirm.disabled=pending||!view.canConfirm||!!view.receipt;
+   prepare.disabled=pending||!view.receipt||!!prepared;
   }
   confirm.addEventListener('click',async()=>{
    if(!current()||pending||review!==own)return;
@@ -58,7 +62,22 @@ export function savedResultReview({api,version,isCurrent}){
     if(active(operation)){clear();status.textContent=`續編已失效：${error.message}；原已保存版本未變。`;}
    }finally{if(active(operation)&&review===own){pending=false;paint();}}
   });
-  editor.append(fields,confirm,cancelButton);pending=false;paint();
+  prepare.addEventListener('click',async()=>{
+   if(!current()||pending||!own.view().receipt||prepared)return;
+   pending=true;paint();const operation=++ticket,reviewToken=own.view().token;
+   const live=()=>active(operation)&&review===own&&own.view().token===reviewToken;
+   try{
+    const exported=await own.export();if(!live())return;
+    const intent=await api.prepareUrlRevisionIntent(JSON.parse(base),exported,{isCurrent:live});
+    if(!live())return;
+    prepared=intent;
+    const summary=document.createElement('summary');summary.textContent=`第 ${intent.request.expected_version+1} 版保存意圖已備妥 · 尚未送出／未保存／未發布`;
+    const detail=document.createElement('pre');detail.className='resume-intent-json';detail.style.whiteSpace='pre-wrap';detail.style.overflowWrap='anywhere';detail.textContent=JSON.stringify(intent,null,2);
+    intentView.replaceChildren(summary,detail);intentView.hidden=false;
+   }catch(error){if(active(operation)){clear();status.textContent=`保存意圖未建立：${error.message}；原已保存版本未變。`;}}
+   finally{if(active(operation)&&review===own){pending=false;paint();}}
+  });
+  editor.append(fields,confirm,prepare,cancelButton,intentView);pending=false;paint();
  }
  start.addEventListener('click',()=>void open());
  return root;

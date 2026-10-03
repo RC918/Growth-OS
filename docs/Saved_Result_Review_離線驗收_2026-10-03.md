@@ -19,3 +19,20 @@
 - 新 unit／E2E 已接既有 `.github/workflows/python-tests.yml`。logs：`/tmp/resume-all-unit.log`、`/tmp/resume-ui.log`、`/tmp/resume-typed.log`、`/tmp/resume-url.log`。
 
 兩份 runtime config 保留 reviewed closed SHA256 `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`。SQL、frozen payload 與已驗遠端 1 parent／1 version／1 audit 未改；沒有新 login、Save、reopen 或 lease 延展。僅交付這個 offline Core，後續分配由父確認。
+
+
+## 後續：確認續編 → 新版本保存意圖（尚未送出）
+
+上一切片 `2db5c0b0395b988abd0f3e65d51d8e3e25e993f0` 已由父提供 Reviewer `01a10352` APPROVE、CI `37149280839` success、Preview `6LAs5AnjEuyGxqqWfNbNoKMDiUpc` success。本段為其後獲分配的新 offline Core，取代開頭對上一切片「待審」的歷史狀態；本段的新 HEAD 仍待獨立 CI／Reviewer。
+
+- 同一續編 editor 在本頁確認後提供「準備新版本保存意圖（不送出）」。展示預計版本及可展開的完整意圖，全部文字明示未送出／未保存／未發布。沒有連到 Save handler。
+- `prepareUrlRevisionIntent` 重新核對同一 signed Auth user、恰好一筆 Owner membership、org、URL parent、最新 scalar metadata、指定 base UUID 的完整 payload。意圖使用現有 URL Save 的 `organization_id/opportunity_id/request_id/expected_version/payload`；expected version 是已存基準版本，每次準備操作產生新 UUID request，已備妥時不重複產生；失效操作不回傳候選。
+- 附加 binding 是重新核對的 actor、base version UUID 與原 DB request digest。`intent_digest` 是此 binding＋request 的本地 canonical SHA256，不冒充 server 的 `pg-jsonb-sha256` request digest；DB fingerprint 仍由既有 SQL 計算。
+- 只容許三欄續編值／修改歸因與新 revision、核對／confirmation 更新。來源 snapshot、facts、citations、原建議等其他欄位須與 base 完全一致；舊 confirmation、未修改內容、malformed 或已變更 base 都拒絕。回傳 deep-frozen candidate，不修改 base。
+- 修改／核對改變清除舊意圖，取消丟棄意圖；取消、logout、替換 session、晚回覆及 async 修改不能發布舊候選。重複按鈕在處理中或已備妥時停用。既有 Save 關閉仍拒絕直接提交其 request；意圖各 authority 旗標 false。
+
+驗證：27 API／marker／mirror tests PASS（含錯 actor/org/UUID/version/source、malformed、cancel/logout/replacement-session late result、closed Save 拒絕）；`saved-result-review.e2e.mjs` 1280/390px 真 DOM 組裝續編→確認→新版本 intent／修改清除／取消與 late intent，synthetic transport 零 POST。logs `/tmp/revision-intent-api.log`、`/tmp/revision-intent-ui.log`。
+
+既有 `supabase/drafts/url_result/offline.test.mjs` 的 isolated PGlite 10 tests PASS；新增測試把組裝 API 產生的 request 明確交給既有 SQL 函式，證明 v2 append／同 request 冪等、v1 不變、stale expected version 拒絕及 1/2/2 預算；沒有新增或修改 SQL 檔、函式、bound artifact。API 轉接層使用 HTTP 等價 JSON roundtrip，與原生 DB Date 物件區分；log `/tmp/revision-intent-sql.log`。所有 grants／測試寫入僅在既有 disposable DB 測試範圍，未操作遠端。
+
+本次仍保持兩份 closed config 原 bytes，以及全部部署 SQL／frozen payload／遠端 fixed-case 1/1/1。持久化新版本的 runtime dispatch、live acceptance 均未開放；不宣稱永久跨 session 鎖定或完整 M3 完成。

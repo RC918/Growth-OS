@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
 import {readFile,readdir} from 'node:fs/promises';
+import {createWorkspaceApi} from '../../../apps/web/workspace-api.mjs';
+import {restoreResultReview,reviewFields} from '../../../apps/web/first-result-review.mjs';
 import {fixtures,ids,parent,request,bootstrapSQL,seedSQL} from '../first_result_save/fixtures.mjs';
 
 test('URL result offline SQL: real constraints/RPC/RLS, synthetic Auth',async t=>{
@@ -37,6 +39,31 @@ test('URL result offline SQL: real constraints/RPC/RLS, synthetic Auth',async t=
    for(const a of audits){assert.equal(a.details.approval,'none');assert.equal(a.details.provenance,'caller_supplied_unverified');}
    assert.equal(await scalar('select count(*)::int from public.business_profiles'),0);
    assert.equal(await scalar('select count(*)::int from public.opportunity_sources'),5);assert.equal(await scalar('select count(*)::int from public.opportunity_decisions'),5);
+  }));
+  await t.test('assembled continuation intent appends using existing SQL, preserves v1 and rejects stale base',()=>tx(async()=>{
+   await auth();const first=await save();const original=(await q('select * from public.content_versions where id=$1',[first])).rows[0];
+   const calls=[];
+   const api=createWorkspaceApi({origin:'https://synthetic.supabase.co',key:'sb_publishable_synthetic',redirectOrigin:'https://offline.invalid',urlResultSchemaEnabled:true,urlSaveEnabled:false,fetchImpl:async(url,options)=>{
+    calls.push(options.method);assert.equal(options.method,'GET');const u=new URL(url);let rows;
+    if(u.pathname.endsWith('/user'))return {ok:true,json:async()=>({id:ids.owner})};
+    const table=u.pathname.split('/').at(-1),columns=u.searchParams.get('select');assert.ok(['organization_members','growth_opportunities','content_versions'].includes(table));assert.match(columns,/^[a-z_,]+$/);
+    const args=[],where=[];for(const [key,value]of u.searchParams)if(!['select','order','limit'].includes(key)){assert.match(key,/^[a-z_]+$/);assert.ok(value.startsWith('eq.'));args.push(value.slice(3));where.push(`${key}=$${args.length}`);}
+    let sql=`select ${columns} from public.${table} where ${where.join(' and ')}`;
+    if(u.searchParams.has('order')){assert.equal(u.searchParams.get('order'),'version_number.desc');sql+=' order by version_number desc';}
+    const limit=Number(u.searchParams.get('limit'));assert.ok([1,2].includes(limit));sql+=' limit '+limit;rows=(await q(sql,args)).rows;
+    return {ok:true,json:async()=>JSON.parse(JSON.stringify(rows))};
+   }});
+   await api.completeMagicLink('#access_token=synthetic&token_type=bearer&expires_in=3600');const base=await api.readReviewBase(JSON.parse(JSON.stringify(original)));
+   const review=await restoreResultReview(base.first_result_payload);review.edit('title','Continued SQL-compatible revision');for(const key of reviewFields)review.check(key,true);await review.confirm();
+   const intent=await api.prepareUrlRevisionIntent(base,await review.export(),{isCurrent:()=>true}),r=intent.request;
+   assert.equal(intent.binding.base_version_id,first);assert.equal(r.expected_version,1);assert.equal(intent.authority.persisted,false);
+   // Explicit disposable-DB test invocation, never browser dispatch or deployed grant.
+   const second=await save(r.opportunity_id,r.request_id,r.expected_version,r.payload,r.organization_id);assert.notEqual(second,first);assert.equal(await save(r.opportunity_id,r.request_id,r.expected_version,r.payload,r.organization_id),second);
+   assert.deepEqual((await q('select * from public.content_versions where id=$1',[first])).rows[0],original);
+   const appended=(await q('select * from public.content_versions where id=$1',[second])).rows[0];assert.deepEqual(appended.first_result_payload,r.payload);assert.equal(appended.version_number,2);assert.match(appended.first_result_request_digest,/^pg-jsonb-sha256:/);assert.notEqual(appended.first_result_request_digest,intent.intent_digest);
+   await assert.rejects(api.prepareUrlRevisionIntent(base,r.payload,{isCurrent:()=>true}),/不同版本/);
+   await reject(()=>save(r.opportunity_id,request(29),1,r.payload,r.organization_id),['PT409']);
+   await db.exec('reset role');assert.equal(await scalar("select count(*)::int from public.growth_opportunities where entry_kind='url_result'"),1);assert.equal(await scalar('select count(*)::int from public.content_versions'),2);assert.equal(await scalar("select count(*)::int from public.audit_events where event_type='url_result_draft_saved'"),2);assert.ok(calls.every(method=>method==='GET'));
   }));
   await t.test('role/tenant/membership rejection and member-only RLS',()=>tx(async()=>{
    await auth();const id=await save();

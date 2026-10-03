@@ -1,5 +1,5 @@
 import {contentDigest} from './first-result-review.mjs';
-import {validateReport,copyJSON,canonical} from './first-result-payload.mjs';
+import {validateReport,copyJSON,canonical,freeze} from './first-result-payload.mjs';
 const versionMetadata = ['first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 // Missing projection fields are unknown, never evidence that a row is legacy.
@@ -250,6 +250,35 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       current();
       if(row.title!==row.first_result_payload.preview.fields.title.suggested || row.draft_body!==row.first_result_payload.preview.fields.description.suggested)throw new Error('成果內容與版本不一致');
       return row;
+    },
+    async prepareUrlRevisionIntent(baseVersion,exported,{isCurrent}={}) {
+      const org=ownerOnly(),session=membership,actor=actorId,base=copyJSON(baseVersion),payload=copyJSON(exported);
+      const current=()=>{if(membership!==session || actorId!==actor || typeof isCurrent!=='function' || isCurrent()!==true)throw new Error('續編意圖或工作階段已失效');};
+      current();
+      if(!uuid(actor) || base.organization_id!==org || !uuid(base.id) || !Number.isSafeInteger(base.version_number) || base.version_number<1 || base.version_number>2147483646)throw new Error('續編基準識別不符');
+      // Recheck the same signed identity/membership, without replacing the session.
+      const user=await request('/auth/v1/user');current();
+      if(user?.id!==actor)throw new Error('登入身份已變更');
+      const memberships=await select('organization_members','organization_id,role',{user_id:`eq.${actor}`,limit:'2'});current();
+      if(memberships.length!==1 || memberships[0]?.organization_id!==org || memberships[0]?.role!=='owner')throw new Error('擁有者工作區資格已變更');
+      const fresh=await this.readReviewBase(base);current();
+      if(canonical(fresh)!==canonical(base))throw new Error('已保存基準已變更');
+      await validateReport(payload);current();
+      if(!payload.review.confirmation || payload.review.revision<=base.first_result_payload.review.revision)throw new Error('請重新確認續編版本');
+      const immutable=report=>{
+        const value=copyJSON(report);
+        for(const key of ['title','meta_description','description'])for(const field of ['suggested','user_edited','citation_role'])delete value.preview.fields[key][field];
+        delete value.preview.status;
+        for(const key of ['revision','content_digest','edited','fact_checks','confirmation'])delete value.review[key];
+        return canonical(value);
+      };
+      if(immutable(payload)!==immutable(base.first_result_payload))throw new Error('續編不能改變已保存來源或原建議');
+      if(['title','meta_description','description'].every(key=>payload.preview.fields[key].suggested===base.first_result_payload.preview.fields[key].suggested))throw new Error('續編內容未變更');
+      const requestBody={organization_id:org,opportunity_id:base.opportunity_id,request_id:crypto.randomUUID(),expected_version:base.version_number,payload};
+      const binding={actor_id:actor,base_version_id:base.id,base_request_digest:base.first_result_request_digest};
+      // Local intent digest is NOT PostgreSQL's authoritative pg-jsonb request digest.
+      const intentDigest=await contentDigest(canonical({binding,request:requestBody}));current();
+      return freeze({status:'prepared',binding,request:requestBody,intent_digest:intentDigest,source_digest:payload.snapshot.content_fingerprint,content_digest:payload.review.content_digest,authority:{persisted:false,published:false,owner_approved:false,server_authorized:false}});
     },
     async dashboard() {
       const org = activeOrg();

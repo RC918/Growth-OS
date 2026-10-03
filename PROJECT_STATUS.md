@@ -8,7 +8,7 @@
 
 這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；repo 實作與合成驗證完成，待 Reviewer／新 HEAD CI，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；後續新版本保存意圖切片已完成 repo 合成驗證、待新 HEAD 審查，詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
 
 ## 產品方向
 
@@ -179,3 +179,12 @@ CoreMilestoneProgress：本輪從離線候選進展到真保存、跨登入讀�
 父接受 `7563bd2` 文件（Reviewer `01a10343`、CI `37148329617` success、Preview `AkEUDCrgq54cYkoSeBTP4U959rYm` success）後，明確分配本次普通 repo/offline 工程。現在 Owner 可从已保存最新 URL draft 精確讀回進入既有 Review 引擎；保留來源、原建議及已存修改，清除舊確認；取消回到原已保存版本。viewer 仍唯讀，進入／確認重新核對最新版本，來源／tenant／session 漂移與晚回覆拒絕。沒有新 store、schema、ACL 或 Save 接線。
 
 本地 32 unit/API/mirror tests、新續編 E2E 1280/390、既有 typed 及 URL Save 合成 UI 回歸通過；新測試接入既有 CI。詳見 [離線驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。closed config／所有 SQL／frozen payload 未改，既有遠端 1/1/1 保留且未觸碰；没有 live POST／login。CoreMilestoneProgress 是已保存版本可安全開始本頁續編並取消恢復的離線能力，不計為第二輪 live M3 驗收或完整 M3 完成。
+
+
+## 2026-10-03 續編的新版本保存意圖（repo/offline）
+
+父提供上一切片 `2db5c0b0395b988abd0f3e65d51d8e3e25e993f0` 的 Reviewer `01a10352` APPROVE、PR CI `37149280839` success、Preview `6LAs5AnjEuyGxqqWfNbNoKMDiUpc` success，並分配本次最小 Core。續編確認後現在可準備新的保存意圖；沿用 URL Save 五欄 request，綁定已存 base UUID、expected version、重新核對的 actor 與本地 intent digest。意圖不是保存、owner approval 或發布授權。
+
+建立前重新 GET 同一 Auth user／Owner membership、URL parent、最新版本及精確 payload，拒絕錯 actor/org/UUID/version/source、malformed、過期 base、取消或替換 session／晚回應；來源與原建議完全保留。修改使舊意圖消失，取消回到原已存版；不鎖住跨 session 未來變更。`saveUrlResult` 仍 closed，不新增 store、SQL、schema、ACL 或 dispatcher。
+
+27 API／marker／mirror tests、新版意圖 UI 1280/390 通過；既有 URL SQL isolated PGlite 10 tests 通過，新增組裝驗證使用實際產生的 intent 追加 v2、相同 request 冪等返回、v1 保留、舊 base 拒絕，隔離資料量 1 parent／2 versions／2 audits。這不是改動遠端既有 1/1/1。原生 Date 的測試轉接層已改為真 JSON roundtrip 後 PASS；沒有變動 SQL 契約或部署包。詳細限制見 [續編驗收記錄](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。新 HEAD CI／Reviewer 待父核對，沒有 remote/login/live POST 或 lease 延展。
