@@ -1,6 +1,7 @@
 import {typedDraft} from './typed-draft.mjs';
 import {createUrlSavePanel} from './url-result-save.mjs';
-import {urlSaveEnabled,urlResultSchemaEnabled} from './url-result-config.mjs';
+import * as urlConfig from './url-result-config.mjs';
+const {urlSaveEnabled,urlResultSchemaEnabled,urlSaveTrial=null}=urlConfig;
 import { createWorkspaceApi, contentVersionKind } from './workspace-api.mjs';
 import { orderOpportunities } from './opportunity-order.mjs';
 import { createObservationPanel } from './workspace-observations.mjs';
@@ -9,7 +10,7 @@ import { createGoalPanel } from './workspace-goals.mjs';
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
   key: 'sb_publishable_B9pMiED8jrCoxuy2kC0HoA_LmzKex9r',
-  redirectOrigin: location.origin, urlSaveEnabled, urlResultSchemaEnabled,
+  redirectOrigin: location.origin, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
 });
 const $ = id => document.getElementById(id);
 let state = null;
@@ -17,7 +18,7 @@ let epoch = 0;
 let renderGeneration = 0;
 const observations=createObservationPanel(api);
 const goals=createGoalPanel(api);
-const urlSave=createUrlSavePanel({api,root:$('url-result-panel'),render:typedDraft,refresh:()=>refresh({urlSaved:true}),enabled:urlSaveEnabled&&urlResultSchemaEnabled});
+const urlSave=createUrlSavePanel({api,root:$('url-result-panel'),render:typedDraft,refresh:()=>refresh({urlSaved:true}),enabled:urlSaveEnabled&&urlResultSchemaEnabled,trial:urlSaveTrial});
 
 function message(text, failure = false) {
   const target = $('notice');

@@ -55,6 +55,8 @@ jobs:
         run: node --test supabase/drafts/first_result_save/offline.test.mjs supabase/drafts/first_result_save/closed-package.test.mjs
       - name: URL pending result API and isolated SQL
         run: node --test prototype/owner-workspace/url-result-api.test.mjs supabase/drafts/url_result/offline.test.mjs supabase/drafts/url_result/native-startup.test.mjs
+      - name: Bound URL candidate frozen artifact and authenticated ACL checks
+        run: node --test supabase/drafts/url_result/bound/bound.test.mjs prototype/owner-workspace/url-result-bound.test.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
         run: |
           node --check supabase/functions/growth-model-trial/index.js
@@ -71,6 +73,9 @@ jobs:
       - name: URL pending result independent PG17 backends (no network)
         timeout-minutes: 3
         run: node supabase/drafts/url_result/native.mjs
+      - name: Bound URL PG17 deadline locks and single-request concurrency
+        timeout-minutes: 3
+        run: node supabase/drafts/url_result/bound/native.mjs
       - name: Supabase Edge Runtime closed-gate user worker (no network or keys)
         run: python3 -B supabase/tests/model_trial/edge_runtime.py
       - name: Offline probe boundary checks (PGlite only)
@@ -91,6 +96,9 @@ jobs:
         run: |
           node prototype/owner-workspace/url-result-ui.e2e.mjs
           node prototype/owner-workspace/url-result-races.e2e.mjs
+      - name: Bound URL desktop/mobile GET-first and cleanup readonly
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/url-result-bound.e2e.mjs
       - name: Workspace observation desktop and mobile UI acceptance
         run: node prototype/owner-workspace/observations-ui.e2e.mjs
       - name: Guided goal desktop and mobile UI acceptance

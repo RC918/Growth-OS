@@ -1,3 +1,4 @@
+import {contentDigest} from './first-result-review.mjs';
 import {validateReport,copyJSON,canonical} from './first-result-payload.mjs';
 const versionMetadata = ['first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -14,12 +15,15 @@ export function contentVersionKind(version) {
 const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
 
 // Isolated Staging client. An access token exists only in this page's memory.
-export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false }) {
+export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
   let token = null;
   let membership = null;
+  let actorId = null;
+  const bound = urlSaveTrial ? Object.freeze(copyJSON(urlSaveTrial)) : null;
+  const boundAvailable = () => !bound || (bound.expected_version===0 && actorId===bound.actor_id && membership?.organization_id===bound.organization_id && membership?.role==='owner' && bound.workspace_url===redirectOrigin+'/workspace.html' && Date.now()<Date.parse(bound.expires_at));
   let linkedSite = null;
   let linkedSiteVerified = false;
 
@@ -76,10 +80,12 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
         throw new Error('需要恰好一個既有工作區；沒有成員資格或多工作區時不能保存。不會自動建立帳號或工作區。');
       }
       membership = Object.freeze(memberships[0]);
+      actorId = user.id;
       return { ...membership };
     } catch (error) {
       token = null;
       membership = null;
+      actorId = null;
       linkedSite = null;
       linkedSiteVerified = false;
       throw error;
@@ -111,6 +117,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     signOut() {
       token = null;
       membership = null;
+      actorId = null;
       linkedSite = null;
       linkedSiteVerified = false;
     },
@@ -150,6 +157,19 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       });
     },
     context() { return membership; },
+    boundSaveAvailable() { return boundAvailable(); },
+    async readBoundUrlResult(knownId=null) {
+      const org=activeOrg(),session=membership;
+      if(!bound || bound.organization_id!==org) throw new Error('固定驗收工作區不符');
+      const rows=await select('content_versions',`organization_id,created_by,${versionColumns},first_result_payload`,{organization_id:`eq.${org}`,first_result_request_id:`eq.${bound.request_id}`,limit:'2'});
+      if(membership!==session)throw new Error('工作區已變更');
+      if(!rows.length)return null;
+      const row=rows[0];
+      if(rows.length!==1||row.version_number!==1||row.status!=='draft'||contentVersionKind(row)!=='typed'||(knownId&&row.id!==knownId)||row.organization_id!==org||row.created_by!==bound.actor_id||row.opportunity_id!==bound.opportunity_id||row.first_result_request_id!==bound.request_id||row.first_result_expected_version!==0||row.first_result_request_digest!==bound.request_digest)throw new Error('固定版本讀回不一致');
+      await validateReport(row.first_result_payload);
+      if(await contentDigest(canonical(row.first_result_payload))!=='sha256:'+bound.payload_canonical_sha256||row.title!==row.first_result_payload.preview.fields.title.suggested||row.draft_body!==row.first_result_payload.preview.fields.description.suggested)throw new Error('固定成果讀回不一致');
+      if(membership!==session)throw new Error('工作區已變更');return row;
+    },
     async saveUrlResult(intent, {isCurrent, onDispatch=()=>{}}={}) {
       if (!urlSaveEnabled || !urlResultSchemaEnabled) throw new Error('URL 保存尚未開放');
       const org=ownerOnly(), session=membership, frozen=copyJSON(intent);
@@ -157,8 +177,9 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if (frozen.organization_id!==org || !uuid(frozen.opportunity_id) || !uuid(frozen.request_id) ||
           !Number.isSafeInteger(frozen.expected_version) || frozen.expected_version<0 || frozen.expected_version>2147483646) throw new Error('保存識別不完整');
       await validateReport(frozen.payload);
+      if(bound && (!boundAvailable() || frozen.organization_id!==bound.organization_id || frozen.opportunity_id!==bound.opportunity_id || frozen.request_id!==bound.request_id || frozen.expected_version!==0 || await contentDigest(canonical(frozen.payload))!=='sha256:'+bound.payload_canonical_sha256)) throw new Error('固定驗收範圍不符或已到期');
       // No async gap between live intent/session validation and dispatch.
-      if (membership!==session || isCurrent()!==true) throw new Error('保存意圖或工作區已失效；未送出保存');
+      if (membership!==session || !boundAvailable() || isCurrent()!==true) throw new Error('保存意圖或工作區已失效；未送出保存');
       onDispatch();
       const id=await request('/rest/v1/rpc/save_url_result_draft',{method:'POST',body:{p_organization_id:org,p_opportunity_id:frozen.opportunity_id,p_request_id:frozen.request_id,p_expected_version:frozen.expected_version,p_payload:frozen.payload}});
       if (membership!==session || !uuid(id)) throw new Error('保存結果未知；只可查詢核對');
