@@ -19,7 +19,8 @@ function session(label){
 }
 try {
  docker(['run','--pull=never','--detach','--rm','--network','none','--name',name,'-e','POSTGRES_HOST_AUTH_METHOD=trust',image,'postgres','-c','listen_addresses=']);started=true;
- await until(()=>sql('select 1')==='1',40000);assert.match(sql('show server_version'),/^17\.6/);
+ await until(()=>docker(['exec',name,'cat','/proc/1/comm'])==='postgres'&&sql('select 1')==='1',40000);
+ assert.match(sql('show server_version'),/^17\.6/);assert.equal(sql('show listen_addresses'),'');
  sql(bootstrapSQL);
  for(const f of (await readdir(new URL('../../migrations/',import.meta.url))).filter(x=>x.endsWith('.sql')).sort())sql(await readFile(new URL('../../migrations/'+f,import.meta.url),'utf8'));
  sql(seedSQL);sql(await readFile(new URL('../first_result_save/proposal.sql',import.meta.url),'utf8'));sql(await readFile(new URL('../first_result_save/disable_writes.sql',import.meta.url),'utf8'));sql(await readFile(new URL('./proposal.sql',import.meta.url),'utf8'));

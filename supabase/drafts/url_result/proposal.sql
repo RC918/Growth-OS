@@ -58,9 +58,10 @@ revoke all on function private.guard_url_version() from public,anon,authenticate
 create trigger guard_url_version before insert or update on public.content_versions for each row execute function private.guard_url_version();
 
 -- Add a fail-closed subtype guard to every existing entry point, keeping its body,
--- signatures and ACLs. Immutable kind makes this check safe before its own locks.
+-- signatures and ACLs. Insert only AFTER the original owner/org authorization;
+-- a SECURITY DEFINER subtype lookup must not expose other tenants to callers.
 do $patch$
-declare signature text; definition text; guard text;
+declare signature text; definition text; guard text; body_start integer; auth_end integer; auth_prefix text;
 begin
  foreach signature in array array[
  'private.review_growth_opportunity_impl(uuid,uuid,text,text)',
@@ -75,7 +76,16 @@ begin
    guard:='if exists(select 1 from public.growth_opportunities where organization_id=p_organization_id and id=p_opportunity_id and entry_kind<>''legacy_opportunity'') then raise exception ''URL result cannot use legacy mutation'' using errcode=''23514''; end if;';
   end if;
   if position(E'begin\n' in definition)=0 then raise exception 'Unexpected function body: %',signature; end if;
-  execute replace(definition,E'begin\n',E'begin\n '||guard||E'\n');
+  body_start:=position(E'begin\n' in definition)+length(E'begin\n');
+  auth_end:=position('end if;' in substring(definition from body_start));
+  if auth_end=0 then raise exception 'Missing authorization block: %',signature; end if;
+  auth_prefix:=substring(definition from body_start for auth_end+length('end if;')-1);
+  if auth_prefix !~ '^\s*if (v_actor|actor) is null or not private\.has_org_role\(p_organization_id,\s*array\[''owner''\](::text\[\])?\) then'
+   or position('errcode=''42501''' in replace(auth_prefix,' ',''))=0 then
+   raise exception 'Unexpected authorization block: %',signature;
+  end if;
+  auth_end:=body_start+length(auth_prefix);
+  execute overlay(definition placing E'\n '||guard||E'\n' from auth_end for 0);
  end loop;
 end $patch$;
 

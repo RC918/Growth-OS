@@ -150,13 +150,16 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       });
     },
     context() { return membership; },
-    async saveUrlResult(intent) {
+    async saveUrlResult(intent, {isCurrent, onDispatch=()=>{}}={}) {
       if (!urlSaveEnabled || !urlResultSchemaEnabled) throw new Error('URL 保存尚未開放');
       const org=ownerOnly(), session=membership, frozen=copyJSON(intent);
+      if(typeof isCurrent!=='function' || typeof onDispatch!=='function') throw new Error('缺少有效的保存意圖檢查');
       if (frozen.organization_id!==org || !uuid(frozen.opportunity_id) || !uuid(frozen.request_id) ||
           !Number.isSafeInteger(frozen.expected_version) || frozen.expected_version<0 || frozen.expected_version>2147483646) throw new Error('保存識別不完整');
       await validateReport(frozen.payload);
-      if (membership!==session) throw new Error('工作區已變更');
+      // No async gap between live intent/session validation and dispatch.
+      if (membership!==session || isCurrent()!==true) throw new Error('保存意圖或工作區已失效；未送出保存');
+      onDispatch();
       const id=await request('/rest/v1/rpc/save_url_result_draft',{method:'POST',body:{p_organization_id:org,p_opportunity_id:frozen.opportunity_id,p_request_id:frozen.request_id,p_expected_version:frozen.expected_version,p_payload:frozen.payload}});
       if (membership!==session || !uuid(id)) throw new Error('保存結果未知；只可查詢核對');
       return id;

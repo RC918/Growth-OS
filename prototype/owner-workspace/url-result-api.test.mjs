@@ -22,7 +22,7 @@ test('URL API default gate/roles/membership fail closed before POST',async()=>{
  for(const members of [0,2]){const f=fixture({members});await assert.rejects(f.api.completeMagicLink(fragment),/既有工作區/);await assert.rejects(f.api.saveUrlResult(intent),/只有/);}
 });
 test('URL API exact frozen dispatch and org/request readback; corruption rejected',async()=>{
- const f=fixture();await f.api.completeMagicLink(fragment);assert.equal(await f.api.saveUrlResult(intent),saved.id);const post=f.calls.at(-1);assert.deepEqual(JSON.parse(post.options.body),{p_organization_id:ids.org,p_opportunity_id:parent(20),p_request_id:request(20),p_expected_version:0,p_payload:payload});
+ const f=fixture();await f.api.completeMagicLink(fragment);await assert.rejects(f.api.saveUrlResult(intent),/保存意圖檢查/);assert.equal(await f.api.saveUrlResult(intent,{isCurrent:()=>true}),saved.id);const post=f.calls.at(-1);assert.deepEqual(JSON.parse(post.options.body),{p_organization_id:ids.org,p_opportunity_id:parent(20),p_request_id:request(20),p_expected_version:0,p_payload:payload});
  assert.deepEqual(await f.api.reconcileUrlResult(intent,saved.id),saved);const read=f.calls.at(-1);assert.equal(read.options.method,'GET');assert.equal(read.u.searchParams.get('organization_id'),'eq.'+ids.org);assert.equal(read.u.searchParams.get('first_result_request_id'),'eq.'+request(20));assert.equal(read.u.searchParams.get('limit'),'2');
  for(const [key,value] of [['organization_id',ids.other],['opportunity_id',parent(99)],['id',parent(99)],['first_result_request_id',request(99)],['first_result_expected_version',8],['first_result_payload',{}]]){f.setRows([{...saved,[key]:value}]);await assert.rejects(f.api.reconcileUrlResult(intent,saved.id),/不一致/);}
  f.setRows([]);assert.equal(await f.api.reconcileUrlResult(intent),null);f.setRows([saved,saved]);await assert.rejects(f.api.reconcileUrlResult(intent),/不一致/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);
@@ -33,4 +33,10 @@ test('URL API pending result cannot cross a signed-out/replaced session',async()
 test('URL ordering never invents missing approved sources and unknown kinds do not rank as approved',()=>{
  const item={id:parent(20),entry_kind:'url_result',status:'url_pending_review',created_at:'2026-10-03T00:00:00Z'};
  assert.match(orderOpportunities([item],[],[])[0].reason,/URL 成果待專用審核/);assert.match(orderOpportunities([{...item,entry_kind:'bad'}],[],[])[0].reason,/類型未知/);
+});
+
+test('URL API requires a synchronous live intent immediately before dispatch',async()=>{
+ const f=fixture();await f.api.completeMagicLink(fragment);let dispatched=0;
+ for(const isCurrent of [()=>false,()=>undefined,()=>Promise.resolve(true)])await assert.rejects(f.api.saveUrlResult(intent,{isCurrent,onDispatch:()=>dispatched++}),/保存意圖或工作區已失效/);
+ assert.equal(dispatched,0);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
 });

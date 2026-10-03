@@ -39,6 +39,7 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false}) {
  async function finish(row,own){
   if(own!==ticket||api.context()!==context)return;
   if(!row){feedback.textContent='結果仍未知；不會重試保存。請保留此頁，只查詢原 request。';return;}
+  if(intent?.returned_version_id && row.id!==intent.returned_version_id)throw new Error('保存讀回不一致');
   unresolved=false;preview.replaceChildren(render(row));payload=null;intent=null;
   feedback.textContent=`已保存第 ${row.version_number} 版 · ${row.id} · 待專用審核 · 未發布`;
   await refresh();
@@ -52,16 +53,26 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false}) {
    const versions=data.versions.filter(v=>v.opportunity_id===selected);
    const expected=selected?Math.max(0,...versions.map(v=>v.version_number)):0;
    if(selected&&!expected){feedback.textContent='缺少可核對的版本，請重新整理';return;}
-   intent={organization_id:context.organization_id,opportunity_id:selected||crypto.randomUUID(),request_id:crypto.randomUUID(),expected_version:expected,payload:copyJSON(payload)};
+   intent={organization_id:context.organization_id,opportunity_id:selected||crypto.randomUUID(),request_id:crypto.randomUUID(),expected_version:expected,payload:copyJSON(payload),returned_version_id:null};
   }
-  busy=true;unresolved=true;paint();feedback.textContent='保存中；未知結果只查詢，不重送。';
-  try{const id=await api.saveUrlResult(intent);if(own!==ticket)return;await finish(await api.reconcileUrlResult(intent,id),own);}
-  catch(e){if(own===ticket)feedback.textContent=`${e.message}；不會重試或更換 request。請只查詢保存結果。`;}
+  const operation=intent,session=context;
+  const live=()=>own===ticket&&intent===operation&&context===session&&api.context()===session;
+  busy=true;unresolved=false;paint();feedback.textContent='正在驗證目前保存意圖；尚未送出。';
+  try{
+   const id=await api.saveUrlResult(operation,{isCurrent:live,onDispatch:()=>{unresolved=true;feedback.textContent='保存中；未知結果只查詢，不重送。';paint();}});
+   // Keep the acknowledged ID even if a refresh/cancel invalidated this render.
+   // The same unresolved operation may still be reconciled by explicit GET.
+   operation.returned_version_id=id;
+   if(!live())return;
+   await finish(await api.reconcileUrlResult(operation,operation.returned_version_id),own);
+  }
+  catch(e){if(own===ticket)feedback.textContent=unresolved?`${e.message}；不會重試或更換 request。請只查詢保存結果。`:`${e.message}；保存未送出。`;}
+
   finally{if(own===ticket){busy=false;paint();}}
  });
  reconcile.addEventListener('click',async()=>{
   if(busy||!unresolved||!intent||api.context()!==context)return;const own=ticket;busy=true;paint();
-  try{await finish(await api.reconcileUrlResult(intent),own);}catch(e){if(own===ticket)feedback.textContent=e.message;}finally{if(own===ticket){busy=false;paint();}}
+  try{await finish(await api.reconcileUrlResult(intent,intent.returned_version_id),own);}catch(e){if(own===ticket)feedback.textContent=e.message;}finally{if(own===ticket){busy=false;paint();}}
  });
  window.addEventListener('message',async event=>{
   if(event.origin!==location.origin||!expectedWindow||event.source!==expectedWindow)return;

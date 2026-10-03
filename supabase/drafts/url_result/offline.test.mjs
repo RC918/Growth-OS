@@ -73,6 +73,30 @@ test('URL result offline SQL: real constraints/RPC/RLS, synthetic Auth',async t=
    await reject(()=>save(parent(1),request(40),1),['22023']);
    await reject(()=>q('select public.create_growth_opportunity($1,null,$2,$3,$4,$5,$6,$7)',[ids.org,'organic_search','need','action','reason','owner_question','note']),['23514']);
   }));
+  await t.test('all legacy subtype guards authorize before any URL/legacy/missing lookup',()=>tx(async()=>{
+   await auth();const urlId=await save();
+   const legacyId=await scalar('select public.create_content_draft($1,$2,$3,$4)',[ids.org,parent(1),'Legacy','Body']);
+   await db.exec('reset role;grant execute on function public.save_first_result_draft(uuid,uuid,uuid,integer,jsonb),private.save_first_result_draft_impl(uuid,uuid,uuid,integer,jsonb) to authenticated');
+   await q('delete from public.organization_members where user_id=$1',[ids.owner2]);
+   const mismatches=[];
+   for(const [actor,label] of [[ids.foreign,'foreign tenant'],[ids.owner2,'revoked owner'],[ids.editor,'editor'],[ids.viewer,'viewer'],['','null actor']]){
+    await auth(actor);
+    for(const [target,op,version] of [['url',parent(20),urlId],['legacy',parent(1),legacyId],['missing',parent(99),parent(99)]]){
+     for(const [fn,args] of [
+      ['review_growth_opportunity',[ids.org,op,'approved','reason']],
+      ['create_content_draft',[ids.org,op,'title','body']],
+      ['review_content_draft',[ids.org,version,'approved','reason']],
+      ['plan_content_action',[ids.org,version,'/p','signal','rollback']],
+      ['save_first_result_draft',[ids.org,op,request(60),1,JSON.stringify(payload)]]]){
+      await db.exec('savepoint oracle');let code='accepted';
+      try{await q(`select public.${fn}(${args.map((_,i)=>'$'+(i+1)).join(',')})`,args);}catch(e){code=e.code;}
+      finally{await db.exec('rollback to oracle;release oracle');}
+      if(code!=='42501')mismatches.push({actor:label,target,fn,code});
+     }
+    }
+   }
+   assert.deepEqual(mismatches,[], '75 unauthorized actor/target/RPC combinations must all return 42501');
+  }));
   await t.test('direct writes cannot bypass NULL legacy shape, immutable identity or URL payload binding',()=>tx(async()=>{
    for(const column of ['channel','audience_need','proposed_action','rationale'])await reject(()=>q(`update public.growth_opportunities set ${column}=null where id=$1`,[parent(1)]),['23514']);
    await reject(()=>q('update public.growth_opportunities set entry_kind=null where id=$1',[parent(1)]),['23514']);

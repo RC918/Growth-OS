@@ -54,7 +54,7 @@ jobs:
       - name: Undeployed first-result SQL on isolated PGlite
         run: node --test supabase/drafts/first_result_save/offline.test.mjs supabase/drafts/first_result_save/closed-package.test.mjs
       - name: URL pending result API and isolated SQL
-        run: node --test prototype/owner-workspace/url-result-api.test.mjs supabase/drafts/url_result/offline.test.mjs
+        run: node --test prototype/owner-workspace/url-result-api.test.mjs supabase/drafts/url_result/offline.test.mjs supabase/drafts/url_result/native-startup.test.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
         run: |
           node --check supabase/functions/growth-model-trial/index.js
@@ -88,7 +88,9 @@ jobs:
         run: node prototype/owner-workspace/typed-draft-ui.e2e.mjs
       - name: URL Review to pending Save desktop/mobile (synthetic transport and isolated SQL)
         timeout-minutes: 3
-        run: node prototype/owner-workspace/url-result-ui.e2e.mjs
+        run: |
+          node prototype/owner-workspace/url-result-ui.e2e.mjs
+          node prototype/owner-workspace/url-result-races.e2e.mjs
       - name: Workspace observation desktop and mobile UI acceptance
         run: node prototype/owner-workspace/observations-ui.e2e.mjs
       - name: Guided goal desktop and mobile UI acceptance

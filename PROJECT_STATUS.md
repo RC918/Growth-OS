@@ -133,3 +133,7 @@ Owner 04:01:01 批准 03:32 提案的限定一次 remote closed deployment（`Se
 實際 product Review→同 origin 指定視窗一次 nonce 交接／完整 JSON 匯入→workspace 唯讀確認→專用 API→精確版本讀回已組裝；無損沿用 export，沒有重新建立 editable Review／demo／store。瀏覽器 dispatch 預設 false；不要求未部署新欄位。owner-only，editor/viewer 只讀；無帳號／無 membership／多 membership 不自行配置資格。未知結果只查原 request、不 retry；page confirmation 非 owner approval。
 
 離線證據、檔案差異、完整命令與限制見 [URL 待審保存候選](supabase/drafts/url_result/README.md)。本地 46 unit/API/mirror/SQL tests、URL Save 1280/390 實際 UI＋隔離 SQL、既有 typed 1280/390 及 product 1280/390 各 22 下載回歸；PG17 新並發本機缺固定 image／exit 2，已加 CI，待父獨立驗收。沒有遠端 DB/Auth/Save/grants/live 商品抓取/模型/費用或部署操作；不放行真保存、一般新用戶 provisioning、完整 M3 或發布／量測。
+
+URL 保存父審查 HOLD 修正：`97ce6ede23032c60e19546f3fc8975a360aad758` 的 push `37100438616`／PR `37100440301` 在 native startup 失敗，URL 並發 assertions 未到、後續 browser skip；Preview Ready 不代替驗收。原 SELECT-only readiness 誤接受 Docker 暫時 init server，現沿用既有 PID1=postgres＋SELECT 1＋PG17.6／listen_addresses 核對，合成控制 FAIL→PASS；本機缺固定 image，真並發仍待新 CI。
+
+另先重現三項 P2：五個 SECURITY DEFINER 舊入口在 auth 前查 subtype，75 組未授權組合中 25 個 URL 目標洩漏不同錯碼；兩 viewport 八案取消／修改／刷新／pagehide 於 async digest 暫停後仍 POST，四案讀回失敗後手動對帳誤接受 RPC A 以外 UUID B。修為原 owner/org auth 後才查 type、POST 緊前同步 live intent/session guard、unresolved intent 持有回傳 UUID 並每次 GET／顯示前核對。修正後受影響 28 tests、12 個 browser 邊界案例、1280/390 原 URL 保存整合均 PASS；詳見 [FAIL→PASS 證據](supabase/drafts/url_result/README.md)。新 SHA CI／PG17／Preview 待父獨立驗收；無遠端操作，closed gates 與歷史 SQL hash 保持。
