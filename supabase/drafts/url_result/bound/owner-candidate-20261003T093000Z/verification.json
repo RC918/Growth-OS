@@ -1,0 +1,20 @@
+{
+  "result": "PASS",
+  "scope": "Offline deterministic checks only",
+  "checks": [
+    "4 artifacts byte-identical to unchanged generator output and exact manifest hashes",
+    "Only literal UTC differs from 08:00 generated artifacts; cleanup identical",
+    "Fixed IDs/payload/hashes/Preview URL unchanged",
+    "Entire 08:00 historical directory unchanged from accepted HEAD",
+    "Generator and fixed input unchanged",
+    "Actual configs unchanged false/false/null"
+  ],
+  "not_performed": [
+    "remote operation",
+    "browser/auth preflight",
+    "login",
+    "runtime config patch",
+    "grant/deploy/Save POST",
+    "rerun unchanged PASS suites"
+  ]
+}

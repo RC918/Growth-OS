@@ -4,7 +4,7 @@
 
 ## 當前授權與基準
 
-初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿後續 accepted HEAD 推進，目前父已驗收 `cffdec89c30faaad523cb3af1a64108e335d3b92`。新的直接 Owner 指令才會改變當前授權。父核 push 37104398407／PR 37104401072 各 45 steps 成功，含 Chromium145 與 PG17.6。本輪僅離線凍結 [08:00 UTC 具體候選](supabase/drafts/url_result/bound/owner-candidate-20261003T080000Z/approval-manifest.json)供 Owner 批准；實際 flags 仍 false/null。截止 2026-10-03T08:00:00Z（台北16:00）不延展；repo 登入 redirect 為同源 `/workspace.html`，遠端 allowlist 與安全 handoff 未核對。父瀏覽器能力讀取遭安全審核拒絕，未重試；待 Owner 批准瀏覽器檢查／登入並成功 preflight 才可開 grant。
+初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿 accepted HEAD 推進，本輪合法 package 基準 `4525a90112970457848f4c5c8b2d347ae878fd6e`（runtime code `cffdec89`，父驗兩 CI 各45steps成功）。新的直接 Owner 指令才會改變當前授權。父轉述 Owner 2026-10-03 08:53:10 UTC「同意」維持原範圍改截止為 **09:30 UTC／台北17:30**；已離線重綁 [新 manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T093000Z/approval-manifest.json)，08:00 過期包原樣保留。安全 preflight 由父另行處理，成功前不得開 grant；本輪未執行 remote／登入／config 開放，實際 flags 仍 false/null，09:30 不自動延展。
 
 ## 產品方向
 
