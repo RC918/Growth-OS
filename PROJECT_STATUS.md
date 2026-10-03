@@ -4,9 +4,9 @@
 
 ## 當前授權與基準
 
-初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿 accepted HEAD 推進，本輪合法 package 基準 `0614100535175c0109d9d4f964d96629002af219`。父轉述 Owner 2026-10-03 13:18 UTC 批准同固定資料新截止 **14:30 UTC／台北22:30**；已離線重綁 [新 manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T143000Z/approval-manifest.json)，08:00／09:30 歷史包原樣保留。父確認現有雲端登入成功，allowlist 仍待唯讀核對；preflight 成功後的 opening/config部署/login1/最多1Save/立即cleanup及closed部署/login2只讀均由父另行處理。本輪沒有執行這些操作，實際 flags 仍 false/null；14:30 不自動延展。
+目前HEAD沿 `c911d4fc` 已驗收基準推進，6663只屬歷史。Owner新M3隔離工程envelope來源 `Sentinel_10d81d4907e0819193fc417ce458fc71`：服務Save→Logout→Login→Readback→權限/tenant驗證，至M3驗收完成失效；不是v2專案Completed。已repo準備 [19:30 UTC execution manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T193000Z/execution-manifest.json)，保留固定IDs/payload/最多1Save與1/1/1，僅重綁技術截止2026-10-03T19:30:00Z，cleanup不變。候選待Reviewer/CI；本輪無remote或runtime enable，兩config仍false/false/null。
 
-目前 opening `url_result_bound_open_20261003_1430` 首次回傳遺失，保留工具UNCERTAIN_RESULT；父新增13:49完整authoritative baseline未變，分類該觀察時CONFIRMED_NOT_APPLIED。[更新判定與官方來源](docs/Bound_URL_Operation_Reconciliation_2026-10-03.md)：本包非IFNOTEXISTS DDL防並發重放，配合官方hosted失敗rollback契約，支持14:30前同name/SQL/route重試一次，不要求queue空；history不留失敗紀錄屬文件支持的合理推論，不冒充hosted exactly-once已證實。已套用續行，分歧停mutation；本子執行緒未做remote，Frozen SQL／flags未改。
+舊opening `url_result_bound_open_20261003_1430` 的receipt遺失及後續安全拒絕均保留；新Owner envelope不是繞過平台拒絕的許可。父先同正式route核可執行性及fresh authoritative reconciliation，仍拒絕即停。改截止是artifact revision而非相同SQL重試；未知舊operation未核清不得dispatch新revision，已套用不重播，STATE_DIVERGED停mutation。原14:30已過期、舊快照不代表目前遠端狀態。後續最小預算2migration/2config部署/2既有登入/1logout/最多1Save/0fixture mutation；具體pre/postflight、收尾與tenant驗證見候選README。
 
 ## 產品方向
 
