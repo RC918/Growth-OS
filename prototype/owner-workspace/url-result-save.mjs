@@ -1,11 +1,15 @@
+import {createTrialMarker} from './url-result-trial-marker.mjs';
 import {contentDigest} from './first-result-review.mjs';
 import {validateReport,copyJSON,canonical} from './first-result-payload.mjs';
 const identity=p=>({original_url:p.snapshot.original_url,final_url:p.snapshot.final_url,snapshot_id:p.snapshot.id,source_version:p.snapshot.version,source_digest:p.snapshot.content_fingerprint});
 const node=(tag,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
-// Directly mounted in the existing workspace. No storage, token transfer or auto-POST.
+// Directly mounted in the existing workspace. Bounded metadata only; no token transfer or auto-POST.
 export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=null}) {
  let context=null,data=null,payload=null,intent=null,ticket=0,busy=false,unresolved=false,transfer=null,expectedWindow=window.opener;
  let trialChecked=false,trialAttempted=false,trialSaved=false,trialKnownId=null,trialReadError=false,timer=null;
+ const marker=trial?createTrialMarker(trial):null;let markerError=false;
+ function syncMarker(){try{const record=marker.read();trialAttempted=trialAttempted||record.attempted;trialKnownId=record.version_id||trialKnownId;}catch(e){markerError=true;throw e;}}
+ function rememberTrial(id){trialKnownId=id;trialAttempted=true;try{marker.remember(id);}catch(e){markerError=true;throw e;}}
  const used=new Set();
  const title=node('h2','URL 成果 · 保存為待審草稿'),info=node('p','不需企業資料或核准機會；來源未獨立驗真，本頁確認不是發布授權。');
  const file=node('input');file.type='file';file.accept='.json,application/json';file.setAttribute('aria-label','匯入成果與來源 JSON');
@@ -15,8 +19,8 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
  const feedback=node('p');feedback.setAttribute('role','status');feedback.id='url-save-feedback';
  const preview=node('div');preview.id='url-save-preview';root.append(title,info,file,target,confirm,reconcile,feedback,preview);
  function paint(){
-  confirm.disabled=!enabled||context?.role!=='owner'||!payload||busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError||!api.boundSaveAvailable()));
-  file.disabled=busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError));target.disabled=!!trial||busy||unresolved;reconcile.hidden=!(unresolved||(trial&&(trialReadError||(trialAttempted&&!trialSaved))));reconcile.disabled=busy;
+  confirm.disabled=!enabled||context?.role!=='owner'||!payload||busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError||markerError||!api.boundSaveAvailable()));
+  file.disabled=busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError||markerError));target.disabled=!!trial||busy||unresolved;reconcile.hidden=!(unresolved||(trial&&(markerError||trialReadError||(trialAttempted&&!trialSaved))));reconcile.disabled=busy;
  }
  function invalidate(message){ticket++;payload=null;busy=false;preview.replaceChildren();target.replaceChildren();if(!unresolved)intent=null;feedback.textContent=message+(unresolved?' 原保存結果未知，只可查詢原 request。':'');paint();}
  function chooseTargets(){
@@ -28,7 +32,7 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
   }
  }
  async function accept(value,receipt=null,own=++ticket){
-  if(busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError)))throw Error('請先核對尚未確定的保存結果');
+  if(busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError||markerError)))throw Error('請先核對尚未確定的保存結果');
   payload=null;intent=null;preview.replaceChildren();paint();
   const frozen=copyJSON(value);await validateReport(frozen);
   if(trial&&await contentDigest(canonical(frozen))!=='sha256:'+trial.payload_canonical_sha256)throw Error('只接受已凍結的合成成果');
@@ -44,7 +48,7 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
   if(own!==ticket||api.context()!==context)return;
   if(!row){feedback.textContent='結果仍未知；不會重試保存。請保留此頁，只查詢原 request。';return;}
   if(intent?.returned_version_id && row.id!==intent.returned_version_id)throw new Error('保存讀回不一致');
-  if(trial){trialSaved=true;trialKnownId=row.id;}
+  if(trial){rememberTrial(row.id);trialSaved=true;}
   unresolved=false;preview.replaceChildren(render(row));payload=null;intent=null;
   feedback.textContent=`已保存第 ${row.version_number} 版 · ${row.id} · 待專用審核 · 未發布`;
   await refresh();
@@ -64,10 +68,10 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
   const live=()=>own===ticket&&intent===operation&&context===session&&api.context()===session&&(!trial||api.boundSaveAvailable());
   busy=true;unresolved=false;paint();feedback.textContent='正在驗證目前保存意圖；尚未送出。';
   try{
-   const id=await api.saveUrlResult(operation,{isCurrent:live,onDispatch:()=>{unresolved=true;if(trial)trialAttempted=true;feedback.textContent='保存中；未知結果只查詢，不重送。';paint();}});
+   const id=await api.saveUrlResult(operation,{isCurrent:live,onDispatch:()=>{if(trial){try{marker.attempt();trialAttempted=true;}catch(e){markerError=true;throw e;}}unresolved=true;feedback.textContent='保存中；未知結果只查詢，不重送。';paint();}});
    // Keep the acknowledged ID even if a refresh/cancel invalidated this render.
    // The same unresolved operation may still be reconciled by explicit GET.
-   operation.returned_version_id=id;if(trial)trialKnownId=id;
+   operation.returned_version_id=id;if(trial)rememberTrial(id);
    if(!live())return;
    await finish(await (trial?api.readBoundUrlResult(operation.returned_version_id):api.reconcileUrlResult(operation,operation.returned_version_id)),own);
   }
@@ -77,8 +81,9 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
  });
  async function probeTrial(){
   if(!trial||!context)return;const own=ticket,session=context;busy=true;trialChecked=false;paint();feedback.textContent='先查詢固定 request；不會自動保存。';
-  try{const row=await api.readBoundUrlResult(trialKnownId);if(own!==ticket||context!==session||api.context()!==session)return;trialChecked=true;trialReadError=false;
-   if(row){trialSaved=true;trialKnownId=row.id;unresolved=false;intent=null;payload=null;preview.replaceChildren(render(row));feedback.textContent=`已保存第 ${row.version_number} 版 · ${row.id} · 唯讀取回 · 未發布`;}
+  try{try{syncMarker();}catch{}const row=await api.readBoundUrlResult(trialKnownId);if(own!==ticket||context!==session||api.context()!==session)return;trialChecked=true;trialReadError=false;
+   if(markerError)throw Error('驗收防重送標記不可確認；只可查詢，不可保存');
+   if(row){rememberTrial(row.id);trialSaved=true;unresolved=false;intent=null;payload=null;preview.replaceChildren(render(row));feedback.textContent=`已保存第 ${row.version_number} 版 · ${row.id} · 唯讀取回 · 未發布`;}
    else{feedback.textContent=trialAttempted?'結果仍未知；只可查詢原 request，不再保存。':'未找到固定版本；可匯入凍結成果後確認首次保存。';}
   }catch(e){if(own===ticket){trialReadError=true;feedback.textContent=e.message+'；只可重新查詢。';}}finally{if(own===ticket){busy=false;paint();}}
  }

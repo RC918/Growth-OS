@@ -35,3 +35,17 @@ test('bound GET verifies known UUID, full frozen artifact and request hash; sess
  f.setRows([row]);f.hold();const read=f.api.readBoundUrlResult(row.id);f.api.signOut();await f.api.completeMagicLink(fragment);f.release();await assert.rejects(read,/工作區已變更/);
  assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
 });
+
+test('same-tab bounded marker persists attempt before dispatch; failures never restore eligibility',async()=>{
+ const {createTrialMarker,trialMarkerKey}=await import('./url-result-trial-marker.mjs');
+ const values=new Map(),storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
+ let marker=createTrialMarker(pack.config,()=>storage);assert.equal(marker.read().attempted,false);
+ marker.attempt();assert.equal(JSON.parse(values.get(trialMarkerKey)).attempted,true);
+ marker=createTrialMarker(pack.config,()=>storage);assert.equal(marker.read().attempted,true);assert.throws(()=>marker.attempt());
+ marker=createTrialMarker(pack.config,()=>storage);marker.remember(row.id);
+ marker=createTrialMarker(pack.config,()=>storage);assert.equal(marker.read().version_id,row.id);assert.throws(()=>marker.remember(m.actor_id));
+ for(const config of [{...pack.config,expires_at:'2000-01-01T00:00:00Z'},{...pack.config,request_id:row.id},{...pack.config,organization_id:row.id}])assert.throws(()=>createTrialMarker(config,()=>storage).read());
+ values.set(trialMarkerKey,'broken');assert.throws(()=>createTrialMarker(pack.config,()=>storage).read());
+ values.clear();marker=createTrialMarker(pack.config,()=>storage);marker.read();storage.setItem=()=>{throw Error('quota');};assert.throws(()=>marker.attempt());storage.setItem=(key,value)=>values.set(key,value);assert.throws(()=>marker.read(),'failure is sticky in this module');
+ values.clear();marker=createTrialMarker(pack.config,()=>storage);marker.read();values.delete(trialMarkerKey);assert.throws(()=>marker.attempt(),'disappearance after initialization is not a fresh trial');
+});

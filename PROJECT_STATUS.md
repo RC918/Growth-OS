@@ -145,3 +145,7 @@ URL 保存父審查 HOLD 修正：`97ce6ede23032c60e19546f3fc8975a360aad758` 的
 ## 2026-10-03 bound URL 離線候選包
 
 已凍結唯一合成 export、新 parent/request、actor/org 與 hashes，提供既有 URL Save impl 內固定 gate、兩份非自動部署 opening/cleanup SQL、明確 UTC／既有 Preview URL 必填 renderer，及 GET-first／unknown GET-only／fresh readonly UI。實際分支 schema/save 仍 false、trial null；未做任何遠端 DB/Auth/POST/模型操作。詳見 [候選包與證據](supabase/drafts/url_result/bound/README.md)。本機 28 tests、Chromium151 的 1280/390 bound 與原 URL E2E、12 races PASS。PG17.6 因本機缺指定 image 明確 BLOCKED、未下載；新 CI／Preview 由父驗收，實際截止 UTC、Preview alias/callback 與遠端批准仍待綁定。
+
+## 2026-10-03 bounded 同 tab 防重送修正
+
+父對 `6bab3bef` 指出 unknown POST 後 reload／空 GET 可重送；先在 1280/390 重現第二 POST 的 FAIL，再加入僅限本次驗收的 sessionStorage 非敏感 metadata。固定 scope/expiry/request、attempted 與 known UUID 在 POST 前同步寫入／讀回，reload/relogin 只 GET；錯誤或不可用標記 fail closed，logout/cleanup/expiry 不清除。21 API/marker tests 與兩 viewport 的 unknown／acknowledged UUID、bad storage、cleanup/expiry cases PASS；原 E2E/races 保留。SQL、候選 hashes 與 false/null flags 未改，沒有遠端 DB/Auth/POST。限定同一受控 tab，不宣稱跨新 tab／裝置的全球一次 HTTP；詳見 bound README。

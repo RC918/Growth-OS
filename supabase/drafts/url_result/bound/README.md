@@ -41,7 +41,9 @@ node supabase/drafts/url_result/bound/generate.mjs "$APPROVED_ABSOLUTE_UTC" "$AP
 4. 候選 UI config 綁同一組 ID/hash/UTC/URL。既有登入完成後先 GET 固定 org/request，已存在即完整唯讀回復，無自動 POST；未存在才允許固定 export 首次確認。Save 前重驗 actor/org/owner、target、payload 與 deadline。known UUID 必須同一 UUID，完整 payload、digest、creator、version 1/draft 一致才接受。未知結果只 GET，不換 request、不重送。
 5. `preview-closed-config.mjs` 保留 schema/read 能力而關 Save。實際分支 config 本輪仍全部 false/null，待另行批准才套用候選設定。
 
-頁面內保留 unknown/known UUID 與已嘗試狀態；整頁重載後靠固定 request GET 取回既有版本。未建立跨瀏覽器持久的 HTTP「嘗試次數」計數器；若未知 POST 尚未落地而新頁 GET 為空，操作者仍須遵守一次 POST 預算，不另開頁重試。SQL 固定 request／鎖／唯一性維持資料最多 1／1／1。這不是產品永久儲存生命週期或正式發布功能。
+限定同源、同一受控 tab 的 sessionStorage 防重送標記：單一固定 key 僅存 org／parent／request／expiry／workspace URL／request digest scope、attempted 與已知 version UUID，沒有 payload、來源內容、token、個資或登入資訊。首次進入先確認 storage 可寫可讀；每次 POST 前同步寫 attempted=true 並讀回確認，失敗即不 dispatch。RPC 回傳 UUID 或精確 GET 成功時寫回 known UUID。full reload／同 tab logout/relogin 先讀標記再 GET；attempted 後即使 GET 一直空，也不再匯入或 POST；known UUID 不符時拒絕。錯 scope、損壞、不可用、寫入無效、初始化後標記消失／倒退均 fail closed；登出、cleanup、到期均不清標記。
+
+此標記只限本次 bounded 驗收，未建通用成果 store 或跨裝置 DB claim。新 tab／新裝置／人為清除瀏覽器資料無法證明過往嘗試，因此不宣稱全球一次 HTTP；父仍使用同一受控 tab 並遵守一次 POST 預算。SQL 固定 request／鎖／唯一性維持資料最多 1／1／1，與 UI 防重送是分別驗證的限制。
 
 ## 離線證據（本機 2026-10-03）
 
@@ -59,3 +61,12 @@ node supabase/drafts/url_result/bound/generate.mjs "$APPROVED_ABSOLUTE_UTC" "$AP
 | cleanup.sql | `2932e50569d486e8d4251f20ac8b9c30be1180068ba8b6a897abd8814eb5b80c` |
 | preview-open-config.mjs | `175c60f00b7fdbddbb2c04ad8339e8e53292867fa9b4982bacb1580b68c34c69` |
 | preview-closed-config.mjs | `6dd7d6b4cdcd7801c72aba65e0f29df604c3372f4fae86b23e0f464076fce407` |
+
+
+## 同 tab reload/relogin 防重送修正
+
+`6bab3bef` 的未知 POST 防重送原先只在 module memory，父靜態 review 提出 HOLD。本輪先於未修改產品碼時，以 1280／390 確定重現：unknown POST、固定 request GET 一直空、full reload 後重匯入可送第二 POST，兩 viewport 均 FAIL（本機 `/tmp/bound-marker-before.log`）。之後才加上述限定 metadata。
+
+本輪 21 項 workspace／URL／bound API＋marker tests PASS；Chromium151 1280／390 各測 unknown POST 及 acknowledged UUID 後 GET 空兩種情況，full reload、同 tab logout/relogin、強制再次 import/click 仍僅 1 POST。另驗 wrong/corrupt/get-unavailable/set-unavailable/no-op storage、同步 dispatch 前已持久 attempted、known UUID 在任何成功 GET 前跨 reload 拒絕 B、cleanup＋expiry＋空 GET 不復活 Save。原 URL E2E 及 12 races 保留。SQL／generator／候選 hashes／closed flags 未改。
+
+查詢 `6bab3bef` CI 的 GitHub API 回 Forbidden，未重試或 blind rerun；本輪新 HEAD CI 仍由父獨立查核。本機 PG17.6 缺 image 的既有 blocker 沒有消除，也沒有把未執行記 PASS。
