@@ -1,5 +1,5 @@
-// Real workspace renderer, synthetic transport only. Extra typed response fields
-// deliberately exceed today's unchanged SELECT; this is NOT live readback proof.
+// Real workspace renderer, synthetic transport only. Every response uses the
+// requested SELECT projection; this is NOT live Auth or remote readback proof.
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
@@ -12,11 +12,14 @@ const versionId = (kind,n) => `${kind==='typed'?'50000000':'40000000'}-0000-4000
 const parentId='20000000-0000-4000-8000-000000000001';
 const fixtureName='合成資料／唯讀顯示驗證，不代表遠端已保存';
 const regressionFailures=[];
-const legacy = (n=1) => ({id:versionId('legacy',n),opportunity_id:parentId,version_number:n,title:`Legacy ${n}`,draft_body:'Legacy body',status:'draft',created_at:stamp});
+const listColumns='id,opportunity_id,version_number,title,draft_body,status,created_at,first_result_request_id,first_result_expected_version,first_result_request_digest';
+const detailColumns=`organization_id,${listColumns},first_result_payload`;
+const project=(row,columns)=>Object.fromEntries(columns.split(',').filter(key=>Object.hasOwn(row,key)).map(key=>[key,row[key]]));
+const legacy = (n=1) => ({first_result_request_id:null,first_result_expected_version:null,first_result_request_digest:null,id:versionId('legacy',n),opportunity_id:parentId,version_number:n,title:`Legacy ${n}`,draft_body:'Legacy body',status:'draft',created_at:stamp});
 const typed = (n=2,index=2) => {
  const report=structuredClone(reports[index]);
  return {...legacy(n),id:versionId('typed',n),title:report.preview.fields.title.suggested,draft_body:report.preview.fields.description.suggested,
-  first_result_payload:report,first_result_request_id:`30000000-0000-4000-8000-${String(n).padStart(12,'0')}`,first_result_expected_version:n-1,first_result_request_digest:'pg-jsonb-sha256:synthetic'};
+  first_result_payload:report,first_result_request_id:`30000000-0000-4000-8000-${String(n).padStart(12,'0')}`,first_result_expected_version:n-1,first_result_request_digest:'pg-jsonb-sha256:'+String(n).repeat(64)};
 };
 async function until(check) {
  for(let i=0;i<500;i++){if(check())return;await new Promise(r=>setTimeout(r,10));}
@@ -30,14 +33,15 @@ try {
   const context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'}), page=await context.newPage();
   const errors=[],unexpected=[],mutations=[];
   let role='owner',versions=[legacy(),typed()],reviews=[],plans=[],sequence=0,holdMutation=null,releaseMutation=null;
-  let holdRead=false,releaseRead=null,renderTicket=0;
+  let holdRead=false,releaseRead=null,renderTicket=0,activeOrg=org;
+  let detailReads=0,detailStatus=200,detailChange=null,holdDetails=false;const heldDetails=[];
   let mutationResult='60000000-0000-4000-8000-000000000001';
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());
    if(url.origin===origin) return route.continue();
    if(url.origin!=='https://vhzryhibmpvglzcmfnaa.supabase.co'){unexpected.push(req.url());return route.abort();}
-   const respond=body=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
+   const respond=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
    if(req.method()!=='GET') {
     mutations.push({path:url.pathname,body:req.postDataJSON()});
     if(!holdMutation || !url.pathname.endsWith('/rpc/'+holdMutation)){unexpected.push(req.method()+' '+url.pathname);return route.abort();}
@@ -47,15 +51,25 @@ try {
    }
    const table=url.pathname.split('/').at(-1);
    if(table==='user')return respond({id:'synthetic-'+role});
-   if(table==='organization_members')return respond([{organization_id:org,role}]);
-   if(table==='organizations')return respond([{id:org,name:`${fixtureName} · response ${renderTicket}`}]);
+   if(table==='organization_members')return respond([{organization_id:activeOrg,role}]);
+   if(table==='organizations')return respond([{id:activeOrg,name:`${fixtureName} · response ${renderTicket}`}]);
    if(table==='growth_opportunities')return respond([{id:parentId,channel:'organic_search',audience_need:'Synthetic product',proposed_action:'Synthetic action',rationale:'Fixture',status:'approved',evidence_confidence:'low'}]);
    if(table==='opportunity_sources')return respond([{opportunity_id:parentId,source_kind:'public_page',evidence_note:'Synthetic',observed_at:stamp}]);
    if(table==='opportunity_decisions')return respond([{opportunity_id:parentId,decision:'approved',reason:'Synthetic',decided_at:stamp}]);
    if(table==='content_versions') {
-    assert.equal(url.searchParams.get('select'),'id,opportunity_id,version_number,title,draft_body,status,created_at');
-    assert.equal(url.searchParams.get('organization_id'),`eq.${org}`);
-    const rows=structuredClone(versions);
+    assert.equal(url.searchParams.get('organization_id'),`eq.${activeOrg}`);
+    if(url.searchParams.has('id')) {
+     detailReads++;assert.equal(url.searchParams.get('select'),detailColumns);assert.equal(url.searchParams.get('limit'),'1');
+     const source=versions.find(row=>`eq.${row.id}`===url.searchParams.get('id'));
+     let row=source?{...structuredClone(source),organization_id:activeOrg}:null;
+     if(detailChange)row=detailChange(row);
+     const status=detailStatus;
+     const rows=row?[project(row,detailColumns)]:[];
+     if(holdDetails)await new Promise(resolve=>heldDetails.push(resolve));
+     return respond(status===200?rows:{},status);
+    }
+    assert.equal(url.searchParams.get('select'),listColumns);assert.equal(url.searchParams.get('limit'),'500');
+    const rows=versions.map(row=>project(structuredClone(row),listColumns));
     if(holdRead){holdRead=false;await new Promise(resolve=>{releaseRead=resolve;});}
     return respond(rows);
    }
@@ -80,9 +94,19 @@ try {
    // Let fetch continuation paint even when the stale handler correctly does no refresh.
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   }
-  async function waitTyped(id=versionId('typed',2)){await page.locator(`.draft-focus .typed-draft[data-version-id="${id}"]`).waitFor();}
+  async function openTyped(id=versionId('typed',2),scope='.draft-focus') {
+   const loader=page.locator(`${scope} .typed-version[data-version-id="${id}"] > .typed-loader`);
+   await loader.waitFor();if(!await loader.evaluate(node=>node.open)){await loader.locator(':scope > summary').focus();await page.keyboard.press('Enter');}
+   return loader;
+  }
+  async function waitTyped(id=versionId('typed',2)){await openTyped(id);await page.locator(`.draft-focus .typed-draft[data-version-id="${id}"]`).waitFor();}
+  async function finishDetail(index) {
+   const response=page.waitForResponse(r=>r.url().includes('/content_versions?')&&new URL(r.url()).searchParams.has('id'));
+   heldDetails[index]();await (await response).finished();
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  }
   async function noActions(){assert.equal(await page.locator('.opportunity-card form').count(),0);assert.equal(await page.locator('.action-plan-summary').count(),0);assert.doesNotMatch(await page.locator('.opportunity-progress').innerText(),/可規劃|已核准/);}
-  await login();await waitTyped();await noActions();
+  await login();assert.equal(detailReads,0,'no payload read until expansion');await noActions();await waitTyped();assert.equal(detailReads,1);
   assert.equal(await page.locator('.typed-incomplete').count(),0);
   const current=page.locator('.draft-focus .typed-draft');
   for(const [key,value] of Object.entries(reports[2].preview.fields)) assert.equal(await current.locator(`[data-field="${key}"]`).textContent(),value.suggested);
@@ -103,7 +127,7 @@ try {
   // Both mixed orders: legacy latest retains its own actions; typed history never inherits review.
   versions=[typed(1,0),legacy(2)];reviews=[{version_id:versionId('typed',1),decision:'approved',reviewed_at:stamp,reason:'FORGED APPROVAL'}];plans=[];
   await restore();await page.getByRole('button',{name:'核准此版本',exact:true}).waitFor();
-  await page.locator('.version-history > summary').click();await page.locator('.version-history .typed-draft').waitFor();
+  await page.locator('.version-history > summary').click();await openTyped(versionId('typed',1),'.version-history');await page.locator('.version-history .typed-draft').waitFor();
   assert.doesNotMatch(await page.locator('.version-history').innerText(),/FORGED APPROVAL/);
   await page.locator('.compose-draft > summary').click();await page.locator('[name="title"]').fill('unsaved');
   await page.locator('[name="review_reason"]').fill('reason');await page.getByRole('button',{name:'核准此版本',exact:true}).click();
@@ -122,8 +146,9 @@ try {
    if(damage==='review')delete row.first_result_payload.review;
    if(damage==='projection')row.title='wrong projection';
    if(damage==='source')row.first_result_payload.review.source_version='wrong source';
-   versions=[row];await restore();await page.locator('.typed-incomplete').waitFor();await noActions();
-   assert.deepEqual(JSON.parse(await current.locator('details').last().locator('pre').textContent()).payload,row.first_result_payload,`fresh payload: ${damage}`);
+   versions=[row];await restore();await openTyped();await noActions();
+   if(damage==='payload') {await page.locator('.typed-read-feedback[role="alert"]').waitFor();assert.match(await page.locator('.typed-read-feedback').innerText(),/資料缺漏/);}
+   else {await page.locator('.typed-incomplete').waitFor();assert.deepEqual(JSON.parse(await current.locator('details').last().locator('pre').textContent()).payload,row.first_result_payload,`fresh payload: ${damage}`);}
   }
   const hostile=typed();hostile.first_result_payload.preview.fields.description.suggested='<img src=x onerror="window.XSS=1"><script>window.XSS=1</script>';
   hostile.draft_body=hostile.first_result_payload.preview.fields.description.suggested;
@@ -132,8 +157,56 @@ try {
   assert.equal(await current.locator('[data-field="description"]').textContent(),hostile.draft_body);
   await page.locator('#sign-out').click();role='viewer';versions=[legacy(),typed()];await login();await waitTyped();await noActions();
   assert.equal(mutations.length,0);
+  // Each missing/partial discriminator blocks legacy forms before any detail GET.
+  for(const key of ['first_result_request_id','first_result_expected_version','first_result_request_digest']) {
+   const row=typed();delete row[key];versions=[row];const count=detailReads;await restore();
+   await page.locator('.typed-version > .typed-incomplete').waitFor();await noActions();assert.equal(detailReads,count);
+  }
+  const missingLegacy=legacy();delete missingLegacy.first_result_request_digest;versions=[missingLegacy];await restore();await noActions();
+  assert.equal(await page.locator('.typed-loader').count(),0);
+  versions=[typed()];await restore();
+  for(const [key,value] of [['organization_id','90000000-0000-4000-8000-000000000001'],['id',versionId('typed',9)],['opportunity_id','90000000-0000-4000-8000-000000000002'],['version_number',99],['first_result_request_id',null],['first_result_expected_version',99],['first_result_request_digest','pg-jsonb-sha256:'+'f'.repeat(64)]]) {
+   detailChange=row=>({...row,[key]:value});await restore();await openTyped();
+   await page.locator('.typed-read-feedback[role="alert"]').waitFor();assert.match(await page.locator('.typed-read-feedback').innerText(),/不一致/);
+   assert.equal(await page.locator('.typed-draft').count(),0);await noActions();
+  }
+  detailChange=null;
+  for(const status of [401,403]) {
+   detailStatus=status;await restore();await openTyped();await page.locator('.typed-read-feedback[role="alert"]').waitFor();
+   assert.match(await page.locator('.typed-read-feedback').innerText(),new RegExp(`HTTP ${status}`));await noActions();
+   detailStatus=200;await page.getByRole('button',{name:'重新讀取此版本',exact:true}).click();await current.waitFor();
+  }
+  // Close and reopen creates a new request; release newer before older.
+  await restore();holdDetails=true;detailChange=row=>({...row,organization_id:'90000000-0000-4000-8000-000000000001'});const oldIndex=heldDetails.length;
+  const lazy=await openTyped();await until(()=>heldDetails.length===oldIndex+1);const count=detailReads;
+  await lazy.evaluate(node=>{node.open=true;node.open=true;});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(detailReads,count,'repeat expansion does not duplicate in-flight request');
+  await lazy.locator(':scope > summary').click();assert.equal(await current.count(),0);detailChange=null;
+  await lazy.locator(':scope > summary').click();await until(()=>heldDetails.length===oldIndex+2);
+  await finishDetail(oldIndex+1);await current.waitFor();await finishDetail(oldIndex);assert.equal(await current.count(),1);assert.equal(await page.locator('.typed-read-feedback[role=alert]').count(),0,'late old mismatch cannot overwrite newer success');
+  // Closing while pending cannot revive a closed panel or retain its payload.
+  await restore();const closeIndex=heldDetails.length;const closePanel=await openTyped();await until(()=>heldDetails.length===closeIndex+1);
+  await closePanel.locator(':scope > summary').click();await finishDetail(closeIndex);
+  assert.equal(await closePanel.evaluate(node=>node.open),false);assert.equal(await current.count(),0);
+  // Refresh invalidates pending read even when the version ID is unchanged.
+  const refreshIndex=heldDetails.length;await openTyped();await until(()=>heldDetails.length===refreshIndex+1);await restore();
+  await finishDetail(refreshIndex);assert.equal(await current.count(),0);assert.equal(await page.locator('.typed-loader').evaluate(node=>node.open),false);
+  // Closing history also cancels its open child and does not batch-reload children on return.
+  versions=[typed(1,0),legacy(2)];await restore();await page.locator('.version-history > summary').click();
+  const historyIndex=heldDetails.length;await openTyped(versionId('typed',1),'.version-history');await until(()=>heldDetails.length===historyIndex+1);
+  await page.locator('.version-history > summary').click();await finishDetail(historyIndex);assert.equal(await page.locator('.typed-draft').count(),0);
+  const historyCount=detailReads;await page.locator('.version-history > summary').click();
+  assert.equal(await page.locator('.version-history .typed-loader').evaluate(node=>node.open),false);assert.equal(detailReads,historyCount);
+  versions=[typed()];await restore();
+  // Signout then another org's same version ID cannot accept the old session response.
+  const sessionIndex=heldDetails.length;await openTyped();await until(()=>heldDetails.length===sessionIndex+1);
+  await page.locator('#sign-out').click();await finishDetail(sessionIndex);assert.equal(await current.count(),0);
+  activeOrg='10000000-0000-4000-8000-000000000002';holdDetails=false;versions=[typed(2,1)];
+  await login();await waitTyped();assert.equal(await current.count(),1);assert.equal(await current.locator('[data-field=title]').textContent(),reports[1].preview.fields.title.suggested);await noActions();
+  assert.equal(mutations.length,0);await page.locator('#sign-out').click();activeOrg=org;
   // Legacy approved version still gets a plan; old plan handler is invalid after source/version refresh.
-  await page.locator('#sign-out').click();role='owner';versions=[legacy()];reviews=[{version_id:versionId('legacy',1),decision:'approved',reviewed_at:stamp,reason:'legacy approved'}];await login();
+  role='owner';versions=[legacy()];reviews=[{version_id:versionId('legacy',1),decision:'approved',reviewed_at:stamp,reason:'legacy approved'}];await login();
   await page.locator('.action-plan-form').waitFor();
   await page.locator('[name="proposed_path"]').fill('/synthetic');await page.locator('[name="success_signal"]').fill('synthetic');await page.locator('[name="rollback_plan"]').fill('synthetic');
   await page.evaluate(()=>window.oldPlan=document.querySelector('.action-plan-form'));
@@ -189,7 +262,7 @@ try {
   await finishMutation();assert.equal(await page.locator('.draft-result').count(),1);
   assert.equal(mutations.length,6,'one legacy review, four creates, one plan; no typed mutations');
   assert.deepEqual(unexpected,[]);assert.deepEqual(errors,[]);
-  await context.close();console.log(`PASS ${width}px: complete typed fields/evidence, Unicode, owner/viewer, mixed histories, malformed data, HTML safety, keyboard details, zero typed mutations, legacy guard/late response/repeated clicks, stale refresh and page return, unchanged SELECT`);
+  await context.close();console.log(`PASS ${width}px: complete typed fields/evidence, Unicode, owner/viewer, mixed histories, malformed data, HTML safety, keyboard details, zero typed mutations, legacy guard/late response/repeated clicks, stale refresh and page return, strict lightweight SELECT + scoped lazy payload reads`);
  }
  assert.deepEqual(regressionFailures,[],'create result must belong to the exact returned version');
 } finally {if(browser)await browser.close();server.kill();}

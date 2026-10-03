@@ -75,4 +75,4 @@ Owner 04:01:01 明確同意 03:32 的限定一次 closed deployment 問題，批
 
 原停止規則保留：若任何另行批准的操作有 error／timeout 或結果未知，先以獲准的唯讀路徑核對 schema／ACL／資料／history；本次獨立 postflight 已完成，不再重跑。若 schema 與 history 不一致、部分狀態未知或對帳不同，停止回報，不重送、不改名再套、不刪 history／欄位或補 grants；後續修復另審。非預期 active grant 必須作失敗回報，不能把此候選當事後清理授權。
 
-不包含真 JWT／API／瀏覽器登入／跨 session 讀回／URL mapping／新 Save 接線。遠端 SELECT 未改，停寫狀態下不能宣稱產品保存／恢復完成。
+不包含真 JWT／API／瀏覽器登入／跨 session 讀回／URL mapping／新 Save 接線。記錄部署時 client SELECT 尚未改；後續 repo 已接上三個 metadata 與單版按需 GET，僅通過本機合成驗收，見 [唯讀讀取契約](../../../docs/Typed_Draft_Workspace_唯讀驗收_2026-10-03.md)。沒有新增遠端查詢或授權，停寫狀態下不能宣稱產品保存／恢復完成。

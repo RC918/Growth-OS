@@ -1,3 +1,17 @@
+const versionMetadata = ['first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
+const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+// Missing projection fields are unknown, never evidence that a row is legacy.
+export function contentVersionKind(version) {
+  if (!version || !versionMetadata.every(key => Object.hasOwn(version, key))) return 'invalid';
+  if (versionMetadata.every(key => version[key] === null)) return version.first_result_payload == null ? 'legacy' : 'invalid';
+  return uuid(version.id) && uuid(version.opportunity_id) && uuid(version.first_result_request_id) &&
+    Number.isSafeInteger(version.first_result_expected_version) && version.first_result_expected_version >= 0 &&
+    version.version_number === version.first_result_expected_version + 1 &&
+    typeof version.first_result_request_digest === 'string' && /^pg-jsonb-sha256:[0-9a-f]{64}$/.test(version.first_result_request_digest)
+    ? 'typed' : 'invalid';
+}
+const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
+
 // Isolated Staging client. An access token exists only in this page's memory.
 export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
@@ -134,6 +148,25 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
         method:'POST',body:{p_organization_id:ownerOnly(),p_request_id:requestId,p_payload:payload},
       });
     },
+    async readContentVersion(version) {
+      const org = activeOrg(), sessionMembership = membership, sessionToken = token;
+      const expected = { ...version };
+      if (contentVersionKind(expected) !== 'typed') throw new Error('版本識別資料不完整，請重新整理列表');
+      const rows = await select('content_versions', `organization_id,${versionColumns},first_result_payload`, {
+        organization_id: `eq.${org}`, id: `eq.${expected.id}`, limit: '1',
+      });
+      if (membership !== sessionMembership || token !== sessionToken) throw new Error('工作區已變更，請重新讀取');
+      const row = rows[0];
+      if (rows.length !== 1 || !row) throw new Error('找不到可讀取的完整版本，請重新整理或重試');
+      if (row.organization_id !== org || contentVersionKind(row) !== 'typed' ||
+          versionColumns.split(',').some(key => !Object.hasOwn(row, key) || row[key] !== expected[key])) {
+        throw new Error('版本資料與列表不一致，請重新整理列表');
+      }
+      if (!row.first_result_payload || typeof row.first_result_payload !== 'object' || Array.isArray(row.first_result_payload)) {
+        throw new Error('完整版本資料缺漏，請重新整理或重試');
+      }
+      return row;
+    },
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
@@ -144,7 +177,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
         select('sites', 'id,origin,verified_at', { ...scope, limit: '30' }),
         select('opportunity_sources', 'opportunity_id,source_kind,source_url,evidence_note,observed_at', { ...scope, order: 'observed_at.desc', limit: '500' }),
         select('opportunity_decisions', 'opportunity_id,decision,reason,decided_at', { ...scope, order: 'decided_at.desc', limit: '500' }),
-        select('content_versions', 'id,opportunity_id,version_number,title,draft_body,status,created_at', { ...scope, order: 'created_at.desc', limit: '500' }),
+        select('content_versions', versionColumns, { ...scope, order: 'created_at.desc', limit: '500' }),
         select('content_reviews', 'version_id,decision,reason,reviewed_at', { ...scope, order: 'reviewed_at.desc', limit: '500' }),
         select('content_action_plans', 'version_id,proposed_path,success_signal,rollback_plan,created_at', { ...scope, order: 'created_at.desc', limit: '500' }),
       ]);

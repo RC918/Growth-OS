@@ -1,4 +1,4 @@
-import { createWorkspaceApi } from './workspace-api.mjs';
+import { createWorkspaceApi, contentVersionKind } from './workspace-api.mjs';
 import { orderOpportunities } from './opportunity-order.mjs';
 import { createObservationPanel } from './workspace-observations.mjs';
 import { createGoalPanel } from './workspace-goals.mjs';
@@ -85,10 +85,10 @@ function revealVersion(opportunityId, versionId, text) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// Old-schema responses omit all four fields. Any non-null typed marker fails
-// closed, including partial rows. This is presentation, not payload authorization.
+// Only an explicit complete legacy discriminator enables legacy actions.
+// Unknown/missing metadata stays read-only, including while payload is unloaded.
 const typedColumns = ['first_result_payload', 'first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
-const isTyped = version => !!version && typedColumns.some(key => version[key] != null);
+const isTyped = version => !!version && contentVersionKind(version) !== 'legacy';
 const typedNotice = '待專用審核 · 未發布 · 僅供唯讀；不能使用一般草稿審核、兩欄修訂或執行方案。';
 const resultFields = {title: '標題', meta_description: 'Meta description', description: '產品描述'};
 function typedDraft(version) {
@@ -156,6 +156,56 @@ function typedDraft(version) {
     expected_version: version.first_result_expected_version, request_digest: version.first_result_request_digest,
   });
   return panel;
+}
+
+function typedVersion(version, current, history = null) {
+  const wrapper = document.createElement('section'); wrapper.className = 'typed-version'; wrapper.dataset.versionId = version.id;
+  const notice = document.createElement('p'); notice.className = 'draft-state'; notice.textContent = typedNotice; wrapper.append(notice);
+  if (contentVersionKind(version) !== 'typed') {
+    const error = document.createElement('p'); error.className = 'typed-incomplete'; error.setAttribute('role', 'alert');
+    error.textContent = '版本識別資料不完整或不一致；所有內容操作已阻擋，請重新整理列表。'; wrapper.append(error); return wrapper;
+  }
+  const details = document.createElement('details'); details.className = 'typed-loader';
+  const summary = document.createElement('summary'); summary.textContent = '展開此版本完整內容與來源（唯讀）';
+  const feedback = document.createElement('p'); feedback.className = 'typed-read-feedback'; feedback.setAttribute('role', 'status');
+  const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'quiet'; retry.textContent = '重新讀取此版本'; retry.hidden = true;
+  const body = document.createElement('div');
+  details.append(summary, feedback, retry, body); wrapper.append(details);
+  let ticket = 0, pending = false, loaded = false;
+  const visible = () => current() && details.open && (!history || history.open);
+  function cancel() {
+    ticket++; pending = false; loaded = false; body.replaceChildren(); retry.hidden = true;
+    feedback.textContent = '尚未載入完整內容。'; feedback.setAttribute('role', 'status');
+  }
+  async function load() {
+    if (!visible() || pending || loaded) return;
+    pending = true; const requestTicket = ++ticket;
+    const active = () => visible() && requestTicket === ticket;
+    feedback.textContent = '讀取此版本中…'; feedback.setAttribute('role', 'status'); retry.hidden = true;
+    try {
+      const row = await api.readContentVersion(version);
+      if (!active()) return;
+      body.replaceChildren(typedDraft(row)); loaded = true; feedback.textContent = '';
+    } catch (error) {
+      if (!active()) return;
+      feedback.textContent = error.message; feedback.setAttribute('role', 'alert'); retry.hidden = false;
+    } finally { if (active()) pending = false; }
+  }
+  // Infer each transition from the next oldValue (or final attribute), so a
+  // coalesced close/reopen cancels, but setting open=true twice does not refetch.
+  const closedInBatch = (records, node) => records.some((record, index) => record.oldValue !== null &&
+    (index + 1 < records.length ? records[index + 1].oldValue : node.getAttribute('open')) === null);
+  new MutationObserver(records => {
+    if (closedInBatch(records, details)) cancel();
+    if (details.open) void load();
+  }).observe(details, {attributes: true, attributeFilter: ['open'], attributeOldValue: true});
+  if (history) new MutationObserver(records => {
+    if (closedInBatch(records, history)) { cancel(); details.open = false; }
+    if (history.open) void load();
+  }).observe(history, {attributes: true, attributeFilter: ['open'], attributeOldValue: true});
+  retry.addEventListener('click', () => { void load(); });
+  cancel();
+  return wrapper;
 }
 
 function opportunityCard(item, owner, sources, decisions, versions, reviews, actionPlans, orderReason) {
@@ -253,7 +303,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
     if (isTyped(version)) {
       const heading = document.createElement('p');
       heading.textContent = `第 ${version.version_number} 版 · ${formatTime(version.created_at)}`;
-      history.append(heading, typedDraft(version));
+      history.append(heading, typedVersion(version, current, history));
       continue;
     }
     const review = reviews.find(row => row.version_id === version.id);
@@ -281,7 +331,7 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   focusHeading.textContent = latestVersion ? `目前草稿 · 第 ${latestVersion.version_number} 版 · ${formatTime(latestVersion.created_at)}` : '目前草稿';
   focus.append(focusHeading);
   if (typed) {
-    focus.append(typedDraft(latestVersion));
+    focus.append(typedVersion(latestVersion, current));
   } else if (latestVersion) {
     const title = document.createElement('strong'); title.textContent = latestVersion.title;
     const body = document.createElement('p'); body.className = 'draft-body'; body.textContent = latestVersion.draft_body;

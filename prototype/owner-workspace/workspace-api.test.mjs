@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { createWorkspaceApi } from './workspace-api.mjs';
+import { createWorkspaceApi, contentVersionKind } from './workspace-api.mjs';
 
 const origin = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
 const key = 'sb_publishable_test';
@@ -57,7 +57,7 @@ function fixture(role = 'owner', verified = true, probeStatus = 403, leakForeign
       return { ok: true, json: async () => [{ opportunity_id: 'synthetic-opportunity', decision: 'approved', reason: 'Synthetic review', decided_at: '2026-09-29T00:00:00Z' }] };
     }
     if (parsed.pathname.endsWith('/content_versions')) {
-      return { ok: true, json: async () => [{ id: 'synthetic-version', opportunity_id: 'synthetic-opportunity', version_number: 1, title: 'Synthetic draft', draft_body: 'A test body', status: 'draft' }] };
+      return { ok: true, json: async () => [{ first_result_request_id:null,first_result_expected_version:null,first_result_request_digest:null,id: 'synthetic-version', opportunity_id: 'synthetic-opportunity', version_number: 1, title: 'Synthetic draft', draft_body: 'A test body', status: 'draft',created_at:'2026-10-03T00:00:00Z' }] };
     }
     if (parsed.pathname.endsWith('/content_reviews')) {
       return { ok: true, json: async () => [{ version_id: 'synthetic-version', decision: 'approved', reason: 'Checked synthetic claims', reviewed_at: '2026-09-29T00:00:00Z' }] };
@@ -82,6 +82,7 @@ test('owner session scopes dashboard reads and sends mutations with the authenti
   assert.equal(dashboard.sources[0].evidence_note, 'Synthetic note');
   assert.equal(dashboard.decisions[0].reason, 'Synthetic review');
   assert.equal(dashboard.versions[0].title, 'Synthetic draft');
+  assert.equal(calls.find(call=>call.path.endsWith('/content_versions')).query.get('select'),'id,opportunity_id,version_number,title,draft_body,status,created_at,first_result_request_id,first_result_expected_version,first_result_request_digest');
   assert.equal(dashboard.reviews[0].reason, 'Checked synthetic claims');
   assert.equal(dashboard.actionPlans[0].proposed_path, '/synthetic-page');
   const reads = calls.filter(call => ['/rest/v1/organizations', '/rest/v1/business_profiles', '/rest/v1/growth_opportunities'].includes(call.path));
@@ -239,4 +240,58 @@ test('observation reads and writes are scoped by authenticated membership; viewe
  assert.equal(viewer.calls.at(-1).query.get('organization_id'),`eq.${orgB}`);
  assert.throws(()=>viewer.api.saveObservation(requestId,payload),/只有企業擁有者/);
  api.signOut(); assert.throws(()=>api.listObservations(),/工作區/); assert.throws(()=>api.saveObservation(requestId,payload),/只有企業擁有者/);
+});
+
+const typedMetadata={id:'40000000-0000-4000-8000-000000000001',opportunity_id:'20000000-0000-4000-8000-000000000001',version_number:2,title:'Typed title',draft_body:'Body',status:'draft',created_at:'2026-10-03T00:00:00Z',first_result_request_id:'30000000-0000-4000-8000-000000000001',first_result_expected_version:1,first_result_request_digest:'pg-jsonb-sha256:'+'a'.repeat(64)};
+function typedReadFixture(role='owner') {
+ let org=orgA,rows=[{organization_id:org,...typedMetadata,first_result_payload:{synthetic:true}}],hold=false,release,status=200;
+ const calls=[];
+ const api=createWorkspaceApi({origin,key,redirectOrigin:new URL(redirectTo).origin,fetchImpl:async(url,options)=>{
+  const u=new URL(url);calls.push({url:u,options});assert.equal(options.method,'GET');
+  if(u.pathname.endsWith('/user'))return {ok:true,json:async()=>({id:'synthetic-user'})};
+  if(u.pathname.endsWith('/organization_members'))return {ok:true,json:async()=>[{organization_id:org,role}]};
+  assert.equal(u.pathname,'/rest/v1/content_versions');
+  const value=structuredClone(rows),code=status;
+  if(hold)await new Promise(resolve=>{release=resolve;});
+  return {ok:code===200,status:code,json:async()=>value};
+ }});
+ return {api,calls,setRows:value=>rows=value,setStatus:value=>status=value,setOrg:value=>org=value,hold:()=>{hold=true;},release:()=>release()};
+}
+test('version discriminator requires all explicit metadata and fails closed on partial markers',()=>{
+ assert.equal(contentVersionKind(typedMetadata),'typed');
+ const legacy={...typedMetadata,first_result_request_id:null,first_result_expected_version:null,first_result_request_digest:null};
+ assert.equal(contentVersionKind(legacy),'legacy');
+ for(const key of ['first_result_request_id','first_result_expected_version','first_result_request_digest']){
+  const missing={...legacy};delete missing[key];assert.equal(contentVersionKind(missing),'invalid');
+  const partial={...typedMetadata,[key]:null};assert.equal(contentVersionKind(partial),'invalid');
+ }
+ assert.equal(contentVersionKind({...legacy,first_result_payload:{}}),'invalid');
+ assert.equal(contentVersionKind({...typedMetadata,version_number:99}),'invalid');
+});
+test('owner/viewer read one typed version with exact org/id/projection and reject mismatches or missing payload',async()=>{
+ for(const role of ['owner','viewer']){
+  const f=typedReadFixture(role);await f.api.completeMagicLink(fragment(role));
+  const row=await f.api.readContentVersion(typedMetadata);assert.deepEqual(row.first_result_payload,{synthetic:true});
+  const call=f.calls.at(-1);assert.equal(call.url.searchParams.get('organization_id'),`eq.${orgA}`);assert.equal(call.url.searchParams.get('id'),`eq.${typedMetadata.id}`);assert.equal(call.url.searchParams.get('limit'),'1');
+  assert.equal(call.url.searchParams.get('select'),'organization_id,id,opportunity_id,version_number,title,draft_body,status,created_at,first_result_request_id,first_result_expected_version,first_result_request_digest,first_result_payload');
+  for(const [field,value] of [['organization_id',orgB],['id',orgB],['opportunity_id',orgB],['version_number',3],['first_result_request_id',orgB],['first_result_expected_version',0],['first_result_request_digest','bad']]){
+   f.setRows([{...row,[field]:value}]);await assert.rejects(f.api.readContentVersion(typedMetadata),/不一致/);
+  }
+  for(const field of ['first_result_request_id','first_result_expected_version','first_result_request_digest']){
+   const damaged={...row};delete damaged[field];f.setRows([damaged]);await assert.rejects(f.api.readContentVersion(typedMetadata),/不一致/);
+  }
+  for(const bad of [null,[],undefined]){f.setRows([{...row,first_result_payload:bad}]);await assert.rejects(f.api.readContentVersion(typedMetadata),/資料缺漏/);}
+  f.setRows([]);await assert.rejects(f.api.readContentVersion(typedMetadata),/找不到/);
+  f.setRows([row,row]);await assert.rejects(f.api.readContentVersion(typedMetadata),/找不到/);
+  for(const status of [401,403]){f.setStatus(status);await assert.rejects(f.api.readContentVersion(typedMetadata),new RegExp(`HTTP ${status}`));}
+  f.api.signOut();const count=f.calls.length;await assert.rejects(f.api.readContentVersion(typedMetadata),/工作區/);assert.equal(f.calls.length,count);
+ }
+});
+test('late typed read rejects after signout or replacement session even with the same token',async()=>{
+ for(const switchOrg of [false,true]){
+  const f=typedReadFixture();await f.api.completeMagicLink(fragment('owner'));f.hold();
+  const pending=f.api.readContentVersion(typedMetadata);f.api.signOut();
+  if(switchOrg){f.setOrg(orgB);await f.api.completeMagicLink(fragment('owner'));}
+  f.release();await assert.rejects(pending,/工作區已變更/);
+ }
 });

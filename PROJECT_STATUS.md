@@ -112,3 +112,14 @@ Owner 04:01:01 批准 03:32 提案的限定一次 remote closed deployment（`Se
 既有 3 ancillary functions 與 review 有獨立快照比對；其餘既有 functions／PG role membership 由 exact package 內 security assertions＋apply success 支持，沒有誇稱全數都有獨立外部快照。詳見 [停寫部署紀錄](supabase/drafts/first_result_save/CLOSED_PACKAGE.md)。
 
 唯一 remote attempt 已用完，30 分鐘窗口不是額外授權；不重跑 migration、不開 grant、不 reconcile 本地 migration filenames。沒有真 JWT/API/login/Save/跨 session 驗收，remote SELECT 仍未改。此次 agent 只記錄父的結果，未連遠端或重跑實作測試。後續 schema＋history 一般原子性仍不能由本次成功推定。
+
+
+## 2026-10-03 Workspace typed 按需讀取契約
+
+父已接受文件基準 `be01425ce4bbd3a2ab5406ee5420433ae894b256`：push CI 37096055203／PR CI 37096057823 各 39 steps success，Preview `5oedbDN14M88Xr1g9T7vZn5GCZTe` Ready（父提供證據）。此前各段「SELECT 未改」為各切片當時狀態，最新本地接線如下。
+
+現有版本列表新增三個 scalar metadata，payload 只在使用者展開單版時以當前 org＋精確 UUID GET。回應 org/id/parent/version/metadata 與列表投影一致才顯示；metadata 缺失／矛盾 fail closed，不回退 legacy。手動重試、重複展開與收合／歷史收合／刷新／登出／session 更換／晚回覆防護保留；apps/web 與 prototype 鏡像一致。
+
+最終程式既有驗收：13 API/mirror tests、嚴格 SELECT projection 的 1280/390 合成 E2E PASS；每 viewport 六次 legacy mutation、零 typed mutation。logs 04:35:14 晚於最終程式修改 04:35:03；收尾僅補文件，不重跑無關 suite。詳見 [按需讀取驗收](docs/Typed_Draft_Workspace_唯讀驗收_2026-10-03.md)。新 SHA CI／Preview 待父獨立驗收。
+
+沒有遠端查詢、Save、登入、grants、SQL／migration 或新 Auth 流程；單次部署批准已用完。合成讀取通過不等於真 RLS／Data API／跨 session 恢復驗收，不放行完整 M3 或發布／量測。

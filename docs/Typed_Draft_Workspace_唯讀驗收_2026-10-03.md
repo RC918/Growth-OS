@@ -2,7 +2,7 @@
 
 基準 `16ef57627fbe1409e675d60b33559990de34ffcb` 已由父獨立接受：push CI 37089011426／PR CI 37089015968 success，實際 PG17.6 trim 等義控制、51 URL、舊鎖 legacy create/review deadlock 對照及修正後 overlap、三種 membership revoke 時序、1280/390 各 22 次下載。這是父轉交證據，本切片未重新執行 SQL／URL suite，也未連遠端核對。
 
-## 改動
+## 初始 renderer 切片改動（歷史）
 
 直接更新現有 workspace 機會卡片的目前／歷史版本；apps/web 與 prototype/owner-workspace 保持一致。任何非 NULL 的 first_result 四欄標記都歸為 typed，包括只有 request metadata、payload 缺損的回應；舊 schema 未傳欄位與四欄全 NULL 保留 legacy 呈現。
 
@@ -12,7 +12,7 @@ Typed 一律「待專用審核／未發布」；page-only receipt 不是 owner a
 
 版本卡片操作綁定目前 render generation、頁面 epoch、state 與 connected DOM；同卡片一次只送一個 legacy mutation。刷新開始、版本／來源改變、登出或 pagehide 後舊事件失效，舊 dashboard 回覆不能覆蓋新回覆；pageshow persisted 先刷新再開放新卡片。已送出的 legacy 請求不能撤回，但其晚回覆不能寫入新 typed 卡片的成功狀態，也不自動重試。刷新失敗提示重新整理，失效卡片不再允許內容操作。
 
-## 本地驗收
+## 初始 renderer 本地驗收（歷史）
 
 - `node --test prototype/owner-workspace/workspace-api.test.mjs`：10 tests PASS，包含 Auth/API 合成契約、角色／scope、原 mutation 參數及發布檔鏡像一致性。
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node prototype/owner-workspace/typed-draft-ui.e2e.mjs`：1280／390px PASS。每個 viewport 使用真實 workspace.html／renderer、合成 Auth/Data API transport；所有非本地請求均攔截，未知請求拒絕且令驗收失敗。
@@ -21,7 +21,7 @@ Typed 一律「待專用審核／未發布」；page-only receipt 不是 owner a
 - 每 viewport 恰好三個合成 legacy mutation：review、create、plan 各一次；typed mutation 為零。無真 Auth／RPC／遠端 DB／產品抓取。
 - CI 新增此專項步驟（3 分鐘上限），沿用固定 Playwright。新 commit 的 CI／Preview 仍待父獨立核對；本地 Chromium 151，不冒充 CI Chromium 145 的結果。
 
-## 邊界與後續
+## 初始 renderer 邊界（歷史，讀取缺口已由下節接線）
 
 **遠端 SELECT 完全不改。** 現行 SELECT 沒有 typed 辨識與 payload；測試刻意提供超出 SELECT 的合成 typed 欄位，以驗證實際 renderer，而不是宣稱遠端已能恢復 typed 草稿。沒有 production fixture 開關、新 demo、store、adapter、Save、RPC 或 Auth 接線；未要求未部署欄位，也未擴大成 500 份 payload 查詢。
 
@@ -50,4 +50,22 @@ URL → First Useful Result → Review → Publish → Measure 不變；不新�
 
 父提供 2026-10-03 04:10 UTC 的獨立 postflight：Owner 04:01:01 單次批准後，父以 a150beb 的精確 closed SQL 部署 `20261003040602 first_result_closed_package`；總 migration 18→19，原 goal history 仍為 13 筆。15 新函式、四欄／約束／typed review guard 正確，新保存入口及 helpers 的 client EXECUTE 均關閉，typed rows／first-result audit／測試 request IDs 持久 0；業務／ledger 前後不變。完整授權、52,447-byte statement hash 及獨立快照／包內 assertions 的證據區分見 [停寫部署紀錄](../supabase/drafts/first_result_save/CLOSED_PACKAGE.md)。
 
-既有 dashboard 的 SELECT 仍沒有 typed 辨識欄位／按需 payload，因此 renderer 的合成驗收不能當成真 Data API 或跨 session 恢復通過。部署批准僅一次且已用完；未批准開 grant、登入或真 Save。本次只補文件，不重新測試、不連遠端、不實作下一讀取切片。
+記錄部署結果的 be01425 文件切片當時，dashboard 的 SELECT 尚沒有 typed 辨識欄位／按需 payload。部署批准僅一次且已用完；未批准開 grant、登入或真 Save。當時只補文件；後續本地讀取接線如下，仍不代表真 Data API 或跨 session 恢復通過。
+
+
+## Typed 按需讀取契約（be01425 後續切片）
+
+現有 dashboard 版本列表只新增 `first_result_request_id`、`first_result_expected_version`、`first_result_request_digest` 三個 scalar 欄位，不批量載入 payload。三欄明確全 NULL 才走 legacy；缺欄、部分 NULL、格式或版本不一致均保持唯讀並提示重新整理，不因尚未載入 payload 而開放舊操作。
+
+使用者以滑鼠或鍵盤展開目前／歷史 typed 版本時，沿用現有 client 發出單筆 GET：當前 organization_id＋精確 version UUID，limit=1。回應須恰好一列；組織、id、parent、版本、三個 metadata 及全部列表投影欄位須一致，payload 須為非 NULL object，才交給既有完整唯讀 renderer。401／403、缺資料或識別不一致顯示錯誤並提供手動重試；沒有自動重試或 typed mutation。
+
+收合單版／歷史區塊會清除內容並撤銷晚回覆顯示資格；重新開啟歷史不批量載入子版本。刷新、登出、工作區／session 或 render 變動使舊回覆失效；重複展開不重送正在進行的請求，逆序舊成功／錯誤不能覆蓋新內容。已送出的 GET 不會被網路層撤回。沿用既有 Auth 與記憶體狀態，無新 store、adapter、demo 或登入流程。
+
+最終程式修改時間為 2026-10-03 04:35:03 UTC；既有驗收 logs 在 04:35:14 UTC 完成，晚於最終程式內容。本次收尾僅更新文件，未重跑無關 PASS：
+
+- `node --test prototype/owner-workspace/workspace-api.test.mjs`：13/13 PASS，含 apps/web 鏡像一致性；紀錄 `/tmp/typed-lazy-api.log`。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node prototype/owner-workspace/typed-draft-ui.e2e.mjs`：1280／390px PASS；紀錄 `/tmp/typed-lazy-ui.log`。本地 Chromium 151，不能冒充新 CI 結果。
+- 合成 transport 嚴格依實際 SELECT 投影回傳欄位，取代先前超出 SELECT 的 fixture。驗證未展開零 payload GET、精確 org/id/limit、owner/viewer、混合歷史、missing metadata、錯 org/id/parent/version/metadata、401/403 與重試、收合／歷史收合／刷新／登出／換 org／逆序回覆／重複展開。
+- 保留完整 payload／Unicode／HTML 純文字、鍵盤、無水平溢出及 legacy UUID 歸屬回歸；每 viewport 六個合成 legacy mutation，typed mutation 為零。API 另驗相同 token 的 session 更換仍拒絕舊讀取。
+
+本次只在 repo 接線並以合成 transport 驗證，沒有遠端查詢、真 JWT／RLS／登入／Save／跨 session 讀回、grants 或 SQL 變更。沒有在瀏覽器重算 payload 摘要或取代完整服務端驗證。新提交 CI／Preview 待父獨立驗收；永久保存、專用 review、發布與量測仍未放行。
