@@ -4,7 +4,7 @@
 
 ## 當前授權與基準
 
-初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿 accepted HEAD 推進，本輪合法 package 基準 `4525a90112970457848f4c5c8b2d347ae878fd6e`（runtime code `cffdec89`，父驗兩 CI 各45steps成功）。新的直接 Owner 指令才會改變當前授權。父轉述 Owner 2026-10-03 08:53:10 UTC「同意」維持原範圍改截止為 **09:30 UTC／台北17:30**；已離線重綁 [新 manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T093000Z/approval-manifest.json)，08:00 過期包原樣保留。安全 preflight 由父另行處理，成功前不得開 grant；本輪未執行 remote／登入／config 開放，實際 flags 仍 false/null，09:30 不自動延展。
+初次 `6663b7f` orchestration 基準是已完成歷史；現行 `feat/passwordless-workspace` 沿 accepted HEAD 推進，本輪合法 package 基準 `0614100535175c0109d9d4f964d96629002af219`。父轉述 Owner 2026-10-03 13:18 UTC 批准同固定資料新截止 **14:30 UTC／台北22:30**；已離線重綁 [新 manifest](supabase/drafts/url_result/bound/owner-candidate-20261003T143000Z/approval-manifest.json)，08:00／09:30 歷史包原樣保留。父確認現有雲端登入成功，allowlist 仍待唯讀核對；preflight 成功後的 opening/config部署/login1/最多1Save/立即cleanup及closed部署/login2只讀均由父另行處理。本輪沒有執行這些操作，實際 flags 仍 false/null；14:30 不自動延展。
 
 ## 產品方向
 

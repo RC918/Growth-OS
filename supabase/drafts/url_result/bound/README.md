@@ -1,6 +1,6 @@
 # URL 待審成果：固定範圍離線驗收候選包
 
-最新重綁包：[2026-10-03 09:30 UTC](owner-candidate-20261003T093000Z/README.md)。父轉述 Owner 已於08:53:10 UTC批准同範圍新截止，尚待父獨立驗包及安全 preflight；本輪僅離線生成，actual flags仍false/null。08:00過期包及下方既有紀錄保留為歷史。
+最新重綁包：[2026-10-03 14:30 UTC](owner-candidate-20261003T143000Z/README.md)。父轉述 Owner 13:18 UTC 批准同固定資料新截止；本輪僅離線生成核對，actual flags仍false/null。父確認現有登入成功，allowlist仍待唯讀核對；後續操作由父處理。08:00／09:30包及下方既有紀錄保留為歷史。
 
 本包依 Owner 2026-10-03 05:14 離線設計批准及父 06:11 派工準備，沿已驗收 `7467fa2227e39be6e095dd39da8c9b58ca780257`。不是遠端執行授權。沒有 remote DDL／ACL／查詢、登入、POST、模型或費用操作；04:01 closed 部署是已完成且過期的歷史批准。`apps/web` 與 prototype 的 schema/save flag 仍為 false，trial 為 null。此目錄不在自動 migration 路徑，也不在靜態站點根目錄。
 

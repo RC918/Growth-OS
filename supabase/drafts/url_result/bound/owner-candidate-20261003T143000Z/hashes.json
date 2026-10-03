@@ -1,0 +1,8 @@
+{
+  "opening_sha256": "1c04571433e1d1dc0d21a38157cd63eb22a9eb63f7063bca2a260482abaaacf7",
+  "cleanup_sha256": "2932e50569d486e8d4251f20ac8b9c30be1180068ba8b6a897abd8814eb5b80c",
+  "open_config_sha256": "7e9d73ee83b92b00ac7047c5bd82bbab9daa90abe1918e321b17e443ca8a6f5a",
+  "closed_config_sha256": "1c33867c68ba5d0c9a2c03c5a7612a21a17f2c13de4292a1c86c9c819de268f8",
+  "expires_at": "2026-10-03T14:30:00.000Z",
+  "workspace_url": "https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html"
+}
