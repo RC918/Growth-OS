@@ -51,6 +51,8 @@ jobs:
         run: node --test prototype/owner-workspace/goal-draft-adapter.test.mjs
       - name: Guided goal PostgreSQL engine checks
         run: node supabase/tests/goal_intake_postgres.mjs
+      - name: Undeployed first-result SQL on isolated PGlite
+        run: node --test supabase/drafts/first_result_save/offline.test.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
         run: |
           node --check supabase/functions/growth-model-trial/index.js
@@ -61,6 +63,9 @@ jobs:
           node supabase/tests/model_trial/deadline_engine.mjs
       - name: Model trial atomic reservation on independent PG17 backends (no network)
         run: python3 -B supabase/tests/model_trial/native_ledger.py
+      - name: Undeployed first-result SQL on independent PG17 backends (no network)
+        timeout-minutes: 3
+        run: node supabase/drafts/first_result_save/native.mjs
       - name: Supabase Edge Runtime closed-gate user worker (no network or keys)
         run: python3 -B supabase/tests/model_trial/edge_runtime.py
       - name: Offline probe boundary checks (PGlite only)
