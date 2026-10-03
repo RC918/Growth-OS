@@ -77,3 +77,13 @@ PGlite 13 個群組（Node 含外層 14 tests）PASS，含 114 個證據破壞�
 保存 SQL 草案父審查增補：`c9ab0d8` 的 CI 37087663932／37087667022 已補齊真 PG17.6 原三案，Preview `CE4aQ6ZDS2q6m3BwBvz6fMp3SZK9` Ready；但三項 P2 HOLD。新增回歸先得到 PGlite 15 PASS／2 FAIL，完整重綁 URL／引用／receipt／digest 後仍重現非法 authority／port 誤收。trim 在 PG18.3 未重現（`E'\v'`→0b），改用 chr(11)，保留 PG17 專屬原寫法對照。org lock 改 NO KEY UPDATE 以容許 legacy FK KEY SHARE；新增原模式 deadlock 控制、legacy create/review 混合及三種 membership 撤銷重疊 assertions。最終 PGlite 16 群組／含外層 17 tests PASS，51 URL differential 案例完整通過；native 語法 PASS，本機仍缺 image，新增真 PG17 案例待新 CI，不能當作已重現遠端故障。僅離線 SQL／合成測試與文件，未部署、未碰遠端權限或資料。
 
 PG17 trim 判定更正：`db953e5` 的 CI 37088718035／37088720542 在錯誤控制預期失敗；父讀得 PG17.6 實際 `0b/true/true/false`，與 PG18 一致，已撤回 trim bug 判定。chr(11) 僅為明確等義寫法。本次只修 native 預期／標籤及文件，SQL 不改；URL／鎖修法已獲父靜態接受，但新 mixed legacy／typed、三個 membership revoke 時序與保留斷言因前項中止尚未執行，下游 browser／closed-gate skip。全部 assertions 保留，待新 CI 完整執行與父驗收；沒有遠端操作。
+
+父已接受 `16ef57627fbe1409e675d60b33559990de34ffcb`：push CI 37089011426／PR CI 37089015968 success；實際 PG17.6 trim 等義、51 URL、舊鎖 legacy create/review 40P01 對照與修正後 overlap、三種 membership revoke 時序及 1280/390 各 22 次下載均通過。這是父獨立提供的驗收，解除上一段等待；仍只接受未部署離線 SQL，不是遠端保存／Auth 批准。
+
+## 2026-10-03 Workspace typed draft 唯讀相容性
+
+既有目前／歷史卡片新增 typed 三欄全文、原文／原建議／修改／facts／inferences／未知／引用／來源與內容不同摘要／page-only 歷史確認。typed 或可辨識但缺損的 typed 一律阻擋 generic review、兩欄修訂與執行方案，不採信混入的 approved review；legacy 保留。舊卡片、重複操作、刷新逆序、晚回覆及頁面返回有失效防護。
+
+10 workspace API／鏡像 tests、合成 transport 的實際 workspace renderer 1280/390 E2E PASS；每 viewport 三個 legacy mutation、零 typed mutation，完整內容／長 Unicode／HTML 安全／缺損資料／混合歷史／鍵盤與無溢出均覆蓋。新 CI 步驟已接，提交後 CI／Preview 待父核對。详見 [唯讀驗收與限制](docs/Typed_Draft_Workspace_唯讀驗收_2026-10-03.md)。
+
+遠端 SELECT 未改，fixture 刻意補入 typed 欄位，僅驗 renderer 相容性；真實傳輸仍缺 typed 辨識／按需 payload，不能宣稱跨登入恢復完成。無新 Save／RPC／Auth 接線、遠端 DB 或模型／live fetch；未部署 SQL、不擴 Profile／Plan 入口，完整 M3 仍未放行。

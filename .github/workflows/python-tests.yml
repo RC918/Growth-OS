@@ -78,6 +78,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Baseline desktop and mobile UI acceptance
         run: node prototype/csv-import/baseline-ui.e2e.mjs
+      - name: Typed draft readonly workspace acceptance (synthetic transport only)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/typed-draft-ui.e2e.mjs
       - name: Workspace observation desktop and mobile UI acceptance
         run: node prototype/owner-workspace/observations-ui.e2e.mjs
       - name: Guided goal desktop and mobile UI acceptance
