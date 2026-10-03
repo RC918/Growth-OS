@@ -2,6 +2,23 @@
 
 本次 Owner 任務只建立治理技能，不開始產品工程、不改 DB／runtime flags／production，不重試父已被安全工具拒絕的 mutation。起始 HEAD `8b9cdf5fd6683877e1b02b1a31869372bb66be5d`，分支 `feat/passwordless-workspace`。repo 原無 `AGENTS.md`、`.codex/skills` 或 `.agents/skills`，因此沒有覆蓋既有指引。
 
+## 現行正式使用方式與 deferred debt
+
+Owner 已採 **AGENTS.md＋repo SKILL.md** 為正式治理來源。每個 Core task 前依序直接讀 AGENTS → mission-guardrail → engineering-executor，異常才讀 recovery-reconciliation；不依賴 catalog 自動發現。固定 Reviewer baseline verdict 為 `APPROVE_WITH_DEFERRED_DEBT`（父提供）；Primary 唯一 writer，Reviewer readonly。下方 discovery 失敗證據保留，不能報成 autodiscovery PASS，也不再當成待完成的前置驗收。
+
+| Technical debt 欄位 | TD-GOV-001 |
+|---|---|
+| ID | TD-GOV-001 |
+| Severity / category | P3 / Infrastructure Improvement |
+| Area | 原生 skill autodiscovery |
+| Evidence | 下一turn available skills未列三技能；executor skills.list空、cloud 118項無匹配；先前CLI loader因受保護installation_id EROFS退出。AGENTS路由已直接讀回三技能。 |
+| Impact | 原生catalog未列出技能；不影響正式直接讀取，不阻塞M3。 |
+| Workaround / 正式使用方式 | 依AGENTS順序直接讀repo SKILL.md，異常按需讀recovery。 |
+| Why deferred | Owner已接受直接讀取為正式機制；修catalog／loader不能推進目前核心驗收。 |
+| Revisit milestone / 唯一觸發條件 | AGENTS路由不可靠；Primary/Reviewer多次忽略規則；跨多repo重用需求；或核心milestone完成後的治理整理。僅此四種，不因下一turn或時間經過自動重訪。 |
+
+不處理CLI loader、installation_id、catalog或環境路徑。下一Core仍是M3 **URL Save → logout/login → 完整readback**；remote hard tool denial及14:30過期窗口未解除。本治理更新不授權重送、換route或遠端操作。
+
 ## 唯一來源與相容入口
 
 | 名稱 | 唯一內容來源 | discovery 相容入口 |
@@ -51,10 +68,10 @@ PY
 
 原始本機證據在 `/tmp/growth-skill-discovery.stderr`、`/tmp/growth-codex-discovery.trace`、`/tmp/growth-prompt-codex-only.stderr`；這些暫存檔不是可攜repo交付物，以上已摘錄具體結果。此為 **工具限制＋runtime discovery未驗收**，不是技能格式FAIL，也不是新的產品工程blocker。
 
-父可在下一turn以repo為cwd做既有runtime的只讀skills discovery，確認三個name及實際path，再補驗收。不要只因AGENTS能直接連到檔案就宣稱autodiscovery成功，也不要為驗此項新增Cloudtask或產品任務。本輪到commit/push後停止。
+先前建議的「下一turn再驗discovery」已由Owner正式直接讀取規則取代；下一turn已完成只讀核對，catalog仍未發現但AGENTS直接讀取成功。此限制歸TD-GOV-001，僅在上述四種觸發條件重訪，不新增Cloudtask或環境修復。
 
 ## PR19 更新交接
 
 本child先前GitHub API已回403，遵照指示不重試；由父connector更新既有PR19，保留既有產品變更描述，追加以下段落：
 
-> 新增專案自治技能（治理文件）：mission-guardrail限制非核心maintenance與漂移；recovery-reconciliation區分工具未知與committed state並回原任務；engineering-executor推進最小已授權Core到驗收。三份唯一來源位於`.codex/skills`，`.agents/skills`僅symlink，root AGENTS為精簡路由。YAML／段落／相對連結／symlink檢查3/3 PASS；runtime autodiscovery尚未驗收：session skills.list空，本機CLI loader受唯讀installation_id阻擋，須父下一turn只讀確認。未變更frozen SQL/hash/runtime flags，未執行產品工程、DB或部署。CI由父核終態。
+> 新增專案自治技能（治理文件）：mission-guardrail限制非核心maintenance與漂移；recovery-reconciliation區分工具未知與committed state並回原任務；engineering-executor推進最小已授權Core到驗收。三份唯一來源位於`.codex/skills`，`.agents/skills`僅symlink，root AGENTS為精簡路由。YAML／段落／相對連結／symlink檢查3/3 PASS；runtime autodiscovery尚未驗收：session skills.list空，本機CLI loader受唯讀installation_id阻擋，已歸TD-GOV-001 P3，Owner採AGENTS＋repo SKILL.md直接讀取為正式機制，不阻塞核心。未變更frozen SQL/hash/runtime flags，未執行產品工程、DB或部署。CI由父核終態。
