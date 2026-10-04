@@ -28,6 +28,12 @@ description: "Growth-OS 工程選題與主線守門。開始 milestone 工作、
 7. 每 **24 小時**必須有可核證的 `CoreMilestoneProgress`：使用者流程的新可用能力／已完成驗收及其證據。從既有紀錄查看最近24h，記 baseline、成果與下一個 Core；commit/test 數不能代替核心進度。commits/tests 很多但 `CoreProgress=0` 時標記 **PROJECT_DRIFT**，停止擴 maintenance、重新對齊主線。沒有證據就記0，不捏造進度；此規則不建立自動排程、不越權或突破安全暫停。
 8. 完成標準是本次授權的核心流程／milestone 成立，有適當證據和限制說明，**不是全專案零 bug**。異常交給 [recovery-reconciliation](../recovery-reconciliation/SKILL.md)，實作驗收交給 [engineering-executor](../engineering-executor/SKILL.md)。
 
+## 真人 checkpoint 與持續工程（Owner 2026-10-04 15:11 UTC）
+
+日常 regression 必須以安全隔離 synthetic accounts／fixtures／test-only sessions 自動完成，不依賴 Owner 到場或 2FA。安全、權限或工具限制先判斷是否真人必需；`HUMAN_REQUIRED` 只阻擋直接依賴該確認的步驟，不停止獨立產品工程、tests、CI、Preview 或 docs，既有長期普通工程授權保留。不可把所有 synthetic 確認都推定為真人事項，也不可將測試 receipt 當 hosted 授權。
+
+需本人僅限 Auth／callback／magic-link／OTP 本身改動、RC、重大 milestone 終驗、平台強制真人 challenge，以及不可代理的法律／授權／事實確認。RC／milestone 亦只要求其中人員必要步驟。真正到達該 checkpoint 才通知 Owner，列出確切版本的未解主張、為何必須本人、為何 fixture 不能替代、精確頁面及本人最小動作。曾遭工具拒絕不等於測試本質 HUMAN_REQUIRED，須分列 synthetic 測試、hosted 工具執行限制、不可代理真人確認三層。工具拒絕仍有效，不換 route 或代為確認；不擴 remote、費用或 production 權限、不做 production bypass。保持已完成安全收尾，remote restore 等仍需相應新批准；這不阻止不相依的已授權 repo/offline Core。
+
 ## Escalation
 
 在既有 envelope 內自行分類與選題，普通維護取捨不重問 Owner。真正產品方向、重大架構、production破壞性變更、安全／資料損失、OAuth/2FA/secret、新費用、法律合規，或無法恢復的 systemic blocker 才升級。說明核心影響、已知／未知、既有證據及所需最小決策。Owner 明確指令優先於本技能，但不能凌駕平台安全；安全拒絕不得換 route 繞過。

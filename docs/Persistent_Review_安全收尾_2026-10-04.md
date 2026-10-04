@@ -51,7 +51,11 @@ Owner 批准、official migrations、DB preservation、真 UI 與 Reviewer 結�
 - allowlist 外 normalized catalog hash 保持 `f79d33e71b23dc4768fa4a0415e2be0fa245ce05e935b74d4b133544538e20bb`，PG role memberships 保留。
 - `audit_events`／`organization_members` 對 PUBLIC、anon、authenticated 的 INSERT／UPDATE／DELETE／TRUNCATE 撤除保留。SELECT、RLS、合法 private 查詢／管理者維護、service_role 保留；不宣稱全部 ACL 完全不變，也不恢復原不安全四寫權。
 
-## 尚未完成與後續邊界
+## Owner 後續更新（15:07／15:11 UTC）
+
+`HUMAN_REQUIRED` 只限制直接相依的真人確認，不停止獨立 repo/offline Core、tests、CI、Preview 或 docs；安全收尾維持。日常 regression 必須用安全隔離 synthetic fixtures／test-only sessions，不依賴 Owner。下節的停止／restore 限制是當輪 live 操作紀錄，不是全專案停工指令；Reviewer `01a10779` 已判定本輪 Bolt A synthetic fixture 是 A：可自動化日常測試，既有入口已完整覆蓋，不要求 Owner 勾選。hosted 工具拒絕是另一層執行限制，不等於測試本質 HUMAN_REQUIRED；不重試／restore。正式治理見 [AGENTS](../AGENTS.md)。
+
+## 尚未完成與後續邊界（14:34 收尾時）
 
 真正 blocker 是工具安全拒絕 Review 勾選的執行限制，不是新產品 P2，也不是來源未知必須改成事實。Reviewer 的內容判定沒有解除執行拒絕；不能透過換 route、改 checks／payload、直接 RPC 或重新啟用绕過。完整 live Review／M3 仍未驗收，既有 bounded Save／跨登入讀回與 offline Review 證據繼續有效。
 

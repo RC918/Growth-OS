@@ -19,6 +19,12 @@ description: "Growth-OS 已授權工程的實作、測試、PR與驗收執行。
 6. **Acceptance → Next Core**：當授權的核心流程成立，記成果、證據、technical debt與下一最小Core。P3/P4不阻塞，P2只有當前milestone必要才阻塞；不用全專案零bug作完成門檻。若Owner要求驗收後停止或只完成當前任務，就回報並停止；只有持續工程已獲授權才自主進下一Core。
 7. 以CoreMilestoneProgress衡量進度，遵守不連續超2Maintenance及24h核心進度檢查；多commit／多test但CoreProgress0標PROJECT_DRIFT並對齊主線。不新增未要求的Cloud task、背景排程或產品任務。
 
+## 真人 checkpoint 與持續工程（Owner 2026-10-04 15:11 UTC）
+
+日常 regression 必須以安全隔離 synthetic accounts／fixtures／test-only sessions 自動完成，不依賴 Owner 到場或 2FA。安全、權限或工具限制先判斷是否真人必需；`HUMAN_REQUIRED` 只阻擋直接依賴該確認的步驟，不停止獨立產品工程、tests、CI、Preview 或 docs，既有長期普通工程授權保留。不可把所有 synthetic 確認都推定為真人事項，也不可將測試 receipt 當 hosted 授權。
+
+需本人僅限 Auth／callback／magic-link／OTP 本身改動、RC、重大 milestone 終驗、平台強制真人 challenge，以及不可代理的法律／授權／事實確認。RC／milestone 亦只要求其中人員必要步驟。真正到達該 checkpoint 才通知 Owner，列出確切版本的未解主張、為何必須本人、為何 fixture 不能替代、精確頁面及本人最小動作。曾遭工具拒絕不等於測試本質 HUMAN_REQUIRED，須分列 synthetic 測試、hosted 工具執行限制、不可代理真人確認三層。工具拒絕仍有效，不換 route 或代為確認；不擴 remote、費用或 production 權限、不做 production bypass。保持已完成安全收尾，remote restore 等仍需相應新批准；這不阻止不相依的已授權 repo/offline Core。
+
 ## Escalation
 
 只將需要Owner判斷的產品方向、重大架構、production破壞性操作、安全／資料損失、OAuth/2FA/secret、新費用、法律合規、無法恢復的systemic blocker升級；先完成可安全執行的已授權工作，提出具體證據及最小決策。普通工程問題自主處理。Owner明確指令優先於本技能，平台安全仍優先；任何技能不授權繞過拒絕、洩露secret、越過截止或擴大批准。

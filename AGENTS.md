@@ -4,3 +4,5 @@
 - `AGENTS.md`＋repo `SKILL.md` 為正式治理來源；每個 Core task 開始前依序直接讀本檔 → [mission-guardrail](.codex/skills/mission-guardrail/SKILL.md) → [engineering-executor](.codex/skills/engineering-executor/SKILL.md)，異常再讀 [recovery-reconciliation](.codex/skills/recovery-reconciliation/SKILL.md)。`skills.list` 空不阻塞，也不觸發環境維修。
 - P3/P4記technical debt，不得阻塞目前milestone；完成以核心流程成立為準。
 - Owner最新明確指令優先於repo技能；技能不擴大授權，也不能凌駕平台安全、期限或安全拒絕。限定文件／只讀任務完成後停止，不自動啟動產品工程。
+- 日常 regression 必須用安全隔離的 synthetic accounts／fixtures／test-only sessions 自動完成，不依賴 Owner。安全／權限／工具限制先判是否真人必需；`HUMAN_REQUIRED` 只阻擋直接相依步驟，獨立工程、tests、CI、Preview、docs 繼續，既有普通工程授權不撤回。
+- 需本人僅限 Auth／callback／magic-link／OTP 本身改動、RC、重大 milestone 終驗、平台強制真人 challenge、不可代理的法律／授權／事實確認；RC／milestone 亦只限人員必要步驟；請人前須列確切版本未解主張、本人必要性、fixture 無法替代的原因、精確頁面及最小動作。synthetic 測試、hosted 工具執行限制、不可代理真人確認分層，工具拒絕本身不等於 HUMAN_REQUIRED。不繞過工具拒絕、不擴 remote／費用授權、不做 production bypass。

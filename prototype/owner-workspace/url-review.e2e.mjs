@@ -9,7 +9,7 @@ const origin='http://127.0.0.1:8783',op=parent(20),payload=(await fixtures())[0]
 const changed=await restoreResultReview(payload);changed.edit('title','Exact saved revision for Owner review');for(const key of ['title','meta_description','description'])changed.check(key,true);await changed.confirm();const revised=await changed.export();
 const server=spawn('python3',['-m','http.server','8783','--bind','127.0.0.1','--directory','apps/web'],{stdio:'ignore'});
 const wait=async fn=>{for(let i=0;i<700;i++){if(await fn())return;await new Promise(r=>setTimeout(r,10));}throw Error('barrier timeout');};
-const all=['success','unknown_commit','unknown_empty','wrong_uuid','wrong_digest','stale','cancel_before','cancel_after','logout','source_drift','actor_drift','closed'];
+const all=['success','unknown_commit','unknown_empty','wrong_uuid','wrong_digest','stale','cancel_before','cancel_after','logout','source_drift','actor_drift','closed','preview_closed'];
 const scenarios=process.argv.length>2?process.argv.slice(2):all;assert.ok(scenarios.every(s=>all.includes(s)));
 let browser;
 try{
@@ -23,7 +23,7 @@ try{
   let context,page;
   const transport=async route=>{
    const req=route.request(),u=new URL(req.url()),respond=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
-   if(u.origin===origin){if(u.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:`export const urlSaveEnabled=false;export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;${scenario==='closed'?'':'export const urlReviewEnabled=true;'}`});return route.continue();}
+   if(u.origin===origin){if(u.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:`export const urlSaveEnabled=false;export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;${scenario==='closed'?'':scenario==='preview_closed'?'export const urlReviewSchemaEnabled=true;export const urlReviewEnabled=false;':'export const urlReviewEnabled=true;'}`});return route.continue();}
    if(u.origin!=='https://vhzryhibmpvglzcmfnaa.supabase.co'){unexpected.push(req.url());return route.abort();}
    assert.equal(req.headers().authorization,'Bearer '+token);
    if(u.pathname==='/auth/v1/user')return respond({id:drift&&scenario==='actor_drift'?ids.owner2:actor});
@@ -64,15 +64,29 @@ try{
   async function fill(view){for(const key of Object.keys(checks))await view.locator(`[data-review-check="${key}"]`).check();}
   const status=view=>view.locator('.url-review-status');
   await login();let view=await open(second);
+   async function preview(expected){
+    const beforePosts=posts.length,checkedBefore=await view.locator('[data-review-check]:checked').count();await view.locator('.publish-preview-read').click();await view.locator('.publish-preview-status').filter({hasText:'預覽已讀取'}).waitFor();
+    assert.ok((await view.locator('.publish-target').innerText()).includes(revised.snapshot.final_url));assert.ok((await view.locator('.publish-target').innerText()).includes('不代表站點所有權'));
+    for(const key of ['title','meta_description','description']){const field=view.locator(`[data-publish-field="${key}"]`);assert.equal(await field.locator('.publish-before').textContent(),revised.preview.fields[key].original);assert.equal(await field.locator('.publish-after').textContent(),revised.preview.fields[key].suggested);}
+    assert.equal(await view.locator('[data-blocker="REVIEW_REQUIRED"]').count(),expected===false?1:0);assert.equal(await view.locator('[data-blocker="REVIEW_UNKNOWN"]').count(),expected==='unknown'?1:0);
+    for(const code of ['PUBLICATION_CONFIRMATION_REQUIRED','PLATFORM_UNSELECTED','SITE_UNAUTHORIZED','LIVE_BASELINE_UNKNOWN','PUBLISH_UNAVAILABLE'])assert.equal(await view.locator(`[data-blocker="${code}"]`).count(),1);
+    assert.equal(await view.locator('.publish-unavailable').isDisabled(),true);assert.equal(posts.length,beforePosts);
+    assert.equal(await view.locator('[data-review-check]:checked').count(),checkedBefore,'preview never changes fact checks');
+   }
   if(scenario==='closed'){
    assert.equal(await view.locator('.url-review').count(),0);assert.equal(posts.length,0);
+  }else if(scenario==='preview_closed'){
+   await status(view).filter({hasText:'待確認'}).waitFor();await preview(false);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);assert.equal(posts.length,0);
   }else{
    await status(view).filter({hasText:'待確認'}).waitFor();
+   if(scenario==='success')await preview(false);
+
    const full=JSON.parse(await view.locator('.typed-draft > details').last().locator('pre').textContent());assert.deepEqual(full.payload,revised);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
    // Partial facts cannot dispatch. Opening/cancelling editor clears all local checks.
    for(const key of ['title','meta_description','description','source'])await view.locator(`[data-review-check="${key}"]`).check();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
    if(scenario==='success'){
     await view.locator('.resume-review').click();await view.locator('textarea').first().waitFor();assert.equal(await view.locator('[data-review-check]:checked').count(),0);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
+    assert.equal(await view.locator('.publish-preview-body').textContent(),'');assert.equal(await view.locator('.publish-preview-read').isDisabled(),true);
     await view.locator('textarea').first().fill('Unsaved change is not confirmed');await view.locator('.resume-cancel').click();assert.deepEqual(JSON.parse(await view.locator('.typed-draft > details').last().locator('pre').textContent()).payload,revised);
    }
    await fill(view);
@@ -91,7 +105,7 @@ try{
       await status(view).filter({hasText:'只查詢原 request'}).waitFor();const marker=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('growth-os:url-review-attempt:v1')).operation);assert.equal(marker.known_id,null);assert.equal(marker.request_id,posts[0].p_request_id);
       await page.locator('#sign-out').click();await login(ids.owner2);view=await open(second);await status(view).filter({hasText:'身份或工作區不符'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
       await page.locator('#sign-out').click();await login();view=await open(second);await status(view).filter({hasText:'結果仍未知'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);await view.locator('.url-review-read').click();
-      if(scenario==='unknown_empty'){await status(view).filter({hasText:'結果仍未知'}).waitFor();assert.equal((await page.evaluate(()=>JSON.parse(sessionStorage.getItem('growth-os:url-review-attempt:v1')).operation)).resolved,false);}
+      if(scenario==='unknown_empty'){await status(view).filter({hasText:'結果仍未知'}).waitFor();assert.equal((await page.evaluate(()=>JSON.parse(sessionStorage.getItem('growth-os:url-review-attempt:v1')).operation)).resolved,false);await preview('unknown');}
      }
      if(badRead){await status(view).filter({hasText:'只查詢原 request'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);badRead=false;await view.locator('.url-review-read').click();}
      if(scenario==='stale'){await status(view).filter({hasText:'只查詢原 request'}).waitFor();await view.locator('.url-review-read').click();await status(view).filter({hasText:'結果仍未知'}).waitFor();}
@@ -101,12 +115,12 @@ try{
    }
    if(scenario==='success'){
     // New browser context has no marker or prior page receipt; authoritative GET restores same UUID.
-    await login(ids.owner,true);view=await open(second);await status(view).filter({hasText:reviewId}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
+    await login(ids.owner,true);view=await open(second);await status(view).filter({hasText:reviewId}).waitFor();await preview(true);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
     await view.locator('.resume-review').click();await view.locator('textarea').first().waitFor();await status(view).filter({hasText:'修改尚未保存'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
     await chain;await auth();third=await save(22,2);await login(ids.owner,true);const newer=await open(third);await status(newer).filter({hasText:'待確認'}).waitFor();assert.equal(await newer.locator('[data-review-check]:checked').count(),0);
-    view=await open(second);await status(view).filter({hasText:'歷史版本已確認'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.ok((await status(view).innerText()).includes(reviewId));
+    view=await open(second);await status(view).filter({hasText:'歷史版本已確認'}).waitFor();assert.equal(await view.locator('.publish-preview-read').isDisabled(),true);assert.equal(await view.locator('.publish-preview-body').textContent(),'');assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.ok((await status(view).innerText()).includes(reviewId));
     const original=await open(first);await status(original).filter({hasText:'待確認'}).waitFor();assert.deepEqual(JSON.parse(await original.locator('.typed-draft > details').last().locator('pre').textContent()).payload,payload);
-    await login(ids.viewer,true);view=await open(second);await status(view).filter({hasText:reviewId}).waitFor();assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.equal(await page.locator('.resume-review').count(),0);
+    await login(ids.viewer,true);view=await open(second);assert.equal(await view.locator('.publish-preview-read').isDisabled(),true);assert.equal(await view.locator('.publish-preview-body').textContent(),'');await status(view).filter({hasText:reviewId}).waitFor();assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.equal(await page.locator('.resume-review').count(),0);
     await login(ids.foreign,true);assert.equal(await page.locator(`.opportunity-card[data-opportunity-id="${op}"]`).count(),0);await chain;await auth();assert.equal((await db.query('select id from public.content_reviews')).rows.length,0);assert.equal(posts.length,1);
    }
    if(!['success','logout'].includes(scenario))assert.deepEqual(JSON.parse(await view.locator('.typed-draft > details').last().locator('pre').textContent()).payload,revised);

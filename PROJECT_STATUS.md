@@ -4,11 +4,20 @@
 
 ## 當前授權與基準
 
+**2026-10-04 15:07／15:11 UTC Owner 更新：** 真人必要事項確認屬 `HUMAN_REQUIRED` checkpoint，只阻擋直接相依的真人確認／實際發布，不代表專案停止；日常 regression 沿用安全隔離 synthetic fixtures／test-only sessions，不依賴 Owner。Reviewer `01a10779` 已裁定本輪 Bolt A synthetic fixture 屬 A：可自動化日常測試，並非 HUMAN_REQUIRED；既有單一入口已覆蓋五 checks／精確讀回／新版失效，不重建 harness。hosted 工具拒絕另列執行限制，不重試／restore。下方 14:34「停止／解除限制後再恢復」僅記錄當輪 remote 操作收尾，不限制已重新批准的獨立 repo/offline 工程。正式治理已併 AGENTS 與 mission／engineering skills。
+
+
+**目前產品 Core：發布前版本／候選目標頁／差異檢視（repo/offline）。** 基準 `2ef454682f85015510481a890612f9b45aea9273`，父確認 Reviewer `01a1075a` APPROVE、CI `37209962173` success。既有 typed-draft／exact Review 保留；新增已保存版本旁唯讀檢視，未確認也可查看三欄保存快照原文→待套用內容、候選目標 URL，以及版本 Review／平台／站點授權／發布確認各自缺口。候選 URL 不代表所有權，快照不是平台現況；歷史／來源漂移／session 替換拒絕，續編清除預覽。沒有發布 writer／adapter／OAuth／假發布紀錄，actual Save／Review disabled 與 frozen 不變。詳見[離線切片證據](docs/Publish_Preflight_離線驗收_2026-10-04.md)。
+
+CoreMilestoneProgress=1（使用者可从已保存成果查看發布前差異與阻擋原因）；maintenance 連續數=0，治理更新併本 Core。下一依賴為真實發布的單一試點平台、站點最小授權、即時目標內容與確切發布確認；這些只限制相應 live 操作，不阻止獨立已授權工程。完整 live M3／M4、Publish／Measure 未完成；100cap 與 P3 文案仍 defer。
+
+## 14:34 安全收尾快照（歷史；15:07／15:11 普通工程授權已恢復）
+
 **2026-10-04 14:34 UTC 安全收尾：** Reviewer `01a10755` APPROVE safe-closure，父已通知 Owner。persistent Review 已完成批准的 authority revoke／closed install／enable，首次真 UI 五項勾選遭工具安全拒絕，全部維持 false，1 次人工登入、0 Review POST、0 review／audit 新增；隨後已完成批准的 closed config＋tracked disable。Save／Review 全 closed，DB history 27，無待 cleanup。兩表四寫權的必要安全修正保留；完整 M3／live Review **未完成**。
 
 已驗 runtime HEAD `e1a008c48734c04f6592d19673747a012b7f3c36`，[CI 37208971001](https://github.com/RC918/Growth-OS/actions/runs/37208971001) success（57 steps、無跳過），[Preview wGZQCtPZiLE6bCYAmDoW21HbS6Fe](https://vercel.com/morning-ai/growth-os-preview/wGZQCtPZiLE6bCYAmDoW21HbS6Fe) success。兩份 config 為 frozen persistent disabled SHA `8b25cfa17adaf27a10b635fbf3537f0ad19deb36c10bb4263f1733da83ee91e1`。20 表原資料投影、原 23 history 全 rows、allowlist 外 catalog 與 PG role memberships 均保留；完整 migration/hash／來源／批准時序見[安全收尾紀錄](docs/Persistent_Review_安全收尾_2026-10-04.md)。
 
-真正 blocker 是工具對 Review 勾選的受限執行。Reviewer `01a10748` 確認 synthetic 本版主張與來源吻合，但未解除 execution 拒絕；不是新產品 P2，不能改 unknown 造事實、換 route 重試或 reopen。後續須先合規解除受限執行，再取得新的 restore／操作批准並重核部署、schema、ACL；本輪不再建立準備包或診斷，不要求日常 Owner 2FA。日常 synthetic regression 繼續沿用既有入口。
+該次 live Review 的 blocker 是工具對 Review 勾選的受限執行。Reviewer `01a10748` 確認 synthetic 本版主張與來源吻合，但未解除 execution 拒絕；不是新產品 P2，不能改 unknown 造事實、換 route 重試或 reopen。後續須先合規解除受限執行，再取得新的 restore／操作批准並重核部署、schema、ACL；本輪不再建立準備包或診斷，不要求日常 Owner 2FA。日常 synthetic regression 繼續沿用既有入口。
 
 CoreMilestoneProgress：本輪 hosted 安裝與兩表權限修正已落地並完成安全關閉，沒有新增 live Review 成功閉環；既有 Save／跨登入讀回及 offline Review 證據保留。本次 docs-only 是同一 Core 的必要閉環歸檔，不另計產品能力、不另開 maintenance；完成後停止，交既有 Reviewer。100cap、Publish／Measure 與既有 P3 debt 不擴張。
 

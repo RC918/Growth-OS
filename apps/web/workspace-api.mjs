@@ -384,6 +384,36 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(latest.length!==1||latest[0].version_number<fresh.version_number)throw Error('最新版本讀回不符');
       return {...row,is_latest_version:latest[0].id===fresh.id&&latest[0].version_number===fresh.version_number};
     },
+    // Read-only preparation, never a publication authority or dispatcher.
+    async previewUrlPublication(version,{isCurrent}={}) {
+      const org=ownerOnly(),session=membership,actor=actorId,expected=copyJSON(version);
+      const current=()=>{if(membership!==session||actorId!==actor||typeof isCurrent!=='function'||!isCurrent())throw Error('發布預覽工作階段或內容已變更');};
+      const identity=async()=>{
+        const user=await request('/auth/v1/user');current();if(user?.id!==actor)throw Error('登入身份已變更');
+        const members=await select('organization_members','organization_id,role',{user_id:`eq.${actor}`,limit:'2'});current();
+        if(members.length!==1||members[0].organization_id!==org||members[0].role!=='owner')throw Error('Owner 資格已變更');
+      };
+      current();await identity();
+      const fresh=await this.readReviewBase(expected);current();
+      if(canonical(fresh)!==canonical(expected))throw Error('發布預覽版本或來源已變更');
+      const review=await this.readUrlReview(fresh,{isCurrent:()=>{current();return true;}});current();
+      if(review&&!review.is_latest_version)throw Error('此確認僅適用歷史版本');
+      // Recheck after review reads, including the no-review path, before presenting a snapshot.
+      const final=await this.readReviewBase(fresh);current();
+      if(canonical(final)!==canonical(fresh))throw Error('發布預覽版本或來源已變更');
+      await identity();current();
+      const payload=fresh.first_result_payload,target=new URL(payload.snapshot.final_url);
+      if(target.protocol!=='https:'||target.username||target.password)throw Error('目標頁無法安全預覽');
+      const pending=reviewMarker.read(),unknown=pending?.base_version_id===fresh.id&&!pending.resolved;
+      const blockers=[];
+      if(!review)blockers.push(unknown?{code:'REVIEW_UNKNOWN',message:'原確認結果仍未知；只查詢原 request，不重送。'}:{code:'REVIEW_REQUIRED',message:'此已保存版本尚無確切版本確認；預覽不會代為確認。'});
+      blockers.push({code:'PUBLICATION_CONFIRMATION_REQUIRED',message:'尚無針對目標頁與確切內容的發布確認；版本 Review 不等於發布確認。'},{code:'PLATFORM_UNSELECTED',message:'發布平台尚未選定。'},{code:'SITE_UNAUTHORIZED',message:'目標站點的發布權限尚未驗證。'},{code:'LIVE_BASELINE_UNKNOWN',message:'尚未讀取目標頁目前內容；下方差異只對照已保存來源快照。'},{code:'PUBLISH_UNAVAILABLE',message:'尚未接入發布與發布後讀回；本次不會對外提交。'});
+      return freeze({status:'preview_only',published:false,can_publish:false,
+        binding:{organization_id:org,version_id:fresh.id,version_number:fresh.version_number,review_id:review?.id??null,source_digest:payload.snapshot.content_fingerprint,content_digest:payload.review.content_digest,version_digest:fresh.first_result_request_digest},
+        target_url:payload.snapshot.final_url,source_version:payload.snapshot.version,fetched_at:payload.snapshot.fetched_at,
+        review_status:review?'exact_version_confirmed':unknown?'unknown':'review_required',blockers,
+        fields:Object.fromEntries(['title','meta_description','description'].map(key=>{const f=payload.preview.fields[key];return [key,{before:f.original,after:f.suggested,changed:f.original!==f.suggested}];}))});
+    },
     async dashboard() {
       const org = activeOrg();
       const scope = { organization_id: `eq.${org}` };
