@@ -28,13 +28,15 @@
 | 不確定／失敗 | 不rerun provision、不改request/intent、不重發POST、不以無回覆視為未套用；讀原journal+原頁expected-before/after。到期、撤銷、損毀、缺檔、drift停mutation，保存無secret證據；需要重新開grant或期限時另請准，不能重用這次allowance。 |
 | 清理／保留 | 停兩個app processes後，先把allowlist evidence（bookmark需不含token/secret、PNG、journal/source synthetic資料、redacted logs）移到父指定artifact；保留最多3天。`operator cleanup`核同window及own labels，停exact五容器／own network，移除唯一root與own資料／secret，使用原PG image的network-none helper只刪own bind data；不prune、不刪外部資源。刪除該DB與站亦銷毀原生identity／grant；cleanup權限在expiry後只限原已批准收尾。部分provision失敗保留`.started`，只核對／cleanup，禁止blind重跑。 |
 
-**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest：`24eb19130378e8bfd18c33ab64e1dddc7133d6fbbbc7bb57ff4517af209d8966`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
+**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest：`da0e6817fd50a290fbbfd47d5b29ed89ae2b4ba6b5581b04ff49678c7adc18e2`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
 
 ```sh
 # 現在可做：read-only、沒有部署或secret生成
 node prototype/internal-rc/deploy/operator.mjs inspect
 # 僅新批准後：不由本輪自動執行
-bash prototype/internal-rc/deploy/run-approved.sh /workspace/rc-approved-window.json
+bash prototype/internal-rc/deploy/run-approved.sh phase-a /workspace/rc-approved-window.json
+# 等上一個 shell 完全退出後，以獨立命令執行；不共用runner記憶體
+bash prototype/internal-rc/deploy/run-approved.sh phase-b /workspace/rc-approved-window.json
 # 保存allowlist evidence後，按同一次批准清理；原secret不進artifact
 node prototype/internal-rc/deploy/operator.mjs cleanup /workspace/rc-approved-window.json
 ```

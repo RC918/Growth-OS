@@ -23,6 +23,8 @@ async function ready(url){for(let i=0;i<80;i++){try{const r=await fetch(url,{sig
 async function nativeUser(admin,actor,password){const r=await fetch('http://127.0.0.1:8794/admin/users',{method:'POST',headers:{authorization:'Bearer '+admin,'content-type':'application/json'},body:JSON.stringify({id:ids[actor],email:actor+'@rc.example.invalid',password,email_confirm:true})});if(!r.ok||(await r.json()).id!==ids[actor])throw Error('Real Auth creation failed; reconcile existing users, do not rerun provision');}
 if(action==='inspect'){
  const hashes=JSON.parse(await readFile(new URL('./hashes.json',import.meta.url)));console.log(JSON.stringify({environment:prefix,root,artifacts_digest:createHash('sha256').update(JSON.stringify(hashes)).digest('hex'),compose:await compose()},null,2));
+}else if(action==='verify'){
+ const w=await approval(),original=JSON.parse(await readFile(root+'/window.json','utf8'));if(JSON.stringify(w)!==JSON.stringify(original))throw Error('Original RC window mismatch');console.log('Original window and candidate hashes match; no writes');
 }else if(action==='provision'){
  const window=await approval();await writeFile(windowPath+'.started',JSON.stringify({environment:prefix,started_at:new Date().toISOString()}),{flag:'wx',mode:0o600});await mkdir(root,{mode:0o700});await write('window.json',JSON.stringify(window,null,2)); // exclusive: refuse previous installation
  for(const d of ['secrets','data','evidence'])await mkdir(root+'/'+d,{mode:0o700});
@@ -59,4 +61,4 @@ if(action==='inspect'){
  // Owner-only RC data/credentials, never global Docker prune or unrelated volumes.
  if(await stat(root+'/compose.json').then(()=>true,()=>false))docker(['compose','-f',root+'/compose.json','down']);
  const image=(await compose()).services.db.image;if(await stat(root+'/data').then(()=>true,()=>false))docker(['run','--rm','--pull=never','--name',prefix+'-cleanup','--label','growth.rc='+prefix,'--network','none','--user','0','--mount','type=bind,src='+root+'/data,dst=/owned-data',image,'sh','-c','rm -rf /owned-data/postgres /owned-data/mariadb /owned-data/wordpress']);await rm(root,{recursive:true});console.log('Only exact RC resources, data and credentials removed; no prune.');
-}else throw Error('Use inspect, provision or cleanup; deployment requires separate approval.');
+}else throw Error('Use inspect, verify, provision or cleanup; deployment requires separate approval.');
