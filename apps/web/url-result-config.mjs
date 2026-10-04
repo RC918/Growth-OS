@@ -1,6 +1,6 @@
 // OFFLINE CANDIDATE ONLY. Requires new Owner approval, exact deployment and cutoff.
 export const urlResultSchemaEnabled=true;
-export const urlSaveEnabled=true;
+export const urlSaveEnabled=false;
 export const urlSaveTrial=Object.freeze({
   "schema_version": 1,
   "state": "BOUND_CANDIDATE_NOT_REMOTE_AUTHORIZATION",
