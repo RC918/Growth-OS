@@ -19,6 +19,8 @@ try {
   const context=await browser.newContext({viewport:{width,height:844}});const page=await context.newPage();const errors=[];
   const saved=new Map(),requests=new Map(),calls=[];let role='owner',failNext=false,delayNext=null;
   page.on('pageerror',error=>errors.push(error.message));
+  // Goal fixtures have no URL-result schema or Save dependency.
+  await context.route(origin+'/url-result-config.mjs',route=>route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=false;export const urlResultSchemaEnabled=false;export const urlSaveTrial=null;'}));
   await context.route('https://vhzryhibmpvglzcmfnaa.supabase.co/**',async route=>{
    const req=route.request(),url=new URL(req.url());const org=role==='owner'?'org-a':'org-b';
    const respond=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});

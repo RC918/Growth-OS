@@ -93,3 +93,19 @@ test('same-tab bounded marker persists attempt before dispatch; failures never r
  values.clear();marker=createTrialMarker(pack.config,()=>storage);marker.read();storage.setItem=()=>{throw Error('quota');};assert.throws(()=>marker.attempt());storage.setItem=(key,value)=>values.set(key,value);assert.throws(()=>marker.read(),'failure is sticky in this module');
  values.clear();marker=createTrialMarker(pack.config,()=>storage);marker.read();values.delete(trialMarkerKey);assert.throws(()=>marker.attempt(),'disappearance after initialization is not a fresh trial');
 });
+
+// SYSTEMIC_FIX: synthetic UI transport must own config as well as auth/data.
+// Actual deployment bytes remain checked separately above; no runtime file mutation.
+test('every CI workspace UI harness explicitly intercepts config instead of inheriting deployment state',async()=>{
+ const root=new URL('../../',import.meta.url),workflow=await readFile(new URL('.github/workflows/python-tests.yml',root),'utf8');
+ const harnesses=[...new Set([...workflow.matchAll(/node (prototype\/[^\s]+\.e2e\.mjs)/g)].map(m=>m[1]))],workspace=[];
+ assert.ok(harnesses.length>0);
+ for(const path of harnesses){
+  const source=await readFile(new URL(path,root),'utf8');
+  if(!source.includes('/workspace.html'))continue;
+  workspace.push(path);
+  assert.match(source,/url-result-config\.mjs/,path+' must explicitly supply fixture config');
+  assert.match(source,/(?:pathname\s*===\s*['"]\/url-result-config\.mjs['"]|route\(origin\+['"]\/url-result-config\.mjs['"])/,path+' config must be intercepted by its synthetic transport');
+ }
+ for(const name of ['saved-result-review','owner-tenant-ui','goal-intake-ui','revision-bound','url-result-bound'])assert.ok(workspace.includes('prototype/owner-workspace/'+name+'.e2e.mjs'));
+});

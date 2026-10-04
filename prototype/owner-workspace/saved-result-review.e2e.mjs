@@ -18,7 +18,11 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',async route=>{
    const req=route.request(),u=new URL(req.url());
-   if(u.origin===origin)return route.continue(); // Exact closed config, no flag override.
+   if(u.origin===origin){
+    // This synthetic Review fixture is closed and independent of deployed trial/base IDs.
+    if(u.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=false;export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;'});
+    return route.continue();
+   }
    if(u.origin!=='https://vhzryhibmpvglzcmfnaa.supabase.co'){unexpected.push(req.url());return route.abort();}
    if(req.method()!=='GET'){posts.push(u.pathname);return route.abort();}
    const respond=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)}),table=u.pathname.split('/').at(-1);

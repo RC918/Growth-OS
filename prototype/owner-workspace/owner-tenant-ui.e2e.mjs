@@ -15,7 +15,11 @@ try {
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',async route=>{
    const request=route.request(),url=new URL(request.url());
-   if(url.origin===origin)return route.continue(); // Uses exact closed deployment config.
+   if(url.origin===origin){
+    // Tenant diagnostics require the synthetic readonly mode, regardless of deployment.
+    if(url.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=false;export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;'});
+    return route.continue();
+   }
    if(url.origin!=='https://vhzryhibmpvglzcmfnaa.supabase.co'){unexpected.push(request.url());return route.abort();}
    if(request.method()!=='GET'){posts.push(url.pathname);return route.abort();}
    const respond=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
