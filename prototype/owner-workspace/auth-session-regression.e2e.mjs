@@ -11,17 +11,21 @@ const args=process.argv.slice(2),options={mode:args[args.indexOf('--mode')+1],ta
 validateOptions(options); // Before subprocess, server, DB, browser or network. NODE_ENV is irrelevant.
 const origin=options.target;
 const run=path=>execFileSync(process.execPath,path,{stdio:'inherit'});
-let browser;
+let browser,wordpressSite;
+const withWordpress=args.includes('--wordpress');
 try{
  run(['--test','prototype/owner-workspace/auth-session-fixture.test.mjs']);
  run(['supabase/drafts/url_result/native.mjs']); // Same existing assertions, no image pull or new framework.
  // Same raw URL response fixture as url-result-ui; page UI must create its own edited Review.
- const source=(await fixtures())[0];for(const [key,field]of Object.entries(source.preview.fields)){field.suggested=source.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete source.review;source.preview.status='awaiting_review';
+ if(withWordpress)wordpressSite=await (await import('../wordpress-publish/site.mjs')).createSite();
+ let source=(await fixtures())[0];if(wordpressSite)source=JSON.parse(JSON.stringify(source).replaceAll('https://example.com/products/bolt',wordpressSite.targetURL));for(const [key,field]of Object.entries(source.preview.fields)){field.suggested=source.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete source.review;source.preview.status='awaiting_review';
  browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});
  for(const width of [1280,390]){
   const rig=await createSessionRig(options),transport=createAuthTransport({...options,isolation:rig.isolation});let context,page,token=null,previousToken=null,blockedTargets=0,lateRelease=null,lateStarted=null,holdDetail=false,payload=null,sourceRequests=0;
   const contexts=[],errors=[];const before=await rig.snapshot();
+  let wp=null;
   try{
+   wp=wordpressSite?await (await import('../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width}):null;
    async function fresh(role,fromUrl=false){
     if(context){const oldPages=context.pages();await context.close();assert.ok(oldPages.every(p=>p.isClosed()),'product opener and workspace both closed');rig.retire(token);previousToken=token;}
     context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'});contexts.push(context);context.on('page',p=>p.on('pageerror',e=>errors.push(redact(e))));page=await context.newPage();
@@ -29,6 +33,8 @@ try{
      const req=route.request(),u=new URL(req.url());
      try{
       if(u.origin===origin){
+       if(wp&&u.pathname.startsWith('/api/wordpress-publication/'))return route.fulfill(await wp.route(req));
+       if(wp&&u.pathname==='/wordpress-publication-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const wordpressPublicationEnabled=true;'});
        if(u.pathname==='/api/product-source'){
         assert.equal(req.method(),'POST');assert.deepEqual(req.postDataJSON(),{url:source.snapshot.original_url});assert.equal(++sourceRequests,1);
         return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(source)});
@@ -46,7 +52,7 @@ try{
      const product=page;await product.goto(origin+'/first-result.html');await product.locator('#source-url').fill(source.snapshot.original_url);await product.locator('#source-submit').click();await product.locator('#review-title').waitFor();
      assert.equal(sourceRequests,1);assert.equal(rig.stats().mutations,0);
      const summary=await product.locator('#source-summary').textContent();for(const key of ['original_url','final_url','fetched_at','content_fingerprint'])assert.ok(summary.includes(source.snapshot[key]));
-     const edits={title:'已編輯 🧪 '+source.preview.fields.title.suggested,meta_description:'合成验收：'+source.preview.fields.meta_description.suggested,description:source.preview.fields.description.suggested+'\nUnicode e\u0301 é 🧪 保留。'};
+     const edits={title:wp?'合成鋼製螺栓 🧪 é':'已編輯 🧪 '+source.preview.fields.title.suggested,meta_description:'合成验收：'+source.preview.fields.meta_description.suggested,description:source.preview.fields.description.suggested+'\nUnicode e\u0301 é 🧪 保留。'};
      for(const [key,text]of Object.entries(edits)){assert.equal(await product.locator('#review-'+key).inputValue(),source.preview.fields[key].suggested);await product.locator('#review-'+key).fill(text);await product.locator('#review-check-'+key).check();}
      await product.locator('#review-confirm').click();await product.getByText('本頁已確認 · 未保存 · 未發布',{exact:true}).waitFor();
      const download=product.waitForEvent('download');await product.locator('#export-result').click();payload=JSON.parse(await readFile(await(await download).path(),'utf8'));
@@ -87,6 +93,7 @@ try{
    assert.deepEqual(reviewRow.url_review_checks,checks);assert.equal(reviewRow.url_review_source_digest,payload.snapshot.content_fingerprint);
    assert.equal(reviewRow.url_review_content_digest,reviewed.request.p_content_digest);assert.equal(reviewRow.url_review_version_digest,reviewed.request.p_version_digest);
    const audit=reviewState.audit_events.filter(e=>e.event_type==='url_result_reviewed');assert.equal(audit.length,1);assert.equal(audit[0].object_id,saved.id);assert.equal(audit[0].details.review_id,reviewed.id);
+   if(wp){await wp.run({page,view,token,version_id:saved.id,fresh:async()=>{await fresh('owner');return {page,token};},open});view=page.locator(`.typed-version[data-version-id="${saved.id}"]`);}
    await view.locator('.resume-review').click();await view.locator('.url-review-status').filter({hasText:'修改尚未保存'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);await view.locator('textarea').first().fill('UNSAVED DOM MUST NOT SURVIVE');
    await page.evaluate(()=>{sessionStorage.setItem('old-context-sentinel','old');localStorage.setItem('old-context-sentinel','old');});await context.addCookies([{name:'old_context',value:'old',url:origin}]);
    await page.locator('#sign-out').click();assert.equal(await page.locator('#workspace').isVisible(),false);assert.equal(await page.locator('.resume-editor textarea').count(),0);
@@ -106,6 +113,7 @@ try{
    await page.locator('#sign-out').click();await fresh('owner');const newer=await open(revised.id);assert.deepEqual(await readPayload(newer),revised.request.p_payload);await newer.locator('.url-review-status').filter({hasText:'待確認'}).waitFor();assert.equal(await newer.locator('[data-review-check]:checked').count(),0);
    view=await open(saved.id);await view.locator('.url-review-status').filter({hasText:'歷史版本已確認'}).waitFor();assert.ok((await view.locator('.url-review-status').innerText()).includes(reviewed.id));assert.deepEqual(await readPayload(view),payload);
    const finalState=await rig.snapshot();assert.equal(finalState.content_versions.length,before.content_versions.length+2);assert.equal(finalState.growth_opportunities.length,before.growth_opportunities.length+1);assert.equal(finalState.audit_events.length,before.audit_events.length+3);assert.deepEqual(finalState.content_reviews,reviewState.content_reviews);assert.deepEqual(finalState.content_versions.find(v=>v.id===saved.id),reviewState.content_versions.find(v=>v.id===saved.id));
+   if(wp)await wp.stale(token,saved.id);
    console.log(`PASS synthetic Review invalidation ${width}px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review`);
    for(const role of ['viewer','foreign']){
     await fresh(role);if(role==='viewer'){view=await open(saved.id);assert.deepEqual(await readPayload(view),payload);assert.equal(await page.locator('.resume-review').count(),0);}else assert.equal(await page.locator(`.typed-version[data-version-id="${saved.id}"]`).count(),0);
@@ -121,7 +129,8 @@ try{
    assert.equal(blockedTargets,0);assert.equal(await page.evaluate(async()=>{try{await fetch('https://unapproved.invalid/auth/v1/otp',{method:'POST'});return false;}catch{return true;}}),true);assert.equal(blockedTargets,0,'product CSP rejects the probe before transport');const probe=await context.newPage();try{await assert.rejects(probe.goto('https://unapproved.invalid/auth/v1/otp'));}finally{await probe.close();}assert.equal(blockedTargets,1,'runner aborts an unknown destination independently of product CSP');assert.deepEqual(await rig.snapshot(),finalState);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
    console.log(`PASS SQL RLS/permission ${width}px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted`);
-  }finally{lateRelease?.();for(const c of contexts)await c.close();await rig.close();}
+  }finally{try{await wp?.finish();}finally{lateRelease?.();for(const c of contexts)await c.close();await rig.close();}}
  }
+ if(wordpressSite){const before=wordpressSite.snapshot();await wordpressSite.expire();assert.equal((await wordpressSite.call(wordpressSite.path(wordpressSite.target))).status,403);await wordpressSite.revoke();assert.equal((await wordpressSite.call(wordpressSite.path(wordpressSite.target))).status,401);assert.deepEqual(wordpressSite.snapshot(),before);console.log('PASS WordPress short lease expiry and native Application Password revocation; no page changes');}
  console.log('PASS unattended regression entry. Real Auth engine issuance/JWT verification/OTP/2FA NOT TESTED. Product signOut is page-memory clearing only.');
-}catch(error){throw Error(redact(error.stack??error));}finally{if(browser)await browser.close();}
+}catch(error){throw Error(redact(error.stack??error));}finally{try{if(browser)await browser.close();}finally{if(wordpressSite)await wordpressSite.close();}}

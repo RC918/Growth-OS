@@ -18,7 +18,7 @@ export function contentVersionKind(version) {
 const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
 
 // Isolated Staging client. An access token exists only in this page's memory.
-export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker(), urlReviewEnabled = false, urlReviewSchemaEnabled = urlReviewEnabled, urlReviewTrial = null, reviewMarker = createRevisionMarker(()=>globalThis.sessionStorage,'growth-os:url-review-attempt:v1') }) {
+export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, wordpressPublicationEnabled = false, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker(), urlReviewEnabled = false, urlReviewSchemaEnabled = urlReviewEnabled, urlReviewTrial = null, reviewMarker = createRevisionMarker(()=>globalThis.sessionStorage,'growth-os:url-review-attempt:v1') }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
@@ -178,6 +178,16 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       });
     },
     context() { return membership; },
+    wordpressPublicationAvailable() { return wordpressPublicationEnabled === true; },
+    async wordpressPublication(action, input) {
+      ownerOnly();
+      if (!wordpressPublicationEnabled || !['preview','publish','readback','restore','history'].includes(action)) throw Error('WordPress 發布尚未開放');
+      const session=membership;
+      const response=await fetchImpl(redirectOrigin+'/api/wordpress-publication/'+action,{method:'POST',cache:'no-store',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify(input)});
+      if(membership!==session)throw Error('工作階段已變更');
+      if(!response.ok)throw Error('WordPress 操作未通過核對（HTTP '+response.status+'）');
+      return response.json();
+    },
     boundSaveAvailable() { return boundAvailable(); },
     revisionTrialAvailable(version) {return revisionBound&&urlSaveEnabled&&urlResultSchemaEnabled&&boundAvailable()&&version.id===bound.base_version_id&&version.opportunity_id===bound.opportunity_id&&version.version_number===1;},
     tenantDiagnosticAvailable() { return tenantAvailable(); },

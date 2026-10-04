@@ -4,9 +4,13 @@
 
 ## 當前授權與基準
 
-**Owner 新增工程規則（本輪僅治理文件）：** Dot 選工作，Primary 依正式 engineering skill 的 Agentic Verification Loop 驗證到可交付；問題先 CLASSIFY，只修當前 milestone 的 P0/P1／必要 P2，P3/P4 記完整 Technical Debt。VERIFY 必交既有 Reviewer，Primary 不作最終驗收。① `0fcbc50c103fa377b58f0371faa8cf72b8a05226` 已有 CI／隔離驗收證據，**目前待既有 Reviewer 正式裁決**；② WordPress 仍僅提案。本次只合併 AGENTS＋三份正式 skills，無新治理框架、產品／SQL／runtime／frozen 或平台操作；維護連續數=1，不另計 Core 進度。
+**目前 Core：②受控 WordPress 單平台發布。** 父確認① `0fcbc50c103fa377b58f0371faa8cf72b8a05226` 經既有 Reviewer `01a107ea-a4e4` APPROVE；治理 `f9f5f47df517208cd216cb8ea95d7a81044f550a` 經 Reviewer `01a107f4-d9f2` APPROVE、CI `37220142034`／Preview `JDjznRrYHv2cPYxh9hxQcTDtnZZv` success。Dot 已指派②，執行端準備 pinned 官方 WP／MariaDB 的 disposable local site、合成目標／對照頁及短期受限 App Password。復用①入口完成 exact Review→現況差異→獨立發布確認→真 HTTPS WordPress API／HTML→journal→fresh session UI 讀回→核基線恢復，1280／390 完整驗證；詳見[②證據與逐點驗證迴圈](docs/Controlled_WordPress_發布驗收_2026-10-04.md)。新 HEAD 待 CI／Preview 與既有 Reviewer，Primary 不自行最終驗收。
 
-**目前 Core：① URL→成果→編輯→保存→fresh session→確切版本確認，單一隔離入口。** 基準 `7e4d089521d91f380426de847bd62b743fe0acd1`，父確認 Reviewer `01a107d5` APPROVE、CI `37217709208`／Preview `BgXQjmUKFMhBE23nVp3QsDTggjwV` success。本增量只改既有 `auth-session-regression.e2e.mjs`，接上已存在的 URL fixture、first-result UI、三欄編輯及正常 popup handoff，不由预製 JSON 匯入跳過 URL 段。1280／390 實際保存後 logout／關閉全部舊分頁／全新 context與token，精確取回後才首次確認同版，再讀回同 review；source／Unicode編輯 bytes、request／version／audit增量一路核對。原4安全負測、PG17六案、新版失效／viewer／foreign四403與零額外增量全通過。詳見[同一入口增量與②提案](docs/Unattended_Auth_Session_Regression_2026-10-04.md)。產品／Auth fixture／SQL／CI入口／runtime disabled／frozen不變；真Auth、live URL與完整線上M3不冒稱通過。
+②仍是隔離站證據：runtime 新發布預設關閉、原 Save／Review disabled／frozen／hosted DB27／原 Auth 不變；不代表持續平台 grant、完整 live M3、真站品質或流量。短期 grant 已驗到期／撤銷，該 run 容器／tmpfs／env／TLS key 清除，只留無 secret synthetic 證據。無 Owner 既有網站、外部帳號／OAuth、公開／付費站或模型。CoreMilestoneProgress=1（②真受控平台最小閉環），maintenance 連續數=0；未開③，下一工作由 Dot 選定。治理規則沿用 AGENTS＋正式 skills，不另立框架。
+
+### ①已接受切片（歷史；②已由上節授權）
+
+**已接受 Core：① URL→成果→編輯→保存→fresh session→確切版本確認，單一隔離入口。** 基準 `7e4d089521d91f380426de847bd62b743fe0acd1`，父確認 Reviewer `01a107d5` APPROVE、CI `37217709208`／Preview `BgXQjmUKFMhBE23nVp3QsDTggjwV` success。本增量只改既有 `auth-session-regression.e2e.mjs`，接上已存在的 URL fixture、first-result UI、三欄編輯及正常 popup handoff，不由预製 JSON 匯入跳過 URL 段。1280／390 實際保存後 logout／關閉全部舊分頁／全新 context與token，精確取回後才首次確認同版，再讀回同 review；source／Unicode編輯 bytes、request／version／audit增量一路核對。原4安全負測、PG17六案、新版失效／viewer／foreign四403與零額外增量全通過。詳見[同一入口增量與②提案](docs/Unattended_Auth_Session_Regression_2026-10-04.md)。產品／Auth fixture／SQL／CI入口／runtime disabled／frozen不變；真Auth、live URL與完整線上M3不冒稱通過。
 
 CoreMilestoneProgress=1（①端到端隔離整合驗收缺口補齊），maintenance 連續數=0。下一②先提案 self-hosted WordPress disposable測試站：一個固定合成page、受限可撤銷測試授權、三欄preview→publish→API＋HTML讀回→失敗／unknown核對恢復，對照頁不變；meta需明確註冊及渲染，不用excerpt冒充。方案／權限／費用界線見上方證據；尚未建站、下載映像或授權平台寫入，外部商家與Owner既有站不是本步前提。不擴CSV／治理maintenance。
 

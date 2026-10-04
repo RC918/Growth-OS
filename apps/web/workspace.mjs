@@ -1,3 +1,5 @@
+import {wordpressPublication} from './wordpress-publication.mjs';
+import {wordpressPublicationEnabled} from './wordpress-publication-config.mjs';
 import {pageObservation} from './page-observation.mjs';
 import {measurementPreparation} from './measurement-preparation.mjs';
 import {savedResultDelivery} from './saved-result-delivery.mjs';
@@ -16,7 +18,7 @@ import { createGoalPanel } from './workspace-goals.mjs';
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
   key: 'sb_publishable_B9pMiED8jrCoxuy2kC0HoA_LmzKex9r',
-  redirectOrigin: location.origin, urlReviewEnabled, urlReviewSchemaEnabled, urlReviewTrial, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
+  redirectOrigin: location.origin, wordpressPublicationEnabled, urlReviewEnabled, urlReviewSchemaEnabled, urlReviewTrial, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
 });
 const $ = id => document.getElementById(id);
 let state = null;
@@ -136,7 +138,7 @@ function typedVersion(version, current, history = null, editable = false, latest
       const pageData=pageObservation({api,version:row,isCurrent:visible,latest});body.append(pageData.root);
       const measurement=measurementPreparation({api,version:row,isCurrent:visible,latest});body.append(measurement.root);
       const delivery=savedResultDelivery({api,version:row,isCurrent:visible,latest});body.append(delivery.root);
-      const publish=urlPublishPreview({api,version:row,isCurrent:visible,latest});body.append(publish.root);
+      const publish=api.wordpressPublicationAvailable()?wordpressPublication({api,version:row,isCurrent:visible,latest}):urlPublishPreview({api,version:row,isCurrent:visible,latest});body.append(publish.root);
       if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,onEditingChange:value=>{review?.setEditing(value);publish.setEditing(value);delivery.setEditing(value);measurement.setEditing(value);pageData.setEditing(value);},enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
       loaded = true; feedback.textContent = '';
     } catch (error) {
