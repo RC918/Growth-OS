@@ -4,7 +4,15 @@
 
 ## 當前授權與基準
 
-**最新接受基準：`c3f9f37372edb0b1a7fdf157d600c48e06b085c6`。** 父確認 Reviewer `01a105b7` APPROVE、同HEAD CI `37183932027` success、Preview `4jwTTT28CKR7Qjicbja3Pt6qrjbys` success，Owner已通知完成。以下較早基準是歷史，不回退。
+**最新方向與基準（2026-10-04 07:48 UTC）：** Owner只同意隔離測試站持續版本Review方向，Reviewer `01a105e3` 方案 APPROVE；未批准remote DDL/ACL/config/資料寫入。上一Core `26bc3e60eaac66437f4814dd16c5b05d2bf3e89b` 已完成，同HEAD CI `37184970799` success，Save→Review→fresh session已串入日常無人值守驗收，不重做真人regression。
+
+本slice備妥[持續Review離線部署候選](supabase/drafts/url_review/persistent/README.md)：原proposal的closed安裝、分列enable/disable/restore、paired readonly/enabled configs、manifest/hash、preflight/state/postflight/preservation與unknown原request GET-only對帳。Save全程closed、不新增parent/version，無自動到期；action window與remote批准仍null。authenticated可EXECUTE兩Review entry，SQL限所有符合條件的同org Owner最新URL draft；不是固定Owner/v2/一次request。停用保留資料/schema/marker與合法唯讀，不誇稱REVOKE會取消已在途交易。恢復必須重核deployment/schema/ACL，不重建或覆寫歷史。
+
+父07:53–07:54唯讀核實：PG17.6 ACTIVE_HEALTHY，history23、最後`20261004050737 url_revision_bound_close_v2`，四Save entry有效ACL皆closed，URL Save body SHA吻合，尚無Review RPC。Fixture A有兩位Owner、B兩位viewer，詳manifest；無production共用／hosted隔離、Auth redirect/signup、exact deployment仍pending，不能由DB人群推定。下步僅交Reviewer，再由父把核实證據、exact commit/hash與完整action envelope一次請Owner具體批准，不自行remote安裝。
+
+本機候選5 tests、既有PG17五案＋持續生命週期1案、1280/390各success/closed PASS；新HEAD CI另核。產品runtime兩份closed SHA `fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b`、原frozen/bounded不變。CoreMilestoneProgress=1（持續Review部署/停用/恢復候選可審且離線成立），maintenance連續數=0；不冒稱live/M3放行。100cap／Publish／Measure與P3 marker文案不擴張。
+
+**前一階段接受基準：`c3f9f37372edb0b1a7fdf157d600c48e06b085c6`。** 父確認 Reviewer `01a105b7` APPROVE、同HEAD CI `37183932027` success、Preview `4jwTTT28CKR7Qjicbja3Pt6qrjbys` success，Owner已通知完成。以下較早基準是歷史，不回退。
 
 本slice補齊同一日常入口的 **Save → exact-version Review → logout／全新context與token → 原版本／確認讀回 → 續編v2後舊確認失效、只留v1歷史**；1280/390 PASS，沿用既有產品UI/API與隔離SQL，不另建入口或要求兩次真人regression登入。viewer／foreign對Save與Review均由authenticated SQL驗拒絕，所有public資料／audit零增量；4負測、原URL native6案及相關API/SQL19 tests PASS。詳見[整合證據及M3放行核對](docs/Unattended_Auth_Session_Regression_2026-10-04.md#m3-review-串入同一入口)。CoreMilestoneProgress=1（已保存成果到版確認及恢復的單一自動驗收成立），maintenance連續數=0。新HEAD雲端結果另核，不以本機PASS宣稱CI／Preview。
 

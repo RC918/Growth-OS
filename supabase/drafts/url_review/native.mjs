@@ -1,5 +1,8 @@
 // Isolated native PG17.6, existing image only. No downloads, host ports or credentials.
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {baseline as persistentBaseline} from './bound/fixture.mjs';
+import {manifest as fixedReviewManifest} from './bound/candidate.mjs';
 import {execFileSync,spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {baseline,fixtures,checks,saveGrant,reviewGrant,ids,parent,request} from './fixture.mjs';
@@ -42,4 +45,16 @@ try {
  // A membership change while waiting cannot pass the optimistic initial role test.
  sql(begin+save(24,24)+'commit;');const revoked=version(24),e=session('membership-holder'),f=session('membership-waiter');
  e.p.stdin.write(`begin;select user_id from public.organization_members where organization_id='${ids.org}' and user_id='${ids.owner}' for update;select 'READY';\n`);await ready('membership-holder');f.p.stdin.end(begin+review(revoked,124)+'commit;\n');const proof3=await blocked('membership-holder','membership-waiter');e.p.stdin.end(`update public.organization_members set role='viewer' where organization_id='${ids.org}' and user_id='${ids.owner}';commit;\n`);assert.equal((await e.done).code,0);const denied=await f.done;assert.notEqual(denied.code,0);assert.match(denied.err,/42501/);assert.equal(counts(revoked),'0/0');console.log('PASS membership downgrade across lock wait denies confirmation '+JSON.stringify(proof3));
+ // Reuse this same pinned isolated PG17 runner for persistent candidate transitions.
+ sql('create database persistent_review');
+ const pq=query=>sql(query,'persistent-review-observer','persistent_review');
+ pq((await persistentBaseline()).replace(/create role (anon|authenticated|service_role) nologin;/g,''));
+ const artifact=async file=>readFile(new URL('./persistent/'+file,import.meta.url),'utf8');
+ const preserve=await artifact('preservation.sql'),prior=pq(preserve),fixed=await fixedReviewManifest();
+ pq(await artifact('install-closed.sql'));pq(await artifact('postflight-closed.sql'));assert.equal(pq(preserve),prior);
+ pq(await artifact('enable.sql'));pq(await artifact('postflight-enabled.sql'));assert.equal(pq(preserve),prior);
+ const requestId=randomUUID(),call=`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${fixed.actor_id}',true);select public.review_url_result('${fixed.organization_id}','${fixed.version_id}','${requestId}','${fixed.source_digest}','${fixed.content_digest}','${fixed.version_digest}',${quote(JSON.stringify(checks))}::jsonb);commit;`;
+ pq(call);const confirmed=pq(preserve);pq(await artifact('disable.sql'));pq(await artifact('postflight-closed.sql'));assert.throws(()=>pq(call),/permission denied/);assert.equal(pq(preserve),confirmed);
+ pq(await artifact('restore.sql'));pq(await artifact('postflight-enabled.sql'));pq(call);assert.equal(pq(preserve),confirmed);pq(await artifact('disable.sql'));
+ console.log('PASS persistent PG17 closed install → enable → review → disable denies → restore exact replay; immutable data/audit/catalog, Save closed');
 }finally{for(const p of sessions)if(p.exitCode===null)p.kill();if(started)docker(['rm','-f',name]);}

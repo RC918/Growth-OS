@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "state": "UNAPPROVED_OFFLINE_CANDIDATE",
+  "kind": "persistent_exact_version_review",
+  "project_ref": "vhzryhibmpvglzcmfnaa",
+  "workspace_url": "https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html",
+  "repository": "RC918/Growth-OS",
+  "branch": "feat/passwordless-workspace",
+  "baseline_head": "26bc3e60eaac66437f4814dd16c5b05d2bf3e89b",
+  "baseline_ci": 37184970799,
+  "proposal_sha256": "6039feb2f8e8932d10ef7bd01c26058b8f4724b56c8bab04f46e61d817ec568e",
+  "expected_save_prosrc_sha256": "e7c41525d87e0bc0b6b5d25d73e319df16054bb05155a821ddd15f7d9bb054e1",
+  "runtime_closed_sha256": "fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b",
+  "historical_migration_count": 23,
+  "hosted_checks": {
+    "isolation": "pending_parent_readonly_verification",
+    "population": {
+      "source": "parent read-only 2026-10-04 07:53–07:54 UTC",
+      "organizations": [
+        {
+          "id": "93a88055-0a0b-40c0-b22f-a6d312320001",
+          "name": "Fixture A",
+          "owners": [
+            "8fc0dd39-a9d9-4a56-80b9-362768547d81",
+            "e85f1a90-3565-4fc1-a7e0-3b7d08830d0e"
+          ]
+        },
+        {
+          "id": "93a88055-0a0b-40c0-b22f-a6d312320002",
+          "name": "Fixture B",
+          "viewers": [
+            "5d14dbf9-e9ef-453b-8760-e48a20fa63ad",
+            "9dd82ae4-2263-4af6-bf6b-84085234b0e2"
+          ]
+        }
+      ],
+      "credentials_read": false
+    },
+    "auth_settings": "pending_parent_readonly_verification",
+    "database_baseline": {
+      "source": "parent read-only 2026-10-04 07:53–07:54 UTC",
+      "status": "ACTIVE_HEALTHY",
+      "pg": "17.6",
+      "migration_count": 23,
+      "last_migration": "20261004050737 url_revision_bound_close_v2",
+      "save_entries_effective_execute": "all four closed for anon/authenticated/service_role",
+      "url_save_body": "matches expected_save_prosrc_sha256",
+      "url_review_rpc": "absent",
+      "full_history_and_catalog_preservation": "pending execution-time exact snapshot"
+    },
+    "exact_deployment_id": null,
+    "deployment_head": null
+  },
+  "scope": {
+    "organizations": "ALL qualifying organizations in this test project, not one fixed org",
+    "actors": "normal authenticated member with current same-org owner role",
+    "versions": "latest saved URL draft per parent; exact historical replay returns existing review only",
+    "viewer": "same-org read only",
+    "requests": "per-intent IDs; not a one-request or one-review lifetime limit",
+    "function_execute": {
+      "authenticated": [
+        "public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb)",
+        "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)"
+      ],
+      "PUBLIC": false,
+      "anon": false,
+      "service_role": false
+    },
+    "table_write_grants_added": [],
+    "save": "CLOSED throughout",
+    "parent_inserts": 0,
+    "version_inserts": 0,
+    "publish": false
+  },
+  "lifetime": {
+    "automatic_expiry": false,
+    "action_window": null,
+    "remote_authorization": null
+  },
+  "operations": [
+    "readonly hosted identity/isolation/population/Auth and exact DB baseline verification",
+    "separate Owner approval of artifacts, deployment identity and action window",
+    "capture preservation and state; install closed schema/RPC as tracked migration",
+    "verify closed installation and unchanged original data/history/catalog",
+    "deploy candidate closed config, verify exact deployment/schema/ACL",
+    "enable SQL as separate tracked migration; verify effective ACL; then deploy enabled config",
+    "normal Auth owner Review; original-request GET-only on unknown; audit reconciliation",
+    "disable: closed config then SQL revoke, drain/reconcile accepted in-flight calls; preserve schema/data/markers",
+    "restore: verify deployment/schema/ACL/preservation again; separate approved restore SQL then enabled config"
+  ],
+  "migration_names": {
+    "install": "url_review_persistent_install_closed",
+    "enable": "url_review_persistent_enable",
+    "disable": "url_review_persistent_disable",
+    "restore": "url_review_persistent_restore"
+  },
+  "hash_index": "hashes.json",
+  "hash_policy": "exact SHA256 per artifact, including manifest; final candidate commit bound by external approval, no self-referential manifest hash"
+}

@@ -1,0 +1,76 @@
+{
+  "columns": [
+    {
+      "name": "url_review_checks",
+      "type": "jsonb",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "url_review_content_digest",
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "url_review_request_id",
+      "type": "uuid",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "url_review_source_digest",
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "url_review_version_digest",
+      "type": "text",
+      "default": null,
+      "nullable": "YES"
+    }
+  ],
+  "functions": [
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "strict": false,
+      "definer": false,
+      "returns": "uuid",
+      "language": "sql",
+      "leakproof": false,
+      "signature": "review_url_result(uuid,uuid,uuid,text,text,text,jsonb)",
+      "volatility": "v",
+      "body_sha256": "c8fefc0ff1ae18363b69c0b42dd6d9857cf6e70e8e6cbc653a6ed30f124d9996"
+    },
+    {
+      "owner": "postgres",
+      "config": [
+        "search_path=\"\""
+      ],
+      "strict": false,
+      "definer": true,
+      "returns": "uuid",
+      "language": "plpgsql",
+      "leakproof": false,
+      "signature": "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)",
+      "volatility": "v",
+      "body_sha256": "94fdd9395dbf272fd68629af8260f1bf0e430622b220713ae9b8d844516e927b"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "content_reviews_url_request_unique",
+      "validated": true,
+      "definition": "UNIQUE (organization_id, url_review_request_id)"
+    },
+    {
+      "name": "content_reviews_url_shape",
+      "validated": true,
+      "definition": "CHECK ((((url_review_request_id IS NULL) AND (url_review_source_digest IS NULL) AND (url_review_content_digest IS NULL) AND (url_review_version_digest IS NULL) AND (url_review_checks IS NULL)) OR COALESCE(((url_review_request_id IS NOT NULL) AND (decision = 'approved'::text) AND (url_review_source_digest ~ '^sha256:[a-f0-9]{64}$'::text) AND (url_review_content_digest ~ '^sha256:[a-f0-9]{64}$'::text) AND (url_review_version_digest ~ '^pg-jsonb-sha256:[a-f0-9]{64}$'::text) AND (url_review_checks = '{\"title\": true, \"source\": true, \"description\": true, \"meta_description\": true, \"blocking_facts_clear\": true}'::jsonb)), false)))"
+    }
+  ]
+}
