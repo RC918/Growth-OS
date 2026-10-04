@@ -2,6 +2,30 @@
 
 2026-10-04。依 Owner 06:27 UTC 指示（Sentinel `3b3be33f4e0c8191b8987dbf99ae8cc1`）及 Reviewer `01a1059a-5089-7374-94f0-c261041cb6ec` APPROVE 附約束實作。基準 `5616220aa865d6b36073f22ec732246a88f72170`，父與 GitHub read-only workflow 回傳 CI `37182179082` success。bounded Review 候選保留為離線資產，等待真人時段不再是日常 regression 的前置條件。
 
+## ① URL 到保存、fresh session 與確切版本確認（目前增量）
+
+基準 `7e4d089521d91f380426de847bd62b743fe0acd1`／PR #19，父確認 Reviewer `01a107d5` APPROVE、CI `37217709208`／Preview `BgXQjmUKFMhBE23nVp3QsDTggjwV` success。Reviewer 已確認原 `url-result-ui.e2e` 覆蓋 URL→成果→編輯→正常交接→保存，而本入口從 JSON fixture 起跑；本增量只補兩段之間的整體驗收缺口，不改產品、Auth fixture、SQL 或 CI 入口。
+
+- 同一入口沿用既有 source fixture（Python parser 對合成 HTML 建 snapshot，DNS／connection 被禁止），回復未確認的原始建議作 `/api/product-source` 測試回應。browser 真正填 URL、送出一次 POST；攔截器嚴格核 method／URL body，只回 runner 既有 fixture，沒有外部 fetch。這不是 live URL／網路 parser 驗收。
+- 1280／390 各由 first-result UI 檢查來源 URL／時間／fingerprint 與三欄原建議，實際編輯全部三欄、核對與本頁確認；保留 emoji、組合字與換行。實際 download JSON 僅作獨立比對基準，**不將它匯入代替主線**。正常 handoff button 打開 workspace popup，確認 opener 關係；登入後的 handoff preview、Save request、DB payload、首次／fresh 讀回全部等於 UI 匯出，snapshot／facts／extraction／inferences／missing 與原 source fixture 相同。
+- Save 後核 +1 parent／+1 version／+1 audit、0 review；核 org／parent／version=1／request ID／保存 audit actor 與 object/request。logout 後關閉全部舊分頁（含來源 opener），建立全新 context／token，空 cookies／storage／editor，讀回 exact version 與完整 payload，所有 public rows 不變。**首次權威 exact Review 在此次 fresh readback 之後**。
+- 五項版本確認經既有 UI／API／authenticated SQL，核 review actor／org／version／request／三種 digest／checks 與對應 audit。按「重新讀取」核同 review UUID，零額外 mutation；再沿用原本續編失效→logout／fresh session→同確認讀回。此時 +1 parent／+1 version／+1 review／+2 audits，原本新版 v2 失效流程結束後仍 +1 parent／+2 versions／+1 review／+3 audits，成功操作仍 2 Save＋1 Review。
+- 原 viewer／foreign 四次 403 及 public 全表零增量、晚到讀回、未知目的地 abort、新版不繼承、舊版不變均保留。負向匯入使用本輪 UI 產出的 payload，僅沿用原權限測試，不是正向流程捷徑；unknown／cancel／concurrency 專用 suites 不重寫。每 viewport 始終僅一次本機 source POST。
+
+本機完整入口 PASS：4個獨立安全負測、原生 PG17 六案、1280／390 上述整條路徑與原權限／新版檢查；無 overflow／page errors。真 Auth 發證／JWT驗簽／OTP／2FA、外部網站品質、發布與流量價值仍未驗。`signOut` 仍僅清頁面記憶體；fixture retire 不是產品撤銷能力。runtime disabled SHA256 `8b25cfa17adaf27a10b635fbf3537f0ad19deb36c10bb4263f1733da83ee91e1`、persistent frozen index `11e3423b1f58b280612069c91debbe68df14ed290afb0c0d64dcfaec83783351` 不變；無 hosted／restore／真登入／模型／費用／正式發布。新 HEAD CI／Preview 另核，不由本機 PASS 推定。
+
+### 下一②最小平台測試方案（僅提案，未建立或授權平台）
+
+建議單一 **self-hosted WordPress 受控測試站**：執行端 disposable local containers、固定一個合成產品 page，另有不得修改的對照頁；pin image/version/digest、runner 自有 TLS／測試帳號及網路 allowlist，不連 Owner 站、真內容、搜尋引擎或 production。WordPress 支援 [Application Passwords over HTTPS](https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/)；候選用僅限此測試 page 的專用角色與可撤銷測試密碼，權限限制須實測，不能把 application password 本身當成 page scope。secret 僅 runner memory／臨時檔，不入 browser、Git、logs。
+
+三欄映射提案：title→page title，描述→page content；meta description 以測試站最小 plugin 註冊單一 REST meta 欄位並輸出到 HTML `<meta name="description">`，不得把 excerpt 冒充 SEO meta。依 [Pages API](https://developer.wordpress.org/rest-api/reference/pages/) 與 [registered meta](https://developer.wordpress.org/rest-api/extending-the-rest-api/modifying-responses/) 核實欄位／型別／權限後才實作；此最小 plugin 只服務測試站，不先做通用 CMS 框架或選購 SEO 插件。
+
+驗收一條：明確綁定已確認 exact version／固定 page → GET 現況與三欄差異 preview → 受限授權發布 → authenticated API＋測試站 HTML 讀回 title/meta/body、page ID／URL、版本 digest 與觀察時間。測試錯頁／失效版／拒權無寫入，提交前失敗保留原頁；提交後 response lost 先 GET 核對，內容／版本不明維持 unknown、不盲重送；恢復原內容須另以已知基線及目前頁面狀態核對後驗證，不假定 WordPress 提供原生 exactly-once 或可直接回滾。對照頁與非目標欄位全程不變，原 source／tenant／Review 邊界保留。證據是測試站發布正確性，不是 Owner 自有站成效。
+
+權限／費用界線：本次只提案，沒有 pull image／建站／建立憑證／平台寫入。下一範圍先限本機隔離、無付費雲端／正式網域／外部帳號或 OAuth，執行端自備一次性測試資料；新下載、資源需求與測試站專用權限在具體執行方案列明。任何新費用、外部帳密／授權、公開部署或 Owner 既有網站修改由父提出精確範圍，不能沿用本輪授權。無需先取得外部商家；③量測在②發布鏈成立後接版本／頁／時間／基線，缺資料 unknown。
+
+以下早期章節的 JSON 起點、舊 hashes／部署狀態與「下一 Core」保留為歷史，不取代本增量、PROJECT_STATUS 與唯一藍圖。
+
 ## 一個全自動入口
 
 ```sh
