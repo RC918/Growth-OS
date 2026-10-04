@@ -4,11 +4,13 @@
 
 ## 當前授權與基準
 
-**最新P2 Blocking候選修正：** 基準`c4ae4ec34df52a1271a059db0301adc905b54a1f`／CI `37187566457` success。父08:48有效ACL、08:51 raw ACL確認audit_events對anon/authenticated直接授予INSERT/UPDATE/DELETE/TRUNCATE（含postgres/service_role的完整原ACL見[候選](supabase/drafts/url_review/persistent/README.md#audit-acl-p2-前置修正)），唯一RLS policy只有Owner SELECT；TRUNCATE不受RLS。Reviewer `01a1061a`判定啟用前必要P2 blocker，沒有利用／資料受損證據，不稱P1事故。
+**同一P2修包追加Reviewer `01a10626`明確範圍：** 父核`organization_members`同audit raw ACL、唯一authenticated SELECT members_read_workspace且無writepolicy；signup未見自動membership不消除TRUNCATE風險。現以共同guard與單次tracked `authority-revoke.sql`精確處理audit_events＋organization_members兩表，PUBLIC/anon/authenticated四寫權撤除、SELECT/RLS／管理者維護/private查詢／service_role保留，不新增writer、不改signup、不掃描更多表。合併pre/post、preservation allowlist與envelope，仍3 tracked操作而非逐表加窗。audit-only中間HEAD `4d0fafcce0c5701ae1a20a21712afffa91022ceb`與SQL原bytes保留為superseded歷史，只有合併最終HEAD交審。父報告其餘Auth證據無額外blocker；所有hosted撤權仍未批准／未執行。
 
-本slice只更新尚未批准persistent候選：新增audit-only tracked撤權與postflight，移除PUBLIC/anon/authenticated四寫權，保留SELECT/RLS、postgres/private-definer audit、service_role及其他schema/角色；enable/restore及postflight要求四有效寫權false。保存allowlist明列audit ACL差異，不再說全部ACL不變。初始envelope需3 tracked migrations（audit revoke→closed install→enable，history23→24→25→26）及原2 config transitions，全部仍需Owner具體批准。
+**本修包最初audit P2證據（現已合併如上）：** 基準`c4ae4ec34df52a1271a059db0301adc905b54a1f`／CI `37187566457` success。父08:48有效ACL、08:51 raw ACL確認audit_events對anon/authenticated直接授予INSERT/UPDATE/DELETE/TRUNCATE（含postgres/service_role的完整原ACL見[候選](supabase/drafts/url_review/persistent/README.md)），唯一RLS policy只有Owner SELECT；TRUNCATE不受RLS。Reviewer `01a1061a`判定啟用前必要P2 blocker，沒有利用／資料受損證據，不稱P1事故。
 
-disposable PG17已重現舊grant的TRUNCATE繞過RLS（只在回滾測試交易），修後兩角色四種直接寫拒絕，正常Owner RPC恰1review+1audit，audit失敗全rollback，合法讀取／旧資料／其他catalog保留；PGlite候選6 tests及既有並發／生命週期PASS。屬Blocking Core必要候選驗證，maintenance連續數0；**hosted P2仍未修復，未獲remote批准，不放行持續Review**。runtimeclosed／原proposal／bounded/frozen不變，不擴100cap／Publish／Measure，P3文案繼續defer。交既有Reviewer核新HEAD/hash/CI後，再由父整包請Owner批准。
+本slice只更新尚未批准persistent候選：新增兩表共同tracked撤權與postflight，移除PUBLIC/anon/authenticated四寫權，保留SELECT/RLS、postgres/private-definer audit、service_role及其他schema/角色；enable/restore及postflight要求四有效寫權false。保存allowlist明列兩表ACL差異，不再說全部ACL不變。初始envelope需3 tracked migrations（combined authority revoke→closed install→enable，history23→24→25→26）及原2 config transitions，全部仍需Owner具體批准。
+
+disposable PG17已重現舊grant的TRUNCATE繞過RLS（只在回滾測試交易），修後兩表×兩角色×四種直接寫拒絕，正常Owner RPC恰1review+1audit，audit失敗全rollback，合法讀取／旧資料／其他catalog保留；PGlite候選6 tests及既有並發／生命週期PASS。屬Blocking Core必要候選驗證，maintenance連續數0；**hosted P2仍未修復，未獲remote批准，不放行持續Review**。runtimeclosed／原proposal／bounded/frozen不變，不擴100cap／Publish／Measure，P3文案繼續defer。交既有Reviewer核新HEAD/hash/CI後，再由父整包請Owner批准。
 
 **最新方向與基準（2026-10-04 07:48 UTC）：** Owner只同意隔離測試站持續版本Review方向，Reviewer `01a105e3` 方案 APPROVE；未批准remote DDL/ACL/config/資料寫入。上一Core `26bc3e60eaac66437f4814dd16c5b05d2bf3e89b` 已完成，同HEAD CI `37184970799` success，Save→Review→fresh session已串入日常無人值守驗收，不重做真人regression。
 

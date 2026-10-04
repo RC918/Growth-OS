@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {baseline} from '../bound/fixture.mjs';
 import {manifest as fixedManifest,checks} from '../bound/candidate.mjs';
-import {root,render,sha,entries,saves} from './candidate.mjs';
+import {root,render,sha,entries,saves,protectedTables} from './candidate.mjs';
 import {createWorkspaceApi} from '../../../../apps/web/workspace-api.mjs';
 import {createRevisionMarker} from '../../../../apps/web/url-result-trial-marker.mjs';
 const pack=await render(),m=await fixedManifest();
@@ -17,22 +17,26 @@ test('persistent deployment lifecycle on historical closed baseline; normal SQL 
  const tx=async fn=>{await db.exec('reset role;begin');try{await fn();}finally{await db.exec('rollback;reset role');}};
  const reject=async fn=>{await db.exec('savepoint rejected');try{await assert.rejects(fn);}finally{await db.exec('rollback to rejected;release rejected');}};
  try{
-  await db.exec(await baseline({pglite:true}));await db.exec('grant all on public.audit_events to service_role');let before=await snapshot();
-  await t.test('audit-only revoke removes demonstrated TRUNCATE bypass, preserves SELECT/RLS/service_role/data',async()=>{
-   const count=await scalar('select count(*) from public.audit_events');assert.ok(count>0);
-   for(const role of ['anon','authenticated'])await tx(async()=>{await db.exec('set role '+role);await db.exec('truncate public.audit_events');await db.exec('reset role');assert.equal(await scalar('select count(*) from public.audit_events'),0);});
-   assert.deepEqual(await snapshot(),before);await assert.rejects(db.exec(pack['preflight.sql']),/Audit effective write/);
-   await db.exec(pack['audit-revoke.sql']);await db.exec(pack['audit-postflight.sql']);assert.deepEqual(await snapshot(),before);
-   for(const role of ['anon','authenticated']){
+  await db.exec(await baseline({pglite:true}));await db.exec('grant all on public.audit_events,public.organization_members to service_role');let before=await snapshot();
+  await t.test('shared authority/audit revoke removes both TRUNCATE paths; SELECT, memberships, RLS, service_role and data preserved',async()=>{
+   for(const {name}of protectedTables){
+    const count=await scalar('select count(*) from public.'+name);assert.ok(count>0);
+    for(const role of ['anon','authenticated'])await tx(async()=>{await db.exec('set role '+role);await db.exec('truncate public.'+name);await db.exec('reset role');assert.equal(await scalar('select count(*) from public.'+name),0);});
+   }
+   assert.deepEqual(await snapshot(),before);await assert.rejects(db.exec(pack['preflight.sql']),/effective write ACL/);
+   // A second-table mismatch refuses the whole package, never partially revokes the first.
+   await tx(async()=>{await db.exec('grant TRUNCATE on public.organization_members to PUBLIC');await reject(()=>db.exec(pack['authority-revoke.sql']));assert.equal(await scalar("select has_table_privilege('authenticated','public.audit_events','TRUNCATE')"),true);});
+   await db.exec(pack['authority-revoke.sql']);await db.exec(pack['authority-postflight.sql']);assert.deepEqual(await snapshot(),before);
+   for(const {name}of protectedTables)for(const role of ['anon','authenticated']){
     await auth();await db.exec('set role '+role);
-    for(const statement of ["insert into public.audit_events(organization_id,actor_user_id,event_type,object_type,object_id) values('"+m.organization_id+"','"+m.actor_id+"','test','test','"+m.version_id+"')",'update public.audit_events set event_type=event_type where false','delete from public.audit_events where false','truncate public.audit_events'])await assert.rejects(db.exec(statement),e=>e.code==='42501');
-    assert.equal(await scalar("select has_table_privilege(current_user,'public.audit_events','SELECT')"),true);if(role==='authenticated')assert.ok(await scalar('select count(*) from public.audit_events')>0);
+    const insert=name==='audit_events'?"insert into public.audit_events(organization_id,actor_user_id,event_type,object_type,object_id) values('"+m.organization_id+"','"+m.actor_id+"','test','test','"+m.version_id+"')":"insert into public.organization_members(organization_id,user_id,role) values('"+m.organization_id+"','"+m.actor_id+"','owner')";
+    for(const statement of [insert,`update public.${name} set ${name==='audit_events'?'event_type=event_type':'role=role'} where false`,'delete from public.'+name+' where false','truncate public.'+name])await assert.rejects(db.exec(statement),e=>e.code==='42501');
+    assert.equal(await scalar(`select has_table_privilege(current_user,'public.${name}','SELECT')`),true);if(role==='authenticated')assert.ok(await scalar('select count(*) from public.'+name)>0);
    }
    assert.deepEqual(await snapshot(),before);
-   // Simulate only the tracked wrapper's new history row; preserve all original 23 rows.
    const history=(await q('select * from supabase_migrations.schema_migrations order by version')).rows;
-   await q('insert into supabase_migrations.schema_migrations values($1,$2,$3)',['synthetic-audit-revoke','url_review_persistent_audit_revoke',[pack['audit-revoke.sql']]]);
-   assert.deepEqual((await q("select * from supabase_migrations.schema_migrations where version<>'synthetic-audit-revoke' order by version")).rows,history);before=await snapshot();
+   await q('insert into supabase_migrations.schema_migrations values($1,$2,$3)',['synthetic-authority-revoke','url_review_persistent_authority_revoke',[pack['authority-revoke.sql']]]);
+   assert.deepEqual((await q("select * from supabase_migrations.schema_migrations where version<>'synthetic-authority-revoke' order by version")).rows,history);before=await snapshot();
   });
   await t.test('exact artifact hashes, untouched runtime; install closed and zero business/catalog delta',async()=>{
    const hashes=JSON.parse(await readFile(new URL('hashes.json',root),'utf8'));for(const [f,h]of Object.entries(hashes))assert.equal(sha(await readFile(new URL(f,root))),h,f);for(const [f,b]of Object.entries(pack))assert.equal(await readFile(new URL(f,root),'utf8'),b,f);
@@ -44,7 +48,7 @@ test('persistent deployment lifecycle on historical closed baseline; normal SQL 
    await db.exec('reset role');await db.exec(pack['enable.sql']);await db.exec(pack['postflight-enabled.sql']);assert.deepEqual(await snapshot(),before);
    for(const role of ['anon','authenticated','service_role'])for(const f of saves)assert.equal(await scalar(`select has_function_privilege($1,$2,'execute')`,[role,f]),false);
    await db.exec(pack['disable.sql']);await db.exec(pack['postflight-closed.sql']);assert.deepEqual(await snapshot(),before);
-   for(const drift of ["alter function public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb) security definer","alter table public.content_reviews disable row level security","grant insert on public.content_reviews to authenticated",`grant execute on function ${entries[0]} to anon`,`grant execute on function ${saves[2]} to authenticated`,...['INSERT','UPDATE','DELETE','TRUNCATE'].map(p=>`grant ${p} on public.audit_events to authenticated`),'grant TRUNCATE on public.audit_events to PUBLIC'])await tx(async()=>{await db.exec(drift);await reject(()=>db.exec(pack['restore.sql']));await reject(()=>db.exec(pack['enable.sql']));if(drift.includes('public.audit_events')){await reject(()=>db.exec(pack['postflight-closed.sql']));await reject(()=>db.exec(pack['postflight-enabled.sql']));}assert.equal(await scalar(`select has_function_privilege('authenticated',$1,'execute')`,[entries[1]]),false);});
+   for(const drift of ["alter function public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb) security definer","alter table public.content_reviews disable row level security","grant insert on public.content_reviews to authenticated",`grant execute on function ${entries[0]} to anon`,`grant execute on function ${saves[2]} to authenticated`,...protectedTables.flatMap(t=>['INSERT','UPDATE','DELETE','TRUNCATE'].map(p=>`grant ${p} on public.${t.name} to authenticated`)),...protectedTables.map(t=>`grant TRUNCATE on public.${t.name} to PUBLIC`)])await tx(async()=>{await db.exec(drift);await reject(()=>db.exec(pack['restore.sql']));await reject(()=>db.exec(pack['enable.sql']));if(protectedTables.some(t=>drift.includes('public.'+t.name))){await reject(()=>db.exec(pack['postflight-closed.sql']));await reject(()=>db.exec(pack['postflight-enabled.sql']));}assert.equal(await scalar(`select has_function_privilege('authenticated',$1,'execute')`,[entries[1]]),false);});
    await db.exec(pack['restore.sql']);await db.exec(pack['postflight-enabled.sql']);assert.deepEqual(await snapshot(),before);
   });
   await t.test('scope is not fixed actor/request: another same-org Owner accepted; viewer and foreign denied',()=>tx(async()=>{
