@@ -11,8 +11,8 @@ description: "Growth-OS 異常恢復與 authoritative state 核對。用於阻�
 
 ## 執行規則
 
-1. **Classify → 是否阻塞 milestone**。分開記 FAIL（有失敗證據）、未實作、未驗收、工具不確定、Owner決策；timeout／lost response／unknown mutation 一律先記 **UNCERTAIN_RESULT**，不等於 FAIL、NOT_APPLIED 或 Owner blocker。依 [mission-guardrail](../mission-guardrail/SKILL.md) 分嚴重度；P3/P4不阻塞，P2須有milestone必要性。
-2. 不阻塞：在既有紀錄寫 debt、影響及重看條件，**resume exact previous task**。阻塞：**diagnose → authoritative reconcile → safe recovery → verify → resume exact previous task**。先讀實際logs與失敗輸入，普通CI fail不可blind rerun。
+1. **CLASSIFY → 是否阻塞當前 milestone**。分開記 FAIL（有失敗證據）、未實作、未驗收、工具不確定、Owner決策；timeout／lost response／unknown mutation 一律先記 **UNCERTAIN_RESULT**，不等於 FAIL、NOT_APPLIED 或 Owner blocker。依 [mission-guardrail](../mission-guardrail/SKILL.md) 分嚴重度；P3/P4不阻塞，P2須有milestone必要性。
+2. 不阻塞（含 P3/P4）：依 mission 在既有紀錄寫完整 Technical Debt，**resume exact previous task**，不一路修到底。只有當前 milestone 的 P0/P1／必要 P2 才進入 FIX：**diagnose → authoritative reconcile → safe recovery → verify → resume exact previous task**。先讀實際logs與失敗輸入，普通CI fail不可blind rerun。
 3. 保存恢復書籤：原任務／milestone、當前步驟、預期下一步、operation/request ID、attempt數、target/route、artifact hash、批准範圍與截止、dispatch時間、expected-before/after、已知證據。不得記token或secret。
 4. 用適合該操作的authoritative來源核對：Git HEAD/branch/status/remote refs；DB committed rows/catalog/ACL；migration history/body；deployment ID/HEAD/config/status；CI實際job/step logs；audit、request ID、payload/artifact hash與remote state。記來源與觀察時間，辨別舊cache與fresh state；只觀察到缺紀錄或工具無回傳，不足以假稱未套用。
 
@@ -25,7 +25,7 @@ description: "Growth-OS 異常恢復與 authoritative state 核對。用於阻�
 
 5. committed-state與transport／queue不確定可同時存在。若原call可能晚到，核同操作並發防重放與交易／history契約是否足以限制重複效果；不用無法取得的「完美queue空證據」無限卡住，也不把推論冒充證實。接受有來源的足夠證據並記剩餘風險；套用本包具體判定前讀 [bounded reconciliation](../../../docs/Bound_URL_Operation_Reconciliation_2026-10-03.md)，不能把其SQL特性外推為任意mutation可重試。
 6. Retry僅原operation，不換name/request/hash/route、不改期限或擴權。工具重複回錯亦先postflight；至多一次retry後再次未知就核對，不循環。**一次Save POST的envelope禁止retry**，即使GET空亦只讀；一般migration retry規則不能覆蓋更嚴限制。
-7. 選最小root-cause修復；同問題第三次局部patch前先RCA，3個相似且同根因改為SYSTEMIC_FIX。恢復後驗expectedstate與核心流程，更新書籤並回到原任務的確切下一步，不能留在無關維修支線。
+7. 選最小root-cause修復；同問題第三次局部patch前先RCA，3個相似且同根因改為SYSTEMIC_FIX。修正後從 [Agentic Verification Loop](../engineering-executor/SKILL.md#agentic-verification-loop) 受影響的最早驗證點重新跑到 VERIFY，逐點列適用性／證據，核 expectedstate 與核心流程；更新書籤回原任務，不留在無關維修支線。VERIFY 後仍交既有 Reviewer，Primary 不自行最終驗收。
 8. 平台安全拒絕不是可重試timeout：尊重拒絕，不換工具／route繞過。期限到達不自動延展，批准過期不繼續受限mutation；已批准的必要收尾依原範圍處理，不擅自reset/drop/stash、補history或用backend JWT替代安全登入。
 
 ## Escalation
