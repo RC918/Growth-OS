@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import * as historicalConfig from '../../supabase/drafts/url_result/bound/owner-candidate-20261003T193000Z/preview-closed-config.mjs';
-import * as deployedConfig from '../../apps/web/url-result-config.mjs';
 import {createWorkspaceApi} from './workspace-api.mjs';
 import {frozen,renderBound} from '../../supabase/drafts/url_result/bound/generate.mjs';
 const {manifest:m,payload}=await frozen(),pack=await renderBound({expiresAt:'2099-01-01T00:00:00Z',previewURL:'https://offline.invalid/workspace.html'});
@@ -39,7 +38,7 @@ test('historical first-trial fixture retains reviewed bytes, fixed owner/tenant/
  t.mock.timers.setTime(cutoff);assert.equal(f.api.boundSaveAvailable(),false);
  assert.equal(f.calls.every(c=>c.options.method==='GET'),true);
 });
-test('actual runtime exactly mirrors frozen revision open or closed bytes; both gates and drift rejection remain strict',async t=>{
+test('historical revision fixtures retain exact open/closed bytes; both gates and drift rejection remain strict',async t=>{
  const root=new URL('../../supabase/drafts/url_result/revision-bound/owner-candidate-20261004T060000Z/',import.meta.url),candidates=[];
  for(const [mode,hash]of Object.entries({open:'0d17a06519bd28d7f86443b31d453e18762ce4106bdf523e173e1c73693d1d82',closed:'fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b'})){
   const url=new URL(`preview-${mode}-config.mjs`,root),source=await readFile(url,'utf8'),config=await import(url);
@@ -47,7 +46,7 @@ test('actual runtime exactly mirrors frozen revision open or closed bytes; both 
   assert.equal(config.urlSaveTrial.kind,'revision');assert.equal(config.urlSaveTrial.expected_version,1);assert.equal(config.urlSaveTrial.request_id,'a326f6ce-03c7-4d3e-9fce-c22b2849cb48');assert.equal(config.urlSaveTrial.expires_at,'2026-10-04T06:00:00.000Z');candidates.push({source,config});
  }
  const exact=(source,mirror)=>{assert.equal(mirror,source,'runtime mirror bytes');const match=candidates.find(c=>c.source===source);assert.ok(match,'runtime must equal one complete reviewed revision freeze');return match.config;};
- const source=await readFile(new URL('../../apps/web/url-result-config.mjs',import.meta.url),'utf8'),mirror=await readFile(new URL('./url-result-config.mjs',import.meta.url),'utf8');assert.deepEqual(deployedConfig,exact(source,mirror));
+ // Deployment allowlist is checked in persistent/candidate.test.mjs; this historical trial keeps its original freeze and gates.
  for(const candidate of candidates){
   assert.equal(exact(candidate.source,candidate.source),candidate.config);
   for(const altered of [candidate.source+'\n',candidate.source.replace('2026-10-04T06:00:00.000Z','2026-10-04T07:00:00.000Z'),candidate.source.replace('"expected_version": 1','"expected_version": 0'),candidate.source.replace('"kind": "revision"','"kind": null')])assert.throws(()=>exact(altered,altered));
@@ -95,7 +94,7 @@ test('same-tab bounded marker persists attempt before dispatch; failures never r
 });
 
 // SYSTEMIC_FIX: synthetic UI transport must own config as well as auth/data.
-// Actual deployment bytes remain checked separately above; no runtime file mutation.
+// Actual deployment bytes are checked in persistent/candidate.test.mjs; no runtime file mutation.
 test('every CI workspace UI harness explicitly intercepts config instead of inheriting deployment state',async()=>{
  const root=new URL('../../',import.meta.url),workflow=await readFile(new URL('.github/workflows/python-tests.yml',root),'utf8');
  const harnesses=[...new Set([...workflow.matchAll(/node (prototype\/[^\s]+\.e2e\.mjs)/g)].map(m=>m[1]))],workspace=[];

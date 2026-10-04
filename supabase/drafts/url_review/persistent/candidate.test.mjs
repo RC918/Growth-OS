@@ -38,9 +38,24 @@ test('persistent deployment lifecycle on historical closed baseline; normal SQL 
    await q('insert into supabase_migrations.schema_migrations values($1,$2,$3)',['synthetic-authority-revoke','url_review_persistent_authority_revoke',[pack['authority-revoke.sql']]]);
    assert.deepEqual((await q("select * from supabase_migrations.schema_migrations where version<>'synthetic-authority-revoke' order by version")).rows,history);before=await snapshot();
   });
-  await t.test('exact artifact hashes, untouched runtime; install closed and zero business/catalog delta',async()=>{
+  await t.test('exact artifact hashes and persistent runtime allowlist; install closed and zero business/catalog delta',async()=>{
    const hashes=JSON.parse(await readFile(new URL('hashes.json',root),'utf8'));for(const [f,h]of Object.entries(hashes))assert.equal(sha(await readFile(new URL(f,root))),h,f);for(const [f,b]of Object.entries(pack))assert.equal(await readFile(new URL(f,root),'utf8'),b,f);
-   for(const file of ['apps/web/url-result-config.mjs','prototype/owner-workspace/url-result-config.mjs'])assert.equal(sha(await readFile(file)),'fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b');
+   // SYSTEMIC_FIX: historical trial hashes belong to their fixtures, not a later deployment.
+   // Runtime accepts only a complete frozen persistent state, with identical mirrors.
+   const candidates=[];
+   for(const [mode,hash]of Object.entries({disabled:'8b25cfa17adaf27a10b635fbf3537f0ad19deb36c10bb4263f1733da83ee91e1',enabled:'12cbb6fe7b7debabd67b199f4d404161e0c714c86987496bc1ead14cc2a410ca'})){
+    const url=new URL(`preview-${mode}-config.mjs`,root),source=await readFile(url,'utf8'),config=await import(url);
+    assert.equal(sha(source),hash);assert.deepEqual({...config},{urlResultSchemaEnabled:true,urlSaveEnabled:false,urlSaveTrial:null,urlReviewSchemaEnabled:true,urlReviewEnabled:mode==='enabled',urlReviewTrial:null});candidates.push({source,config});
+   }
+   const exact=(source,mirror)=>{assert.equal(mirror,source,'runtime mirror bytes');const match=candidates.find(c=>c.source===source);assert.ok(match,'runtime must equal one complete frozen persistent state');return match.config;};
+   const source=await readFile(new URL('../../../../apps/web/url-result-config.mjs',root),'utf8'),mirror=await readFile(new URL('../../../../prototype/owner-workspace/url-result-config.mjs',root),'utf8');
+   assert.deepEqual(await import('../../../../apps/web/url-result-config.mjs'),exact(source,mirror));
+   for(const candidate of candidates){
+    assert.equal(exact(candidate.source,candidate.source),candidate.config);
+    for(const altered of [candidate.source+'\n',candidate.source.replace('urlSaveEnabled=false','urlSaveEnabled=true'),candidate.source.replace('urlReviewSchemaEnabled=true','urlReviewSchemaEnabled=false'),candidate.source.replace('urlReviewTrial=null','urlReviewTrial={}'),candidate.source.replace('urlSaveTrial=null','urlSaveTrial={}')])assert.throws(()=>exact(altered,altered));
+   }
+   assert.throws(()=>exact(candidates[0].source,candidates[1].source));
+   const historical=await readFile(new URL('../../url_result/revision-bound/owner-candidate-20261004T060000Z/preview-closed-config.mjs',root),'utf8');assert.equal(sha(historical),'fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b');assert.throws(()=>exact(historical,historical));
    await db.exec(pack['preflight.sql']);await db.exec(pack['install-closed.sql']);await db.exec(pack['postflight-closed.sql']);assert.deepEqual(await snapshot(),before);await assert.rejects(db.exec(pack['install-closed.sql']),/already installed/);
    await auth();await assert.rejects(review(),e=>e.code==='42501');
   });

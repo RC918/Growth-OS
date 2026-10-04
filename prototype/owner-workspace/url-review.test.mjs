@@ -27,8 +27,8 @@ async function fixture({role='owner',enabled=true,values=new Map(),actor=ids.own
  }});await api.completeMagicLink(fragment);return {api,values,storage,marker,calls,startedPromise,release:()=>release(),setReview:r=>stored=r};
 }
 const posts=f=>f.calls.filter(c=>c.options.method==='POST');
-test('runtime exact closed bytes; absent/false Review gate cannot read or POST',async()=>{
- for(const file of ['apps/web/url-result-config.mjs','prototype/owner-workspace/url-result-config.mjs'])assert.equal(createHash('sha256').update(await readFile(file)).digest('hex'),'fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b');
+test('historical closed fixture retains exact bytes; absent schema/false Review gate cannot read or POST',async()=>{
+ assert.equal(createHash('sha256').update(await readFile(new URL('../../supabase/drafts/url_result/revision-bound/owner-candidate-20261004T060000Z/preview-closed-config.mjs',import.meta.url))).digest('hex'),'fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b');
  const f=await fixture({enabled:false}),before=f.calls.length;assert.equal(f.api.urlReviewAvailable(),false);await assert.rejects(f.api.readUrlReview(row),/尚未開放/);await assert.rejects(f.api.confirmUrlReview(row,checks,{isCurrent:()=>true}),/尚未開放/);assert.equal(f.calls.length,before);
 });
 test('viewer/editor, missing current callback and incomplete checks never dispatch',async()=>{
