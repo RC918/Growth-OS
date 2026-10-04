@@ -4,6 +4,18 @@
 
 ## 當前授權與基準
 
+**2026-10-04 14:34 UTC 安全收尾：** Reviewer `01a10755` APPROVE safe-closure，父已通知 Owner。persistent Review 已完成批准的 authority revoke／closed install／enable，首次真 UI 五項勾選遭工具安全拒絕，全部維持 false，1 次人工登入、0 Review POST、0 review／audit 新增；隨後已完成批准的 closed config＋tracked disable。Save／Review 全 closed，DB history 27，無待 cleanup。兩表四寫權的必要安全修正保留；完整 M3／live Review **未完成**。
+
+已驗 runtime HEAD `e1a008c48734c04f6592d19673747a012b7f3c36`，[CI 37208971001](https://github.com/RC918/Growth-OS/actions/runs/37208971001) success（57 steps、無跳過），[Preview wGZQCtPZiLE6bCYAmDoW21HbS6Fe](https://vercel.com/morning-ai/growth-os-preview/wGZQCtPZiLE6bCYAmDoW21HbS6Fe) success。兩份 config 為 frozen persistent disabled SHA `8b25cfa17adaf27a10b635fbf3537f0ad19deb36c10bb4263f1733da83ee91e1`。20 表原資料投影、原 23 history 全 rows、allowlist 外 catalog 與 PG role memberships 均保留；完整 migration/hash／來源／批准時序見[安全收尾紀錄](docs/Persistent_Review_安全收尾_2026-10-04.md)。
+
+真正 blocker 是工具對 Review 勾選的受限執行。Reviewer `01a10748` 確認 synthetic 本版主張與來源吻合，但未解除 execution 拒絕；不是新產品 P2，不能改 unknown 造事實、換 route 重試或 reopen。後續須先合規解除受限執行，再取得新的 restore／操作批准並重核部署、schema、ACL；本輪不再建立準備包或診斷，不要求日常 Owner 2FA。日常 synthetic regression 繼續沿用既有入口。
+
+CoreMilestoneProgress：本輪 hosted 安裝與兩表權限修正已落地並完成安全關閉，沒有新增 live Review 成功閉環；既有 Save／跨登入讀回及 offline Review 證據保留。本次 docs-only 是同一 Core 的必要閉環歸檔，不另計產品能力、不另開 maintenance；完成後停止，交既有 Reviewer。100cap、Publish／Measure 與既有 P3 debt 不擴張。
+
+## 2026-10-04 早期候選與離線階段（歷史，已由上節取代）
+
+以下「未批准／未安裝／待啟用」、旧 config hash 與 next step 僅保留當時狀態，不是目前授權或後續指令。
+
 **同一P2修包追加Reviewer `01a10626`明確範圍：** 父核`organization_members`同audit raw ACL、唯一authenticated SELECT members_read_workspace且無writepolicy；signup未見自動membership不消除TRUNCATE風險。現以共同guard與單次tracked `authority-revoke.sql`精確處理audit_events＋organization_members兩表，PUBLIC/anon/authenticated四寫權撤除、SELECT/RLS／管理者維護/private查詢／service_role保留，不新增writer、不改signup、不掃描更多表。合併pre/post、preservation allowlist與envelope，仍3 tracked操作而非逐表加窗。audit-only中間HEAD `4d0fafcce0c5701ae1a20a21712afffa91022ceb`與SQL原bytes保留為superseded歷史，只有合併最終HEAD交審。父報告其餘Auth證據無額外blocker；所有hosted撤權仍未批准／未執行。
 
 **本修包最初audit P2證據（現已合併如上）：** 基準`c4ae4ec34df52a1271a059db0301adc905b54a1f`／CI `37187566457` success。父08:48有效ACL、08:51 raw ACL確認audit_events對anon/authenticated直接授予INSERT/UPDATE/DELETE/TRUNCATE（含postgres/service_role的完整原ACL見[候選](supabase/drafts/url_review/persistent/README.md)），唯一RLS policy只有Owner SELECT；TRUNCATE不受RLS。Reviewer `01a1061a`判定啟用前必要P2 blocker，沒有利用／資料受損證據，不稱P1事故。
