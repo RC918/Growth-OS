@@ -1,5 +1,7 @@
 # 已保存成果續編與取消恢復｜離線驗收
 
+現行更新（2026-10-04）：[bounded-v2 真續編驗收](Bounded_V2_續編驗收_2026-10-04.md)已最終APPROVE，取代下文歷史「v2 live未驗收／待授權」狀態；unknown僅既有offline範圍，本輪沒有live故障注入。遠端envelope已收尾、Save/ACL closed，下一Core為確切版本URL專用Review；下文保留各offline切片當時證據。
+
 沿用 v2 M3 及父接受的 `7563bd2e80fdfb98a15fc16d866f0d93237ce3d3`，本切片把「只能唯讀展開已存 URL 成果」接到「Owner 從最新已存 draft 續編，在本頁重新確認或取消返回」。基準 bounded fixed case 的 [live 證據與授權收尾](Bounded_M3_Fixed_Case_驗收_2026-10-03.md)不重做、不擴大；本切片尚待新 HEAD CI／Reviewer 接受。
 
 ## 行為與限制

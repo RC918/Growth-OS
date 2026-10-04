@@ -1,14 +1,14 @@
 # Growth OS｜專案進度
 
-更新：2026-10-03（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
+更新：2026-10-04（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
 
 ## 當前授權與基準
 
-已驗產品基準為 `75e92e5562831258d9d0c6a84c0fd55c0745384d`，branch `feat/passwordless-workspace`／PR #19。父提供 CI `37147223203` success、Preview `21UoWpB2Lw8qG9AVg25GhNN2t2AF` success；Reviewer `01a1033d-5d00-757c-9736-76c260242193` 最終 APPROVE。**bounded M3 fixed case 已成立**：1 次 Save、3 次真 Owner login、跨登入精確讀回、正向 1 row／跨 tenant 成功 0 rows，以及 cleanup／原資料保留；詳見 [固定案例驗收記錄](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md)。完整產品 M3、完整角色矩陣、Publish／Measure 仍未完成。
+已驗產品基準為 `00446427d1a0e6c9ffa41d035d0704788c9eb481`，branch `feat/passwordless-workspace`／PR #19。父確認 CI `37179033070` success、Preview `FpxCKX9wyxY9doZmt7Y2Dinta1Xh` success；Reviewer `01a1055b-54f8-7751-9ce9-958aa9eee84b` 最終 APPROVE。**bounded-v2 續編保存 → cleanup/closed → 真 logout/reload/login2 → 精確 v2/v1 全 payload 讀回子閉環成立**；詳見 [2026-10-04 驗收](docs/Bounded_V2_續編驗收_2026-10-04.md)。前次 bounded v1／固定 tenant [歷史驗收](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md)保留，不重做。
 
-這輪遠端 fixed-case envelope 已收尾；不得再 Save、reopen、新 remote mutation 或 login。migration history 總數 21，兩個 Save entry 的 ACL 已全 closed；runtime config 維持 schema=true/save=false、原固定 trial 與 19:30 UTC 技術截止，沒有延展 lease。原 manifest 的 2 次登入計畫已明確修訂為累計 3 次，新增 1 次唯讀診斷 Preview；第三次登入另有 Owner 19:23 明確批准。原候選／歷史限制與拒絕紀錄保留，不作目前可執行授權。
+本輪新 envelope 已收尾：實際1 Save／2 login／2 migrations／2 config transitions，history總數23、原21records逐項hash不變；兩個Save entry有效ACL全closed，無待cleanup grant。兩份runtime config為schema=true/save=false、固定revision scope，closed SHA `fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b`。`2026-10-04T06:00:00.000Z`截止不延展，不再Save/reopen/login或沿用舊批准作新remote。
 
-一般 repo 治理持續有效。父已分配「已保存成果的續編與取消恢復（離線整合）」最小 Core；續編切片 `2db5c0b` 已由 Reviewer／CI 接受；保存意圖切片 `101185d` 亦已接受；完整續編保存／v2 讀回 `e7209e7` 亦已接受；新 session v2／v1 歷史 `ea87cc0` 亦已接受；同 origin/tab 未決續編恢復 `495516b` 已接受；新 bounded v2 的完整 repo 整合已離線驗證（待新 HEAD 審查與新 Owner envelope，尚未授權遠端執行），詳見 [續編驗收](docs/Saved_Result_Review_離線驗收_2026-10-03.md)。僅恢復本頁未保存修改，不開新版本遠端保存，也未開始新的遠端操作。
+一般repo/offline治理持續有效。下一最小Core提案為「已保存URL成果的確切版本Review」，验收條件见[新記錄](docs/Bounded_V2_續編驗收_2026-10-04.md#下一個最小未完成-core已存-url-成果的確切版本-review離線)；本輪僅docs收尾，不开始新工程。完整M3、100cap恢復、完整URL專用Review、Publish／Measure仍未完成；unknown恢復只有既有offline範圍，不宣稱本輪live故障注入。下方按日歷保留歷史過程；過去的待審、history21、舊closed hash與下一步，不取代本節當前狀態。
 
 ## 產品方向
 
@@ -30,7 +30,7 @@ URL → First Useful Result → Review → Publish → Measure。電商／貿易
 
 藍圖 v2.0 已由 Owner 確認（08dbbb7）。目前新增 M1 安全 URL／Source Snapshot／Product Facts 與 M2 第一可用文本預覽最小切片；24 項 scanner/API 回歸及 desktop/mobile E2E PASS，詳見 [驗收紀錄](docs/URL_First_Result_驗收_2026-10-02.md)。新 M1 URL 安全理解、新 M2 可用成果、新 M3 review 接線、新 M4 單平台發布、新 M5 可信效果、新 M6 試點閉環均未全面完成。沒有以舊 M1/M2 同名驗收直接放行新里程碑。
 
-URL-to-source／產品事實與成果預覽已接線；快照 SQLite 為本機／Preview 暫存，跨登入永久保存尚未完成；不再把通用計畫保存／工作卡 UI 擴張當第一優先。具體放行條件與依賴見唯一藍圖，不在本頁另排 M0–M6。
+URL-to-source／產品事實與成果預覽已接線；快照 SQLite 仍為本機／Preview 暫存，100cap生命週期未解；固定成果的v1/v2含來源payload已真保存並跨登入讀回，一般產品來源永久保存尚未全面驗收；不再把通用計畫保存／工作卡 UI 擴張當第一優先。具體放行條件與依賴見唯一藍圖，不在本頁另排 M0–M6。
 
 ## 真正限制
 
@@ -235,3 +235,17 @@ CoreMilestoneProgress：新 bounded v2 的可審核 scope／payload／SQL 離線
 CoreMilestoneProgress：同一v1→單次title edit→精確意圖→一次synthetic POST→unknown原request GET-only→cleanup/closedconfig→logout/reload/login2→exact v2及v1 history 的完整bounded流程已離線成立。1280/390共16案PASS（成功與unknown至多1 Save POST、每案恰2 synthetic OTP requests）；一般續編28案與舊firsttrial4組回歸PASS；API/marker/mirror/候選42tests PASS。固定PG17.6原生6組鎖/截止/並發去重/到期重放/撤權讀回驗證PASS，v1不變；本機缺image時先取得與CI相同公開pinned依賴，容器network=none且無hostports，沒有遠端Supabase操作。
 
 [完整包與操作順序](supabase/drafts/url_result/revision-bound/README.md) 修正為open部署/reload後login1；Save後先SQLcleanup與closedconfig部署，再logout/reload/login2，沒有把頁面記憶體session假設成跨reload持續，也沒有隱含第3次登入。完整open/closed候選config、SQL模板/hash、pre/postflight及離線bind工具已備；cutoff仍null/template，綁定前不能dispatch/remoteexecute。actual runtime config兩份仍是原closed SHA `c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511`；舊frozen包/已部署SQL未動。待新HEAD Reviewer/CI後父一次提交Owner新envelope，本輪不remote/login/livePOST，M3真v2驗收尚未成立。
+
+
+## 2026-10-04 bounded-v2 驗收收尾與 debt
+
+CoreMilestoneProgress：最近24h已從offline續編推進到一個真signed Owner的v1→v2保存、closed後新登入精確讀回兩版，原v1全row／來源保留；不是以commit/test數代替進度。本次docs只歸檔父與Reviewer證據，不另計一項產品能力。Save `05:06:20.121475Z` → v2 `5802e838-8a06-46c6-934a-0a8c38ba1daa`；`05:19Z`兩版全payload讀回。增量0parent/1version/1audit，排除精確新兩row後24投影count/hash一致；metadata/RLS/ACL不變、46functions僅批准privatebody變動。完整身份、hash、兩次登入與migration時序見[驗收記錄](docs/Bounded_V2_續編驗收_2026-10-04.md)。
+
+| 項目 | 分類／目前狀態 | 再處理條件 |
+|---|---|---|
+| historical/runtime fixture耦合CI failures | Blocking已解除；`ccfc81b`／`ba430665` test-only RCA/SYSTEMIC_FIX，最終closed CI全通過 | 新harness須沿用explicit synthetic config；不列未解blocker、不另開維護工程 |
+| URL專用確切版本Review | 下一個Core；page-only確認／draft保存不等於權威版確認，現行URL card仍待專用審核 | 按新記錄的一條完整offline流程與四項驗收條件實作；不重做bounded Save |
+| 100筆SQLite來源快照滿額恢復 | Deferred已知限制；滿額仍拒絕新snapshot，匯出不釋放容量；既有成果保留已驗 | 當後續來源流程需要第101筆且有明確儲存生命週期scope時另處理；不自行刪資料／換架構，本次v2保存未解此限制 |
+| unknown跨destroyed tab/context／跨設備，及live故障注入 | Deferred範圍界線；同origin/tab恢復已有offline證據，本輪無live故障注入 | 真實使用需求與新的核定範圍出現才重看，不擴store/retry系統 |
+
+P3/P4不阻塞已驗收子閉環，不搜尋其他edge cases；完整live角色矩陣、真客戶品質、Publish／Measure保留為各自主線驗收，不能由本輪PASS推定完成。
