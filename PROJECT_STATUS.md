@@ -4,7 +4,11 @@
 
 ## 當前授權與基準
 
-已驗產品基準為 `00446427d1a0e6c9ffa41d035d0704788c9eb481`，branch `feat/passwordless-workspace`／PR #19。父確認 CI `37179033070` success、Preview `FpxCKX9wyxY9doZmt7Y2Dinta1Xh` success；Reviewer `01a1055b-54f8-7751-9ce9-958aa9eee84b` 最終 APPROVE。**bounded-v2 續編保存 → cleanup/closed → 真 logout/reload/login2 → 精確 v2/v1 全 payload 讀回子閉環成立**；詳見 [2026-10-04 驗收](docs/Bounded_V2_續編驗收_2026-10-04.md)。前次 bounded v1／固定 tenant [歷史驗收](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md)保留，不重做。
+**現行方向（Owner 2026-10-04 06:27 UTC，Reviewer `01a1059a-5089-7374-94f0-c261041cb6ec` APPROVE）：日常 regression 不再需要 Owner 在場。** 正確repo基準 `5616220aa865d6b36073f22ec732246a88f72170`，同HEAD CI `37182179082` success。已新增[單一全自動 synthetic session＋隔離SQL驗收入口](docs/Unattended_Auth_Session_Regression_2026-10-04.md)，只改test harness／CI／證據；產品Auth、runtimeclosed與frozen原bytes不變。Owner Save→Logout→全新context/session→exact Readback→viewer/foreign RLS與permission在1280/390完成；獨立負測failclosed、部署fixture排除，以及既有PG17六項完整重用。證據分列synthetic session與SQL权限，真Auth engine明列未測；signOut僅清頁面記憶體，不宣稱server token撤銷。
+
+bounded Review候選保留為離線資產，**等待Owner時段已撤下，不是日常regression前置条件**。真人登入只保留Auth/callback/magic-link/OTP修改、RC、重大milestone終驗、平台強制真人challenge四類；Owner只登入／2FA，其餘由Dot/Codex依當次授權操作。CoreMilestoneProgress=1（無Owner在場的自動驗收入口），maintenance連續數=0。新HEAD以同HEAD CI及父Reviewer核對為準；沒有啟用任何remote批准，P3 marker文案debt不處理。
+
+歷史真人產品驗收基準為 `00446427d1a0e6c9ffa41d035d0704788c9eb481`，branch `feat/passwordless-workspace`／PR #19。父確認 CI `37179033070` success、Preview `FpxCKX9wyxY9doZmt7Y2Dinta1Xh` success；Reviewer `01a1055b-54f8-7751-9ce9-958aa9eee84b` 最終 APPROVE。**bounded-v2 續編保存 → cleanup/closed → 真 logout/reload/login2 → 精確 v2/v1 全 payload 讀回子閉環成立**；詳見 [2026-10-04 驗收](docs/Bounded_V2_續編驗收_2026-10-04.md)。前次 bounded v1／固定 tenant [歷史驗收](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md)保留，不重做。
 
 本輪新 envelope 已收尾：實際1 Save／2 login／2 migrations／2 config transitions，history總數23、原21records逐項hash不變；兩個Save entry有效ACL全closed，無待cleanup grant。兩份runtime config為schema=true/save=false、固定revision scope，closed SHA `fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b`。`2026-10-04T06:00:00.000Z`截止不延展，不再Save/reopen/login或沿用舊批准作新remote。
 
@@ -16,7 +20,7 @@
 
 正確基準 `2444bd17000e2512f7674367d163e1dd22ed887a`；父確認 Core `15a3706` Reviewer `01a10573` APPROVE_WITH_DEFERRED_DEBT、CI順序修復 Reviewer `01a10575` APPROVE。Preview `DexsE872VFnbb6zDUY5xDLg3SpRa` success；父提供的 CI `37180934357` 尚為 inprogress，未宣稱success。依後續明確Core授權，現已備妥[既有v2的完整bounded Review候選包](supabase/drafts/url_review/bound/README.md)：cutoff=null，固定新request `1f3f43cb-a64c-4739-a4a7-772d5b2cb781`，2 tracked migrations／2 config／2 login／最多1 Review POST與1review+1audit，0Save／parent／version。包含最小schema/RPC/DCL、strict bound open/closed templates、manifest/hash/bind、pre/postflight與DDL/DCL authoritative reconciliation、cleanup及unknown GET-only。
 
-CoreMilestoneProgress=1（候選完整組裝離線成立），maintenance連續數=0。5 SQL子檢查、4 bounded API contracts、5 nativePG17及1280/390各11 UI情境PASS，generic Review受影響回歸PASS；實際兩份runtime仍原Save/Review closed bytes，九檔v2 freeze不變，無任何remote操作。P3 marker文案debt仍延期。新HEAD CI／Preview／Reviewer待父核對；下一必要Core是完成候選review及新Owner完整批准後的一次bounded live Review驗收。本次不綁真cutoff、不寄信、不開窗、不沿用舊06:00 envelope；完整M3／Publish／Measure仍未完成。
+CoreMilestoneProgress=1（候選完整組裝離線成立），maintenance連續數=0。5 SQL子檢查、4 bounded API contracts、5 nativePG17及1280/390各11 UI情境PASS，generic Review受影響回歸PASS；實際兩份runtime仍原Save/Review closed bytes，九檔v2 freeze不變，無任何remote操作。P3 marker文案debt仍延期。新HEAD CI／Preview／Reviewer待父核對；該候選的live時段等待已依Owner新方向撤下；後續若另指定live驗收，仍須完整新批准。本次不綁真cutoff、不寄信、不開窗、不沿用舊06:00 envelope；完整M3／Publish／Measure仍未完成。
 
 ## 產品方向
 

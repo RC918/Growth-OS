@@ -80,9 +80,6 @@ jobs:
       - name: Undeployed first-result SQL on independent PG17 backends (no network)
         timeout-minutes: 3
         run: node supabase/drafts/first_result_save/native.mjs
-      - name: URL pending result independent PG17 backends (no network)
-        timeout-minutes: 3
-        run: node supabase/drafts/url_result/native.mjs
       - name: New bounded v2 candidate on existing closed schema (offline only)
         run: node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs prototype/owner-workspace/revision-bound.test.mjs
       - name: Revision-bound v2 PG17 locks, expiry, replay and cleanup
@@ -101,6 +98,9 @@ jobs:
           node supabase/tests/goal_lock_probe/test_acl_operator.mjs
       - name: Install Chromium for UI acceptance
         run: npx playwright install --with-deps chromium
+      - name: Unattended synthetic session and authenticated SQL acceptance (no Owner login)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791
       - name: Baseline desktop and mobile UI acceptance
         run: node prototype/csv-import/baseline-ui.e2e.mjs
       - name: Typed draft readonly workspace acceptance (synthetic transport only)
