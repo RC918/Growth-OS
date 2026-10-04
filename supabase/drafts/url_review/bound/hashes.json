@@ -1,0 +1,12 @@
+{
+  "manifest.json": "a05988242e83fdd756d28e60be4af820bfc0f0dd64d33ebfc383170ae72baee9",
+  "opening.sql.template": "19e9de2d4061bfbfecd8d28c102d8977223a56fdf03ac4e6692a9cfb982583e5",
+  "cleanup.sql": "97b1cfbcbcb66e1951b5afce9f7d1023ddea45f9e95eed4c44d7dfb4e47aced0",
+  "preflight.sql": "96e7f1f1bbf78e9dcdcb4fb6ad1d483a6f46ca16dfa3c538d06b7c287df7a2e4",
+  "postflight.sql": "fc74f244cd6e30786c3d7bb745a81e120835139869f7847c4b697aab885558cc",
+  "readback.sql": "327ee41579a7af3a5f37df5cea62990f33dd130aecc7cf8ccbd8ec535045e0a9",
+  "state.sql": "2b05cabdb6267974eddf89070e570be00a72720ac88ec9959d909b7e632429c1",
+  "preservation.sql": "4d1b5d99adf2d62ef3cb5c3aaabf903029e5eaac21c326e9e0e9fcc56aed050a",
+  "preview-open-config.mjs": "a6f77c651de2e1ab2d747bfdb433541cf1680f6cd86c777c52fc24d38f29cf59",
+  "preview-closed-config.mjs": "6241bff4dc033a92712c839787adef7552541b6e7078dca5e865d289b2534c9c"
+}

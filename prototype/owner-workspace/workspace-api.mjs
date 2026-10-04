@@ -16,7 +16,7 @@ export function contentVersionKind(version) {
 const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
 
 // Isolated Staging client. An access token exists only in this page's memory.
-export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker(), urlReviewEnabled = false, reviewMarker = createRevisionMarker(()=>globalThis.sessionStorage,'growth-os:url-review-attempt:v1') }) {
+export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fetch, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker(), urlReviewEnabled = false, urlReviewSchemaEnabled = urlReviewEnabled, urlReviewTrial = null, reviewMarker = createRevisionMarker(()=>globalThis.sessionStorage,'growth-os:url-review-attempt:v1') }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
@@ -26,6 +26,17 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
   const bound = urlSaveTrial ? Object.freeze(copyJSON(urlSaveTrial)) : null;
   const revisionBound=bound?.kind==='revision';
   const revisionPermit=Symbol('bound revision dispatch');
+  const hasReviewBound=urlReviewTrial!==null,reviewBound=hasReviewBound?freeze(copyJSON(urlReviewTrial)):null;
+  const reviewChecks={title:true,meta_description:true,description:true,source:true,blocking_facts_clear:true};
+  const reviewShape=()=>reviewBound?.kind==='exact_version_review'&&reviewBound.schema_version===1&&reviewBound.project_ref==='vhzryhibmpvglzcmfnaa'&&reviewBound.version_number===2&&typeof reviewBound.enabled==='boolean'&&['actor_id','organization_id','opportunity_id','version_id','request_id','save_request_id'].every(k=>uuid(reviewBound[k]))&&['source_digest','content_digest','intent_digest'].every(k=>/^sha256:[a-f0-9]{64}$/.test(reviewBound[k]))&&/^pg-jsonb-sha256:[a-f0-9]{64}$/.test(reviewBound.version_digest)&&/^[a-f0-9]{64}$/.test(reviewBound.payload_canonical_sha256)&&canonical(reviewBound.checks)===canonical(reviewChecks)&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(reviewBound.expires_at)&&Number.isFinite(Date.parse(reviewBound.expires_at))&&new Date(reviewBound.expires_at).toISOString()===reviewBound.expires_at;
+  const reviewIdentity=()=>reviewShape()&&origin==='https://'+reviewBound.project_ref+'.supabase.co'&&redirectOrigin+'/workspace.html'===reviewBound.workspace_url&&actorId===reviewBound.actor_id&&membership?.organization_id===reviewBound.organization_id&&membership?.role==='owner';
+  const reviewVersion=v=>v?.id===reviewBound.version_id&&v.opportunity_id===reviewBound.opportunity_id&&v.version_number===2&&v.first_result_expected_version===1&&v.first_result_request_id===reviewBound.save_request_id&&v.first_result_request_digest===reviewBound.version_digest&&v.status==='draft';
+  const reviewDispatch=v=>urlResultSchemaEnabled===true&&urlReviewSchemaEnabled===true&&(hasReviewBound?reviewIdentity()&&reviewBound.enabled&&Date.now()<Date.parse(reviewBound.expires_at)&&reviewVersion(v):urlReviewEnabled===true);
+  async function checkBoundReview(row){
+    if(!hasReviewBound)return;
+    if(!reviewIdentity()||!reviewVersion(row)||row.organization_id!==reviewBound.organization_id||row.first_result_payload?.snapshot?.content_fingerprint!==reviewBound.source_digest||row.first_result_payload?.review?.content_digest!==reviewBound.content_digest||await contentDigest(canonical(row.first_result_payload))!=='sha256:'+reviewBound.payload_canonical_sha256)throw Error('固定 Review 身份、版本或內容不符');
+  }
+
   const boundAvailable = () => !bound || (((bound.kind===undefined&&bound.expected_version===0)||(revisionBound&&bound.expected_version===1&&uuid(bound.base_version_id))) && actorId===bound.actor_id && membership?.organization_id===bound.organization_id && membership?.role==='owner' && bound.workspace_url===redirectOrigin+'/workspace.html' && Date.now()<Date.parse(bound.expires_at));
   // Fixed, read-only M3 acceptance controls; independent of the expired Save lease.
   const tenantOwner='e85f1a90-3565-4fc1-a7e0-3b7d08830d0e';
@@ -328,20 +339,22 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(await contentDigest(canonical(payload))!==op.payload_digest||payload.review.content_digest!==op.content_digest||payload.snapshot.content_fingerprint!==op.source_digest||await contentDigest(canonical({binding,request:requestBody}))!==op.intent_digest||row.title!==payload.preview.fields.title.suggested||row.draft_body!==payload.preview.fields.description.suggested)throw new Error('恢復內容或意圖摘要不符');
       current();revisionMarker.remember(op.request_id,row.id,true);return row;
     },
-    urlReviewAvailable() {return urlReviewEnabled&&urlResultSchemaEnabled;},
+    urlReviewAvailable(version=null) {return urlReviewSchemaEnabled===true&&urlResultSchemaEnabled===true&&(!hasReviewBound||reviewShape()&&(!version||reviewVersion(version)));},
+    urlReviewCanConfirm(version) {return reviewDispatch(version);},
     reviewRecovery() {if(!this.urlReviewAvailable())throw Error('URL 專用確認尚未開放');return reviewMarker.read();},
     async confirmUrlReview(version,checks,{isCurrent,onDispatch=()=>{}}={}) {
-      if(!this.urlReviewAvailable())throw Error('URL 專用確認尚未開放');
+      if(!this.urlReviewAvailable()||!reviewDispatch(version))throw Error('URL 專用確認尚未開放或固定範圍失效');
       const org=ownerOnly(),session=membership,actor=actorId,expected=copyJSON(version),facts=copyJSON(checks);
-      const current=()=>{if(membership!==session||actorId!==actor||typeof isCurrent!=='function'||!isCurrent())throw Error('確認工作階段或內容已變更');};
+      const current=()=>{if(membership!==session||actorId!==actor||typeof isCurrent!=='function'||!isCurrent()||!reviewDispatch(expected))throw Error('確認工作階段或內容已變更');};
       current();const previous=reviewMarker.read();if(previous&&(!previous.resolved||previous.base_version_id===expected.id))throw Error('請先讀回原確認；不重送');
       const user=await request('/auth/v1/user');current();if(user?.id!==actor)throw Error('登入身份已變更');
       const members=await select('organization_members','organization_id,role',{user_id:`eq.${actor}`,limit:'2'});current();if(members.length!==1||members[0].organization_id!==org||members[0].role!=='owner')throw Error('Owner 資格已變更');
-      const fresh=await this.readReviewBase(expected);current();if(canonical(fresh)!==canonical(expected))throw Error('確認版本已變更');
+      const fresh=await this.readReviewBase(expected);await checkBoundReview(fresh);current();if(canonical(fresh)!==canonical(expected))throw Error('確認版本已變更');
       const required={title:true,meta_description:true,description:true,source:true,blocking_facts_clear:true};if(canonical(facts)!==canonical(required))throw Error('請完成原文、修改、來源與阻斷事實核對');
       if(await this.readUrlReview(expected,{isCurrent}))throw Error('本版已有確認，請讀回');current();
-      const payload=fresh.first_result_payload,requestId=crypto.randomUUID(),body={p_organization_id:org,p_version_id:fresh.id,p_request_id:requestId,p_source_digest:payload.snapshot.content_fingerprint,p_content_digest:payload.review.content_digest,p_version_digest:fresh.first_result_request_digest,p_checks:facts};
+      const payload=fresh.first_result_payload,requestId=hasReviewBound?reviewBound.request_id:crypto.randomUUID(),body={p_organization_id:org,p_version_id:fresh.id,p_request_id:requestId,p_source_digest:payload.snapshot.content_fingerprint,p_content_digest:payload.review.content_digest,p_version_digest:fresh.first_result_request_digest,p_checks:facts};
       const payloadHash=await contentDigest(canonical(payload)),requestHash=await contentDigest(canonical(body));current();
+      if(hasReviewBound&&requestHash!==reviewBound.intent_digest)throw Error('固定 Review request 摘要不符');
       if(canonical(reviewMarker.read())!==canonical(previous))throw Error('已有確認送出；只讀取原 request');
       reviewMarker.attempt({actor_id:actor,organization_id:org,opportunity_id:fresh.opportunity_id,base_version_id:fresh.id,base_request_digest:fresh.first_result_request_digest,base_payload_digest:payloadHash,request_id:requestId,expected_version:fresh.version_number,source_digest:body.p_source_digest,content_digest:body.p_content_digest,payload_digest:payloadHash,intent_digest:requestHash});
       onDispatch();const id=await request('/rest/v1/rpc/review_url_result',{method:'POST',body});current();if(!uuid(id))throw Error('確認結果未知；只查詢原 request');reviewMarker.remember(requestId,id);return id;
@@ -352,14 +365,16 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const current=()=>{if(membership!==session||!isCurrent())throw Error('確認讀取工作階段已變更');};
       const pending=op?.base_version_id===expected.id?op:null;
       if(pending&&(pending.actor_id!==actorId||pending.organization_id!==org))throw Error('原確認身份或工作區不符');
-      const fresh=await this.readContentVersion(expected);await validateReport(fresh.first_result_payload);current();
+      const fresh=await this.readContentVersion(expected);await validateReport(fresh.first_result_payload);await checkBoundReview(fresh);current();
       const payload=fresh.first_result_payload,hash=await contentDigest(canonical(payload));current();
       if(expected.first_result_payload&&canonical(expected.first_result_payload)!==canonical(payload))throw Error('確認來源或內容已變更');
       if(pending&&(pending.base_request_digest!==fresh.first_result_request_digest||pending.base_payload_digest!==hash||pending.opportunity_id!==fresh.opportunity_id||pending.expected_version!==fresh.version_number))throw Error('原確認基準已變更');
       const filter={organization_id:`eq.${org}`,version_id:`eq.${fresh.id}`,limit:'2'};if(pending)filter.url_review_request_id=`eq.${pending.request_id}`;
+      if(hasReviewBound){if(pending&&pending.request_id!==reviewBound.request_id)throw Error('固定 Review 原 request 不符');filter.url_review_request_id=`eq.${reviewBound.request_id}`;}
       const rows=await select('content_reviews','id,organization_id,version_id,actor_user_id,decision,reason,reviewed_at,url_review_request_id,url_review_source_digest,url_review_content_digest,url_review_version_digest,url_review_checks',filter);current();
       if(!rows.length)return null;const row=rows[0],checks={title:true,meta_description:true,description:true,source:true,blocking_facts_clear:true};
       if(rows.length!==1||!uuid(row.id)||!uuid(row.actor_user_id)||!uuid(row.url_review_request_id)||row.organization_id!==org||row.version_id!==fresh.id||row.decision!=='approved'||row.url_review_source_digest!==payload.snapshot.content_fingerprint||row.url_review_content_digest!==payload.review.content_digest||row.url_review_version_digest!==fresh.first_result_request_digest||canonical(row.url_review_checks)!==canonical(checks))throw Error('確切版本確認讀回不符');
+      if(hasReviewBound&&(row.actor_user_id!==reviewBound.actor_id||row.url_review_request_id!==reviewBound.request_id))throw Error('固定 Review request 或身份讀回不符');
       if(pending){
         const body={p_organization_id:org,p_version_id:fresh.id,p_request_id:pending.request_id,p_source_digest:row.url_review_source_digest,p_content_digest:row.url_review_content_digest,p_version_digest:row.url_review_version_digest,p_checks:checks};
         if(row.url_review_request_id!==pending.request_id||row.actor_user_id!==pending.actor_id||pending.known_id&&row.id!==pending.known_id||await contentDigest(canonical(body))!==pending.intent_digest)throw Error('原確認 request 或 UUID 不符');current();

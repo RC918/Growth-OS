@@ -10,7 +10,13 @@
 
 後續 docs 基準 `04e93edd2bc3a5c42e8b590877cfeb1be170429e` 已由父確認 Reviewer `01a10562` 通過、CI `37179905098` success、Preview `8cqoPREJ45k2n2JsVZZWchgXEvZR` success。依新明確 repo/offline Core 授權，已完成「已保存 URL 成果的確切版本 Review」離線垂直切片：Owner 核對原文／修改／來源／必要事實 → 沿用 content_reviews + audit 原子確認 → 新合成 session 精確讀回；新版不繼承，舊版僅歷史／未發布。詳見[實作、驗證與 remote 缺口](supabase/drafts/url_review/README.md)。CoreMilestoneProgress=1（離線能力）；maintenance連續數=0。
 
-新增 5 API contracts、7 SQL 子檢查、5 native PG17 並發情境、1280/390 各12 UI 情境 PASS，受影響回歸 PASS；候選未安裝，runtime Save／Review 均維持關閉，frozen artifact／closed bytes 不變。新 HEAD 的 CI／Preview／Reviewer 待父獨立核對，不以本機 PASS 代替。下一必要 Core 是另案有界 live exact-version Review 驗收準備及取得新批准後驗收；本次不啟動。完整 M3、100cap 恢復、remote URL 專用 Review、Publish／Measure仍未完成，不宣稱 live 故障注入。P3 debt：共用 marker 拒絕訊息沿用「續編／保存」字樣，待统一文案時處理，不阻塞本次。下方保留歷史過程，舊基準／批准不取代本節。
+新增 5 API contracts、7 SQL 子檢查、5 native PG17 並發情境、1280/390 各12 UI 情境 PASS，受影響回歸 PASS；候選未安裝，runtime Save／Review 均維持關閉，frozen artifact／closed bytes 不變。本離線Core與CI順序修復後續已由父Reviewer核准（詳下節）；其最新CI狀態與下一候選準備以該節為準，不以本機 PASS 代替雲端驗收。完整 M3、100cap 恢復、remote URL 專用 Review、Publish／Measure仍未完成，不宣稱 live 故障注入。P3 debt：共用 marker 拒絕訊息沿用「續編／保存」字樣，待统一文案時處理，不阻塞本次。下方保留歷史過程，舊基準／批准不取代本節。
+
+## 2026-10-04 bounded Review 候選準備（repo/offline）
+
+正確基準 `2444bd17000e2512f7674367d163e1dd22ed887a`；父確認 Core `15a3706` Reviewer `01a10573` APPROVE_WITH_DEFERRED_DEBT、CI順序修復 Reviewer `01a10575` APPROVE。Preview `DexsE872VFnbb6zDUY5xDLg3SpRa` success；父提供的 CI `37180934357` 尚為 inprogress，未宣稱success。依後續明確Core授權，現已備妥[既有v2的完整bounded Review候選包](supabase/drafts/url_review/bound/README.md)：cutoff=null，固定新request `1f3f43cb-a64c-4739-a4a7-772d5b2cb781`，2 tracked migrations／2 config／2 login／最多1 Review POST與1review+1audit，0Save／parent／version。包含最小schema/RPC/DCL、strict bound open/closed templates、manifest/hash/bind、pre/postflight與DDL/DCL authoritative reconciliation、cleanup及unknown GET-only。
+
+CoreMilestoneProgress=1（候選完整組裝離線成立），maintenance連續數=0。5 SQL子檢查、4 bounded API contracts、5 nativePG17及1280/390各11 UI情境PASS，generic Review受影響回歸PASS；實際兩份runtime仍原Save/Review closed bytes，九檔v2 freeze不變，無任何remote操作。P3 marker文案debt仍延期。新HEAD CI／Preview／Reviewer待父核對；下一必要Core是完成候選review及新Owner完整批准後的一次bounded live Review驗收。本次不綁真cutoff、不寄信、不開窗、不沿用舊06:00 envelope；完整M3／Publish／Measure仍未完成。
 
 ## 產品方向
 

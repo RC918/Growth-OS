@@ -59,6 +59,8 @@ jobs:
         run: node --test supabase/drafts/url_result/bound/bound.test.mjs prototype/owner-workspace/url-result-bound.test.mjs
       - name: URL exact-version Review contracts and isolated SQL (runtime closed)
         run: node --test prototype/owner-workspace/url-review.test.mjs supabase/drafts/url_review/offline.test.mjs
+      - name: Bounded exact-v2 Review candidate and API contracts (offline only)
+        run: node --test supabase/drafts/url_review/bound/candidate.test.mjs prototype/owner-workspace/url-review-bound.test.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
         run: |
           node --check supabase/functions/growth-model-trial/index.js
@@ -72,6 +74,9 @@ jobs:
       - name: URL exact-version Review PG17 concurrency (no network)
         timeout-minutes: 3
         run: node supabase/drafts/url_review/native.mjs
+      - name: Bounded exact-v2 Review PG17 deadline and concurrency
+        timeout-minutes: 3
+        run: node supabase/drafts/url_review/bound/native.mjs
       - name: Undeployed first-result SQL on independent PG17 backends (no network)
         timeout-minutes: 3
         run: node supabase/drafts/first_result_save/native.mjs
@@ -113,6 +118,9 @@ jobs:
       - name: URL exact-version Review desktop/mobile (synthetic transport and isolated SQL)
         timeout-minutes: 3
         run: node prototype/owner-workspace/url-review.e2e.mjs
+      - name: Bounded exact-v2 Review two-login cleanup and readback (synthetic only)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/url-review-bound.e2e.mjs
       - name: URL Review to pending Save desktop/mobile (synthetic transport and isolated SQL)
         timeout-minutes: 3
         run: |

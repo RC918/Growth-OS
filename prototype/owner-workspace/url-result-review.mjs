@@ -19,7 +19,7 @@ export function urlResultReview({api,version,isCurrent,latest=false}) {
  const clearChecks=()=>{for(const input of checks.values())input.checked=false;};
  function paint(){
   fields.hidden=confirm.hidden=cancel.hidden=!owner||!latest;
-  const locked=busy||editing||attempted||!!review||blocked;
+  const locked=busy||editing||attempted||!!review||blocked||!api.urlReviewCanConfirm(version);
   for(const input of checks.values())input.disabled=locked;
   confirm.disabled=locked||![...checks.values()].every(input=>input.checked);cancel.disabled=!!review||(busy&&!attempted);read.disabled=busy;
   status.textContent=editing?'正在續編；修改尚未保存／未確認／未發布。舊確認僅適用原已保存版本。':feedback;

@@ -1,0 +1,5 @@
+-- Separate tracked cleanup; retain new schema, bounded body and successful review/audit.
+DO $review_close$ BEGIN
+ revoke all on function public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb),private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb) from public,anon,authenticated,service_role;
+ if exists(select 1 from pg_proc p cross join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where p.oid in ('public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb)'::regprocedure,'private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)'::regprocedure) and a.grantee=0 and a.privilege_type='EXECUTE') or exists(select 1 from (values('anon'),('authenticated'),('service_role')) acl_role(name) cross join (values('public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb)'::regprocedure),('private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)'::regprocedure)) f(id) where has_function_privilege(acl_role.name,f.id,'EXECUTE')) then raise exception 'Expected closed effective ACL'; end if;
+END $review_close$;
