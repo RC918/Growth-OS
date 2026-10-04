@@ -7,7 +7,11 @@
 **2026-10-04 15:07／15:11 UTC Owner 更新：** 真人必要事項確認屬 `HUMAN_REQUIRED` checkpoint，只阻擋直接相依的真人確認／實際發布，不代表專案停止；日常 regression 沿用安全隔離 synthetic fixtures／test-only sessions，不依賴 Owner。Reviewer `01a10779` 已裁定本輪 Bolt A synthetic fixture 屬 A：可自動化日常測試，並非 HUMAN_REQUIRED；既有單一入口已覆蓋五 checks／精確讀回／新版失效，不重建 harness。hosted 工具拒絕另列執行限制，不重試／restore。下方 14:34「停止／解除限制後再恢復」僅記錄當輪 remote 操作收尾，不限制已重新批准的獨立 repo/offline 工程。正式治理已併 AGENTS 與 mission／engineering skills。
 
 
-**目前產品 Core：確切成果版本旁的量測準備／資料缺口（repo/offline）。** 基準 `fca586344d27f21f9a58de7fceaee7262c0b93bd`，父確認 Reviewer `01a1079c` APPROVE、CI `37213885365`／Preview `BTJAAtNWeiLTS14jApryTibExp12` success。新增同版本旁唯讀檢視，重用交付出口的身份／版本／payload 驗證與原 baseline snapshot/report；顯示候選頁、未核實發布、頁面基線／後續／效果未知。既有觀測只能手動選作「網站層背景資料，尚未關聯此頁／版本」；同域／路徑聲明不配對、不歸因，明確零／缺日原樣保留。1280／390 驗未確認／新 session／歷史／viewer、無資料及三種背景，檢視前後觀測／audit／versions 不變。詳見[量測準備證據](docs/Measurement_Preparation_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1（使用者能在確切成果旁看懂量測缺口），maintenance 連續數=0；無新增 schema/store/CSV/adapter/OAuth，disabled／frozen／SQL／Auth 不變。
+**目前產品 Core：選定成果旁檢查頁面級資料適用性（repo/offline）。** 基準 `f15c1e3d23ddf598478b504226963de796daf024`，父確認 Reviewer `01a107af` APPROVE、CI `37215248021`／Preview `8KHNidTetA23nuNkWtGsYNmQ5foa` success。在 exact version 旁暫存頁面篩選每日 CSV，填完整頁面／搜尋類型／期間／匯出時間／來源／篩選說明，重用既有 CSV 計算，顯示適用性、覆蓋／缺日／明確零。網站彙總及其他頁面不可作頁基線；URL 吻合僅聲明相容，synthetic／providerasserted 不升格已核實，發布時間及本版成效仍未知。輸入／續編／版本／session／關閉令暫存或晚回應失效。58 項相關契約及 1280／390 valid/invalid CSV、其他頁／site、fresh/history/viewer、零額外寫入通過，詳見[頁面資料證據](docs/Page_Observation_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1、maintenance 連續數=0；disabled／frozen／SQL／Auth 不變，無新 schema/store/adapter/OAuth 或 remote 操作。
+
+下一獨立缺口：兩份同頁／同口徑資料的相容性與期間觀測比較；不可宣稱發布後效果或因果。實際發布與 live 數據來源仍待各自批准，100cap／P3 debt 不擴張；本輪交付後停止。
+
+**前一已接受 Core：確切成果版本旁的量測準備／資料缺口（repo/offline）。** 基準 `fca586344d27f21f9a58de7fceaee7262c0b93bd`，父確認 Reviewer `01a1079c` APPROVE、CI `37213885365`／Preview `BTJAAtNWeiLTS14jApryTibExp12` success。新增同版本旁唯讀檢視，重用交付出口的身份／版本／payload 驗證與原 baseline snapshot/report；顯示候選頁、未核實發布、頁面基線／後續／效果未知。既有觀測只能手動選作「網站層背景資料，尚未關聯此頁／版本」；同域／路徑聲明不配對、不歸因，明確零／缺日原樣保留。1280／390 驗未確認／新 session／歷史／viewer、無資料及三種背景，檢視前後觀測／audit／versions 不變。詳見[量測準備證據](docs/Measurement_Preparation_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1（使用者能在確切成果旁看懂量測缺口），maintenance 連續數=0；無新增 schema/store/CSV/adapter/OAuth，disabled／frozen／SQL／Auth 不變。
 
 下一獨立缺口：頁面級觀測與確切版本／核實發布證據的可檢查關聯契約，可先離線驗證必要欄位及不相容拒絕；目前網站 snapshot 無法提供此關聯，不能自動升格。真發布／live 數據授權仍是相應實際操作依賴，不要求真人 checkbox 才繼續獨立工程；100cap 與 P3 debt 不擴張。
 

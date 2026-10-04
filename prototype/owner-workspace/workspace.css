@@ -62,3 +62,6 @@
 .typed-version { overflow-wrap:anywhere; min-width:0; }
 .typed-loader > summary { cursor:pointer; color:var(--green); font-weight:700; }
 .typed-loader > .typed-read-feedback[role="alert"], .typed-version > .typed-incomplete { color:#a23c2a; }
+
+.page-observation label { display:block; margin-block:10px; }
+.page-observation input, .page-observation select { display:block; width:100%; max-width:100%; box-sizing:border-box; }
