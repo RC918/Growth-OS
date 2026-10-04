@@ -4,6 +4,14 @@
 
 ## 當前授權與基準
 
+**最新接受基準：`c3f9f37372edb0b1a7fdf157d600c48e06b085c6`。** 父確認 Reviewer `01a105b7` APPROVE、同HEAD CI `37183932027` success、Preview `4jwTTT28CKR7Qjicbja3Pt6qrjbys` success，Owner已通知完成。以下較早基準是歷史，不回退。
+
+本slice補齊同一日常入口的 **Save → exact-version Review → logout／全新context與token → 原版本／確認讀回 → 續編v2後舊確認失效、只留v1歷史**；1280/390 PASS，沿用既有產品UI/API與隔離SQL，不另建入口或要求兩次真人regression登入。viewer／foreign對Save與Review均由authenticated SQL驗拒絕，所有public資料／audit零增量；4負測、原URL native6案及相關API/SQL19 tests PASS。詳見[整合證據及M3放行核對](docs/Unattended_Auth_Session_Regression_2026-10-04.md#m3-review-串入同一入口)。CoreMilestoneProgress=1（已保存成果到版確認及恢復的單一自動驗收成立），maintenance連續數=0。新HEAD雲端結果另核，不以本機PASS宣稱CI／Preview。
+
+M3 repo核心路徑已有證據，不再新增無阻塞edgecase。完整產品M3仍缺部署環境URL Review權威schema/RPC/ACL安裝與啟用驗收；舊bounded候選是離線資產，沒有新remote許可。**下一產品Core是讓已保存URL成果在核准產品環境可完成確切版本Review**，需父／Owner先明確選定「既有單次bounded驗收」或「持續產品啟用」的部署策略與對應remote envelope；後者不能沿用單次候選冒充正式生命週期。這是安裝／授權缺口，不是再做日常登入測試的理由。不在本turn操作，也不自行將每slice升級成重大milestone。
+
+100cap已知依賴：`product_api.py`的local/ephemeral SQLite固定100筆，第101筆仍拒絕，export不釋放；既有成果保留已驗，這次Review整合不依賴第101筆。若下一URL來源Core需連續取得／保存新成果，需先決定快照權威保存位置（暫存cache或tenant持久來源）、保留期／配額、何種已持久／被版本引用的資料可淘汰及誰可操作；本slice不刪資料、增cap、改store或安裝remote。M1/M2真產品品質、M4試點平台／權限、M5資料授權仍屬各自主線放行條件，不由這次PASS替代。
+
 **現行方向（Owner 2026-10-04 06:27 UTC，Reviewer `01a1059a-5089-7374-94f0-c261041cb6ec` APPROVE）：日常 regression 不再需要 Owner 在場。** 正確repo基準 `5616220aa865d6b36073f22ec732246a88f72170`，同HEAD CI `37182179082` success。已新增[單一全自動 synthetic session＋隔離SQL驗收入口](docs/Unattended_Auth_Session_Regression_2026-10-04.md)，只改test harness／CI／證據；產品Auth、runtimeclosed與frozen原bytes不變。Owner Save→Logout→全新context/session→exact Readback→viewer/foreign RLS與permission在1280/390完成；獨立負測failclosed、部署fixture排除，以及既有PG17六項完整重用。證據分列synthetic session與SQL权限，真Auth engine明列未測；signOut僅清頁面記憶體，不宣稱server token撤銷。
 
 bounded Review候選保留為離線資產，**等待Owner時段已撤下，不是日常regression前置条件**。真人登入只保留Auth/callback/magic-link/OTP修改、RC、重大milestone終驗、平台強制真人challenge四類；Owner只登入／2FA，其餘由Dot/Codex依當次授權操作。CoreMilestoneProgress=1（無Owner在場的自動驗收入口），maintenance連續數=0。新HEAD以同HEAD CI及父Reviewer核對為準；沒有啟用任何remote批准，P3 marker文案debt不處理。
