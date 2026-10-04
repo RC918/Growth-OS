@@ -1,8 +1,9 @@
+import {urlResultReview} from './url-result-review.mjs';
 import {typedDraft} from './typed-draft.mjs';
 import {savedResultReview,createRevisionRecovery} from './saved-result-review.mjs';
 import {createUrlSavePanel} from './url-result-save.mjs';
 import * as urlConfig from './url-result-config.mjs';
-const {urlSaveEnabled,urlResultSchemaEnabled,urlSaveTrial=null}=urlConfig;
+const {urlSaveEnabled,urlResultSchemaEnabled,urlSaveTrial=null,urlReviewEnabled=false}=urlConfig;
 import { createWorkspaceApi, contentVersionKind } from './workspace-api.mjs';
 import { orderOpportunities } from './opportunity-order.mjs';
 import { createObservationPanel } from './workspace-observations.mjs';
@@ -11,7 +12,7 @@ import { createGoalPanel } from './workspace-goals.mjs';
 const api = createWorkspaceApi({
   origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
   key: 'sb_publishable_B9pMiED8jrCoxuy2kC0HoA_LmzKex9r',
-  redirectOrigin: location.origin, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
+  redirectOrigin: location.origin, urlReviewEnabled, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
 });
 const $ = id => document.getElementById(id);
 let state = null;
@@ -98,9 +99,9 @@ function revealVersion(opportunityId, versionId, text) {
 const isTyped = version => !!version && contentVersionKind(version) !== 'legacy';
 const typedNotice = '待專用審核 · 未發布 · 僅供唯讀；不能使用一般草稿審核、兩欄修訂或執行方案。';
 
-function typedVersion(version, current, history = null, editable = false) {
+function typedVersion(version, current, history = null, editable = false, latest = false) {
   const wrapper = document.createElement('section'); wrapper.className = 'typed-version'; wrapper.dataset.versionId = version.id;
-  const notice = document.createElement('p'); notice.className = 'draft-state'; notice.textContent = typedNotice; wrapper.append(notice);
+  const notice = document.createElement('p'); notice.className = 'draft-state'; notice.textContent = urlReviewEnabled?'已保存成果 · 確認狀態見下方 · 未發布':typedNotice; wrapper.append(notice);
   if (contentVersionKind(version) !== 'typed') {
     const error = document.createElement('p'); error.className = 'typed-incomplete'; error.setAttribute('role', 'alert');
     error.textContent = '版本識別資料不完整或不一致；所有內容操作已阻擋，請重新整理列表。'; wrapper.append(error); return wrapper;
@@ -125,8 +126,10 @@ function typedVersion(version, current, history = null, editable = false) {
     try {
       const row = await api.readContentVersion(version);
       if (!active()) return;
-      body.replaceChildren(typedDraft(row));
-      if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
+      body.replaceChildren(typedDraft(row,{reviewAvailable:urlReviewEnabled&&urlResultSchemaEnabled}));
+      const review=urlReviewEnabled&&urlResultSchemaEnabled?urlResultReview({api,version:row,isCurrent:visible,latest}):null;
+      if(review)body.append(review.root);
+      if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,onEditingChange:review?.setEditing,enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
       loaded = true; feedback.textContent = '';
     } catch (error) {
       if (!active()) return;
@@ -155,13 +158,13 @@ function opportunityCard(item, owner, sources, decisions, versions, reviews, act
   card.className = 'opportunity-card';
   card.dataset.opportunityId = item.id;
   if (item.entry_kind === 'url_result') {
-    const title=document.createElement('h3');title.textContent='URL 成果 · 待專用審核 · 未發布';
+    const title=document.createElement('h3');title.textContent=urlReviewEnabled?'URL 成果 · 各版本確認狀態見下方 · 未發布':'URL 成果 · 待專用審核 · 未發布';
     const source=document.createElement('p');source.textContent=item.source_identity?.final_url || '來源識別缺漏';
     card.append(title,source);
     const cardState=state,cardEpoch=epoch,generation=renderGeneration;
     const current=()=>card.isConnected&&state===cardState&&epoch===cardEpoch&&renderGeneration===generation;
     const ordered=versions.toSorted((a,b)=>b.version_number-a.version_number);
-    for(const version of ordered) card.append(typedVersion(version,current,null,owner && version===ordered[0] && version.status==='draft'));
+    for(const version of ordered) card.append(typedVersion(version,current,null,owner && version===ordered[0] && version.status==='draft',version===ordered[0]));
     return card;
   }
   if (item.entry_kind && item.entry_kind !== 'legacy_opportunity') {card.textContent='項目類型未知；操作已阻擋。';return card;}

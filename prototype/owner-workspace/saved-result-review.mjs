@@ -3,7 +3,7 @@ import {restoreResultReview,reviewFields} from './first-result-review.mjs';
 import {typedDraft} from './typed-draft.mjs';
 import {canonical} from './first-result-payload.mjs';
 const labels={title:'標題',meta_description:'Meta description',description:'產品描述'};
-export function savedResultReview({api,version,isCurrent,enabled=false}){
+export function savedResultReview({api,version,isCurrent,enabled=false,onEditingChange=()=>{}}){
  const root=document.createElement('section');root.className='saved-result-review';
  const start=document.createElement('button');start.type='button';start.textContent='續編此已保存版本（未保存）';start.className='resume-review';
  const status=document.createElement('p');status.className='resume-status';status.setAttribute('role','status');
@@ -13,16 +13,16 @@ export function savedResultReview({api,version,isCurrent,enabled=false}){
  const current=()=>root.isConnected&&isCurrent()&&api.context()===session&&session?.role==='owner';
  const active=operation=>current()&&operation===ticket;
  function clear(){ticket++;review?.invalidate();review=null;pending=false;base=null;editor.replaceChildren();start.hidden=false;start.disabled=false;}
- function cancel(){clear();status.textContent='已取消續編；原已保存版本未變。';}
+ function cancel(){clear();onEditingChange(false);status.textContent='已取消續編；原已保存版本未變。';}
  async function open(){
   if(!current()||pending)return;
-  pending=true;start.disabled=true;const operation=++ticket;status.textContent='正在核對已保存版本…';
+  onEditingChange(true);pending=true;start.disabled=true;const operation=++ticket;status.textContent='正在核對已保存版本…';
   try{
    const unresolved=api.revisionRecovery();if(unresolved&&!unresolved.resolved)throw Error('有未決續編；請先在恢復面板只查詢原 request');
    const row=await api.readReviewBase(version);if(!active(operation))return;
    const next=await restoreResultReview(row.first_result_payload);if(!active(operation)){next.invalidate();return;}
    base=canonical(row);review=next;start.hidden=true;render();
-  }catch(error){if(active(operation))status.textContent=`無法續編：${error.message}`;}
+  }catch(error){if(active(operation)){onEditingChange(false);status.textContent=`無法續編：${error.message}`;}}
   finally{if(active(operation)){pending=false;start.disabled=false;}}
  }
  function render(){

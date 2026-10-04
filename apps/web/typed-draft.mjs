@@ -1,7 +1,7 @@
 const typedColumns = ['first_result_payload', 'first_result_request_id', 'first_result_expected_version', 'first_result_request_digest'];
 const typedNotice = '待專用審核 · 未發布 · 僅供唯讀；不能使用一般草稿審核、兩欄修訂或執行方案。';
 const resultFields = {title: '標題', meta_description: 'Meta description', description: '產品描述'};
-export function typedDraft(version) {
+export function typedDraft(version,{reviewAvailable=false}={}) {
   const panel = document.createElement('section');
   panel.className = 'typed-draft';
   panel.dataset.versionId = version.id;
@@ -14,7 +14,7 @@ export function typedDraft(version) {
     add(box, 'pre', value === undefined ? '資料缺漏' : JSON.stringify(value, null, 2));
     panel.append(box);
   };
-  add(panel, 'p', typedNotice, 'draft-state');
+  add(panel, 'p', reviewAvailable?'已保存成果 · 確認狀態見下方 · 未發布':typedNotice, 'draft-state');
   add(panel, 'p', version.id==='尚未保存' ? '尚未保存的完整成果；請核對後確認保存。' : `內容版本：${version.id} · 第 ${version.version_number} 版`);
   const report = version.first_result_payload;
   const snapshot = report?.snapshot, preview = report?.preview, review = report?.review;

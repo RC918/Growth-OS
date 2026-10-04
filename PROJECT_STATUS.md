@@ -8,7 +8,9 @@
 
 本輪新 envelope 已收尾：實際1 Save／2 login／2 migrations／2 config transitions，history總數23、原21records逐項hash不變；兩個Save entry有效ACL全closed，無待cleanup grant。兩份runtime config為schema=true/save=false、固定revision scope，closed SHA `fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b`。`2026-10-04T06:00:00.000Z`截止不延展，不再Save/reopen/login或沿用舊批准作新remote。
 
-一般repo/offline治理持續有效。下一最小Core提案為「已保存URL成果的確切版本Review」，验收條件见[新記錄](docs/Bounded_V2_續編驗收_2026-10-04.md#下一個最小未完成-core已存-url-成果的確切版本-review離線)；本輪僅docs收尾，不开始新工程。完整M3、100cap恢復、完整URL專用Review、Publish／Measure仍未完成；unknown恢復只有既有offline範圍，不宣稱本輪live故障注入。下方按日歷保留歷史過程；過去的待審、history21、舊closed hash與下一步，不取代本節當前狀態。
+後續 docs 基準 `04e93edd2bc3a5c42e8b590877cfeb1be170429e` 已由父確認 Reviewer `01a10562` 通過、CI `37179905098` success、Preview `8cqoPREJ45k2n2JsVZZWchgXEvZR` success。依新明確 repo/offline Core 授權，已完成「已保存 URL 成果的確切版本 Review」離線垂直切片：Owner 核對原文／修改／來源／必要事實 → 沿用 content_reviews + audit 原子確認 → 新合成 session 精確讀回；新版不繼承，舊版僅歷史／未發布。詳見[實作、驗證與 remote 缺口](supabase/drafts/url_review/README.md)。CoreMilestoneProgress=1（離線能力）；maintenance連續數=0。
+
+新增 5 API contracts、7 SQL 子檢查、5 native PG17 並發情境、1280/390 各12 UI 情境 PASS，受影響回歸 PASS；候選未安裝，runtime Save／Review 均維持關閉，frozen artifact／closed bytes 不變。新 HEAD 的 CI／Preview／Reviewer 待父獨立核對，不以本機 PASS 代替。下一必要 Core 是另案有界 live exact-version Review 驗收準備及取得新批准後驗收；本次不啟動。完整 M3、100cap 恢復、remote URL 專用 Review、Publish／Measure仍未完成，不宣稱 live 故障注入。P3 debt：共用 marker 拒絕訊息沿用「續編／保存」字樣，待统一文案時處理，不阻塞本次。下方保留歷史過程，舊基準／批准不取代本節。
 
 ## 產品方向
 

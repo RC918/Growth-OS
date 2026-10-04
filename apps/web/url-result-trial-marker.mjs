@@ -27,7 +27,7 @@ export function createTrialMarker(trial,storage=()=>window.sessionStorage){
 // One unresolved revision in the existing same-origin/tab sessionStorage backend.
 // Separate key; the reviewed fixed-trial marker above is unchanged.
 export const revisionMarkerKey='growth-os:url-revision-attempt:v1';
-export function createRevisionMarker(storage=()=>globalThis.sessionStorage){
+export function createRevisionMarker(storage=()=>globalThis.sessionStorage,key=revisionMarkerKey){
  let failed=false,initialized=false,last=null;
  const fail=()=>{failed=true;throw Error('續編防重送標記不可確認；禁止保存');};
  const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v);
@@ -43,11 +43,11 @@ export function createRevisionMarker(storage=()=>globalThis.sessionStorage){
  }
  function write(value){
   if(failed)fail();check(value);
-  try{const text=JSON.stringify(value),store=storage();store.setItem(revisionMarkerKey,text);if(store.getItem(revisionMarkerKey)!==text)fail();initialized=true;last=structuredClone(value);return structuredClone(value.operation);}catch{fail();}
+  try{const text=JSON.stringify(value),store=storage();store.setItem(key,text);if(store.getItem(key)!==text)fail();initialized=true;last=structuredClone(value);return structuredClone(value.operation);}catch{fail();}
  }
  function read(){
   if(failed)fail();try{
-   const raw=storage().getItem(revisionMarkerKey);if(raw===null){if(initialized)fail();return write({schema_version:1,operation:null});}
+   const raw=storage().getItem(key);if(raw===null){if(initialized)fail();return write({schema_version:1,operation:null});}
    const value=check(JSON.parse(raw));if(initialized&&canonical(value)!==canonical(last))fail();initialized=true;last=structuredClone(value);return structuredClone(value.operation);
   }catch{fail();}
  }

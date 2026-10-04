@@ -57,6 +57,11 @@ jobs:
         run: node --test prototype/owner-workspace/url-result-api.test.mjs supabase/drafts/url_result/offline.test.mjs supabase/drafts/url_result/native-startup.test.mjs
       - name: Bound URL candidate frozen artifact and authenticated ACL checks
         run: node --test supabase/drafts/url_result/bound/bound.test.mjs prototype/owner-workspace/url-result-bound.test.mjs
+      - name: URL exact-version Review contracts and isolated SQL (runtime closed)
+        run: node --test prototype/owner-workspace/url-review.test.mjs supabase/drafts/url_review/offline.test.mjs
+      - name: URL exact-version Review PG17 concurrency (no network)
+        timeout-minutes: 3
+        run: node supabase/drafts/url_review/native.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
         run: |
           node --check supabase/functions/growth-model-trial/index.js
@@ -105,6 +110,9 @@ jobs:
       - name: Continued revision Save and exact readback (synthetic transport and isolated SQL)
         timeout-minutes: 3
         run: node prototype/owner-workspace/saved-result-save.e2e.mjs
+      - name: URL exact-version Review desktop/mobile (synthetic transport and isolated SQL)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/url-review.e2e.mjs
       - name: URL Review to pending Save desktop/mobile (synthetic transport and isolated SQL)
         timeout-minutes: 3
         run: |
