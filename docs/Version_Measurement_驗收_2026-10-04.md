@@ -1,5 +1,7 @@
 # ③ 確切版本的發布／量測視圖
 
+後續：本切片 `f5050c9ddb0d7adea5058244df95e3c611bcef1c` 已由 Reviewer `01a10836-e798` APPROVE_WITH_DEFERRED_DEBT（CI `37224426420`／Preview `7fE9bVde8rBeXkrsf4ufjU9KywVs`）。下文 restart 未驗與 debt 是當時邊界；單一 process 同 run 缺口已由後續授權 [重啟恢復 Core](Publication_Process_Restart_驗收_2026-10-04.md) 接續，跨run／多writer／真provider仍延後。
+
 基準 `3c8f7c4c70ae252e0431ab76c2908181a34a2582`。父確認既有 Reviewer `01a10817-6f24` 對② **APPROVE_WITH_DEFERRED_DEBT**；CI `37222164405`／Preview `6TKHHKWmAMbw7DWQ48KkKHqrLxF6` success。Dot 指派③，①／②既有驗證保留；本 Core 完成後仍交既有 Reviewer，Primary 不自行最終驗收，也不自開④。
 
 ## 使用者可用路徑

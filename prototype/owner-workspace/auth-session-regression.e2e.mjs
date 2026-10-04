@@ -129,8 +129,8 @@ try{
    assert.equal(blockedTargets,0);assert.equal(await page.evaluate(async()=>{try{await fetch('https://unapproved.invalid/auth/v1/otp',{method:'POST'});return false;}catch{return true;}}),true);assert.equal(blockedTargets,0,'product CSP rejects the probe before transport');const probe=await context.newPage();try{await assert.rejects(probe.goto('https://unapproved.invalid/auth/v1/otp'));}finally{await probe.close();}assert.equal(blockedTargets,1,'runner aborts an unknown destination independently of product CSP');assert.deepEqual(await rig.snapshot(),finalState);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
    console.log(`PASS SQL RLS/permission ${width}px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted`);
+   if(wp&&width===390)await wp.grantChecks(saved.id);
   }finally{try{await wp?.finish();}finally{lateRelease?.();for(const c of contexts)await c.close();await rig.close();}}
  }
- if(wordpressSite){const before=wordpressSite.snapshot();await wordpressSite.expire();assert.equal((await wordpressSite.call(wordpressSite.path(wordpressSite.target))).status,403);await wordpressSite.revoke();assert.equal((await wordpressSite.call(wordpressSite.path(wordpressSite.target))).status,401);assert.deepEqual(wordpressSite.snapshot(),before);console.log('PASS WordPress short lease expiry and native Application Password revocation; no page changes');}
  console.log('PASS unattended regression entry. Real Auth engine issuance/JWT verification/OTP/2FA NOT TESTED. Product signOut is page-memory clearing only.');
 }catch(error){throw Error(redact(error.stack??error));}finally{try{if(browser)await browser.close();}finally{if(wordpressSite)await wordpressSite.close();}}

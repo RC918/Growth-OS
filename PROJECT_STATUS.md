@@ -4,7 +4,13 @@
 
 ## 當前授權與基準
 
-**目前 Core：③ exact version 的發布／量測視圖。** 基準 `3c8f7c4c70ae252e0431ab76c2908181a34a2582`，②既有 Reviewer `01a10817-6f24` APPROVE_WITH_DEFERRED_DEBT、CI `37222164405`／Preview `6TKHHKWmAMbw7DWQ48KkKHqrLxF6` success。復用既有受控 WordPress journal、measurement preparation、page CSV 與 report 算術，顯確切版本／頁面、首次發布／此次修改／讀回／restored 狀態。前後 synthetic／provider-asserted CSV 依來源名稱、UTC 完整日、搜尋類型、篩選、覆蓋與本次修改→恢復區間核對；unknown／zero 分開，無真流量或因果宣稱。觀測只追加同 run journal，fresh session 讀回；新版存在後歷史 v1 仍保留證據，v2 不借用，restore 後失效 followup 排除。詳見[③逐點驗證與 debt](docs/Version_Measurement_驗收_2026-10-04.md)。
+**目前 Core：同 run 發布服務 process 重啟恢復。** 基準 `f5050c9ddb0d7adea5058244df95e3c611bcef1c`，③既有 Reviewer `01a10836-e798` APPROVE_WITH_DEFERRED_DEBT、CI `37224426420`／Preview `7fE9bVde8rBeXkrsf4ufjU9KywVs` success。父只提升單一 publication service process 恢復為必要 Core；完整 intent／measurement durable journal 在 POST 前 fsync，實際 SIGKILL／新PID後以 fresh synthetic session與原有效短grant讀回 exact publication／measurement，pending恢復unknown只GET、不重送。缺檔／損毀／partial commit、錯tenant/version/page、drift、到期／撤銷failclosed；不重發或延長grant，secret不落盤。詳見[逐點驗證、commit邊界與有界RCA](docs/Publication_Process_Restart_驗收_2026-10-04.md)。
+
+本機31契約及1280／390完整①②③入口驗證；每尺寸3次實際SIGKILL恢復，維持4WP寫入（2發布＋2恢復）、量測有journal寫入但零額外WP／SQL mutations。Auth／TLS broker仍存活，這不是整個runner／主機／跨run恢復。多writer/CAS、跨run授權、真provider仍P3，未擴修；原Auth／disabled8b25／frozen／hostedDB27界線保持。exact新HEAD CI／Preview交審另核，Primary不自行最終驗收。CoreMilestoneProgress=1，maintenance連續數=0；下一工作由Dot選，不開始④Owner站。
+
+### ③已接受切片（歷史；單process恢復由上節接續）
+
+**已接受 Core：③ exact version 的發布／量測視圖。** 基準 `3c8f7c4c70ae252e0431ab76c2908181a34a2582`，②既有 Reviewer `01a10817-6f24` APPROVE_WITH_DEFERRED_DEBT、CI `37222164405`／Preview `6TKHHKWmAMbw7DWQ48KkKHqrLxF6` success。復用既有受控 WordPress journal、measurement preparation、page CSV 與 report 算術，顯確切版本／頁面、首次發布／此次修改／讀回／restored 狀態。前後 synthetic／provider-asserted CSV 依來源名稱、UTC 完整日、搜尋類型、篩選、覆蓋與本次修改→恢復區間核對；unknown／zero 分開，無真流量或因果宣稱。觀測只追加同 run journal，fresh session 讀回；新版存在後歷史 v1 仍保留證據，v2 不借用，restore 後失效 followup 排除。詳見[③逐點驗證與 debt](docs/Version_Measurement_驗收_2026-10-04.md)。
 
 本機 24 契約及 1280／390 完整①→②→③入口通過，錯頁／錯期間／缺日、tenant/source/version、logout late response 拒絕；量測零新增 WP／SQL mutations。新 HEAD CI／Preview／既有 Reviewer 另核，Primary 不自行最終驗收。多 writer 原子競態、跨 run/server restart 持久化仍為允許延後 P3，未擴修。原 Auth／DB27／disabled8b25／frozen／本機資源清理界線保持；無④Owner 真站、外部 provider／grant／費用或 hosted 操作。CoreMilestoneProgress=1（③可用關聯與歷史／恢復視圖），maintenance 連續數=0；下一工作由 Dot 選定。
 

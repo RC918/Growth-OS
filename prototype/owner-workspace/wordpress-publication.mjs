@@ -20,7 +20,7 @@ export function wordpressPublication({api,version,isCurrent,latest}){
   status.textContent=({preview:'尚未發布；請核對差異並確認。',confirmed_applied:'已發布並由 API 與網頁讀回核對。',confirmed_not_applied:'讀回仍是發布前內容；本次不重送。',unknown:'提交結果未知；只可讀回核對，不重送。',state_diverged:'現況不同，停止寫入。',restored:'已恢復發布前內容並讀回核對。',restore_unknown:'恢復結果未知，停止寫入。'})[value.state]??value.state;
   const t=value.evidence??value;times.textContent=`首次發布（平台紀錄）：${t.first_published_at} · 本次修改：${t.modified_at} · 核對時間：${t.observed_at??value.preview_observed_at}`;
   evidence.textContent=JSON.stringify(value.evidence??{first_published_at:value.first_published_at,modified_at:value.modified_at,observed_at:value.preview_observed_at},null,2);
- }catch(e){if(active(n)){status.textContent='無法執行：'+e.message;if(action==='publish'&&intent)intent.state='unknown';}}
+ }catch(e){if(active(n)){status.textContent='無法執行：'+e.message;if(action==='publish'&&intent){intent.state='unknown';status.textContent='提交結果未知；只可讀回核對，不重送。';}if(action==='restore'&&intent){intent.state='restore_unknown';status.textContent='恢復結果未知；只可讀回核對，不重送。';}}}
  finally{if(active(n)){busy=false;paint();}}}
  history.onclick=()=>run('history');preview.onclick=()=>run('preview');publish.onclick=()=>run('publish');read.onclick=()=>run('readback');restore.onclick=()=>run('restore');paint();
  return {root,setEditing(value){epoch++;editing=value;busy=false;check.checked=false;body.replaceChildren();evidence.textContent='';times.textContent='';if(intent?.state==='preview')intent=null;paint();}};

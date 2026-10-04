@@ -49,7 +49,7 @@ export function publicationMeasurement({api,version,isCurrent,latest=false}){
  field(form,'page_url','CSV 篩選的完整頁面 URL','url');field(form,'filter','其他匯出篩選條件（前後必須一致）');
  for(const [kind,label]of [['baseline','改善前基線'],['followup','後續觀測']]){const box=add(form,'fieldset','');add(box,'legend',label+'（可不提供）');field(box,kind+'-file','每日 CSV','file').accept='.csv,text/csv';field(box,kind+'-start','開始日','date');field(box,kind+'-end','結束日','date');field(box,kind+'-exported','匯出時間（含時區）');}
  const save=add(form,'button','核對並保存此版本觀測','measure-save');save.type='submit';
- add(root,'p','僅保存在本 run journal；換瀏覽器 session 可讀回，run 結束／server restart 後不保證保留。沒有新增平台權限。');
+ add(root,'p','僅保存在本 run journal；同一 run 的發布服務 process 重啟後，重新驗證 session 與原有效授權才能讀回；run／執行端結束後不保留。沒有新增平台權限。');
  const session=api.context();let epoch=0,busy=false,editing=false,value=null;
  const active=n=>root.isConnected&&isCurrent()&&api.context()===session&&!editing&&epoch===n;
  function paint(){read.disabled=busy||editing;for(const input of form.querySelectorAll('input,select,button'))input.disabled=busy||editing;}
