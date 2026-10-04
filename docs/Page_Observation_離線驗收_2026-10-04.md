@@ -21,3 +21,5 @@
 兩 runtime config SHA256 仍 `8b25cfa17adaf27a10b635fbf3537f0ad19deb36c10bb4263f1733da83ee91e1`；persistent frozen index 仍 `11e3423b1f58b280612069c91debbe68df14ed290afb0c0d64dcfaec83783351`。無 schema/store/adapter/OAuth、SQL/Auth 或 flags 變更；無 hosted restore／登入／live Save／Review POST／URL／模型／費用／實際發布。同 HEAD CI／Preview 結果另以交付工具證據核對，Preview build 不冒充 live 互動驗收。
 
 CoreMilestoneProgress=1，maintenance 連續數=0。這是可操作的頁面資料適用性檢查，不是完成 M5。下一独立缺口是兩份同頁／同口徑資料的相容性與期間觀測比較；核實發布及 live 數據仍需相應來源與批准，不能靠本機聲明升格。100cap 與既有 P3 debt 繼續 Deferred；本次不另啟下一 Core。
+
+CI 候選 `e8874c06223134fdeecdbbeaf4bbd3d18aa6d015` 的 run `37216716821` 在既有 typed-draft UI `noActions` 失敗：它把所有 form 都視為舊寫入表單，新 CSV 本機唯讀表單令數量 0→1。本機原測試重現相同斷言；修正只排除具名 `.page-observation > .page-data-form`，所有其他表單禁止、typed mutation=0、legacy mutation 預算與原互動斷言保留。新表單本身另由真 UI＋SQL 前後 snapshot／POST 計數證明無寫入，不刪除操作或弱化權限斷言。

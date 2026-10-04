@@ -23,7 +23,7 @@ export function pageObservation({api,version,isCurrent,latest=false}){
  const add=(parent,tag,text,cls='')=>{const node=document.createElement(tag);node.textContent=text;node.className=cls;parent.append(node);return node;};
  add(root,'h4','檢查頁面級資料適用性');
  add(root,'p','暫存一份已按確切頁面篩選的每日 CSV（date,clicks,impressions，最多 1 MB）。只在本頁記憶體檢查；關閉版本、切換工作區／session 或續編即清除。');
- const form=add(root,'form',''),controls={};
+ const form=add(root,'form','','page-data-form'),controls={};
  function field(key,label,type='text',options=null){const wrap=add(form,'label',label);const input=add(wrap,options?'select':'input','');input.name=key;input.className='page-data-'+key;if(options)for(const [value,text]of options){const option=add(input,'option',text);option.value=value;}else input.type=type;input.required=true;controls[key]=input;return input;}
  const file=field('csv','每日 CSV 檔案','file');file.accept='.csv,text/csv';
  field('scope','匯出範圍','text',[['','請選擇'],['page','已按確切頁面篩選'],['site','網站彙總（不可作為頁面基線）']]);

@@ -110,7 +110,9 @@ try {
    heldDetails[index]();await (await response).finished();
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   }
-  async function noActions(){assert.equal(await page.locator('.opportunity-card form').count(),0);assert.equal(await page.locator('.action-plan-summary').count(),0);assert.doesNotMatch(await page.locator('.opportunity-progress').innerText(),/可規劃|已核准/);}
+  // Page CSV inspection is a local read form; every legacy mutation form remains forbidden.
+  // Its no-write behavior is asserted against SQL snapshots/POST counts in url-review.e2e.
+  async function noActions(){assert.equal(await page.locator('.opportunity-card form:not(.page-observation > .page-data-form)').count(),0);assert.equal(await page.locator('.action-plan-summary').count(),0);assert.doesNotMatch(await page.locator('.opportunity-progress').innerText(),/可規劃|已核准/);}
   await login();assert.equal(detailReads,0,'no payload read until expansion');await noActions();await waitTyped();assert.equal(detailReads,1);
   assert.equal(await page.locator('.typed-incomplete').count(),0);
   const current=page.locator('.draft-focus .typed-draft');
