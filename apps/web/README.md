@@ -16,6 +16,12 @@ python3 -m http.server 8081 --directory apps/web
 
 搜尋觀測版本：`workspace-observations.mjs` 在登入後提供 JSON 保存檔檢查、新版本保存及最近 20 版查看。沿用同一分頁 Auth，不另開登入回呼路徑。操作訊息位於保存按鈕旁；登出清除待保存及已顯示資料。搜尋基線頁本身仍為離線工具。保存的是提供者聲明的原始來源、每日列、合成標記及發布紀錄，不代表網站所有權、Google 資料或真實發布已驗證。
 
+## 目前狀態與內部驗證順序（2026-10-04）
+
+價值是有依據的網站改善落地與相關流量觀測，三欄文本只是交付切片。Owner 核定順序見[唯一藍圖](../../docs/AI_Company_Growth_OS_執行藍圖_v1.md#8-更新後的工程路線圖與驗收)：①核心可靠→②執行端受控站單平台發布→③版本／頁／發布時間／基線／後續量測→④Owner 自有真內容且開放搜尋站→⑤修正後外部商家，不增加使用者操作。外部商家不是目前開發前提，本次不改 Owner 既有網站。
+
+已實作、隔離通過、線上通過與目前開放狀態分列於[PROJECT_STATUS](../../PROJECT_STATUS.md)。保存／重登入讀回有歷史有界線上證據；確切版本 Review 有隔離證據但 live 未完成，目前 Save／Review 全 closed。發布尚無 writer，量測資料檢查不宣稱本版效果。下一工程先补①從 URL 起的單一路徑驗證，沿用 synthetic session、不依賴 Owner email／2FA，不先擴 CSV。以下 dated next step／待驗收文字保留為歷史，不另指派工作。
+
 ## 歷史 M1 本機引導切片（非 v2 M1 完成）
 
 2026-09-30 的本機切片紀錄已由後續隔離測試驗收更新。固定問題引導不代表 AI 理解或產稿，確認只完成資料收集。保留原工作台與所有既有版本／審核功能；目前狀態與歷史證據見 [M1 驗收紀錄](../../docs/Goal_Intake_M1_驗收_2026-09-30.md)。
@@ -35,10 +41,10 @@ python3 -m http.server 8081 --directory apps/web
 
 本機：`node prototype/owner-workspace/growth-plan-ui.e2e.mjs`；此環境 Chromium 放在 /tmp，需加 `PLAYWRIGHT_BROWSERS_PATH=/tmp/growth-os-playwright`。真實保存／跨登入／Auth/RLS 未實作。
 
-## URL-first 第一成果預覽
+## URL-first 第一成果預覽（2026-10-02／03 歷史切片）
 
 first-result.html 使用 /api/product-source；首頁提供主要入口。本機須啟動 prototype/public-audit/app.py，靜態 http.server 不提供 API。三項來源支持文本可對照、複製與匯出；快照只有本機／Preview SQLite 暫存，沒有跨登入保存或發布。`8f1f17c` 已由父獨立驗收 32 項 scanner/API 與 Chromium 145 桌面／手機 E2E（各 12 次真下載）PASS，詳見 [驗收](../../docs/URL_First_Result_驗收_2026-10-02.md)。
 
-現行最小下一步是取得可核對的真實公開產品頁品質與 protected Preview 互動證據，不擴張通用 Plan／工作卡。最近 3 個 live 嘗試均停在 robots（0 商品頁／snapshot／preview），不算品質 PASS 或 unsupported 判定；[有界評估與最少 Owner 操作](../../docs/Public_Product_Quality_2026-10-02.md)列出精確候選入口及部署 SHA 核對前提。真頁品質、SSO 互動、跨登入永久保存、發布／量測仍未驗收；匯出不解除暫存容量。
+當時最小下一步是取得可核對的真實公開產品頁品質與 protected Preview 互動證據，不擴張通用 Plan／工作卡。最近 3 個 live 嘗試均停在 robots（0 商品頁／snapshot／preview），不算品質 PASS 或 unsupported 判定；[有界評估與最少 Owner 操作](../../docs/Public_Product_Quality_2026-10-02.md)列出精確候選入口及部署 SHA 核對前提。真頁品質、SSO 互動、跨登入永久保存、發布／量測仍未驗收；匯出不解除暫存容量。
 
 2026-10-03 增補：上述 live 嘗試為歷史紀錄，後續父的首次真頁成功及限制見 PROJECT_STATUS。第一成果現已接通本頁 Review：可編輯三欄、核對相關事實、確認目前版本及取消還原原建議；修改或來源變更使舊確認失效。Copy／Export 使用可見版本，來源原文／facts／引用保持不變；使用者新增文字不自動取得來源支持。本頁確認不是保存或發布授權，重新整理會失去 Review。契約 6／API 3 tests 與 1280/390 各 22 真下載 PASS；新 CI／Preview 待父審查，詳見 [Review 驗收](../../docs/First_Result_Review_驗收_2026-10-03.md)。

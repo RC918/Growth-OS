@@ -4,10 +4,32 @@
 
 ## 當前授權與基準
 
+**2026-10-04 16:32 UTC Owner 核定：方向與驗證順序對齊（documents-only）。** 北極星維持「網址→第一份可用成果→確認→發布→量測」；價值是有依據的網站改善落地與相關流量觀測，三段 AI 文案只是可能交付物。唯一[藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)已把使用者流程與內部驗證順序分圖：①URL 到編輯／保存／新 session 取回／確切版確認核心可靠→②執行端受控站一種平台授權／preview／publish／readback／失敗恢復→③版本／頁／發布時間／改善前基線／後續观測關聯→④內部完整驗收後，Owner 自有真內容且開放搜尋站成效試點→⑤依結果修正後外部商家。外部商家不是工程前提，自有站／平台／改動範圍於④確認，本次不授權改既有網站。
+
+功能可用、發布正確、數據可信、成效觀測、使用負擔五類驗收分列，test PASS ≠ 流量價值。現有帳號／權限／tenant／來源／版本／review／audit 保留；日常 synthetic regression 不依賴 Owner email／2FA，真人 checkpoint 僅限必要相依步驟。OpenAI Ads／無關擴充／P3 debt 延後。
+
+| 能力 | 已實作 | 隔離測試通過 | 線上驗收通過 | 目前開放狀態 |
+|---|---|---|---|---|
+| URL→帶來源成果→本頁編輯 | URL API、三欄預覽、來源／版本與本頁 Review | scanner/API、1280／390 成果／編輯／匯出；[證據](docs/URL_First_Result_驗收_2026-10-02.md) | 歷史一個公開商品結果成功；不等於任意網站品質或流量價值 | URL 預覽已有入口；本輪不作 live URL 呼叫，暫存100cap仍有限制 |
+| 保存→新 session 精確取回 | exact-org/version 保存與恢復、原版本保留 | 單一 synthetic Auth＋隔離 SQL 入口與原 v1/v2 UI 流程 | [bounded v1](docs/Bounded_M3_Fixed_Case_驗收_2026-10-03.md)／[v2 續編](docs/Bounded_V2_續編驗收_2026-10-04.md)子閉環已驗 | Save 現為 closed；歷史批准不延用 |
+| 確切版本確認 | URL 專用 Review、版本／source 綁定、audit、新版失效 | [無人值守 Save→Review→fresh readback](docs/Unattended_Auth_Session_Regression_2026-10-04.md)通過；入口目前由 JSON fixture 起跑 | persistent Review hosted 五項操作未完成，0 Review POST，不稱完整 M3 live PASS | Review 現為 closed；工具限制保留，無 restore 批准 |
+| 發布／交付 | 三欄 Copy／JSON 與唯讀差異／缺口預覽 | exact version、歷史／viewer、clipboard／download bytes 等通過 | 未完成任何實際平台發布閉環 | 無發布 writer／平台授權；匯出標未發布 |
+| 量測準備／頁面資料適用性 | 未關聯網站背景、暫存頁面 daily CSV 檢查 | 58相關契約、1280／390 valid/invalid、zero/missing、identity/late／零額外寫入通過；[證據](docs/Page_Observation_離線驗收_2026-10-04.md) | 尚無關聯真發布的數據／成效驗收 | 唯讀／記憶體檢查；synthetic／提供者聲明，發布與本版成效 unknown |
+
+下一最小工程（①，完成文件對齊後續行）：沿用 `auth-session-regression.e2e.mjs`、既有 source fixture／UI／SQL，把目前分段驗證的 **URL→成果→編輯→保存→新 session 取回→確切版本確認** 串成一條自動流程。入口現以 JSON fixture 保存，這是待補整體證據，不是既有保存／Review 失效。驗收：1280／390 從 URL 輸入起，對照來源及編輯內容，保存後全新 context/token 精確讀回，再確認同版與重新讀回；保留 owner/viewer／跨 tenant／修改使舊確認失效、原版本／audit 預算與未知結果契約。無真人登入、無產品 Auth 改造、無 hosted mutation；若已有完整證據即直接引用轉②，不重造 harness 或重驗無因 PASS。②再準備受控站單平台發布，③不先扩 CSV 比較支線。
+
+文件更新基準為已推 `4e234e6fd4e8d00a4d0ef865aba90c158fcf0533`，checkout／origin 即時 ref／PR #19 已一致、開始時目錄乾淨。前候選 `e8874c0` CI `37216716821` 失敗根因是 typed-draft 將新本機唯讀 CSV form 誤計為寫入表單；已重現並精確限定該表單例外，原禁止寫入及 mutation 斷言保留，1280／390原測試通過。修正 HEAD 的 [CI `37217076777`](https://github.com/RC918/Growth-OS/actions/runs/37217076777) success（job `111479652937`，57步全成功、實際 logs 已核新增7契約及1280／390 CSV與原typed流程），[Preview `CenJjKXGeAkpyLkKXP9VUb96xoeA`](https://vercel.com/morning-ai/growth-os-preview/CenJjKXGeAkpyLkKXP9VUb96xoeA) success；這是隔離／build證據，不是 live 互動或成效放行。此方向修訂只改文件；原 runtime／SQL／frozen／Auth／remote closed 狀態不動。新費用／帳密／外部授權／既有網站修改由父提出具體需求。
+
+一致性檢查：七份 Markdown 差異，84個本機連結／anchor 存在；唯一藍圖兩張分開流程圖、五段順序／五類驗收／四層狀態與權限界線已核，歷史 Mermaid 不作現行流程；修改標題無舊入鏈，`git diff --check` 通過。runtime disabled config／frozen index hashes 未變。
+
+本次文件對齊不另計 Core 功能，maintenance 連續數=1；最近 CoreMilestoneProgress 是保留的頁面資料適用性檢查。下一工作回①核心，無新 task／writer。
+
 **2026-10-04 15:07／15:11 UTC Owner 更新：** 真人必要事項確認屬 `HUMAN_REQUIRED` checkpoint，只阻擋直接相依的真人確認／實際發布，不代表專案停止；日常 regression 沿用安全隔離 synthetic fixtures／test-only sessions，不依賴 Owner。Reviewer `01a10779` 已裁定本輪 Bolt A synthetic fixture 屬 A：可自動化日常測試，並非 HUMAN_REQUIRED；既有單一入口已覆蓋五 checks／精確讀回／新版失效，不重建 harness。hosted 工具拒絕另列執行限制，不重試／restore。下方 14:34「停止／解除限制後再恢復」僅記錄當輪 remote 操作收尾，不限制已重新批准的獨立 repo/offline 工程。正式治理已併 AGENTS 與 mission／engineering skills。
 
 
-**目前產品 Core：選定成果旁檢查頁面級資料適用性（repo/offline）。** 基準 `f15c1e3d23ddf598478b504226963de796daf024`，父確認 Reviewer `01a107af` APPROVE、CI `37215248021`／Preview `8KHNidTetA23nuNkWtGsYNmQ5foa` success。在 exact version 旁暫存頁面篩選每日 CSV，填完整頁面／搜尋類型／期間／匯出時間／來源／篩選說明，重用既有 CSV 計算，顯示適用性、覆蓋／缺日／明確零。網站彙總及其他頁面不可作頁基線；URL 吻合僅聲明相容，synthetic／providerasserted 不升格已核實，發布時間及本版成效仍未知。輸入／續編／版本／session／關閉令暫存或晚回應失效。58 項相關契約及 1280／390 valid/invalid CSV、其他頁／site、fresh/history/viewer、零額外寫入通過，詳見[頁面資料證據](docs/Page_Observation_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1、maintenance 連續數=0；disabled／frozen／SQL／Auth 不變，無新 schema/store/adapter/OAuth 或 remote 操作。
+## 先前切片 checkpoint（歷史；下一步由上方 16:32 順序取代）
+
+**已推送 Core：選定成果旁檢查頁面級資料適用性（repo/offline）。** 基準 `f15c1e3d23ddf598478b504226963de796daf024`，父確認 Reviewer `01a107af` APPROVE、CI `37215248021`／Preview `8KHNidTetA23nuNkWtGsYNmQ5foa` success。在 exact version 旁暫存頁面篩選每日 CSV，填完整頁面／搜尋類型／期間／匯出時間／來源／篩選說明，重用既有 CSV 計算，顯示適用性、覆蓋／缺日／明確零。網站彙總及其他頁面不可作頁基線；URL 吻合僅聲明相容，synthetic／providerasserted 不升格已核實，發布時間及本版成效仍未知。輸入／續編／版本／session／關閉令暫存或晚回應失效。58 項相關契約及 1280／390 valid/invalid CSV、其他頁／site、fresh/history/viewer、零額外寫入通過，詳見[頁面資料證據](docs/Page_Observation_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1、maintenance 連續數=0；disabled／frozen／SQL／Auth 不變，無新 schema/store/adapter/OAuth 或 remote 操作。
 
 下一獨立缺口：兩份同頁／同口徑資料的相容性與期間觀測比較；不可宣稱發布後效果或因果。實際發布與 live 數據來源仍待各自批准，100cap／P3 debt 不擴張；本輪交付後停止。
 
@@ -79,11 +101,11 @@ bounded Review候選保留為離線資產，**等待Owner時段已撤下，不�
 
 CoreMilestoneProgress=1（候選完整組裝離線成立），maintenance連續數=0。5 SQL子檢查、4 bounded API contracts、5 nativePG17及1280/390各11 UI情境PASS，generic Review受影響回歸PASS；實際兩份runtime仍原Save/Review closed bytes，九檔v2 freeze不變，無任何remote操作。P3 marker文案debt仍延期。新HEAD CI／Preview／Reviewer待父核對；該候選的live時段等待已依Owner新方向撤下；後續若另指定live驗收，仍須完整新批准。本次不綁真cutoff、不寄信、不開窗、不沿用舊06:00 envelope；完整M3／Publish／Measure仍未完成。
 
-## 產品方向
+## 2026-10-02 產品方向快照（歷史）
 
 URL → First Useful Result → Review → Publish → Measure。電商／貿易商產品頁優先；網址主入口，自動理解與分析，必要缺口才問。第一成果為帶來源、可套用的產品頁 title/meta/描述改善包。plan/work 是內部治理，不是一般使用者的第一價值時刻。
 
-## 已完成的工程資產
+## 2026-10-02 工程資產快照（歷史）
 
 基準 `8a4591b`、分支 `feat/passwordless-workspace`、[Draft PR #19](https://github.com/RC918/Growth-OS/pull/19)。同 SHA [push CI](https://github.com/RC918/Growth-OS/actions/runs/36953102738)／[PR CI](https://github.com/RC918/Growth-OS/actions/runs/36953106748) 及 Preview checks 成功。包含既有 unit／integration／desktop-mobile 回歸、新增 plan/session 19 項測試與離線計畫 E2E。未合併，沒有已驗證的客戶發布／流量成效閉環。
 
@@ -95,13 +117,13 @@ URL → First Useful Result → Review → Publish → Measure。電商／貿易
 | plan/work-card 契約／memory session／離線 UI | 2d8f7c3、13b7bad、559c033、8a4591b；[證據](docs/Growth_Plan_M2_離線契約_2026-10-02.md) | 改列內部治理／驗收資產；不等於新版 M2 第一可用成果 |
 | 靜態 Preview | 同 SHA 部署成功 | 雲端互動未完整驗收，不能代替發布產品內容 |
 
-## 進行中與待完成
+## 2026-10-02 進行中與待完成快照（歷史）
 
 藍圖 v2.0 已由 Owner 確認（08dbbb7）。目前新增 M1 安全 URL／Source Snapshot／Product Facts 與 M2 第一可用文本預覽最小切片；24 項 scanner/API 回歸及 desktop/mobile E2E PASS，詳見 [驗收紀錄](docs/URL_First_Result_驗收_2026-10-02.md)。新 M1 URL 安全理解、新 M2 可用成果、新 M3 review 接線、新 M4 單平台發布、新 M5 可信效果、新 M6 試點閉環均未全面完成。沒有以舊 M1/M2 同名驗收直接放行新里程碑。
 
 URL-to-source／產品事實與成果預覽已接線；快照 SQLite 仍為本機／Preview 暫存，100cap生命週期未解；固定成果的v1/v2含來源payload已真保存並跨登入讀回，一般產品來源永久保存尚未全面驗收；不再把通用計畫保存／工作卡 UI 擴張當第一優先。具體放行條件與依賴見唯一藍圖，不在本頁另排 M0–M6。
 
-## 真正限制
+## 2026-10-02 限制快照（歷史）
 
 試點產品網址、發布平台及站點／數據授權尚未建立閉環；它們在 live 整合階段需要對應資訊／登入，不阻擋離線契約與固定 fixture 工程。無真實資料顯示未知，不宣稱 Growth。
 
