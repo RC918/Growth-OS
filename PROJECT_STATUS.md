@@ -7,7 +7,11 @@
 **2026-10-04 15:07／15:11 UTC Owner 更新：** 真人必要事項確認屬 `HUMAN_REQUIRED` checkpoint，只阻擋直接相依的真人確認／實際發布，不代表專案停止；日常 regression 沿用安全隔離 synthetic fixtures／test-only sessions，不依賴 Owner。Reviewer `01a10779` 已裁定本輪 Bolt A synthetic fixture 屬 A：可自動化日常測試，並非 HUMAN_REQUIRED；既有單一入口已覆蓋五 checks／精確讀回／新版失效，不重建 harness。hosted 工具拒絕另列執行限制，不重試／restore。下方 14:34「停止／解除限制後再恢復」僅記錄當輪 remote 操作收尾，不限制已重新批准的獨立 repo/offline 工程。正式治理已併 AGENTS 與 mission／engineering skills。
 
 
-**目前產品 Core：發布前版本／候選目標頁／差異檢視（repo/offline）。** 基準 `2ef454682f85015510481a890612f9b45aea9273`，父確認 Reviewer `01a1075a` APPROVE、CI `37209962173` success。既有 typed-draft／exact Review 保留；新增已保存版本旁唯讀檢視，未確認也可查看三欄保存快照原文→待套用內容、候選目標 URL，以及版本 Review／平台／站點授權／發布確認各自缺口。候選 URL 不代表所有權，快照不是平台現況；歷史／來源漂移／session 替換拒絕，續編清除預覽。沒有發布 writer／adapter／OAuth／假發布紀錄，actual Save／Review disabled 與 frozen 不變。詳見[離線切片證據](docs/Publish_Preflight_離線驗收_2026-10-04.md)。
+**目前產品 Core：恢復已保存版本後複製／下載三欄成果（repo/offline）。** 基準 `64962927e0b61494c48c6bfbff953cdfe6616888`，父確認 Reviewer `01a10789` APPROVE、CI `37212568096`／Preview `6c8QfFk33bBQSFuLVoKeabmZ4iAC` success。既有版本檢視旁新增 Copy／JSON，輸出前重讀同 org／version／完整 payload／source，最新或歷史分類不符拒絕；歷史明示歷史，續編期間停用，晚回應／session 替換不能觸發輸出。複製三欄加版本來源識別；JSON 包含完整 payload 與摘要，不證明 Review／站點所有權或發布。1280／390 真 clipboard／每 viewport 4 份 download bytes 已比對，預览與交付皆零額外 POST。詳見[交付出口證據](docs/Saved_Result_Delivery_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1（新 session 恢復成果後可直接交付），maintenance 連續數=0；actual disabled／SQL／frozen／Auth 不變。
+
+下一缺口仍是實際發布的單一試點平台、站點最小授權、當前目標內容與確切發布／讀回；交付檔案不當作發布成功。無新 remote 操作或人工 checkpoint 需求，100cap 與既有 P3 debt defer。
+
+**前一已接受 Core：發布前版本／候選目標頁／差異檢視（repo/offline）。** 基準 `2ef454682f85015510481a890612f9b45aea9273`，父確認 Reviewer `01a1075a` APPROVE、CI `37209962173` success。既有 typed-draft／exact Review 保留；新增已保存版本旁唯讀檢視，未確認也可查看三欄保存快照原文→待套用內容、候選目標 URL，以及版本 Review／平台／站點授權／發布確認各自缺口。候選 URL 不代表所有權，快照不是平台現況；歷史／來源漂移／session 替換拒絕，續編清除預覽。沒有發布 writer／adapter／OAuth／假發布紀錄，actual Save／Review disabled 與 frozen 不變。詳見[離線切片證據](docs/Publish_Preflight_離線驗收_2026-10-04.md)。
 
 CoreMilestoneProgress=1（使用者可从已保存成果查看發布前差異與阻擋原因）；maintenance 連續數=0，治理更新併本 Core。下一依賴為真實發布的單一試點平台、站點最小授權、即時目標內容與確切發布確認；這些只限制相應 live 操作，不阻止獨立已授權工程。完整 live M3／M4、Publish／Measure 未完成；100cap 與 P3 文案仍 defer。
 

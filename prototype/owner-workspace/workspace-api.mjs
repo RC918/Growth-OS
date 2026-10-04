@@ -384,6 +384,34 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(latest.length!==1||latest[0].version_number<fresh.version_number)throw Error('最新版本讀回不符');
       return {...row,is_latest_version:latest[0].id===fresh.id&&latest[0].version_number===fresh.version_number};
     },
+    async readSavedUrlDelivery(version,{isCurrent,latest}={}) {
+      const org=activeOrg(),session=membership,actor=actorId,expected=copyJSON(version);
+      const current=()=>{if(membership!==session||actorId!==actor||typeof isCurrent!=='function'||!isCurrent())throw Error('成果輸出工作階段或版本已變更');};
+      if(typeof latest!=='boolean')throw Error('缺少最新／歷史版本識別');
+      const identity=async()=>{
+        const user=await request('/auth/v1/user');current();if(user?.id!==actor)throw Error('登入身份已變更');
+        const members=await select('organization_members','organization_id,role',{user_id:`eq.${actor}`,limit:'2'});current();
+        if(members.length!==1||members[0].organization_id!==org||members[0].role!==session.role)throw Error('工作區資格已變更');
+      };
+      current();await identity();
+      const fresh=await this.readContentVersion(expected);current();await validateReport(fresh.first_result_payload);current();
+      if(canonical(fresh)!==canonical(expected))throw Error('已保存來源或內容已變更');
+      const payload=fresh.first_result_payload;
+      if(fresh.title!==payload.preview.fields.title.suggested||fresh.draft_body!==payload.preview.fields.description.suggested)throw Error('成果內容與版本不一致');
+      const parents=await select('growth_opportunities','id,entry_kind',{organization_id:`eq.${org}`,id:`eq.${fresh.opportunity_id}`,limit:'1'});current();
+      if(parents.length!==1||parents[0].id!==fresh.opportunity_id||parents[0].entry_kind!=='url_result')throw Error('成果來源項目已變更');
+      const payloadDigest=await contentDigest(canonical(payload));current();
+      if(canonical(await this.readContentVersion(fresh))!==canonical(fresh))throw Error('成果輸出期間來源或版本已變更');current();await identity();
+      const versions=await select('content_versions','id,version_number',{organization_id:`eq.${org}`,opportunity_id:`eq.${fresh.opportunity_id}`,order:'version_number.desc',limit:'1'});current();
+      const newest=versions[0];
+      if(versions.length!==1||!uuid(newest?.id)||!Number.isSafeInteger(newest.version_number)||newest.version_number<fresh.version_number||
+        (latest?(newest.id!==fresh.id||newest.version_number!==fresh.version_number):(newest.id===fresh.id||newest.version_number<=fresh.version_number)))throw Error('最新／歷史版本已變更，請重新整理後選取版本');
+      return freeze({format:'growth-os.saved-url-result.v1',published:false,publication_authorized:false,review_attested_by_export:false,
+        version:{organization_id:org,opportunity_id:fresh.opportunity_id,id:fresh.id,number:fresh.version_number,position:latest?'latest_at_read':'historical',latest_version_id_at_read:newest.id,request_id:fresh.first_result_request_id,version_digest:fresh.first_result_request_digest,payload_digest:payloadDigest},
+        source:{candidate_url:payload.snapshot.final_url,original_url:payload.snapshot.original_url,snapshot_id:payload.snapshot.id,source_version:payload.snapshot.version,source_digest:payload.snapshot.content_fingerprint},
+        content_digest:payload.review.content_digest,fields:Object.fromEntries(['title','meta_description','description'].map(key=>[key,payload.preview.fields[key].suggested])),payload,
+        notice:'未發布；候選 URL 不代表站點所有權。來源為保存快照、未獨立驗真；payload 的本頁確認紀錄不是 Owner 核准，複製／匯出不驗證或授予版本確認／發布權限。'});
+    },
     // Read-only preparation, never a publication authority or dispatcher.
     async previewUrlPublication(version,{isCurrent}={}) {
       const org=ownerOnly(),session=membership,actor=actorId,expected=copyJSON(version);

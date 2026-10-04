@@ -1,5 +1,8 @@
 // Browser → existing API → isolated SQL. Synthetic auth/transport only.
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {canonical} from './first-result-payload.mjs';
 import {chromium} from 'playwright';
 import {PGlite} from '@electric-sql/pglite';
 import {spawn} from 'node:child_process';
@@ -57,11 +60,26 @@ try{
   };
   async function login(who=ids.owner,fresh=false){
    if(fresh&&context)await context.close();actor=who;token='synthetic-review-'+who;
-   if(!context||fresh){context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'});await context.route('**/*',transport);page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));}
+   if(!context||fresh){context=await browser.newContext({viewport:{width,height:844},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true,serviceWorkers:'block'});await context.route('**/*',transport);page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));}
    await page.goto('about:blank');await page.goto(origin+'/workspace.html#access_token='+token+'&token_type=bearer&expires_in=3600');await page.locator('#workspace').waitFor({state:'visible'});
   }
   async function open(id){const view=page.locator(`.typed-version[data-version-id="${id}"]`);await view.locator('.typed-loader > summary').click();await view.locator('.typed-draft').waitFor();return view;}
   async function fill(view){for(const key of Object.keys(checks))await view.locator(`[data-review-check="${key}"]`).check();}
+  async function deliver(view,expected,historical=false){
+   const beforePosts=posts.length,id=await view.getAttribute('data-version-id'),feedback=view.locator('.saved-delivery-status');
+   await view.locator('.saved-copy').click();await feedback.filter({hasText:'已複製'}).waitFor();
+   const text=await page.evaluate(()=>navigator.clipboard.readText());assert.ok(text.includes(id));assert.ok(text.includes(ids.org));assert.ok(text.includes(expected.snapshot.final_url));assert.ok(text.includes('未發布'));
+   assert.ok(text.includes(historical?'已保存歷史版本':'已保存讀取時最新版本'));
+   const fields=Object.fromEntries(['title','meta_description','description'].map(k=>[k,expected.preview.fields[k].suggested]));
+   assert.ok(text.endsWith(['Title:\n'+fields.title,'Meta description:\n'+fields.meta_description,'產品描述:\n'+fields.description].join('\n\n')));
+   const event=page.waitForEvent('download');await view.locator('.saved-download').click();const download=await event;
+   assert.equal(download.suggestedFilename(),`growth-os-saved-${id}.json`);const bytes=await readFile(await download.path()),out=JSON.parse(bytes.toString('utf8'));
+   assert.equal(out.format,'growth-os.saved-url-result.v1');assert.equal(out.version.id,id);assert.equal(out.version.organization_id,ids.org);assert.equal(out.version.position,historical?'historical':'latest_at_read');
+   assert.equal(out.version.payload_digest,'sha256:'+createHash('sha256').update(canonical(expected)).digest('hex'));
+   assert.deepEqual(out.fields,fields);assert.deepEqual(out.payload,expected);assert.equal(out.source.candidate_url,expected.snapshot.final_url);assert.equal(out.source.source_digest,expected.snapshot.content_fingerprint);
+   assert.equal(out.content_digest,expected.review.content_digest);assert.equal(out.published,false);assert.equal(out.publication_authorized,false);assert.equal(out.review_attested_by_export,false);assert.equal(posts.length,beforePosts);
+   console.log(`PASS delivery ${width}px ${historical?'historical':'latest'}: real clipboard and ${bytes.length} download bytes match saved version ${id}; zero additional POST`);
+  }
   const status=view=>view.locator('.url-review-status');
   await login();let view=await open(second);
    async function preview(expected){
@@ -76,7 +94,7 @@ try{
   if(scenario==='closed'){
    assert.equal(await view.locator('.url-review').count(),0);assert.equal(posts.length,0);
   }else if(scenario==='preview_closed'){
-   await status(view).filter({hasText:'待確認'}).waitFor();await preview(false);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);assert.equal(posts.length,0);
+   await status(view).filter({hasText:'待確認'}).waitFor();await preview(false);await deliver(view,revised);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);assert.equal(posts.length,0);
   }else{
    await status(view).filter({hasText:'待確認'}).waitFor();
    if(scenario==='success')await preview(false);
@@ -115,12 +133,12 @@ try{
    }
    if(scenario==='success'){
     // New browser context has no marker or prior page receipt; authoritative GET restores same UUID.
-    await login(ids.owner,true);view=await open(second);await status(view).filter({hasText:reviewId}).waitFor();await preview(true);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
-    await view.locator('.resume-review').click();await view.locator('textarea').first().waitFor();await status(view).filter({hasText:'修改尚未保存'}).waitFor();assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
+    await login(ids.owner,true);view=await open(second);await status(view).filter({hasText:reviewId}).waitFor();await preview(true);await deliver(view,revised);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
+    await view.locator('.resume-review').click();await view.locator('textarea').first().waitFor();await status(view).filter({hasText:'修改尚未保存'}).waitFor();assert.equal(await view.locator('.saved-copy').isDisabled(),true);assert.equal(await view.locator('.saved-download').isDisabled(),true);assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);
     await chain;await auth();third=await save(22,2);await login(ids.owner,true);const newer=await open(third);await status(newer).filter({hasText:'待確認'}).waitFor();assert.equal(await newer.locator('[data-review-check]:checked').count(),0);
     view=await open(second);await status(view).filter({hasText:'歷史版本已確認'}).waitFor();assert.equal(await view.locator('.publish-preview-read').isDisabled(),true);assert.equal(await view.locator('.publish-preview-body').textContent(),'');assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.ok((await status(view).innerText()).includes(reviewId));
-    const original=await open(first);await status(original).filter({hasText:'待確認'}).waitFor();assert.deepEqual(JSON.parse(await original.locator('.typed-draft > details').last().locator('pre').textContent()).payload,payload);
-    await login(ids.viewer,true);view=await open(second);assert.equal(await view.locator('.publish-preview-read').isDisabled(),true);assert.equal(await view.locator('.publish-preview-body').textContent(),'');await status(view).filter({hasText:reviewId}).waitFor();assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.equal(await page.locator('.resume-review').count(),0);
+    const original=await open(first);await status(original).filter({hasText:'待確認'}).waitFor();await deliver(original,payload,true);assert.deepEqual(JSON.parse(await original.locator('.typed-draft > details').last().locator('pre').textContent()).payload,payload);
+    await login(ids.viewer,true);view=await open(second);await deliver(view,revised,true);assert.equal(await view.locator('.publish-preview-read').isDisabled(),true);assert.equal(await view.locator('.publish-preview-body').textContent(),'');await status(view).filter({hasText:reviewId}).waitFor();assert.equal(await view.locator('.url-review-confirm').isVisible(),false);assert.equal(await page.locator('.resume-review').count(),0);
     await login(ids.foreign,true);assert.equal(await page.locator(`.opportunity-card[data-opportunity-id="${op}"]`).count(),0);await chain;await auth();assert.equal((await db.query('select id from public.content_reviews')).rows.length,0);assert.equal(posts.length,1);
    }
    if(!['success','logout'].includes(scenario))assert.deepEqual(JSON.parse(await view.locator('.typed-draft > details').last().locator('pre').textContent()).payload,revised);

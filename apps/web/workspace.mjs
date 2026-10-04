@@ -1,3 +1,4 @@
+import {savedResultDelivery} from './saved-result-delivery.mjs';
 import {urlPublishPreview} from './url-publish-preview.mjs';
 import {urlResultReview} from './url-result-review.mjs';
 import {typedDraft} from './typed-draft.mjs';
@@ -130,8 +131,9 @@ function typedVersion(version, current, history = null, editable = false, latest
       body.replaceChildren(typedDraft(row,{reviewAvailable:api.urlReviewAvailable(version)}));
       const review=api.urlReviewAvailable(version)?urlResultReview({api,version:row,isCurrent:visible,latest}):null;
       if(review)body.append(review.root);
+      const delivery=savedResultDelivery({api,version:row,isCurrent:visible,latest});body.append(delivery.root);
       const publish=urlPublishPreview({api,version:row,isCurrent:visible,latest});body.append(publish.root);
-      if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,onEditingChange:value=>{review?.setEditing(value);publish.setEditing(value);},enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
+      if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,onEditingChange:value=>{review?.setEditing(value);publish.setEditing(value);delivery.setEditing(value);},enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
       loaded = true; feedback.textContent = '';
     } catch (error) {
       if (!active()) return;
