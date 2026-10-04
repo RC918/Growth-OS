@@ -22,13 +22,13 @@
 | 部署／config | `operator.mjs provision` 一次，wx固定root與`.started`書籤防blind重跑；生成精確配置／短期限、服務env、journal header、client-local TLS及單頁App Password。`runtime.mjs`只read existing config/journal，缺失不重建。dynamic RC flags只在RC HTTPserver提供；原apps/web default flags完全不動，無global trust/security設定。 |
 | 儲存位置 | 唯一 `/workspace/growth-internal-rc-01`，root/secrets700、secret files600；data/postgres持久Auth／SQL、data/mariadb與data/wordpress、data/publication.json、data/source.sqlite。只保留同一批准RC window，用於A完整退出→B重新登入；不是長期跨run grant。 |
 | 憑證與權限 | 原生Auth JWT有效300秒，每次fresh登入重新簽發；JWT簽章key只在RC服務env，admin JWT僅operator記憶體，runtime/client不用service_role。synthetic password、App Password／原expiry、TLS私鑰只在owner-only RC secrets，不在repo／journal／artifact／browser；此持久secret是**新批准事項，尚未建立**。WP受原plugin約束單頁／三欄／900秒，app service每次核expiry與原生GET，不重發／延長。 |
-| 期限／次數 | Owner批准後固定UTC expires_at，總provision／兩phase／清理窗口最多2小時；WP原grant自建立900秒，A/B必須在原期限內，逾期failclosed，不延展。一次provision；3 real Auth users；每phase fresh-session所需login僅該三身份；本RC成功路徑2個WP POST（publish＋restore），第三提交在durable intent後、network POST前SIGKILL，B只GET，不重送。 |
+| 期限／次數 | Owner批准後固定UTC expires_at，總provision／兩phase／清理窗口最多2小時；WP原grant取建立後900秒與批准絕對截止的較早者，A/B必須在原期限內，逾期failclosed，不延展。一次provision；3 real Auth users；每phase fresh-session所需login僅該三身份；本RC成功路徑2個WP POST（publish＋restore），第三提交在durable intent後、network POST前SIGKILL，B只GET，不重送。 |
 | source／量測／費用 | 單一controlled page，source GET走隔離network fixture，零新增公開liveURL／模型／外部provider／OAuth／付費服務／domain／cloud計費。量測保存`baseline:null,followup:null`，新session讀回仍unknown，不冒充零、不等待SEO成長。源snapshot／journal有檔案寫入，非零writes宣稱。 |
 | 成功條件 | A：實際HTML→UI三欄修改→正常handoff→native Auth→Save→logout／新native session→exact Review→WP publish API/HTML→明示unknown量測保存→verified restore→再preview／durable submitting／service被kill→寫無secret bookmark並完全退出。B：全新process/context/nativeJWT→SQL exact payload／Review→相同publication evidence／measurement payload／pending ID unknown→只GET confirmed_not_applied→viewer/foreign GET隔離、Save/Review/發布權限負測、SQL/audit與journal無拒絕案增量。 |
 | 不確定／失敗 | 不rerun provision、不改request/intent、不重發POST、不以無回覆視為未套用；讀原journal+原頁expected-before/after。到期、撤銷、損毀、缺檔、drift停mutation，保存無secret證據；需要重新開grant或期限時另請准，不能重用這次allowance。 |
 | 清理／保留 | 停兩個app processes後，先把allowlist evidence（bookmark需不含token/secret、PNG、journal/source synthetic資料、redacted logs）移到父指定artifact；保留最多3天。`operator cleanup`核同window及own labels，停exact五容器／own network，移除唯一root與own資料／secret，使用原PG image的network-none helper只刪own bind data；不prune、不刪外部資源。刪除該DB與站亦銷毀原生identity／grant；cleanup權限在expiry後只限原已批准收尾。部分provision失敗保留`.started`，只核對／cleanup，禁止blind重跑。 |
 
-**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest：`da0e6817fd50a290fbbfd47d5b29ed89ae2b4ba6b5581b04ff49678c7adc18e2`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
+**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest：`e20e7df4f3da5ea6d9acef581293e3c27c85d60293fdc58b78b122b35dfe03ba`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
 
 ```sh
 # 現在可做：read-only、沒有部署或secret生成
@@ -59,7 +59,7 @@ node prototype/internal-rc/deploy/operator.mjs cleanup /workspace/rc-approved-wi
 | TENANT／PERMISSION | PASS：HTTP proxy不允許admin/arbitraryRPC/外Origin/錯source；原viewer/foreign原4個403與零SQL/audit增量、cold錯版/錯頁/unknown拒絕；candidate原生tenant腳本已備未執行。 |
 | VERIFY | 本候選可做的repo／隔離驗證後commit/CI/Preview，exact HEAD與logs於交審回覆附上；既有Reviewer裁決，不自行APPROVE或執行pending envelope。 |
 
-必要修正：新runtime fetch把同源publication誤當backend origin而拒絕（P1），只增既有同源publication路由；source改canonical後原wrong-page負測先撞loopback port限制，改同canonical錯path，未放寬validator。secret mode負測受umask077影響，顯式chmod無敏感fixture檔才驗拒絕；未改真secret權限。
+必要修正：provision每次寫入重檢批准截止，原生WP lease也cap到同截止，避免setup延遲使grant越窗；新runtime fetch把同源publication誤當backend origin而拒絕（P1），只增既有同源publication路由；source改canonical後原wrong-page負測先撞loopback port限制，改同canonical錯path，未放寬validator。secret mode負測受umask077影響，顯式chmod無敏感fixture檔才驗拒絕；未改真secret權限。
 
 ## Technical Debt／界線
 
