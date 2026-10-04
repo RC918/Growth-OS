@@ -1,16 +1,18 @@
 import {preview} from './search-baseline.mjs';
 
 // Applicability of caller-described, page-filtered daily rows; never publication authority.
-export function checkPageCsv(text,meta,candidate){
+export function checkPageCsv(text,meta,candidate,{localWordpress=false}={}){
  const keys=['page_url','scope','source','filter','type','start','end','exported'];
  if(!meta||Object.keys(meta).length!==keys.length||keys.some(k=>typeof meta[k]!=='string'))throw Error('資料說明欄位不完整或含不支援欄位。');
  if(!['synthetic','provider_asserted'].includes(meta.source))throw Error('來源只能是合成範例或提供者聲明，不能自行標為已核實。');
  if(!['page','site'].includes(meta.scope))throw Error('請明確選擇頁面篩選或網站彙總。');
  if(!meta.filter.trim()||meta.filter.length>1000)throw Error('請提供 1 至 1000 字的匯出篩選說明。');
- const page=value=>{let url;try{url=new URL(value);}catch{throw Error('請提供完整 HTTPS 頁面 URL。');}if(url.protocol!=='https:'||url.username||url.password||url.hash||url.port)throw Error('頁面 URL 不可含帳密、片段或自訂連接埠。');return url;};
+ const page=value=>{let url;try{url=new URL(value);}catch{throw Error('請提供完整 HTTPS 頁面 URL。');}if(url.protocol!=='https:'||url.username||url.password||url.hash||(url.port&&!(localWordpress&&url.hostname==='127.0.0.1')))throw Error('頁面 URL 不可含帳密、片段或自訂連接埠。');return url;};
  const target=page(candidate),declared=page(meta.page_url);
  // Reuse daily arithmetic/validation only. Do not promote website snapshot format.
- const daily=preview(text,{origin:declared.origin,type:meta.type,start:meta.start,end:meta.end,exported:meta.exported});
+ // Exact href matching below retains the port; only reused daily arithmetic sees a port-free origin.
+ const arithmeticOrigin=new URL(declared.origin);if(localWordpress&&arithmeticOrigin.hostname==='127.0.0.1')arithmeticOrigin.port='';
+ const daily=preview(text,{origin:arithmeticOrigin.origin,type:meta.type,start:meta.start,end:meta.end,exported:meta.exported});
  const matches=declared.href===target.href,applicable=meta.scope==='page'&&matches;
  return {page_url:declared.href,candidate_url:target.href,scope:meta.scope,source:meta.source,filter:meta.filter.trim(),matches,applicable,
   reason:meta.scope==='site'?'網站彙總不可作為此頁基線。':!matches?'頁面不吻合；同網域或不同參數的頁面不可作為此頁基線。':'聲明的頁面 URL 與候選頁吻合；僅可檢視頁面觀測，不代表資料或篩選已核實。',

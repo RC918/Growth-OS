@@ -113,7 +113,7 @@ try{
    await page.locator('#sign-out').click();await fresh('owner');const newer=await open(revised.id);assert.deepEqual(await readPayload(newer),revised.request.p_payload);await newer.locator('.url-review-status').filter({hasText:'待確認'}).waitFor();assert.equal(await newer.locator('[data-review-check]:checked').count(),0);
    view=await open(saved.id);await view.locator('.url-review-status').filter({hasText:'歷史版本已確認'}).waitFor();assert.ok((await view.locator('.url-review-status').innerText()).includes(reviewed.id));assert.deepEqual(await readPayload(view),payload);
    const finalState=await rig.snapshot();assert.equal(finalState.content_versions.length,before.content_versions.length+2);assert.equal(finalState.growth_opportunities.length,before.growth_opportunities.length+1);assert.equal(finalState.audit_events.length,before.audit_events.length+3);assert.deepEqual(finalState.content_reviews,reviewState.content_reviews);assert.deepEqual(finalState.content_versions.find(v=>v.id===saved.id),reviewState.content_versions.find(v=>v.id===saved.id));
-   if(wp)await wp.stale(token,saved.id);
+   if(wp)await wp.stale(token,saved.id,{page,view,newer});
    console.log(`PASS synthetic Review invalidation ${width}px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review`);
    for(const role of ['viewer','foreign']){
     await fresh(role);if(role==='viewer'){view=await open(saved.id);assert.deepEqual(await readPayload(view),payload);assert.equal(await page.locator('.resume-review').count(),0);}else assert.equal(await page.locator(`.typed-version[data-version-id="${saved.id}"]`).count(),0);

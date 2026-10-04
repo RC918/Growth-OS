@@ -1,5 +1,7 @@
+import {publicationMeasurement} from './publication-measurement.mjs';
 // Website observations are context only, never automatically attributed to a page/version.
 export function measurementPreparation({api,version,isCurrent,latest=false}){
+ if(api.wordpressPublicationAvailable?.())return publicationMeasurement({api,version,isCurrent,latest});
  const root=document.createElement('section');root.className='measurement-preparation';
  const add=(parent,tag,text,cls='')=>{const node=document.createElement(tag);node.textContent=text;node.className=cls;parent.append(node);return node;};
  add(root,'h4','量測準備與資料缺口');add(root,'p','查看此已保存版本還缺哪些證據；未核實發布前，不顯示發布後成效。');

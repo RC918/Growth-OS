@@ -4,9 +4,15 @@
 
 ## 當前授權與基準
 
-**目前 Core：②受控 WordPress 單平台發布。** 父確認① `0fcbc50c103fa377b58f0371faa8cf72b8a05226` 經既有 Reviewer `01a107ea-a4e4` APPROVE；治理 `f9f5f47df517208cd216cb8ea95d7a81044f550a` 經 Reviewer `01a107f4-d9f2` APPROVE、CI `37220142034`／Preview `JDjznRrYHv2cPYxh9hxQcTDtnZZv` success。Dot 已指派②，執行端準備 pinned 官方 WP／MariaDB 的 disposable local site、合成目標／對照頁及短期受限 App Password。復用①入口完成 exact Review→現況差異→獨立發布確認→真 HTTPS WordPress API／HTML→journal→fresh session UI 讀回→核基線恢復，1280／390 完整驗證；詳見[②證據與逐點驗證迴圈](docs/Controlled_WordPress_發布驗收_2026-10-04.md)。新 HEAD 待 CI／Preview 與既有 Reviewer，Primary 不自行最終驗收。
+**目前 Core：③ exact version 的發布／量測視圖。** 基準 `3c8f7c4c70ae252e0431ab76c2908181a34a2582`，②既有 Reviewer `01a10817-6f24` APPROVE_WITH_DEFERRED_DEBT、CI `37222164405`／Preview `6TKHHKWmAMbw7DWQ48KkKHqrLxF6` success。復用既有受控 WordPress journal、measurement preparation、page CSV 與 report 算術，顯確切版本／頁面、首次發布／此次修改／讀回／restored 狀態。前後 synthetic／provider-asserted CSV 依來源名稱、UTC 完整日、搜尋類型、篩選、覆蓋與本次修改→恢復區間核對；unknown／zero 分開，無真流量或因果宣稱。觀測只追加同 run journal，fresh session 讀回；新版存在後歷史 v1 仍保留證據，v2 不借用，restore 後失效 followup 排除。詳見[③逐點驗證與 debt](docs/Version_Measurement_驗收_2026-10-04.md)。
 
-②仍是隔離站證據：runtime 新發布預設關閉、原 Save／Review disabled／frozen／hosted DB27／原 Auth 不變；不代表持續平台 grant、完整 live M3、真站品質或流量。短期 grant 已驗到期／撤銷，該 run 容器／tmpfs／env／TLS key 清除，只留無 secret synthetic 證據。無 Owner 既有網站、外部帳號／OAuth、公開／付費站或模型。CoreMilestoneProgress=1（②真受控平台最小閉環），maintenance 連續數=0；未開③，下一工作由 Dot 選定。治理規則沿用 AGENTS＋正式 skills，不另立框架。
+本機 24 契約及 1280／390 完整①→②→③入口通過，錯頁／錯期間／缺日、tenant/source/version、logout late response 拒絕；量測零新增 WP／SQL mutations。新 HEAD CI／Preview／既有 Reviewer 另核，Primary 不自行最終驗收。多 writer 原子競態、跨 run/server restart 持久化仍為允許延後 P3，未擴修。原 Auth／DB27／disabled8b25／frozen／本機資源清理界線保持；無④Owner 真站、外部 provider／grant／費用或 hosted 操作。CoreMilestoneProgress=1（③可用關聯與歷史／恢復視圖），maintenance 連續數=0；下一工作由 Dot 選定。
+
+### ②已接受切片（歷史；③已由上節授權）
+
+**已接受 Core：②受控 WordPress 單平台發布。** 父確認① `0fcbc50c103fa377b58f0371faa8cf72b8a05226` 經既有 Reviewer `01a107ea-a4e4` APPROVE；治理 `f9f5f47df517208cd216cb8ea95d7a81044f550a` 經 Reviewer `01a107f4-d9f2` APPROVE、CI `37220142034`／Preview `JDjznRrYHv2cPYxh9hxQcTDtnZZv` success。Dot 已指派②，執行端準備 pinned 官方 WP／MariaDB 的 disposable local site、合成目標／對照頁及短期受限 App Password。復用①入口完成 exact Review→現況差異→獨立發布確認→真 HTTPS WordPress API／HTML→journal→fresh session UI 讀回→核基線恢復，1280／390 完整驗證；詳見[②證據與逐點驗證迴圈](docs/Controlled_WordPress_發布驗收_2026-10-04.md)。固定 `3c8f7c4c70ae252e0431ab76c2908181a34a2582` 已由 Reviewer `01a10817-6f24` APPROVE_WITH_DEFERRED_DEBT；父核 CI `37222164405`／Preview `6TKHHKWmAMbw7DWQ48KkKHqrLxF6` success。
+
+②仍是隔離站證據：runtime 新發布預設關閉、原 Save／Review disabled／frozen／hosted DB27／原 Auth 不變；不代表持續平台 grant、完整 live M3、真站品質或流量。短期 grant 已驗到期／撤銷，該 run 容器／tmpfs／env／TLS key 清除，只留無 secret synthetic 證據。無 Owner 既有網站、外部帳號／OAuth、公開／付費站或模型。CoreMilestoneProgress=1（②真受控平台最小閉環），maintenance 連續數=0；③已由 Dot 指派，見上節。治理規則沿用 AGENTS＋正式 skills，不另立框架。
 
 ### ①已接受切片（歷史；②已由上節授權）
 

@@ -181,7 +181,7 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
     wordpressPublicationAvailable() { return wordpressPublicationEnabled === true; },
     async wordpressPublication(action, input) {
       ownerOnly();
-      if (!wordpressPublicationEnabled || !['preview','publish','readback','restore','history'].includes(action)) throw Error('WordPress 發布尚未開放');
+      if (!wordpressPublicationEnabled || !['preview','publish','readback','restore','history','measurement','measurement-save'].includes(action)) throw Error('WordPress 發布尚未開放');
       const session=membership;
       const response=await fetchImpl(redirectOrigin+'/api/wordpress-publication/'+action,{method:'POST',cache:'no-store',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify(input)});
       if(membership!==session)throw Error('工作階段已變更');
@@ -395,6 +395,16 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const latest=await select('content_versions','id,version_number',{organization_id:`eq.${org}`,opportunity_id:`eq.${fresh.opportunity_id}`,order:'version_number.desc',limit:'1'});current();
       if(latest.length!==1||latest[0].version_number<fresh.version_number)throw Error('最新版本讀回不符');
       return {...row,is_latest_version:latest[0].id===fresh.id&&latest[0].version_number===fresh.version_number};
+    },
+    async readPublicationMeasurement(version,{isCurrent,latest,publicationId=null,data=undefined}={}) {
+      const session=membership;
+      const current=()=>{if(membership!==session||typeof isCurrent!=='function'||!isCurrent())throw Error('量測工作階段或版本已變更');};
+      current();const delivery=await this.readSavedUrlDelivery(version,{latest,isCurrent});current();
+      const out=await this.wordpressPublication(data===undefined?'measurement':'measurement-save',{version_id:version.id,publication_id:publicationId,...data===undefined?{}:{data}});current();
+      const b=out.binding;
+      if(!b||b.organization_id!==delivery.version.organization_id||b.version_id!==delivery.version.id||b.source_digest!==delivery.source.source_digest||b.content_digest!==delivery.content_digest||b.version_digest!==delivery.version.version_digest||out.target_url!==delivery.source.candidate_url)throw Error('量測發布版本／來源／頁面不一致');
+      if(canonical(await this.readSavedUrlDelivery(version,{latest,isCurrent}))!==canonical(delivery))throw Error('量測讀取期間版本已變更');current();
+      return freeze({...out,position:delivery.version.position});
     },
     async readMeasurementPreparation(version,{isCurrent,latest,observationId=null}={}) {
       const session=membership,org=activeOrg();

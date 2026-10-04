@@ -10,7 +10,7 @@ export function wordpressPublication({api,version,isCurrent,latest}){
  for(const n of [preview,publish,read,restore,history])n.type='button';
  let session=api.context(),epoch=0,editing=false,busy=false,intent=null;
  const active=n=>root.isConnected&&isCurrent()&&api.context()===session&&epoch===n&&!editing;
- function paint(){const eligible=session?.role==='owner'&&latest&&!editing&&!busy;history.disabled=!eligible;preview.disabled=!eligible||['unknown','submitting','restore_unknown'].includes(intent?.state);check.disabled=!eligible||intent?.state!=='preview';publish.disabled=!eligible||intent?.state!=='preview'||!check.checked;read.disabled=!eligible||!intent||intent.state==='preview';restore.disabled=!eligible||intent?.state!=='confirmed_applied';}
+ function paint(){const eligible=session?.role==='owner'&&latest&&!editing&&!busy;history.disabled=session?.role!=='owner'||editing||busy;preview.disabled=!eligible||['unknown','submitting','restore_unknown'].includes(intent?.state);check.disabled=!eligible||intent?.state!=='preview';publish.disabled=!eligible||intent?.state!=='preview'||!check.checked;read.disabled=!eligible||!intent||intent.state==='preview';restore.disabled=!eligible||intent?.state!=='confirmed_applied';}
  check.onchange=paint;
  async function run(action){const n=++epoch;busy=true;paint();status.textContent='正在核對…';try{
   let value=await api.wordpressPublication(action,{version_id:version.id,intent_id:intent?.id,page_id:intent?.page_id,confirm:action==='publish'?check.checked:action==='restore'});

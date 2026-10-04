@@ -65,3 +65,5 @@
 
 .page-observation label { display:block; margin-block:10px; }
 .page-observation input, .page-observation select { display:block; width:100%; max-width:100%; box-sizing:border-box; }
+/* Exact-version measurement must fit the existing mobile version card. */
+.publication-measurement{min-width:0;overflow-wrap:anywhere}.publication-measurement-form{display:grid;gap:12px;min-width:0}.publication-measurement-form label{display:grid;gap:5px;min-width:0}.publication-measurement-form fieldset{min-width:0;display:grid;gap:10px;margin:0}.publication-measurement-form input,.publication-measurement-form select{width:100%;max-width:100%;min-width:0}.publication-measurement-form button{white-space:normal}

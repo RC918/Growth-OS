@@ -72,3 +72,20 @@ test('panel clears data on editing/errors and ignores late session/selection; pr
   const next=measurementPreparation({api,version:row,isCurrent:()=>true,latest:true});document.querySelector('main').replaceChildren(next.root);fail=true;next.root.querySelector('button').click();await tick();assert.match(next.root.querySelector('.measurement-status').textContent,/維持未知/);assert.equal(next.root.querySelector('.measurement-body').textContent,'');
  }finally{delete globalThis.document;dom.window.close();}
 });
+
+test('publication measurement keeps exact historical binding and rejects foreign version/source/page responses',async()=>{
+ for(const mode of ['valid','historical','org','version','source','content','page']){
+  const f=await fixture();if(mode==='historical')f.state.latest={id:parent(99),version_number:3};
+  const out={binding:{organization_id:row.organization_id,version_id:row.id,source_digest:payload.snapshot.content_fingerprint,content_digest:payload.review.content_digest,version_digest:row.first_result_request_digest},target_url:payload.snapshot.final_url};
+  if(mode==='org')out.binding.organization_id=ids.other;if(mode==='version')out.binding.version_id=parent(99);if(mode==='source')out.binding.source_digest='different';if(mode==='content')out.binding.content_digest='different';if(mode==='page')out.target_url='https://other.example/page';
+  f.api.wordpressPublication=async()=>out;
+  const request=()=>f.api.readPublicationMeasurement(row,{latest:mode!=='historical',isCurrent:()=>true});
+  if(['valid','historical'].includes(mode)){const result=await request();assert.equal(result.position,mode==='historical'?'historical':'latest_at_read');}else await assert.rejects(request());
+ }
+});
+test('publication response after logout/replacement or content drift cannot become a measurement result',async()=>{
+ for(const mode of ['logout','replace','source']){const f=await fixture();f.api.wordpressPublication=async()=>{
+  if(mode==='source')f.state.row.first_result_payload.snapshot.final_url='https://changed.example/page';else{f.api.signOut();if(mode==='replace')await f.api.completeMagicLink(fragment);}
+  return {binding:{organization_id:row.organization_id,version_id:row.id,source_digest:payload.snapshot.content_fingerprint,content_digest:payload.review.content_digest,version_digest:row.first_result_request_digest},target_url:payload.snapshot.final_url};
+ };await assert.rejects(f.api.readPublicationMeasurement(row,{latest:true,isCurrent:()=>true}));}
+});
