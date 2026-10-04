@@ -6,12 +6,14 @@
   "workspace_url": "https://growth-os-preview-git-feat-passwordless-workspace-morning-ai.vercel.app/workspace.html",
   "repository": "RC918/Growth-OS",
   "branch": "feat/passwordless-workspace",
-  "baseline_head": "26bc3e60eaac66437f4814dd16c5b05d2bf3e89b",
-  "baseline_ci": 37184970799,
+  "baseline_head": "c4ae4ec34df52a1271a059db0301adc905b54a1f",
+  "baseline_ci": 37187566457,
   "proposal_sha256": "6039feb2f8e8932d10ef7bd01c26058b8f4724b56c8bab04f46e61d817ec568e",
   "expected_save_prosrc_sha256": "e7c41525d87e0bc0b6b5d25d73e319df16054bb05155a821ddd15f7d9bb054e1",
   "runtime_closed_sha256": "fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b",
   "historical_migration_count": 23,
+  "installation_history_count": 24,
+  "initial_tracked_migrations": 3,
   "hosted_checks": {
     "isolation": "pending_parent_readonly_verification",
     "population": {
@@ -66,6 +68,26 @@
       "anon": false,
       "service_role": false
     },
+    "audit_acl_reduction": {
+      "relation": "public.audit_events",
+      "grantees": [
+        "PUBLIC",
+        "anon",
+        "authenticated"
+      ],
+      "privileges": [
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE"
+      ],
+      "service_role": "unchanged",
+      "legal_select_rls": "unchanged",
+      "historical_rows": "unchanged",
+      "source": "parent readonly 2026-10-04 08:48 effective / 08:51 raw ACL",
+      "raw_before": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "severity": "P2 Blocking; no evidence of exploitation or data loss"
+    },
     "table_write_grants_added": [],
     "save": "CLOSED throughout",
     "parent_inserts": 0,
@@ -80,7 +102,8 @@
   "operations": [
     "readonly hosted identity/isolation/population/Auth and exact DB baseline verification",
     "separate Owner approval of artifacts, deployment identity and action window",
-    "capture preservation and state; install closed schema/RPC as tracked migration",
+    "capture preservation/state; separately approved tracked audit-only revoke (history 23→24), verify exact ACL allowlist and effective writes false",
+    "install closed schema/RPC as tracked migration (history 24→25)",
     "verify closed installation and unchanged original data/history/catalog",
     "deploy candidate closed config, verify exact deployment/schema/ACL",
     "enable SQL as separate tracked migration; verify effective ACL; then deploy enabled config",
@@ -89,6 +112,7 @@
     "restore: verify deployment/schema/ACL/preservation again; separate approved restore SQL then enabled config"
   ],
   "migration_names": {
+    "audit_revoke": "url_review_persistent_audit_revoke",
     "install": "url_review_persistent_install_closed",
     "enable": "url_review_persistent_enable",
     "disable": "url_review_persistent_disable",

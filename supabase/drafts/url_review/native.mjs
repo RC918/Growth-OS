@@ -50,11 +50,28 @@ try {
  const pq=query=>sql(query,'persistent-review-observer','persistent_review');
  pq((await persistentBaseline()).replace(/create role (anon|authenticated|service_role) nologin;/g,''));
  const artifact=async file=>readFile(new URL('./persistent/'+file,import.meta.url),'utf8');
- const preserve=await artifact('preservation.sql'),prior=pq(preserve),fixed=await fixedReviewManifest();
+ pq('grant all on public.audit_events to service_role');
+ const preserve=await artifact('preservation.sql'),original=pq(preserve),fixed=await fixedReviewManifest();
+ const oldCount=Number(pq('select count(*) from public.audit_events'));assert.ok(oldCount>0);
+ for(const role of ['anon','authenticated']){const proof=pq(`begin;set local role ${role};truncate public.audit_events;reset role;select count(*) from public.audit_events;rollback;`);assert.match(proof,/(?:^|\n)0(?:\n|$)/);assert.equal(Number(pq('select count(*) from public.audit_events')),oldCount);}
+ console.log('PASS audit baseline PG17: anon/authenticated TRUNCATE bypasses SELECT-only RLS; disposable transactions rolled back');
+ const revoke=await artifact('audit-revoke.sql');pq(revoke);pq(await artifact('audit-postflight.sql'));assert.equal(pq(preserve),original);
+ for(const role of ['anon','authenticated']){
+  const actor=`begin;set local role ${role};select set_config('request.jwt.claim.sub','${fixed.actor_id}',true);`;
+  for(const statement of [`insert into public.audit_events(organization_id,actor_user_id,event_type,object_type,object_id) values('${fixed.organization_id}','${fixed.actor_id}','synthetic','synthetic','${fixed.version_id}')`,'update public.audit_events set event_type=event_type where false','delete from public.audit_events where false','truncate public.audit_events'])assert.throws(()=>pq(actor+statement+';commit;'),/permission denied/);
+  assert.match(pq(actor+"select has_table_privilege(current_user,'public.audit_events','SELECT');commit;"),/(?:^|\n)t(?:\n|$)/);
+ }
+ assert.match(pq(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${fixed.actor_id}',true);select count(*)>0 from public.audit_events;commit;`),/(?:^|\n)t(?:\n|$)/);assert.equal(pq(preserve),original);
+ pq(`insert into supabase_migrations.schema_migrations values('synthetic-audit-revoke','url_review_persistent_audit_revoke',array[${quote(revoke)}]);`);const prior=pq(preserve);
+ console.log('PASS audit revoke PG17: both roles denied INSERT/UPDATE/DELETE/TRUNCATE; legal SELECT, RLS, service_role, old rows and other catalog preserved');
  pq(await artifact('install-closed.sql'));pq(await artifact('postflight-closed.sql'));assert.equal(pq(preserve),prior);
  pq(await artifact('enable.sql'));pq(await artifact('postflight-enabled.sql'));assert.equal(pq(preserve),prior);
  const requestId=randomUUID(),call=`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${fixed.actor_id}',true);select public.review_url_result('${fixed.organization_id}','${fixed.version_id}','${requestId}','${fixed.source_digest}','${fixed.content_digest}','${fixed.version_digest}',${quote(JSON.stringify(checks))}::jsonb);commit;`;
- pq(call);const confirmed=pq(preserve);pq(await artifact('disable.sql'));pq(await artifact('postflight-closed.sql'));assert.throws(()=>pq(call),/permission denied/);assert.equal(pq(preserve),confirmed);
+ pq("create function public.test_reject_review_audit() returns trigger language plpgsql as $$begin if new.event_type='url_result_reviewed' then raise exception 'synthetic audit failure';end if;return new;end$$;create trigger test_reject_review_audit before insert on public.audit_events for each row execute function public.test_reject_review_audit();");
+ assert.throws(()=>pq(call),/synthetic audit failure/);pq('drop trigger test_reject_review_audit on public.audit_events;drop function public.test_reject_review_audit();');assert.equal(pq(preserve),prior);
+ pq(call);assert.equal(pq(`select (select count(*) from public.content_reviews where version_id='${fixed.version_id}')||'/'||(select count(*) from public.audit_events where event_type='url_result_reviewed' and object_id='${fixed.version_id}')`),'1/1');
+ console.log('PASS audit revoke PG17: private definer Owner RPC still 1 review/1 audit; injected audit failure rolls back entire review');
+ const confirmed=pq(preserve);pq(await artifact('disable.sql'));pq(await artifact('postflight-closed.sql'));assert.throws(()=>pq(call),/permission denied/);assert.equal(pq(preserve),confirmed);
  pq(await artifact('restore.sql'));pq(await artifact('postflight-enabled.sql'));pq(call);assert.equal(pq(preserve),confirmed);pq(await artifact('disable.sql'));
  console.log('PASS persistent PG17 closed install → enable → review → disable denies → restore exact replay; immutable data/audit/catalog, Save closed');
 }finally{for(const p of sessions)if(p.exitCode===null)p.kill();if(started)docker(['rm','-f',name]);}
