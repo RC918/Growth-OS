@@ -4,7 +4,13 @@
 
 ## 當前授權與基準
 
-**目前 Core：同 run 發布服務 process 重啟恢復。** 基準 `f5050c9ddb0d7adea5058244df95e3c611bcef1c`，③既有 Reviewer `01a10836-e798` APPROVE_WITH_DEFERRED_DEBT、CI `37224426420`／Preview `7fE9bVde8rBeXkrsf4ufjU9KywVs` success。父只提升單一 publication service process 恢復為必要 Core；完整 intent／measurement durable journal 在 POST 前 fsync，實際 SIGKILL／新PID後以 fresh synthetic session與原有效短grant讀回 exact publication／measurement，pending恢復unknown只GET、不重送。缺檔／損毀／partial commit、錯tenant/version/page、drift、到期／撤銷failclosed；不重發或延長grant，secret不落盤。詳見[逐點驗證、commit邊界與有界RCA](docs/Publication_Process_Restart_驗收_2026-10-04.md)。
+**目前 Core：完整內部 RC 候選。** 基準 `753dd9c47655e961221a1ef6be9bf8a9aef7194c` 已由 Reviewer `01a10857-2c6c` APPROVE（CI `37226680267` 59步／Preview `H6gCsEbPeZw3TMUoJ7xnbfUETxpX` success）。父指定補實際頁面scanner來源、可信HTTP/Auth/SQL/發布接線、整個runner結束後重新登入讀回的持續候選。短命既有入口已改讀owned WordPress真HTML，不再預製URLresponse，1280/390走HTTP service完成原完整路徑；產品scanner無localhost/SSRF例外。
+
+standalone runtime、native GoTrue/PostgREST/PG與WP持續部署候選、原schema組成、兩phase整體腳本已準備；**真persistent環境／原生Auth／全部runner結束後驗收 NOT RUN**，因新持久secret/grant/deploy需父就[完整envelope與逐點證據](docs/Internal_RC_Candidate_2026-10-04.md)一次請准。現有hostedDB27、disabled8b25、frozen、不restore／Owner站／新費用界線保留。這不是完整RC/MVP/liveM3完成。CoreMilestoneProgress=1，maintenance=0；新候選CI/Preview交既有Reviewer，不自行啟動pending環境或④。
+
+### 已接受同run process恢復（歷史）
+
+**已接受 Core：同 run 發布服務 process 重啟恢復。** 基準 `f5050c9ddb0d7adea5058244df95e3c611bcef1c`，③既有 Reviewer `01a10836-e798` APPROVE_WITH_DEFERRED_DEBT、CI `37224426420`／Preview `7fE9bVde8rBeXkrsf4ufjU9KywVs` success。父只提升單一 publication service process 恢復為必要 Core；完整 intent／measurement durable journal 在 POST 前 fsync，實際 SIGKILL／新PID後以 fresh synthetic session與原有效短grant讀回 exact publication／measurement，pending恢復unknown只GET、不重送。缺檔／損毀／partial commit、錯tenant/version/page、drift、到期／撤銷failclosed；不重發或延長grant，secret不落盤。詳見[逐點驗證、commit邊界與有界RCA](docs/Publication_Process_Restart_驗收_2026-10-04.md)。
 
 本機31契約及1280／390完整①②③入口驗證；每尺寸3次實際SIGKILL恢復，維持4WP寫入（2發布＋2恢復）、量測有journal寫入但零額外WP／SQL mutations。Auth／TLS broker仍存活，這不是整個runner／主機／跨run恢復。多writer/CAS、跨run授權、真provider仍P3，未擴修；原Auth／disabled8b25／frozen／hostedDB27界線保持。exact新HEAD CI／Preview交審另核，Primary不自行最終驗收。CoreMilestoneProgress=1，maintenance連續數=0；下一工作由Dot選，不開始④Owner站。
 

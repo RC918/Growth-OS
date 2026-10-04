@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
-import {createWorkspaceApi} from '../../apps/web/workspace-api.mjs';
+import {publicationAuthority} from '../internal-rc/authority.mjs';
+import {scanOwnedSite} from '../internal-rc/source-fixture.mjs';
 import {createPublicationService} from './service.mjs';
 import {ids} from '../../supabase/drafts/first_result_save/fixtures.mjs';
 import {backend} from '../owner-workspace/auth-session-fixture.mjs';
@@ -17,23 +18,17 @@ export async function verification({site,transport,rig,width}){
    return result;
   }return site.call(path,options);
  }};
- const authorize=async(token,id,readonly=false)=>{
-  const api=createWorkspaceApi({origin:backend,key:'sb_publishable_synthetic',redirectOrigin:'http://127.0.0.1:8791',urlResultSchemaEnabled:true,urlReviewSchemaEnabled:true,reviewMarker:{read:()=>null},fetchImpl:async(url,o)=>{const r=await transport({url,method:o.method,headers:o.headers,body:o.body?JSON.parse(o.body):undefined});return {ok:r.status>=200&&r.status<300,status:r.status,json:async()=>JSON.parse(JSON.stringify(r.data))};}});
-  await api.completeMagicLink('#access_token='+token+'&token_type=bearer&expires_in=60');
-  const dashboard=await api.dashboard(),metadata=dashboard.versions.find(v=>v.id===id);if(!metadata)throw Error('Version not visible');
-  const row=await api.readContentVersion(metadata);
-  if(readonly){
-   if(api.context()?.role!=='owner')throw Error('Publication record requires Owner');
-   const latest=!dashboard.versions.some(v=>v.opportunity_id===row.opportunity_id&&v.version_number>row.version_number);
-   const d=await api.readSavedUrlDelivery(row,{latest,isCurrent:()=>true}),review=await api.readUrlReview(row);
-   return {binding:{organization_id:d.version.organization_id,version_id:d.version.id,version_number:d.version.number,review_id:review?.id??null,source_digest:d.source.source_digest,content_digest:d.content_digest,version_digest:d.version.version_digest},target_url:d.source.candidate_url,position:d.version.position};
-  }
-  return api.previewUrlPublication(row,{isCurrent:()=>true});
- };
- service=await createPublicationService({path:dir+'/'+width+'-journal.json',auditPath:journal,site:wrapped,organization_id:ids.org,authorize,authorizeRead:(token,id)=>authorize(token,id,true)});
+ const upstreamFetch=async(url,o={})=>{const r=await transport({url,method:o.method??'GET',headers:o.headers,body:o.body?JSON.parse(o.body):undefined});return {ok:r.status>=200&&r.status<300,status:r.status,json:async()=>JSON.parse(JSON.stringify(r.data))};};
+ const authorize=publicationAuthority({origin:backend,key:'sb_publishable_synthetic',redirectOrigin:'http://127.0.0.1:8791',fetchImpl:upstreamFetch});
+ service=await createPublicationService({path:dir+'/'+width+'-journal.json',auditPath:journal,site:wrapped,organization_id:ids.org,authorize,authorizeRead:(token,id)=>authorize(token,id,true),
+  rc:{listen_origin:'http://127.0.0.1:8792',public_origin:'http://127.0.0.1:8791',backend_origin:backend,public_key:'sb_publishable_synthetic',isolated_transport:true},upstreamFetch,scan:()=>scanOwnedSite(site,dir+'/'+width+'-source.sqlite')});
  const dispatch=(token,action,input)=>service.dispatch(token,action,input);
  return {
-  async route(req){const action=new URL(req.url()).pathname.split('/').at(-1);try{if(req.method()!=='POST')throw Error('method');const body=JSON.stringify(await dispatch(req.headers().authorization?.replace(/^Bearer /,''),action,req.postDataJSON()));if(action==='measurement'&&holdMeasurement){holdMeasurement=false;measurementStarted?.();await new Promise(r=>releaseMeasurement=r);}return {status:200,contentType:'application/json',body};}catch(error){console.error('WordPress gate:',error.message);return {status:403,contentType:'application/json',body:'{"error":"Publication denied"}'};}},
+  async route(req){const u=new URL(req.url()),action=u.pathname.split('/').at(-1);try{
+   const r=await service.request(u.pathname+u.search,{method:req.method(),headers:{...(req.headers().authorization?{authorization:req.headers().authorization}:{})},...(req.method()==='POST'?{body:req.postDataJSON()}:{})});const body=Buffer.from(await r.arrayBuffer());
+   if(action==='measurement'&&holdMeasurement){holdMeasurement=false;measurementStarted?.();await new Promise(r=>releaseMeasurement=r);}
+   return {status:r.status,contentType:r.headers.get('content-type'),body};
+  }catch{return {status:503,contentType:'application/json',body:'{"error":"Service stopped; reconcile only"}'};}},
   async run({page,view,token,version_id,fresh,open}){
    const dbBefore=await rig.snapshot();
    const panel=()=>view.locator('.wordpress-publication');
@@ -53,7 +48,7 @@ export async function verification({site,transport,rig,width}){
    const file=async(kind,missing=false)=>m.locator('.measure-'+kind+'-file').setInputFiles({name:kind+'.csv',mimeType:'text/csv',buffer:Buffer.from(csv(kind,missing))});
    await m.locator('.measure-source_name').fill('Synthetic measurement fixture');await m.locator('.measure-filter').fill('page exact; country all; device all');
    for(const kind of ['baseline','followup']){await file(kind);await m.locator('.measure-'+kind+'-start').fill(day(kind==='baseline'?-2:1));await m.locator('.measure-'+kind+'-end').fill(day(kind==='baseline'?-1:2));await m.locator('.measure-'+kind+'-exported').fill(day(kind==='baseline'?0:3)+'T00:00:00Z');}
-   await m.locator('.measure-page_url').fill(site.origin+'/wrong/');await m.locator('.measure-save').click();await m.locator('.measurement-status').filter({hasText:'頁面不吻合'}).waitFor();assert.equal(posts,1);
+   await m.locator('.measure-page_url').fill(new URL('/wrong/',site.targetURL).href);await m.locator('.measure-save').click();await m.locator('.measurement-status').filter({hasText:'頁面不吻合'}).waitFor();assert.equal(posts,1);
    await m.locator('.measure-page_url').fill(site.targetURL);await m.locator('.measure-followup-start').fill(day(0));await m.locator('.measure-save').click();await m.locator('.measurement-status').filter({hasText:'後續期間不在'}).waitFor();assert.equal(posts,1);await m.locator('.measure-followup-start').fill(day(1));await file('baseline',true);await measureSave(m);assert.match(await m.locator('.measure-baseline-result').innerText(),/覆蓋 1\/2 天/);assert.match(await m.locator('.measurement-outcome').innerText(),/未知/);
    await file('baseline');await measureSave(m);assert.match(await m.locator('.measurement-outcome').innerText(),/合成情境差異：點擊 5、曝光 30/);assert.match(await m.locator('.measure-baseline-result').innerText(),/CTR 未知（曝光為零）/);assert.match(await m.locator('.measure-followup-result').innerText(),/未來合成日期/);await m.screenshot({path:dir+'/'+width+'-measurement.png'});
    assert.equal(posts,1);assert.deepEqual(await rig.snapshot(),dbBefore);
@@ -100,8 +95,8 @@ export async function verification({site,transport,rig,width}){
    console.log('PASS WordPress stale reviewed version denied');},
   async grantChecks(version_id){
    const before=site.snapshot();const token=rig.issue('owner');try{
-    await site.expire();assert.equal((await site.call(site.path(site.target))).status,403);await service.restart();await assert.rejects(dispatch(token,'history',{version_id}),/grant revoked/);
-    await site.revoke();assert.equal((await site.call(site.path(site.target))).status,401);await service.restart();await assert.rejects(dispatch(token,'history',{version_id}),/grant revoked/);
+    await site.expire();assert.equal((await site.call(site.path(site.target))).status,403);await service.restart();await assert.rejects(dispatch(token,'history',{version_id}),/RC request denied/);
+    await site.revoke();assert.equal((await site.call(site.path(site.target))).status,401);await service.restart();await assert.rejects(dispatch(token,'history',{version_id}),/RC request denied/);
     assert.deepEqual(site.snapshot(),before);await writeFile(dir+'/grant-restart-proof.json',JSON.stringify({bound:service.bound,restarts:service.restarts,expired_denied:true,revoked_denied:true},null,2));
     console.log('PASS WordPress short lease expiry and native Application Password revocation; restarted service + fresh synthetic token denied both; no page changes');
    }finally{rig.retire(token);}

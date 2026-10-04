@@ -1,3 +1,4 @@
+import {workspaceRuntime,workspaceFetch} from './workspace-runtime.mjs';
 import {wordpressPublication} from './wordpress-publication.mjs';
 import {wordpressPublicationEnabled} from './wordpress-publication-config.mjs';
 import {pageObservation} from './page-observation.mjs';
@@ -16,8 +17,7 @@ import { createObservationPanel } from './workspace-observations.mjs';
 import { createGoalPanel } from './workspace-goals.mjs';
 
 const api = createWorkspaceApi({
-  origin: 'https://vhzryhibmpvglzcmfnaa.supabase.co',
-  key: 'sb_publishable_B9pMiED8jrCoxuy2kC0HoA_LmzKex9r',
+  ...workspaceRuntime, fetchImpl:workspaceFetch,
   redirectOrigin: location.origin, wordpressPublicationEnabled, urlReviewEnabled, urlReviewSchemaEnabled, urlReviewTrial, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
 });
 const $ = id => document.getElementById(id);

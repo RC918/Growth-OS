@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
+import {enterWorkspaceSession} from './session-browser.mjs';
 import {checks} from '../../supabase/drafts/url_review/fixture.mjs';
 import {fixtures,ids} from '../../supabase/drafts/first_result_save/fixtures.mjs';
 import {createSessionRig,createAuthTransport,validateOptions,backend,redact} from './auth-session-fixture.mjs';
@@ -16,9 +17,9 @@ const withWordpress=args.includes('--wordpress');
 try{
  run(['--test','prototype/owner-workspace/auth-session-fixture.test.mjs']);
  run(['supabase/drafts/url_result/native.mjs']); // Same existing assertions, no image pull or new framework.
- // Same raw URL response fixture as url-result-ui; page UI must create its own edited Review.
- if(withWordpress)wordpressSite=await (await import('../wordpress-publish/site.mjs')).createSite();
- let source=(await fixtures())[0];if(wordpressSite)source=JSON.parse(JSON.stringify(source).replaceAll('https://example.com/products/bolt',wordpressSite.targetURL));for(const [key,field]of Object.entries(source.preview.fields)){field.suggested=source.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete source.review;source.preview.status='awaiting_review';
+ // WordPress mode reads owned live HTML through the unchanged scanner; base mode retains the prior raw fixture.
+ if(withWordpress)wordpressSite=await (await import('../wordpress-publish/site.mjs')).createSite({sourceFixture:true});
+ let source=wordpressSite?null:(await fixtures())[0];if(source){for(const [key,field]of Object.entries(source.preview.fields)){field.suggested=source.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete source.review;source.preview.status='awaiting_review';}
  browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});
  for(const width of [1280,390]){
   const rig=await createSessionRig(options),transport=createAuthTransport({...options,isolation:rig.isolation});let context,page,token=null,previousToken=null,blockedTargets=0,lateRelease=null,lateStarted=null,holdDetail=false,payload=null,sourceRequests=0;
@@ -33,8 +34,12 @@ try{
      const req=route.request(),u=new URL(req.url());
      try{
       if(u.origin===origin){
-       if(wp&&u.pathname.startsWith('/api/wordpress-publication/'))return route.fulfill(await wp.route(req));
-       if(wp&&u.pathname==='/wordpress-publication-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const wordpressPublicationEnabled=true;'});
+       if(wp){
+        const response=await wp.route(req);
+        if(u.pathname==='/api/product-source'){assert.equal(req.method(),'POST');assert.deepEqual(req.postDataJSON(),{url:wordpressSite.targetURL});assert.equal(++sourceRequests,1);assert.equal(response.status,200);source=JSON.parse(response.body.toString());assert.ok(source.snapshot.html.includes('itemprop="description"'));}
+        if(holdDetail&&u.pathname==='/backend/rest/v1/content_versions'&&u.searchParams.get('select')?.includes('first_result_payload')){lateStarted?.();await new Promise(resolve=>lateRelease=resolve);}
+        return route.fulfill(response);
+       }
        if(u.pathname==='/api/product-source'){
         assert.equal(req.method(),'POST');assert.deepEqual(req.postDataJSON(),{url:source.snapshot.original_url});assert.equal(++sourceRequests,1);
         return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(source)});
@@ -49,7 +54,7 @@ try{
      }catch(error){errors.push(redact(error));return route.abort();}
     });
     if(fromUrl){
-     const product=page;await product.goto(origin+'/first-result.html');await product.locator('#source-url').fill(source.snapshot.original_url);await product.locator('#source-submit').click();await product.locator('#review-title').waitFor();
+     const product=page;await product.goto(origin+'/first-result.html');await product.locator('#source-url').fill(wordpressSite?.targetURL??source.snapshot.original_url);await product.locator('#source-submit').click();await product.locator('#review-title').waitFor();
      assert.equal(sourceRequests,1);assert.equal(rig.stats().mutations,0);
      const summary=await product.locator('#source-summary').textContent();for(const key of ['original_url','final_url','fetched_at','content_fingerprint'])assert.ok(summary.includes(source.snapshot[key]));
      const edits={title:wp?'合成鋼製螺栓 🧪 é':'已編輯 🧪 '+source.preview.fields.title.suggested,meta_description:'合成验收：'+source.preview.fields.meta_description.suggested,description:source.preview.fields.description.suggested+'\nUnicode e\u0301 é 🧪 保留。'};
@@ -67,13 +72,12 @@ try{
     assert.equal(await page.locator('.resume-editor textarea').count(),0);assert.equal(await page.locator('.typed-draft').count(),0);assert.deepEqual(await context.cookies(),[]);
     assert.deepEqual(await page.evaluate(()=>({session:Object.keys(sessionStorage),local:Object.keys(localStorage)})),{session:[],local:[]});
     token=rig.issue(role);assert.ok(token!==previousToken,'fresh context receives a newly issued per-run token');
-    await page.goto('about:blank'); // A callback is a new document navigation, not an in-page hash edit.
-    await page.goto(origin+'/workspace.html#access_token='+token+'&token_type=bearer&expires_in=60');await page.locator('#workspace').waitFor({state:'visible'});
+    await enterWorkspaceSession(page,{origin,access_token:token,expires_in:60});
     assert.equal(await page.evaluate(()=>location.hash),'');
    }
    async function open(id){const view=page.locator(`.typed-version[data-version-id="${id}"]`);await view.locator('.typed-loader > summary').click();await view.locator('.typed-draft').waitFor();return view;}
    const readPayload=async view=>JSON.parse(await view.locator('.typed-draft > details').last().locator('pre').textContent()).payload;
-   const request=async(path,{method='GET',body}={})=>page.evaluate(async({url,method,body,token})=>{const r=await fetch(url,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,data:await r.json()};},{url:backend+path,method,body,token});
+   const request=async(path,{method='GET',body}={})=>page.evaluate(async({url,method,body,token})=>{const r=await fetch(url,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,data:await r.json()};},{url:(wp?origin+'/backend':backend)+path,method,body,token});
    await fresh('owner',true);
    await page.locator('#url-save-preview .typed-draft').waitFor();assert.equal(rig.stats().mutations,0,'normal handoff/login never auto-save');
    assert.deepEqual(JSON.parse(await page.locator('#url-save-preview .typed-draft > details').last().locator('pre').textContent()).payload,payload,'normal opener handoff retains source and edited bytes');
@@ -103,6 +107,7 @@ try{
    await view.locator('.url-review-status').filter({hasText:reviewed.id}).waitFor();assert.ok((await view.locator('.url-review-status').innerText()).includes(saved.id));assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);assert.deepEqual(await rig.snapshot(),reviewState);
    const afterSave=await rig.snapshot();assert.equal(afterSave.content_versions.length,before.content_versions.length+1);assert.equal(afterSave.audit_events.length,before.audit_events.length+2);assert.equal(afterSave.growth_opportunities.length,before.growth_opportunities.length+1);
    assert.equal(afterSave.content_versions.find(v=>v.id===saved.id).created_by,ids.owner);
+   if(wp)console.log('PASS RC HTTP service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota');
    console.log(`PASS URL core ${width}px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth`);
    // A delayed authenticated detail response cannot populate the ended page session.
    await view.locator('.typed-loader > summary').click();await view.locator('.typed-draft').waitFor({state:'detached'});holdDetail=true;const started=new Promise(r=>lateStarted=r);await view.locator('.typed-loader > summary').click();await started;await page.locator('#sign-out').click();holdDetail=false;lateRelease();await page.waitForTimeout(60);assert.equal(await page.locator('.typed-draft').count(),0);
