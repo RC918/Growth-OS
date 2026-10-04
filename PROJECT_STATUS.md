@@ -7,7 +7,11 @@
 **2026-10-04 15:07／15:11 UTC Owner 更新：** 真人必要事項確認屬 `HUMAN_REQUIRED` checkpoint，只阻擋直接相依的真人確認／實際發布，不代表專案停止；日常 regression 沿用安全隔離 synthetic fixtures／test-only sessions，不依賴 Owner。Reviewer `01a10779` 已裁定本輪 Bolt A synthetic fixture 屬 A：可自動化日常測試，並非 HUMAN_REQUIRED；既有單一入口已覆蓋五 checks／精確讀回／新版失效，不重建 harness。hosted 工具拒絕另列執行限制，不重試／restore。下方 14:34「停止／解除限制後再恢復」僅記錄當輪 remote 操作收尾，不限制已重新批准的獨立 repo/offline 工程。正式治理已併 AGENTS 與 mission／engineering skills。
 
 
-**目前產品 Core：恢復已保存版本後複製／下載三欄成果（repo/offline）。** 基準 `64962927e0b61494c48c6bfbff953cdfe6616888`，父確認 Reviewer `01a10789` APPROVE、CI `37212568096`／Preview `6c8QfFk33bBQSFuLVoKeabmZ4iAC` success。既有版本檢視旁新增 Copy／JSON，輸出前重讀同 org／version／完整 payload／source，最新或歷史分類不符拒絕；歷史明示歷史，續編期間停用，晚回應／session 替換不能觸發輸出。複製三欄加版本來源識別；JSON 包含完整 payload 與摘要，不證明 Review／站點所有權或發布。1280／390 真 clipboard／每 viewport 4 份 download bytes 已比對，預览與交付皆零額外 POST。詳見[交付出口證據](docs/Saved_Result_Delivery_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1（新 session 恢復成果後可直接交付），maintenance 連續數=0；actual disabled／SQL／frozen／Auth 不變。
+**目前產品 Core：確切成果版本旁的量測準備／資料缺口（repo/offline）。** 基準 `fca586344d27f21f9a58de7fceaee7262c0b93bd`，父確認 Reviewer `01a1079c` APPROVE、CI `37213885365`／Preview `BTJAAtNWeiLTS14jApryTibExp12` success。新增同版本旁唯讀檢視，重用交付出口的身份／版本／payload 驗證與原 baseline snapshot/report；顯示候選頁、未核實發布、頁面基線／後續／效果未知。既有觀測只能手動選作「網站層背景資料，尚未關聯此頁／版本」；同域／路徑聲明不配對、不歸因，明確零／缺日原樣保留。1280／390 驗未確認／新 session／歷史／viewer、無資料及三種背景，檢視前後觀測／audit／versions 不變。詳見[量測準備證據](docs/Measurement_Preparation_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1（使用者能在確切成果旁看懂量測缺口），maintenance 連續數=0；無新增 schema/store/CSV/adapter/OAuth，disabled／frozen／SQL／Auth 不變。
+
+下一獨立缺口：頁面級觀測與確切版本／核實發布證據的可檢查關聯契約，可先離線驗證必要欄位及不相容拒絕；目前網站 snapshot 無法提供此關聯，不能自動升格。真發布／live 數據授權仍是相應實際操作依賴，不要求真人 checkbox 才繼續獨立工程；100cap 與 P3 debt 不擴張。
+
+**前一已接受 Core：恢復已保存版本後複製／下載三欄成果（repo/offline）。** 基準 `64962927e0b61494c48c6bfbff953cdfe6616888`，父確認 Reviewer `01a10789` APPROVE、CI `37212568096`／Preview `6c8QfFk33bBQSFuLVoKeabmZ4iAC` success。既有版本檢視旁新增 Copy／JSON，輸出前重讀同 org／version／完整 payload／source，最新或歷史分類不符拒絕；歷史明示歷史，續編期間停用，晚回應／session 替換不能觸發輸出。複製三欄加版本來源識別；JSON 包含完整 payload 與摘要，不證明 Review／站點所有權或發布。1280／390 真 clipboard／每 viewport 4 份 download bytes 已比對，預览與交付皆零額外 POST。詳見[交付出口證據](docs/Saved_Result_Delivery_離線驗收_2026-10-04.md)。CoreMilestoneProgress=1（新 session 恢復成果後可直接交付），maintenance 連續數=0；actual disabled／SQL／frozen／Auth 不變。
 
 下一缺口仍是實際發布的單一試點平台、站點最小授權、當前目標內容與確切發布／讀回；交付檔案不當作發布成功。無新 remote 操作或人工 checkpoint 需求，100cap 與既有 P3 debt defer。
 

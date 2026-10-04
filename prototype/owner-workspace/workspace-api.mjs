@@ -1,3 +1,5 @@
+import {loadSnapshot} from './baseline-snapshot.mjs';
+import {growthReport} from './baseline-report.mjs';
 import {createRevisionMarker} from './url-result-trial-marker.mjs';
 import {contentDigest} from './first-result-review.mjs';
 import {validateReport,copyJSON,canonical,freeze} from './first-result-payload.mjs';
@@ -383,6 +385,30 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       const latest=await select('content_versions','id,version_number',{organization_id:`eq.${org}`,opportunity_id:`eq.${fresh.opportunity_id}`,order:'version_number.desc',limit:'1'});current();
       if(latest.length!==1||latest[0].version_number<fresh.version_number)throw Error('最新版本讀回不符');
       return {...row,is_latest_version:latest[0].id===fresh.id&&latest[0].version_number===fresh.version_number};
+    },
+    async readMeasurementPreparation(version,{isCurrent,latest,observationId=null}={}) {
+      const session=membership,org=activeOrg();
+      const current=()=>{if(membership!==session||typeof isCurrent!=='function'||!isCurrent())throw Error('量測檢視工作階段或版本已變更');};
+      current();if(observationId!==null&&!uuid(observationId))throw Error('觀測版本識別不符');
+      const delivery=await this.readSavedUrlDelivery(version,{latest,isCurrent});current();
+      const choices=await select('search_observation_versions','id,organization_id,created_at',{organization_id:`eq.${org}`,order:'created_at.desc,id.desc',limit:'20'});current();
+      if(choices.length>20||choices.some(r=>r.organization_id!==org||!uuid(r.id)||typeof r.created_at!=='string')||new Set(choices.map(r=>r.id)).size!==choices.length)throw Error('觀測列表身份不符');
+      let background=null;
+      if(observationId!==null){
+        if(!choices.some(r=>r.id===observationId))throw Error('請從目前可讀列表選擇觀測版本');
+        const rows=await select('search_observation_versions','id,organization_id,payload,created_at',{organization_id:`eq.${org}`,id:`eq.${observationId}`,limit:'1'});current();
+        if(rows.length!==1||rows[0].organization_id!==org||rows[0].id!==observationId)throw Error('觀測版本身份不符');
+        const loaded=loadSnapshot(JSON.stringify(rows[0].payload));
+        const report=growthReport(loaded.a.result,loaded.b?.result||null,{a:loaded.a.sample,b:loaded.b?.sample||false},loaded.actions);
+        background={observation_id:observationId,scope:'website_unlinked',page_version_linked:false,report,periods:{baseline:loaded.a.result,subsequent:loaded.b?.result??null}};
+      }
+      // Keep the version/session bound while observation reads and validation run.
+      const final=await this.readSavedUrlDelivery(version,{latest,isCurrent});current();
+      if(canonical(final)!==canonical(delivery))throw Error('量測檢視版本或來源已變更');
+      return freeze({binding:{...delivery.version,...delivery.source},publication:{status:'unverified',published_at:null},
+        page_baseline:{status:'unknown'},page_followup:{status:'unknown'},page_effect:{status:'unknown',clicks:null,impressions:null,causal_claim:false},
+        gaps:['尚無此確切版本／目標頁的核實發布證據與發布時間。','尚無關聯此頁／版本、來源及權限已核實的基線資料。','尚無對應發布時間、同口徑且覆蓋完整的後續觀測資料。','SEO 點擊／曝光、到站訪問與 AI 能見度須分開；缺資料維持未知，不能當作零或歸因。'],
+        choices:choices.map(({id,created_at})=>({id,created_at})),background});
     },
     async readSavedUrlDelivery(version,{isCurrent,latest}={}) {
       const org=activeOrg(),session=membership,actor=actorId,expected=copyJSON(version);

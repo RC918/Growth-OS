@@ -58,7 +58,7 @@ jobs:
       - name: Bound URL candidate frozen artifact and authenticated ACL checks
         run: node --test supabase/drafts/url_result/bound/bound.test.mjs prototype/owner-workspace/url-result-bound.test.mjs
       - name: URL exact-version Review contracts and isolated SQL (runtime closed)
-        run: node --test prototype/owner-workspace/saved-result-delivery.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs prototype/owner-workspace/url-review.test.mjs supabase/drafts/url_review/offline.test.mjs supabase/drafts/url_review/persistent/candidate.test.mjs
+        run: node --test prototype/owner-workspace/measurement-preparation.test.mjs prototype/owner-workspace/saved-result-delivery.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs prototype/owner-workspace/url-review.test.mjs supabase/drafts/url_review/offline.test.mjs supabase/drafts/url_review/persistent/candidate.test.mjs
       - name: Bounded exact-v2 Review candidate and API contracts (offline only)
         run: node --test supabase/drafts/url_review/bound/candidate.test.mjs prototype/owner-workspace/url-review-bound.test.mjs
       - name: Offline model trial handler and ledger checks (no provider calls)
