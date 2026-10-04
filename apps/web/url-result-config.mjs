@@ -3,5 +3,5 @@ export const urlResultSchemaEnabled=true;
 export const urlSaveEnabled=false;
 export const urlSaveTrial=null;
 export const urlReviewSchemaEnabled=true;
-export const urlReviewEnabled=false;
+export const urlReviewEnabled=true;
 export const urlReviewTrial=null;
