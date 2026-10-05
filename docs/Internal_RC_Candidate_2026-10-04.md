@@ -2,6 +2,46 @@
 
 基準 `753dd9c47655e961221a1ef6be9bf8a9aef7194c` 已由 Reviewer `01a10857-2c6c` APPROVE；CI `37226680267` 59步、Preview `H6gCsEbPeZw3TMUoJ7xnbfUETxpX` success。父本輪指定收斂完整 RC，沒有授權真持續環境執行。本文件及 `prototype/internal-rc/` 是新候選，沒有修改歷史 frozen 包，也不因名稱 RC 自動取得新權限。
 
+## 2026-10-05 第二次啟動 RCA 與原生相容性候選（未再部署）
+
+本輪基準 `c82b88c46ce8af50e4e032ef395a135720abebeb`，105項digest `9c6bc1e3aef9ba787ba97fe41f5e183ec0f32cd597669623562fb7682c38991f`。第二次批准reference `Sentinel_1b222cd538648191808264f921960391`、窗口01:44:08–03:44:00 UTC，已消耗且清理；**以下新候選不沿用該批准**。第一次 `.json.started` 與第二次 `/workspace/rc-approved-window-next.json.started` 都保留；文件下方第三次window路徑只是待批准範例，不是新marker／環境已建立。
+
+### 原始可跨 executor 核對證據
+
+以下是父要求附入repo的原始非敏感JSON副本，bytes/SHA與原executor相同；不是Reviewer已獨立觀察該executor的證明。原完整allowlist evidence位於 `/workspace/shared/growth-internal-rc-evidence-20261005-attempt2`，期限2026-10-08T03:44:00Z。
+
+- [auth-bootstrap-summary.json](evidence/RC_Attempt2_2026-10-05/auth-bootstrap-summary.json)，SHA256 `f261c0aba2f8f3debaf33a1173d2ff5e6dbb404ae095125398c11ebf5ed265ff`。
+- [cleanup.json](evidence/RC_Attempt2_2026-10-05/cleanup.json)，SHA256 `050403daf770cc5f4b404675013e82ad5f1d64d88393115f4ca68b6b24405b62`。
+
+01:46:03.483Z provision開始；PG bootstrap PASS。01:46:09Z GoTrue `00_init_auth_schema.up.sql`報42501 `must be owner of function uid`，Auth container退出1。01:47:42.535Z記錄phase-A shell exit1、Auth startup FAIL，A acceptance／B／JWT／Save／Review／fresh session／tenant均NOT_RUN；`auth.users`尚不存在，WP publish/restore POST皆0，無WP grant，第三提交未執行。只讀核`auth` schema owner=`supabase_auth_admin`、`auth.uid` owner=`postgres`。
+
+清理前五個exact容器labels均為`growth.rc=growth-internal-rc-01`；原operator cleanup exit0，log最後mtime01:47:47.986Z（不冒充process退出微秒），01:48:21.978Z postflight：唯一root／secrets／own containers/network全部移除、ports8792/8794–8797可用，無有效grant。containers空，network只bridge/host/none。舊標記01:08:39.467Z、新標記01:46:03.483Z均保留；沒有重試、覆寫歷史、重建root或再provision。
+
+### 有界根因與唯一管理責任
+
+兩次具體失敗不同：第一次是host/container UID與0600 bind可讀性；第二次是fixture bootstrap與native migration爭管同一Auth函式。共同驗證缺口是以已預建Auth shim的isolated business SQL測試，外推原生啟動交接成立。此次不以加superuser、轉移一個函式owner或放寬secret modes掩蓋，而檢查完整直接相依鏈。
+
+| 階段 | 唯一責任／本輪變更及證據 |
+|---|---|
+| PG啟動與角色bootstrap | 保留上一輪stdin→OS postgres999設計及final TCP readiness；roles.sql只建五個最小角色、空auth schema（owner auth admin）、必要usage/search_path/membership，不建auth.uid或任何Auth table/function。所有應用角色nosuperuser/nocreatedb/nocreaterole/nobypassrls；沒有新增role權限。 |
+| GoTrue原生migration | 固定v2.196.0 image內70個up SQL逐檔與官方tag相同，按版本序由auth admin執行；第一個建立uid/role、後續升級uid/role/email為JSON claims及jwt，其tables/functions由同一角色管理。production operator不重放測試fixture，也不插Auth users；GoTrue executable自身負責migration ledger／transactions／HTTP啟動。 |
+| 原生Auth完成閘門 | Auth health之後、建立三user之前，執行新auth-ready.sql只讀owner／物件存在／應用角色權限检查；缺函式／錯owner或superuser等越權failclosed。不是修改Auth定義或授予權限。 |
+| 三user→business schema | 仍由GoTrue admin建立三synthetic users；之後原schema.candidate.sql單交易套用15個business migrations及四份原proposal／stop-write，assert三user存在，再seed兩org/三membership與兩RPC grants。business SQL生成器／候選bytes本輪完全未改，不混入Auth shim。 |
+| PostgREST直接依賴 | 固定v14.17以authenticator NOINHERIT連DB，只可SET ROLE anon/authenticated；原JSON claims設定由GoTrue的native uid函式讀取。原PG17.6實驗證此角色切換／schema usage／Save+Review/RLS及pgcrypto可用。新增business提交後GET loopback Data API root readiness，再建立WP短grant；這只驗HTTP就緒，不冒充完整cache/JWT驗收。 |
+| WP與短期限 | 維持原setup／單頁／900秒與cutoff cap；只有上游全部就緒後才建立grant。原flags/frozen/hosted/Owner站不變。 |
+
+官方依據：[初始Auth SQL](https://github.com/supabase/auth/blob/v2.196.0/migrations/00_init_auth_schema.up.sql)、[JSON claims函式更新](https://github.com/supabase/auth/blob/v2.196.0/migrations/20220224000811_update_auth_functions.up.sql)、[embedded migration runner](https://github.com/supabase/auth/blob/v2.196.0/cmd/migrate_cmd.go)、[PostgREST v14.17 transaction claims/role](https://github.com/PostgREST/postgrest/blob/v14.17/src/PostgREST/Query/PreQuery.hs)。固定image只用network-none、read-only tar列出SQL，未啟動Auth；SQL原文、逐檔SHA、來源與MIT license隨test-only `auth-migrations.fixture.json`歸檔。不存在未檢查模板：僅Namespace兩種空白形式，測試未知template即拒絕。官方migration無外部extension或額外DB role依賴；用到的gen_random_uuid在PG17內建。GoTrue source核對DB namespace/search_path、先migration再serve、admin固定UUID、HS256 secret／aud／role設定；確認EmailConfirmed synthetic admin流程不需寄信。這些配置／程式碼核對不是runtime PASS。
+
+### Verification Loop 與剩餘盲點
+
+PLAN/CODE：當前完整RC Blocking P2，僅修原生啟動責任與直接相依就緒檢查，maintenance=0。UNIT/CONTRACT、BUILD/RUN、必要DATABASE：本機9/9（RC5＋bootstrap3＋全migration相容1）通過；CI同測試加入既有bootstrap步驟。短命PG17.6、network none、無ports、DB tmpfs；public deterministic sentinel不是新秘密，不建持久身份/session/grant，finally移除容器。原0600不可讀/stdin可讀與秘密不曝露測試保留；精確重現舊uid owner衝突並transaction rollback，修正後以真正DB角色auth admin跑全部70個官方up SQL。測試ledger由harness逐檔記錄，不能當原GoTrue runner已驗；初次replay遇一檔無末尾分號，修正harness語句邊界後通過，未改官方SQL。
+
+全部70個Auth SQL後檢owner、最小roleattrs與空business DB，三個無password/session的SQL-only user fixtures供FK存在；接原business schema後Auth函式定義/ownership hash不變。以authenticator真DB連線、SET LOCAL ROLE authenticated及request.jwt.claims JSON（不注入舊sub GUC），完成exact payload Save、Review、不同連線讀回；viewer讀1/foreign讀0，兩者Save/Review拒絕、零拒絕案data/audit增量，Auth定義仍不變。未加SUPERUSER/CREATEROLE/BYPASSRLS；故意越權role變更於fixture交易中也被新gate拒絕並rollback。
+
+BROWSER/DOM、1280/390、SAVE→LOGOUT→FRESH SESSION→LOGIN→READBACK、TENANT產品路徑：本輪未修改UI，既有CI仍跑完整synthetic E2E；本輪新增SQL新連線測試不稱為真登入。原生GoTrue executable啟動／migration runner、admin user creation/password grant/JWT發行、PostgREST簽章／cache reload／HTTP+RLS整合、persistent A完全退出→B獨立啟動 **仍NOT_RUN**。先前失敗本身不因新SQL PASS變成成功。若父要先補短命native service fixture，需要另明確允許固定GoTrue/PostgREST processes及其到專用tmpfs PG的容器連線、public test-only signing material與synthetic ephemeral Auth操作；無持久root/marker、無外部連線/費用、無WP grant。此輪沒有自行擴該權限或啟動服務。
+
+VERIFY：候選工程證據交既有Reviewer，附新HEAD/manifest/CI/Preview；完整RC新增驗收=0，不宣稱RC完成。父再決定精確新包請准，兩次已消耗窗口不復用，不要求Owner登入。
+
 ## 2026-10-05 必要 P2 bootstrap 修正與已消耗執行
 
 來源 HEAD `38bc57691fca62e0c1467c88470339a4e2948c5d`，舊103項 digest `e20e7df4f3da5ea6d9acef581293e3c27c85d60293fdc58b78b122b35dfe03ba`。Owner reference `Sentinel_0151b9d0794c81919e2c51cc7db90290` 批准窗口01:02:57–03:02:00 UTC；一次provision已消耗，**不是新候選批准**。不重用、不延展、不刪消耗標記 `/workspace/rc-approved-window.json.started`。下次父在Review後另請一次provision／新固定窗口／新HEAD與digest，使用全新window檔路徑，原root已清理可重建。
@@ -47,17 +87,17 @@ BROWSER/DOM、1280/390、SAVE→LOGOUT→FRESH SESSION→LOGIN→READBACK、TENA
 | 不確定／失敗 | 不rerun provision、不改request/intent、不重發POST、不以無回覆視為未套用；讀原journal+原頁expected-before/after。到期、撤銷、損毀、缺檔、drift停mutation，保存無secret證據；需要重新開grant或期限時另請准，不能重用這次allowance。 |
 | 清理／保留 | 停兩個app processes後，先把allowlist evidence（bookmark需不含token/secret、PNG、journal/source synthetic資料、redacted logs）移到父指定artifact；保留最多3天。`operator cleanup`核同window及own labels，停exact五容器／own network，移除唯一root與own資料／secret，使用原PG image的network-none helper只刪own bind data；不prune、不刪外部資源。刪除該DB與站亦銷毀原生identity／grant；cleanup權限在expiry後只限原已批准收尾。部分provision失敗保留`.started`，只核對／cleanup，禁止blind重跑。 |
 
-**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest：`9c6bc1e3aef9ba787ba97fe41f5e183ec0f32cd597669623562fb7682c38991f`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
+**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest（108項）：`a450d3e08c20351506cd5799f009de35b92d1c496106139be675a7c30336a294`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
 
 ```sh
 # 現在可做：read-only、沒有部署或secret生成
 node prototype/internal-rc/deploy/operator.mjs inspect
 # 僅新批准後：不由本輪自動執行
-bash prototype/internal-rc/deploy/run-approved.sh phase-a /workspace/rc-approved-window-next.json
+bash prototype/internal-rc/deploy/run-approved.sh phase-a /workspace/rc-approved-window-third.json
 # 等上一個 shell 完全退出後，以獨立命令執行；不共用runner記憶體
-bash prototype/internal-rc/deploy/run-approved.sh phase-b /workspace/rc-approved-window-next.json
+bash prototype/internal-rc/deploy/run-approved.sh phase-b /workspace/rc-approved-window-third.json
 # 保存allowlist evidence後，按同一次批准清理；原secret不進artifact
-node prototype/internal-rc/deploy/operator.mjs cleanup /workspace/rc-approved-window-next.json
+node prototype/internal-rc/deploy/operator.mjs cleanup /workspace/rc-approved-window-third.json
 ```
 
 原生服務設定依官方[Supabase compose](https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml)取最小Auth/PostgREST環境變數；固定synthetic UUID由GoTrue原生[AdminUserParams id](https://github.com/supabase/auth/blob/master/internal/api/admin.go)建立。原準備階段僅核官方源碼／image manifest。首次執行於PG bootstrap失敗，native Auth migration／password issuance與兩phase結果仍NOT_RUN；下次須新批准，不能以離線fixture報RC PASS。

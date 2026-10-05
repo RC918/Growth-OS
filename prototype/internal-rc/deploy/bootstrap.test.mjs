@@ -44,7 +44,7 @@ test('pinned native postgres reads stdin as UID999; private bind remains unreada
   assert.ok(ready);
   const args=['exec','-i','--user','postgres',name,'psql','-X','-q','-w','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'];
   const output=docker(args,sql);assert.ok(!output.includes(sentinel));
-  const result=docker([...args,'-At'],"select count(*) from pg_roles where rolname in ('anon','authenticated','service_role','authenticator','supabase_auth_admin'); select count(*) from pg_authid where rolname in ('authenticator','supabase_auth_admin') and rolpassword like 'SCRAM-SHA-256$%'; select auth.uid() is null;");
+  const result=docker([...args,'-At'],"select count(*) from pg_roles where rolname in ('anon','authenticated','service_role','authenticator','supabase_auth_admin'); select count(*) from pg_authid where rolname in ('authenticator','supabase_auth_admin') and rolpassword like 'SCRAM-SHA-256$%'; select to_regprocedure('auth.uid()') is null;");
   assert.equal(result.trim(),'5\n2\nt');
   // Error after a password-bearing statement must roll back and must not print expanded SQL.
   const failureSQL=sql.replace('create role anon nologin;','create role rollback_probe nologin;').replace('create role authenticated nologin;','').replace('create role service_role nologin;','');

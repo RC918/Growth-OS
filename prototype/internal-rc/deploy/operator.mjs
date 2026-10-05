@@ -39,9 +39,11 @@ if(action==='inspect'){
  await write('compose.json',JSON.stringify(await compose(),null,2));
  // First pulls/new local persistent services are within the PENDING envelope, never an offline test.
  await bootstrapDatabase({docker,checkWindow,pause,root,prefix,sql:await readFile(new URL('./roles.sql',import.meta.url),'utf8')});await ready('http://127.0.0.1:8794/health');
+ docker(['exec','-i','--user','postgres',prefix+'-db','psql','-X','-q','-w','-U','postgres','-v','ON_ERROR_STOP=1'],await readFile(new URL('./auth-ready.sql',import.meta.url)));
  const b64=v=>Buffer.from(JSON.stringify(v)).toString('base64url'),unsigned=b64({alg:'HS256',typ:'JWT'})+'.'+b64({role:'service_role',aud:'authenticated',exp:Math.floor(Date.parse(window.expires_at)/1000)}),admin=unsigned+'.'+createHmac('sha256',jwt).update(unsigned).digest('base64url');
  const credentials={};for(const actor of ['owner','viewer','foreign']){const password=randomBytes(32).toString('hex');await nativeUser(admin,actor,password);credentials[actor]={id:ids[actor],email:actor+'@rc.example.invalid',password};}await write('secrets/identities.json',JSON.stringify(credentials));
  const sql=await readFile(new URL('./schema.candidate.sql',import.meta.url),'utf8');if(sql!==await schema())throw Error('Schema artifact mismatch');await write('schema.sql',sql);docker(['exec','-i',prefix+'-db','psql','-X','-U','postgres','-v','ON_ERROR_STOP=1'],sql);
+ await ready('http://127.0.0.1:8795/'); // Read-only Data API health before creating the short WP grant.
  for(let i=0;;i++){try{docker(['exec',prefix+'-wordpress','test','-f','/var/www/html/wp-config.php']);break;}catch{if(i===80)throw Error('WordPress unavailable');await pause();}}
  docker(['exec','-i',prefix+'-wordpress','sh','-c','mkdir -p /var/www/html/wp-content/mu-plugins; cat > /var/www/html/wp-content/mu-plugins/growth.php'],await readFile(new URL('../../wordpress-publish/site-plugin.php',import.meta.url)));
  docker(['exec','-i',prefix+'-wordpress','sh','-c','mkdir -p /var/www/html/wp-content/themes/growth; cat > /var/www/html/wp-content/themes/growth/style.css'],'/*\nTheme Name: Internal RC\n*/');

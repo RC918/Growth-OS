@@ -73,7 +73,7 @@ jobs:
         run: python3 -B supabase/tests/model_trial/native_ledger.py
       - name: RC bootstrap native UID and secret boundary (ephemeral, no network)
         timeout-minutes: 3
-        run: node --test prototype/internal-rc/deploy/bootstrap.test.mjs
+        run: node --test prototype/internal-rc/deploy/bootstrap.test.mjs prototype/internal-rc/deploy/migration-compatibility.test.mjs
       - name: URL exact-version Review PG17 concurrency (no network)
         timeout-minutes: 3
         run: node supabase/drafts/url_review/native.mjs
