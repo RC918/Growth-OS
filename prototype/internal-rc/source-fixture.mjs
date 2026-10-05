@@ -3,10 +3,10 @@ import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 export async function scanOwnedSite(site,database){
- if(site.targetURL!=='https://rc-source.example/bolt/')throw Error('Isolated source binding required');
+ if(!['https://rc-source.example/bolt/','https://rc-source.example/growth-os/'].includes(site.targetURL))throw Error('Isolated source binding required');
  const observed=[];
  const bridge=createServer(async(req,res)=>{
-  if(req.method!=='GET'||!['/robots.txt','/bolt/'].includes(req.url)){res.writeHead(403);res.end();return;}
+  if(req.method!=='GET'||!['/robots.txt',new URL(site.targetURL).pathname].includes(req.url)){res.writeHead(403);res.end();return;}
   try{const r=await site.call(req.url,{authenticated:false});observed.push({path:req.url,status:r.status,hash:createHash('sha256').update(r.text).digest('hex')});res.writeHead(r.status,{'content-type':req.url==='/robots.txt'?'text/plain':'text/html'});res.end(r.text);}catch{res.writeHead(502);res.end();}
  });
  await new Promise(r=>bridge.listen(0,'127.0.0.1',r));

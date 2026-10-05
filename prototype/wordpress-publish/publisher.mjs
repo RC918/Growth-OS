@@ -12,7 +12,7 @@ const textHTML=html=>{const dom=new JSDOM(html);try{return dom.window.document.b
 const same=(a,b)=>canonical(a)===canonical(b);
 const fields=p=>({title:p.title.raw,meta_description:p.meta.growth_meta_description,description:p.content.raw});
 const unchanged=(a,b)=>{try{return same(preservedFields(a),preservedFields(b));}catch{return false;}};
-export function createWordpressPublisher({site,authorize,authorizeRead=authorize,record=async()=>{},journal=null}){
+export function createWordpressPublisher({site,authorize,authorizeRead=authorize,record=async()=>{},journal=null,profile=null,authorizeReconcile=null,beforeSubmit=async()=>{}}){
  const intents=new Map();let busy=false;const ledger=[];
  async function page(){const r=await site.call(site.path(site.target));if(r.status!==200)throw Error('WordPress read denied ('+r.status+')');const p=r.json();if(p.id!==site.target||p.link!==site.targetURL)throw Error('WordPress page identity mismatch');return p;}
  async function authority(token,version){const a=await authorize(token,version);if(a.review_status!=='exact_version_confirmed'||!a.binding.review_id||a.target_url!==site.targetURL)throw Error('Exact reviewed version / candidate page required');return a;}
@@ -42,7 +42,7 @@ export function createWordpressPublisher({site,authorize,authorizeRead=authorize
   ledger.push(publicIntent(i));
  }
  async function verifyHTML(values){
-  const html=await site.call('/bolt/',{authenticated:false});if(html.status!==200)throw Error('HTML readback unavailable');
+  const html=await site.call(new URL(site.targetURL).pathname,{authenticated:false});if(html.status!==200)throw Error('HTML readback unavailable');
   const dom=new JSDOM(html.text),doc=dom.window.document;
   try{if(doc.title!==values.title||doc.querySelectorAll('meta[name="description"]').length!==1||doc.querySelector('meta[name="description"]').content!==values.meta_description||doc.querySelector('article')?.dataset.pageId!==String(site.target)||doc.querySelector('article p')?.textContent!==values.description)throw Error('HTML fields / page identity mismatch');}finally{dom.window.close();}
  }
@@ -57,7 +57,7 @@ export function createWordpressPublisher({site,authorize,authorizeRead=authorize
   }
   await verifyHTML(i.values);
   i.state='confirmed_applied';i.appliedRevision=p.growth_revision;
-  i.evidence={scope:'isolated_wordpress',binding:i.binding,page_id:p.id,target_url:p.link,first_published_at:p.date_gmt+'Z',modified_at:p.modified_gmt+'Z',observed_at,api_fields:fields(p),html_fields:{...i.values},excerpt_readback:excerptObservation(i.before,p),before_revision:i.before.growth_revision,after_revision:p.growth_revision,traffic:'unknown',platform_grant:'run_only'};
+  i.evidence={scope:profile?.scope??'isolated_wordpress',...(profile?{environment:profile.environment}:{}),binding:i.binding,page_id:p.id,target_url:p.link,first_published_at:p.date_gmt+'Z',modified_at:p.modified_gmt+'Z',observed_at,api_fields:fields(p),html_fields:{...i.values},excerpt_readback:excerptObservation(i.before,p),before_revision:i.before.growth_revision,after_revision:p.growth_revision,traffic:'unknown',platform_grant:profile?.platform_grant??'run_only'};
   return save(i);
  }
  return {
@@ -75,6 +75,7 @@ export function createWordpressPublisher({site,authorize,authorizeRead=authorize
      const i={id:randomUUID(),version:input.version_id,binding:a.binding,values,before,after:{...values,description:contentHTML(values.description)},state:'preview',observed:new Date().toISOString()};intents.set(i.id,i);return save(i);
     }
     if(['history','measurement','measurement-save'].includes(action)) {
+     if(profile&&action!=='history')throw Error('真資料量測尚未接入；目前效果未知');
      const a=await authorizeRead(token,input.version_id);
      const history=ledger.filter(v=>!v.kind&&v.state!=='preview'&&v.binding.organization_id===a.binding.organization_id&&v.version===input.version_id);
      if(history.some(v=>!same(v.binding,a.binding)||v.target_url!==a.target_url))throw Error('Historical publication binding changed');
@@ -98,19 +99,20 @@ export function createWordpressPublisher({site,authorize,authorizeRead=authorize
      }
      return structuredClone({binding:a.binding,target_url:a.target_url,publication,publications,data,assessment});
     }
-    const i=intents.get(input.intent_id);if(!i)throw Error('Unknown publication intent');if((input.version_id!==undefined&&input.version_id!==i.version)||(input.page_id!==undefined&&input.page_id!==site.target))throw Error('Operation version / page mismatch');await owner(token,i);
+    const i=intents.get(input.intent_id);if(!i)throw Error('Unknown publication intent');if((input.version_id!==undefined&&input.version_id!==i.version)||(input.page_id!==undefined&&input.page_id!==site.target))throw Error('Operation version / page mismatch');
+    if(action==='readback'&&authorizeReconcile){const a=await authorizeReconcile(token,i.version);if(!same(a.binding,i.binding)||a.target_url!==site.targetURL)throw Error('Reconciliation binding changed');}else await owner(token,i);
     if(action==='publish'){
      if([...intents.values()].some(other=>other.id!==i.id&&['submitting','unknown','restore_submitting','restore_unknown','state_diverged'].includes(other.state)))throw Error('Unresolved submission: readback only');
      if(input.confirm!==true||input.page_id!==site.target||i.state!=='preview')throw Error('Independent target confirmation required / already attempted');
      const current=await page();if(current.growth_revision!==i.before.growth_revision)throw Error('Page changed since preview');
-     await owner(token,i);i.state='submitting';await save(i); // No retry once dispatched, even on lost reply.
+     await owner(token,i);await beforeSubmit('publish',i);i.state='submitting';await save(i); // No retry once dispatched, even on lost reply.
      try{const r=await site.call(site.path(site.target),{method:'POST',headers:{'x-growth-before':i.before.growth_revision},body:{title:i.values.title,content:i.after.description,meta:{growth_meta_description:i.values.meta_description}}});if(r.status!==200){i.state='unknown';await save(i);return reconcile(i);}return await reconcile(i);}catch{i.state='unknown';return save(i);}
     }
     if(action==='readback'){if(i.state==='preview')throw Error('Nothing submitted');return await reconcile(i);}
     if(action==='restore'){
      if(input.confirm!==true||i.state!=='confirmed_applied'||i.restore_started_at)throw Error('Verified publication and restore confirmation required');
      const current=await page();if(current.growth_revision!==i.appliedRevision||!same(fields(current),i.after)||!unchanged(current,i.before))throw Error('Restore blocked: current state diverged');
-     i.state='restore_submitting';i.restore_started_at=new Date().toISOString();await save(i);
+     await beforeSubmit('restore',i);i.state='restore_submitting';i.restore_started_at=new Date().toISOString();await save(i);
      try{const r=await site.call(site.path(site.target),{method:'POST',headers:{'x-growth-before':current.growth_revision},body:{title:i.before.title.raw,content:i.before.content.raw,meta:{growth_meta_description:i.before.meta.growth_meta_description}}});if(r.status!==200)throw Error('Restore reply failed');const after=await page();if(!same(fields(after),fields(i.before))||!unchanged(after,i.before))throw Error('Restore readback mismatch');await verifyHTML({...fields(i.before),description:textHTML(i.before.content.raw)});i.restore_excerpt_readback=excerptObservation(i.before,after);i.state='restored';i.restore_observed_at=new Date().toISOString();return save(i);}catch{i.state='restore_unknown';return save(i);}
     }
     throw Error('Unsupported operation');

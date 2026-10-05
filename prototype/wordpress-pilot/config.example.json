@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "evidence_environment": null,
+  "binding": null,
+  "write_grant": null,
+  "read_grant": null,
+  "authority": null,
+  "storage_directory": null
+}

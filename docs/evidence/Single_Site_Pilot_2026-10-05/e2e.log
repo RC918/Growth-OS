@@ -1,0 +1,35 @@
+✔ independent negative gates: non-test, unapproved target, missing/forged isolation reject before listen/network/DB (1.707989ms)
+✔ per-run fixed mapping, short expiry, unknown token and OTP rejection; no SQL/network fallback (3153.228883ms)
+✔ unmodified product client without fixture rejects fake callback when Auth denies; no membership/session/mutation (2.115475ms)
+✔ deployment output/import closure excludes test-only fixture and bypass entry (10.06164ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3294.586272
+PASS URL native same-request {"holder":322,"contender":320,"observer":336}
+PASS URL native same-version {"holder":377,"contender":376,"observer":392}
+PASS URL native cross-parent-request {"holder":409,"contender":411,"observer":425}
+PASS URL native save-before-revoke {"holder":444,"contender":446,"observer":460}
+PASS URL native revoke-during-org-wait
+PASS URL native revoke-before-membership-lock
+PASS official local WordPress 6.8.3 / MariaDB mariadb from 11.4.8-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using  EditLine wrapper; loopback only; client-local TLS trust
+PASS pilot 1280px: URL/Save/fresh Review → exact diff → lost actual WP reply → reopen + fresh session original operation GET only → confirmed restore; 2 POST; single-attempt cap; tenant zero delta; expiry history without WP GET; readonly backup restore; /tmp/growth-wp-7f45761b-2600-4910-9dfe-52e130d62ab6-pilot-evidence
+PASS isolated publication service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota
+PASS URL core 1280px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth
+PASS pilot historical v1 record retained after saved v2; no write grant required
+PASS synthetic Review invalidation 1280px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review
+PASS SQL RLS/permission 1280px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted
+PASS WordPress cleanup: exact run containers removed; tmpfs DB/site/credentials and local TLS key removed; no prune
+PASS official local WordPress 6.8.3 / MariaDB mariadb from 11.4.8-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using  EditLine wrapper; loopback only; client-local TLS trust
+PASS pilot 390px: URL/Save/fresh Review → exact diff → lost actual WP reply → reopen + fresh session original operation GET only → confirmed restore; 2 POST; single-attempt cap; tenant zero delta; expiry history without WP GET; readonly backup restore; /tmp/growth-wp-e792d5d3-6c02-4fdd-9075-9c3310f8187d-pilot-evidence
+PASS isolated publication service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota
+PASS URL core 390px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth
+PASS pilot historical v1 record retained after saved v2; no write grant required
+PASS synthetic Review invalidation 390px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review
+PASS SQL RLS/permission 390px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted
+PASS unattended regression entry. Real Auth engine issuance/JWT verification/OTP/2FA NOT TESTED. Product signOut is page-memory clearing only.
+PASS WordPress cleanup: exact run containers removed; tmpfs DB/site/credentials and local TLS key removed; no prune

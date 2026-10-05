@@ -1,0 +1,160 @@
+{
+  "reviewed_head": "8ba14448f71e8e2ecea047d29b34355ac5e3818f",
+  "run": "growth-wp-c833de77-e4d3-46f0-aa0c-e8d476a94a58",
+  "images": {
+    "wordpress": "wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4",
+    "database": "mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6"
+  },
+  "wordpress": "6.8.3",
+  "resource_scope": "run containers/tmpfs/local TLS only",
+  "status": 200,
+  "attempts_before": 0,
+  "attempts_after": 1,
+  "request": {
+    "query": {
+      "excerpt": "changed"
+    },
+    "json_keys": [
+      "content",
+      "meta",
+      "title"
+    ]
+  },
+  "before": {
+    "posts": [
+      {
+        "ID": "1001",
+        "post_author": "2",
+        "post_date": "2026-01-01 00:00:00",
+        "post_date_gmt": "2026-01-01 00:00:00",
+        "post_content": "<p>Baseline steel bolt.</p>",
+        "post_title": "Synthetic bolt baseline",
+        "post_excerpt": "Keep this excerpt",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "growth-os",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-01-01 00:00:00",
+        "post_modified_gmt": "2026-01-01 00:00:00",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:46289/?page_id=1001",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      },
+      {
+        "ID": "1002",
+        "post_author": "1",
+        "post_date": "2026-10-05 07:58:07",
+        "post_date_gmt": "2026-10-05 07:58:07",
+        "post_content": "<p>Never change.</p>",
+        "post_title": "Unchanged control",
+        "post_excerpt": "",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "control",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-10-05 07:58:07",
+        "post_modified_gmt": "2026-10-05 07:58:07",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:46289/?page_id=1002",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      }
+    ],
+    "meta": [
+      {
+        "meta_id": "3",
+        "post_id": "1001",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Baseline description"
+      },
+      {
+        "meta_id": "4",
+        "post_id": "1002",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Control description"
+      }
+    ]
+  },
+  "after": {
+    "posts": [
+      {
+        "ID": "1001",
+        "post_author": "2",
+        "post_date": "2026-01-01 00:00:00",
+        "post_date_gmt": "2026-01-01 00:00:00",
+        "post_content": "<p>Baseline steel bolt.</p>",
+        "post_title": "Synthetic bolt baseline",
+        "post_excerpt": "changed",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "growth-os",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-10-05 07:58:09",
+        "post_modified_gmt": "2026-10-05 07:58:09",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:46289/?page_id=1001",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      },
+      {
+        "ID": "1002",
+        "post_author": "1",
+        "post_date": "2026-10-05 07:58:07",
+        "post_date_gmt": "2026-10-05 07:58:07",
+        "post_content": "<p>Never change.</p>",
+        "post_title": "Unchanged control",
+        "post_excerpt": "",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "control",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-10-05 07:58:07",
+        "post_modified_gmt": "2026-10-05 07:58:07",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:46289/?page_id=1002",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      }
+    ],
+    "meta": [
+      {
+        "meta_id": "3",
+        "post_id": "1001",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Baseline description"
+      },
+      {
+        "meta_id": "4",
+        "post_id": "1002",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Control description"
+      }
+    ]
+  },
+  "native_parameter_order_source": "\tprotected function get_parameter_order() {\n\t\t$order = array();\n\n\t\tif ( $this->is_json_content_type() ) {\n\t\t\t$order[] = 'JSON';\n\t\t}\n\n\t\t$this->parse_json_params();\n\n\t\t// Ensure we parse the body data.\n\t\t$body = $this->get_body();\n\n\t\tif ( 'POST' !== $this->method && ! empty( $body ) ) {\n\t\t\t$this->parse_body_params();\n\t\t}\n\n\t\t$accepts_body_data = array( 'POST', 'PUT', 'PATCH', 'DELETE' );\n\t\tif ( in_array( $this->method, $accepts_body_data, true ) ) {\n\t\t\t$order[] = 'POST';\n\t\t}\n\n\t\t$order[] = 'GET';\n\t\t$order[] = 'URL';\n\t\t$order[] = 'defaults';\n\n\t\t/**\n\t\t * Filters the parameter priority order for a REST API request.\n\t\t *\n\t\t * The order affects which parameters are checked when using WP_REST_Request::get_param()\n\t\t * and family. This acts similarly to PHP's `request_order` setting.\n\t\t *\n\t\t * @since 4.4.0\n\t\t *\n\t\t * @param string[]        $order   Array of types to check, in order of priority.\n\t\t * @param WP_REST_Request $request The request object.\n\t\t */\n\t\treturn apply_filters( 'rest_request_parameter_order', $order, $this );\n\t}\n"
+}

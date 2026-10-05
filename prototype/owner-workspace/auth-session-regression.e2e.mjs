@@ -13,15 +13,17 @@ validateOptions(options); // Before subprocess, server, DB, browser or network. 
 const origin=options.target;
 const run=path=>execFileSync(process.execPath,path,{stdio:'inherit'});
 let browser,wordpressSite;
-const withWordpress=args.includes('--wordpress');
+const withPilot=args.includes('--pilot');
+const withWordpress=args.includes('--wordpress')||withPilot;
 try{
  run(['--test','prototype/owner-workspace/auth-session-fixture.test.mjs']);
  run(['supabase/drafts/url_result/native.mjs']); // Same existing assertions, no image pull or new framework.
  // WordPress mode reads owned live HTML through the unchanged scanner; base mode retains the prior raw fixture.
- if(withWordpress)wordpressSite=await (await import('../wordpress-publish/site.mjs')).createSite({sourceFixture:true});
+ if(withWordpress)wordpressSite=await (await import('../wordpress-publish/site.mjs')).createSite({sourceFixture:true,pilotFixture:withPilot});
  let source=wordpressSite?null:(await fixtures())[0];if(source){for(const [key,field]of Object.entries(source.preview.fields)){field.suggested=source.review.original_suggestions[key];delete field.user_edited;delete field.citation_role;}delete source.review;source.preview.status='awaiting_review';}
  browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});
  for(const width of [1280,390]){
+  if(withPilot&&width===390){await wordpressSite.close();wordpressSite=await (await import('../wordpress-publish/site.mjs')).createSite({sourceFixture:true,pilotFixture:true});}
   const rig=await createSessionRig(options),transport=createAuthTransport({...options,isolation:rig.isolation});let context,page,token=null,previousToken=null,blockedTargets=0,lateRelease=null,lateStarted=null,holdDetail=false,payload=null,sourceRequests=0;
   const contexts=[],errors=[];let mutationGate=null;
   function holdMutation(){let signal,release;const started=new Promise(r=>signal=r),gate=new Promise(r=>release=r);mutationGate=()=>{signal();return gate;};return {started,release(){mutationGate=null;release();}};}
@@ -29,7 +31,7 @@ try{
   async function screenshot(label){if(process.env.GROWTH_UIUX_EVIDENCE_DIR)await page.locator(label==='saving'?'#url-result-panel':'.url-review').first().screenshot({path:process.env.GROWTH_UIUX_EVIDENCE_DIR+'/'+label+'-'+width+'.png'});}const before=await rig.snapshot();
   let wp=null;
   try{
-   wp=wordpressSite?await (await import('../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width}):null;
+   wp=wordpressSite?await (await import(withPilot?'../wordpress-pilot/verification.mjs':'../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width}):null;
    async function fresh(role,fromUrl=false){
     if(context){const oldPages=context.pages();await context.close();assert.ok(oldPages.every(p=>p.isClosed()),'product opener and workspace both closed');rig.retire(token);previousToken=token;}
     context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'});contexts.push(context);context.on('page',p=>p.on('pageerror',e=>errors.push(redact(e))));page=await context.newPage();
@@ -39,7 +41,7 @@ try{
       if(u.origin===origin){
        if(wp){
         if(req.method()==='POST'&&/\/rpc\/(save_url_result_draft|review_url_result)$/.test(u.pathname)&&mutationGate)await mutationGate();
-        const response=await wp.route(req);
+        const response=await wp.route(req);if(!response)throw Error('Missing fixture route');
         if(u.pathname==='/api/product-source'){assert.equal(req.method(),'POST');assert.deepEqual(req.postDataJSON(),{url:wordpressSite.targetURL});assert.equal(++sourceRequests,1);assert.equal(response.status,200);source=JSON.parse(response.body.toString());assert.ok(source.snapshot.html.includes('itemprop="description"'));}
         if(holdDetail&&u.pathname==='/backend/rest/v1/content_versions'&&u.searchParams.get('select')?.includes('first_result_payload')){lateStarted?.();await new Promise(resolve=>lateRelease=resolve);}
         return route.fulfill(response);
@@ -114,7 +116,7 @@ try{
    await view.locator('.url-review-status').filter({hasText:reviewed.id}).waitFor();assert.ok((await view.locator('.url-review-status').innerText()).includes(saved.id));assert.equal(await view.locator('.url-review-confirm').isDisabled(),true);assert.deepEqual(await rig.snapshot(),reviewState);
    const afterSave=await rig.snapshot();assert.equal(afterSave.content_versions.length,before.content_versions.length+1);assert.equal(afterSave.audit_events.length,before.audit_events.length+2);assert.equal(afterSave.growth_opportunities.length,before.growth_opportunities.length+1);
    assert.equal(afterSave.content_versions.find(v=>v.id===saved.id).created_by,ids.owner);
-   if(wp)console.log('PASS RC HTTP service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota');
+   if(wp)console.log('PASS isolated publication service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota');
    console.log(`PASS URL core ${width}px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth`);
    // A delayed authenticated detail response cannot populate the ended page session.
    await view.locator('.typed-loader > summary').click();await view.locator('.typed-draft').waitFor({state:'detached'});holdDetail=true;const started=new Promise(r=>lateStarted=r);await view.locator('.typed-loader > summary').click();await started;await page.locator('#sign-out').click();holdDetail=false;lateRelease();await page.waitForTimeout(60);assert.equal(await page.locator('.typed-draft').count(),0);

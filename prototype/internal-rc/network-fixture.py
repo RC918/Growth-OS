@@ -10,7 +10,7 @@ from product_source import build_snapshot
 from product_api import save_report
 from scanner import ScanError
 config=json.load(sys.stdin)
-assert config['url']=='https://rc-source.example/bolt/'
+assert config['url'] in ['https://rc-source.example/bolt/','https://rc-source.example/growth-os/']
 bridge=urlsplit(config['bridge']);assert bridge.scheme=='http' and bridge.hostname=='127.0.0.1'
 real_connect=socket.create_connection
 
@@ -20,7 +20,7 @@ def connect(address,*args,**kwargs):
 
 def fetch(url):
     u=urlsplit(url)
-    if u.scheme!='https' or u.netloc!='rc-source.example' or u.path not in ['/robots.txt','/bolt/'] or u.query:raise ScanError('private_target','Unapproved fixture source')
+    if u.scheme!='https' or u.netloc!='rc-source.example' or u.path not in ['/robots.txt',urlsplit(config['url']).path] or u.query:raise ScanError('private_target','Unapproved fixture source')
     with urllib.request.urlopen(config['bridge']+u.path,timeout=5) as r:
         return r.status,{k.lower():v for k,v in r.headers.items()},r.read(1_000_001)
 with patch.object(socket,'create_connection',connect):

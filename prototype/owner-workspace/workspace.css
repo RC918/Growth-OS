@@ -76,3 +76,6 @@
 @media(max-width:540px){#url-result-panel button,.url-review button,.saved-result-review button,.revision-recovery-read{width:100%;margin:4px 0}.url-review,.saved-result-review{min-width:0}}
 
 .url-review .url-review-cancel,.saved-result-review .resume-cancel,.saved-result-review .resume-prepare{background:#eaf4eb;color:#175d46;border-color:#c9ddce}
+
+/* Closed single-site candidate: explicit target/restore confirmation, keyboard and touch. */
+.pilot-publication{min-width:0;overflow-wrap:anywhere}.pilot-publication button{min-height:44px;margin:4px 8px 4px 0;padding:10px 14px;white-space:normal;max-width:100%;border:1px solid var(--green);border-radius:9px;background:var(--green);color:white;font-size:16px;line-height:1.5}.pilot-publication button:disabled{opacity:.55}.pilot-publication label{display:block;min-height:44px;line-height:1.6;margin-block:8px}.pilot-publication input[type=checkbox]{width:20px;height:20px;margin-right:8px;vertical-align:middle}.pilot-publication .wp-restore{background:#eaf4eb;color:#175d46;border-color:#c9ddce}@media(max-width:540px){.pilot-publication button{width:100%;margin:4px 0}}
