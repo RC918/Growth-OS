@@ -7,7 +7,8 @@ const names={product_name:'產品名稱',title:'Title',meta_description:'Meta de
 const errors={page_complexity:"頁面結構超過安全解析上限。網址已保留，請改用較簡單的公開產品頁。",invalid_url:'請提供公開 HTTPS 產品網址。',private_target:'禁止內網、localhost 或非公開 IP。請選公開產品頁。',unsupported_query:'請改用沒有 query 參數的公開產品 canonical 網址。',restricted_content:'頁面需要登入或含密碼表單；請提供不需登入的公開產品頁。',timeout:'讀取超時。網址已保留，可重試或改用另一公開產品頁。',too_large:'頁面超過 1 MB。請使用較小的公開產品頁。',robots_unavailable:'無法核對 robots 規則，已停止讀取；可改用允許讀取的公開頁。',robots_disallowed:'網站不允許此讀取，請選其他公開來源。',not_html:'目前只支援公開 HTML 產品頁，請更換網址。',cross_domain_redirect:'網址轉到不同網域；請核對並直接提交目的站的公開產品網址。',too_many_redirects:'跳轉超過限制，請提供產品頁的最終網址。',dns_failed:'無法解析網域，請檢查拼字或稍後重試。',dns_busy:'解析服務忙碌，請稍後重試。',peer_mismatch:'實際連線與安全驗證位址不同，已停止讀取。',rate_limit:'本小時請求上限已到，請稍後重試。',busy:'目前有讀取正在處理，請稍後重試。',snapshot_capacity:'暫存來源容量已滿，無法保存新成果。若本頁已有成功成果，仍可複製或匯出備份；匯出不會釋放容量。目前沒有自行清理功能。'};
 function report(text,error=false){$('source-feedback').textContent=text;$('source-feedback').classList.toggle('error',error);}
 function actionReport(text){$('result-feedback').textContent=text;}
-function idle(){controller=null;$('source-submit').disabled=false;$('source-cancel').hidden=true;refreshReview();}
+function sourceBusy(busy){$('source-submit').setAttribute('aria-busy',String(busy));$('source-submit').textContent=busy?'正在取得成果…':'取得第一份成果';}
+function idle(){controller=null;sourceBusy(false);$('source-submit').disabled=false;$('source-cancel').hidden=true;refreshReview();}
 function cancel(message){epoch++;review?.invalidate();controller?.abort();idle();$('source-fallback').replaceChildren();report(message);}
 function textPack(view){return reviewFields.map(key=>names[key]+':\n'+view.fields[key]).join('\n\n');}
 function refreshReview(restore=false){
@@ -18,9 +19,11 @@ function refreshReview(restore=false){
  }
  $('review-state').textContent=v.receipt?'本頁已確認 · 未保存 · 未發布':'待確認 · 未保存 · 未發布';
  $('review-status').textContent=(v.pending?'正在綁定目前版本…':v.valid?'內容版本 '+v.revision+'；'+(v.receipt?'已確認目前內容與事實核對狀態。':'修改或來源變更後需重新確認。'):'三欄各需 1–2000 字；目前版本尚不能確認。')+' 僅本頁記憶體，重新整理會失去 Review。';
+ $('review-confirm').setAttribute('aria-busy',String(v.pending));$('review-confirm').textContent=v.pending?'正在確認目前版本…':'確認目前版本';
  $('review-confirm').disabled=!!controller||v.pending||!v.canConfirm||!!v.receipt;
  for(const key of reviewFields){
   const input=$('review-'+key),check=$('review-check-'+key);if(!input)continue;
+  const invalid=!v.fields[key].trim()||v.fields[key].length>2000;input.setAttribute('aria-invalid',String(invalid));$('review-error-'+key).textContent=invalid?names[key]+'需填寫 1–2000 字，不能只有空白。':'';
   if(restore)input.value=v.fields[key];input.disabled=!!controller;check.checked=v.fact_checks[key];check.disabled=!!controller;
   $('review-origin-'+key).textContent=v.edited[key]?'使用者修改；下列來源僅供對照，不代表支持新增文字。':'來源摘錄建議；仍需核對內容與原站事實。';
  }
@@ -40,12 +43,12 @@ function render(r){
   const card=node('article');card.className='field';card.append(node('h3',names[key]));const compare=node('div');compare.className='comparison';
   const original=node('div');original.append(node('strong','原文'));const p=node('p',f.original||'來源未提供');p.className='copy-text';original.append(p);
   const suggested=node('div'),label=node('label','建議／目前編輯：'+names[key]);label.htmlFor='review-'+key;
-  const input=node('textarea');input.id=label.htmlFor;input.value=f.suggested;input.maxLength=2000;input.className='copy-text review-input';input.setAttribute('aria-describedby','review-origin-'+key);
+  const input=node('textarea');input.id=label.htmlFor;input.value=f.suggested;input.maxLength=2000;input.className='copy-text review-input';input.setAttribute('aria-describedby','review-origin-'+key+' review-error-'+key);
   input.addEventListener('input',()=>{review.edit(key,input.value);$('copy-fallback').hidden=true;actionReport('');refreshReview();});
-  const origin=node('p');origin.id='review-origin-'+key;
+  const origin=node('p');origin.id='review-origin-'+key;const error=node('p');error.id='review-error-'+key;error.className='field-error';
   const checkLabel=node('label');checkLabel.className='review-check';const check=node('input');check.type='checkbox';check.id='review-check-'+key;
   check.addEventListener('change',()=>{review.check(key,check.checked);refreshReview();});checkLabel.append(check,node('span','已核對 '+names[key]+' 目前內容及相關事實'));
-  suggested.append(label,input,origin,checkLabel);compare.append(original,suggested);card.append(compare,node('p','原建議理由：'+f.reason),node('p','原建議來源支持（修改後僅供對照）：'+f.citations.join('、')));fields.append(card);
+  suggested.append(label,input,error,origin,checkLabel);compare.append(original,suggested);card.append(compare,node('p','原建議理由：'+f.reason),node('p','原建議來源支持（修改後僅供對照）：'+f.citations.join('、')));fields.append(card);
  }
  refreshReview();
  $('result-missing').replaceChildren(...r.preview.pending_confirmation.map(v=>node('li',names[v]?names[v]+'：未抽取／未獨立核實，不加入額外宣稱。':v)));
@@ -58,15 +61,15 @@ function render(r){
  report('第一份文本已備妥，請檢查來源及待確認資訊；尚未發布。');
 }
 $('source-form').addEventListener('submit',async event=>{
- event.preventDefault();if(controller)return;review?.invalidate();controller=new AbortController();refreshReview();const own=controller,ticket=++epoch;$('source-fallback').replaceChildren();$('source-submit').disabled=true;$('source-cancel').hidden=false;report('正在安全讀取公開頁與整理來源…');
+ event.preventDefault();if(controller)return;review?.invalidate();controller=new AbortController();refreshReview();const own=controller,ticket=++epoch;$('source-fallback').replaceChildren();$('source-submit').disabled=true;sourceBusy(true);$('source-url').removeAttribute('aria-invalid');$('source-cancel').hidden=false;report('正在安全讀取公開頁與整理來源…');
  const timeout=setTimeout(()=>own.abort(),40000);
  try{const response=await fetch('/api/product-source',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:$('source-url').value}),signal:own.signal});
   let r;try{r=await response.json();}catch{throw Error('backend_unavailable');}
   if(!response.ok)throw Error(r.code||'processing_failed');if(ticket===epoch)render(r);
- }catch(e){if(ticket===epoch)report(errors[e.message]||(e.name==='AbortError'?errors.timeout:'未收到完整成果。網址已保留；請重試或更換公開產品頁。'),true);}
+ }catch(e){if(ticket===epoch){if(['invalid_url','private_target','unsupported_query'].includes(e.message))$('source-url').setAttribute('aria-invalid','true');report(errors[e.message]||(e.name==='AbortError'?errors.timeout:'未收到完整成果。網址已保留；請重試或更換公開產品頁。'),true);}}
  finally{clearTimeout(timeout);if(ticket===epoch){idle();$('source-feedback').focus();}}
 });
-$('source-url').addEventListener('input',()=>cancel('網址已修改；請重新取得成果。'+(current?'最後成功成果仍保留於下方。':'')));
+$('source-url').addEventListener('input',()=>{$('source-url').removeAttribute('aria-invalid');cancel('網址已修改；請重新取得成果。'+(current?'最後成功成果仍保留於下方。':''));});
 $('source-cancel').addEventListener('click',()=>{cancel('已取消等待；網址已保留。'+(current?'最後成功成果仍保留於下方。':'')+'已送出的讀取可能仍會完成，但不會替換本頁成果。');$('source-feedback').focus();});
 $('review-confirm').addEventListener('click',async()=>{
  if(!review||controller)return;const own=review,ticket=own.view().token;

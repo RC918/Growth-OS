@@ -1,0 +1,54 @@
+PASS measurement 1280px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 1280px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS delivery 1280px latest: real clipboard and 11977 download bytes match saved version 8176cebe-d13b-4a3c-b514-62dc1b90137c; zero additional POST
+PASS measurement 1280px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 1280px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS delivery 1280px historical: real clipboard and 11997 download bytes match saved version 002443b1-3419-4a27-a510-b3be2834ad99; zero additional POST
+PASS measurement 1280px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 1280px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS delivery 1280px historical: real clipboard and 11973 download bytes match saved version 8176cebe-d13b-4a3c-b514-62dc1b90137c; zero additional POST
+PASS measurement 1280px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 1280px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS 1280px success: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 1280px unknown_commit: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 1280px unknown_empty: exact stored Review, preserved v1/v2, 0 review/audit, 1 POST
+PASS 1280px wrong_uuid: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 1280px wrong_digest: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 1280px stale: exact stored Review, preserved v1/v2, 0 review/audit, 1 POST
+PASS 1280px cancel_before: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS 1280px cancel_after: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 1280px logout: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 1280px source_drift: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS 1280px actor_drift: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS 1280px closed: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS delivery 1280px latest: real clipboard and 11977 download bytes match saved version 4bcacdcc-b64e-4d60-8b98-a977a509dcc5; zero additional POST
+PASS measurement 1280px: exact version, 0 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 1280px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS 1280px preview_closed: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS measurement 390px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 390px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS delivery 390px latest: real clipboard and 11977 download bytes match saved version aa814a71-d75b-4894-baa7-6410f4a68409; zero additional POST
+PASS measurement 390px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 390px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS delivery 390px historical: real clipboard and 11997 download bytes match saved version 018d76de-da52-4d1b-bd38-99616b5e4f47; zero additional POST
+PASS measurement 390px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 390px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS delivery 390px historical: real clipboard and 11973 download bytes match saved version aa814a71-d75b-4894-baa7-6410f4a68409; zero additional POST
+PASS measurement 390px: exact version, 3 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 390px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS 390px success: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 390px unknown_commit: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 390px unknown_empty: exact stored Review, preserved v1/v2, 0 review/audit, 1 POST
+PASS 390px wrong_uuid: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 390px wrong_digest: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 390px stale: exact stored Review, preserved v1/v2, 0 review/audit, 1 POST
+PASS 390px cancel_before: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS 390px cancel_after: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 390px logout: exact stored Review, preserved v1/v2, 1 review/audit, 1 POST
+PASS 390px source_drift: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS 390px actor_drift: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS 390px closed: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST
+PASS delivery 390px latest: real clipboard and 11977 download bytes match saved version 54072fb8-ecd6-4b56-acb4-acb4854ed5ab; zero additional POST
+PASS measurement 390px: exact version, 0 manually selected website contexts, zero/missing preserved, page effect unknown; zero writes
+PASS page CSV 390px: close/reopen clears selection, exact version, unconfirmed/historical read allowed, valid/invalid daily CSV, other page/site rejected, zero/missing, provider unverified; zero writes
+PASS 390px preview_closed: exact stored Review, preserved v1/v2, 0 review/audit, 0 POST

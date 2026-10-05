@@ -7,7 +7,7 @@ const node=(tag,text='')=>{const n=document.createElement(tag);n.textContent=tex
 export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=null}) {
  // Revision trials use only the existing saved-version editor, never first Save/import.
  if(trial?.kind==='revision'){root.hidden=true;return {update(){},refreshing(){},open(){},close(){}};}
- let context=null,data=null,payload=null,intent=null,ticket=0,busy=false,unresolved=false,transfer=null,expectedWindow=window.opener;
+ let context=null,data=null,payload=null,intent=null,ticket=0,busy=false,busyAction='',unresolved=false,transfer=null,expectedWindow=window.opener;
  let trialChecked=false,trialAttempted=false,trialSaved=false,trialKnownId=null,trialReadError=false,timer=null;
  const marker=trial?createTrialMarker(trial):null;let markerError=false;
  function syncMarker(){try{const record=marker.read();trialAttempted=trialAttempted||record.attempted;trialKnownId=record.version_id||trialKnownId;}catch(e){markerError=true;throw e;}}
@@ -18,9 +18,11 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
  const target=node('select');target.setAttribute('aria-label','保存歸屬');
  const confirm=node('button','確認保存待審草稿');confirm.type='button';confirm.id='save-url-result';
  const reconcile=node('button','只查詢保存結果');reconcile.type='button';reconcile.hidden=true;
- const feedback=node('p');feedback.setAttribute('role','status');feedback.id='url-save-feedback';
+ const feedback=node('p');feedback.setAttribute('role','status');feedback.id='url-save-feedback';file.setAttribute('aria-describedby',feedback.id);target.setAttribute('aria-describedby',feedback.id);confirm.setAttribute('aria-describedby',feedback.id);reconcile.setAttribute('aria-describedby',feedback.id);
  const preview=node('div');preview.id='url-save-preview';root.append(title,info,file,target,confirm,reconcile,feedback,preview);
  function paint(){
+  confirm.setAttribute('aria-busy',String(busy&&busyAction==='save'));confirm.textContent=busy&&busyAction==='save'?'正在保存與核對…':'確認保存待審草稿';
+  reconcile.setAttribute('aria-busy',String(busy&&busyAction==='read'));reconcile.textContent=busy&&busyAction==='read'?'正在查詢原保存結果…':'只查詢保存結果';
   confirm.disabled=!enabled||context?.role!=='owner'||!payload||busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError||markerError||!api.boundSaveAvailable()));
   file.disabled=busy||unresolved||(trial&&(!trialChecked||trialAttempted||trialSaved||trialReadError||markerError));target.disabled=!!trial||busy||unresolved;reconcile.hidden=!(unresolved||(trial&&(markerError||trialReadError||(trialAttempted&&!trialSaved))));reconcile.disabled=busy;
  }
@@ -68,7 +70,7 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
   }
   const operation=intent,session=context;
   const live=()=>own===ticket&&intent===operation&&context===session&&api.context()===session&&(!trial||api.boundSaveAvailable());
-  busy=true;unresolved=false;paint();feedback.textContent='正在驗證目前保存意圖；尚未送出。';
+  busy=true;busyAction='save';unresolved=false;paint();feedback.textContent='正在驗證目前保存意圖；尚未送出。';
   try{
    const id=await api.saveUrlResult(operation,{isCurrent:live,onDispatch:()=>{if(trial){try{marker.attempt();trialAttempted=true;}catch(e){markerError=true;throw e;}}unresolved=true;feedback.textContent='保存中；未知結果只查詢，不重送。';paint();}});
    // Keep the acknowledged ID even if a refresh/cancel invalidated this render.
@@ -82,7 +84,7 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
   finally{if(own===ticket){busy=false;paint();}}
  });
  async function probeTrial(){
-  if(!trial||!context)return;const own=ticket,session=context;busy=true;trialChecked=false;paint();feedback.textContent='先查詢固定 request；不會自動保存。';
+  if(!trial||!context)return;const own=ticket,session=context;busy=true;busyAction='read';trialChecked=false;paint();feedback.textContent='先查詢固定 request；不會自動保存。';
   try{try{syncMarker();}catch{}const row=await api.readBoundUrlResult(trialKnownId);if(own!==ticket||context!==session||api.context()!==session)return;trialChecked=true;trialReadError=false;
    if(markerError)throw Error('驗收防重送標記不可確認；只可查詢，不可保存');
    if(row){rememberTrial(row.id);trialSaved=true;unresolved=false;intent=null;payload=null;preview.replaceChildren(render(row));feedback.textContent=`已保存第 ${row.version_number} 版 · ${row.id} · 唯讀取回 · 未發布`;}
@@ -91,7 +93,7 @@ export function createUrlSavePanel({api,root,render,refresh,enabled=false,trial=
  }
  reconcile.addEventListener('click',async()=>{
   if(trial){if(!busy)await probeTrial();return;}
-  if(busy||!unresolved||!intent||api.context()!==context)return;const own=ticket;busy=true;paint();
+  if(busy||!unresolved||!intent||api.context()!==context)return;const own=ticket;busy=true;busyAction='read';paint();feedback.textContent='正在查詢原保存結果；不會重送保存。';
   try{await finish(await api.reconcileUrlResult(intent,intent.returned_version_id),own);}catch(e){if(own===ticket)feedback.textContent=e.message;}finally{if(own===ticket){busy=false;paint();}}
  });
  window.addEventListener('message',async event=>{

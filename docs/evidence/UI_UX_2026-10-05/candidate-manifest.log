@@ -1,0 +1,14 @@
+✔ RC config/transport denies hosted fallback, nonloopback, expired grant and missing durable data (1.84261ms)
+✔ actual HTTP boundary + browser runtime route mapping; no admin/unknown RPC/foreign Origin/foreign page access (46.044822ms)
+✔ new isolated schema candidate retains native roles/RLS and exact Save/Review contracts; never inserts Auth users (1744.441631ms)
+✔ deployment candidate uses fixed own bind storage, pinned images and loopback ports; not started (2.261663ms)
+✔ frozen RC candidate bytes match the reviewable deployment manifest (15.01715ms)
+✔ native integration is explicit test-only and shares the candidate configuration without secret interpolation into argv (69.06048ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2220.935025

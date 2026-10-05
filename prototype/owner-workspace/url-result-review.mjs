@@ -13,11 +13,13 @@ export function urlResultReview({api,version,isCurrent,latest=false}) {
  const cancel=document.createElement('button');cancel.type='button';cancel.className='url-review-cancel';cancel.textContent='取消本次核對';
  const read=document.createElement('button');read.type='button';read.className='url-review-read';read.textContent='只讀取此版本確認結果';
  root.append(heading,note,unknown,fields,confirm,cancel,read,status);
- const session=api.context(),owner=session?.role==='owner';let ticket=0,busy=false,editing=false,attempted=false,review=null,blocked=true,feedback='正在讀取此版本確認狀態…';
+ const session=api.context(),owner=session?.role==='owner';let ticket=0,busy=false,busyAction='',editing=false,attempted=false,review=null,blocked=true,feedback='正在讀取此版本確認狀態…';
  const current=()=>root.isConnected&&isCurrent()&&api.context()===session;
  const active=n=>current()&&ticket===n;
  const clearChecks=()=>{for(const input of checks.values())input.checked=false;};
  function paint(){
+  confirm.setAttribute('aria-busy',String(busy&&busyAction==='confirm'));confirm.textContent=busy&&busyAction==='confirm'?'正在確認這個版本…':'確認這個已保存版本';
+  read.setAttribute('aria-busy',String(busy&&busyAction==='read'));read.textContent=busy&&busyAction==='read'?'正在讀取確認結果…':'只讀取此版本確認結果';
   fields.hidden=confirm.hidden=cancel.hidden=!owner||!latest;
   const locked=busy||editing||attempted||!!review||blocked||!api.urlReviewCanConfirm(version);
   for(const input of checks.values())input.disabled=locked;
@@ -31,13 +33,13 @@ export function urlResultReview({api,version,isCurrent,latest=false}) {
   feedback=result?`${result.is_latest_version?'此已保存版本已確認':'歷史版本已確認，不能套用至新版'} · 第 ${version.version_number} 版 · ${version.id} · 確認 ${result.id} · 未發布`:attempted?'結果仍未知；只查詢原 request，不會重送。':'此已保存版本待確認 · 未發布。';
  }
  async function probe(){
-  if(!current()||busy)return;busy=true;const n=++ticket;paint();
+  if(!current()||busy)return;busy=true;busyAction='read';feedback='正在讀取此版本確認狀態；不會重送確認。';const n=++ticket;paint();
   try{const op=api.reviewRecovery();attempted=op?.base_version_id===version.id;await readback(n);}
   catch(error){if(active(n)){blocked=true;feedback=`未能確認：${error.message}；成果保留，可只讀查詢。`;}}
   finally{if(active(n)){busy=false;paint();}}
  }
  confirm.addEventListener('click',async()=>{
-  if(confirm.disabled||!current())return;busy=true;const n=++ticket;paint();
+  if(confirm.disabled||!current())return;busy=true;busyAction='confirm';feedback='正在核對並確認這個已保存版本…';const n=++ticket;paint();
   try{
    await api.confirmUrlReview(version,Object.fromEntries([...checks].map(([key,input])=>[key,input.checked])),{isCurrent:()=>active(n)&&!editing,onDispatch:()=>{attempted=true;feedback='確認結果待讀回；只查詢原 request，不重送。';paint();}});
    if(active(n))await readback(n);

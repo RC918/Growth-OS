@@ -14,7 +14,7 @@ export function typedDraft(version,{reviewAvailable=false}={}) {
     add(box, 'pre', value === undefined ? '資料缺漏' : JSON.stringify(value, null, 2));
     panel.append(box);
   };
-  add(panel, 'p', reviewAvailable?'已保存成果 · 確認狀態見下方 · 未發布':typedNotice, 'draft-state');
+  add(panel, 'p', version.id==='尚未保存'?'未保存預覽 · 待確認保存 · 未發布':reviewAvailable?'已保存成果 · 確認狀態見下方 · 未發布':typedNotice, 'draft-state');
   add(panel, 'p', version.id==='尚未保存' ? '尚未保存的完整成果；請核對後確認保存。' : `內容版本：${version.id} · 第 ${version.version_number} 版`);
   const report = version.first_result_payload;
   const snapshot = report?.snapshot, preview = report?.preview, review = report?.review;

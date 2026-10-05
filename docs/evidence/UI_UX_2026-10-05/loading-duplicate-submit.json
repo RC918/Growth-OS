@@ -1,0 +1,41 @@
+{
+  "domain": "ux",
+  "query": "loading duplicate submit",
+  "file": "ux-guidelines.csv",
+  "count": 3,
+  "results": [
+    {
+      "Category": "Forms",
+      "Issue": "Submit Feedback",
+      "Platform": "All",
+      "Description": "Confirm form submission status",
+      "Do": "Show loading then success/error state",
+      "Don't": "No feedback after submit",
+      "Code Example Good": "Loading -> Success message",
+      "Code Example Bad": "Button click with no response",
+      "Severity": "High"
+    },
+    {
+      "Category": "Feedback",
+      "Issue": "Loading Indicators",
+      "Platform": "All",
+      "Description": "Loading feedback should match the expected wait and avoid flashing for near-instant work",
+      "Do": "Follow platform and component guidance; preserve layout focus and accessible busy status",
+      "Don't": "Apply one timing threshold to every operation or leave long waits unexplained",
+      "Code Example Good": "Stable skeleton or progress with aria-busy",
+      "Code Example Bad": "Flickering spinner or frozen UI",
+      "Severity": "High"
+    },
+    {
+      "Category": "Performance",
+      "Issue": "Lazy Loading",
+      "Platform": "All",
+      "Description": "Load content as needed",
+      "Do": "Lazy load below-fold images and content",
+      "Don't": "Load everything upfront",
+      "Code Example Good": "loading='lazy'",
+      "Code Example Bad": "All images eager load",
+      "Severity": "Medium"
+    }
+  ]
+}

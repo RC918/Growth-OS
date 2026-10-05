@@ -1,0 +1,41 @@
+✔ single revision marker survives new reader, keeps known UUID monotonic and only stores metadata (3.823945ms)
+✔ storage denied/no-op/corrupt/disappeared/changed and duplicate pending fail closed (0.903964ms)
+✔ restored Review preserves source/original suggestions and saved edits; invalidates receipt; cancel restores saved text (9.427727ms)
+✔ cancel invalidates late restored confirmation (2.961463ms)
+✔ resume reads exact owner URL draft/latest version and validated payload; denies drift/viewer and stale session with zero POST (10.597847ms)
+✔ new-version intent binds authoritative actor/base/expected version and immutable source; never dispatches (32.945302ms)
+✔ assembled revision dispatch rechecks binding/base and uses existing gated Save; exact actor/UUID reconciliation (29.558055ms)
+✔ same-tab marker recovery is GET-only, exact, and does not unlock POST on empty or mismatched results (25.564028ms)
+✔ restored metadata rejects actor/org/base/version/source/digest mismatch and stale session without POST (16.84869ms)
+✔ URL API default gate/roles/membership fail closed before POST (7.660449ms)
+✔ URL API exact frozen dispatch and org/request readback; corruption rejected (21.217445ms)
+✔ URL API pending result cannot cross a signed-out/replaced session (0.880479ms)
+✔ URL ordering never invents missing approved sources and unknown kinds do not rank as approved (0.434025ms)
+✔ URL API requires a synchronous live intent immediately before dispatch (4.202042ms)
+✔ historical closed fixture retains exact bytes; absent schema/false Review gate cannot read or POST (11.192751ms)
+✔ viewer/editor, missing current callback and incomplete checks never dispatch (22.743244ms)
+✔ metadata persist-before-dispatch and fail-closed storage; revision marker remains separate (26.119373ms)
+✔ overlapping confirmation cannot allocate a second POST; recovery is original request GET only (27.245929ms)
+✔ cancellation, logout and replacement session during preflight prevent POST and late read success (4.888368ms)
+✔ owner session scopes dashboard reads and sends mutations with the authenticated organization (5.047655ms)
+✔ unverified linked site is preserved unless the owner explicitly detaches it (0.842082ms)
+✔ viewer can read only their workspace, and cannot invoke owner mutations (0.628865ms)
+✔ real-token diagnostic checks cross-tenant RLS and a harmless owner-only RPC (0.55832ms)
+✔ diagnostic reports a leak or a validation response instead of passing (0.495977ms)
+✔ workspace rejects truncated evidence rather than presenting an incomplete chain (0.584589ms)
+✔ magic link request cannot create a user or redirect outside this workspace (0.626081ms)
+✔ invalid callback and rejected Auth response clear the in-memory session (0.416549ms)
+✔ preview publishes the exact reviewed workspace files (24.774089ms)
+✔ observation reads and writes are scoped by authenticated membership; viewer and signed-out writes fail (1.07599ms)
+✔ version discriminator requires all explicit metadata and fails closed on partial markers (0.423169ms)
+✔ owner/viewer read one typed version with exact org/id/projection and reject mismatches or missing payload (3.386665ms)
+✔ late typed read rejects after signout or replacement session even with the same token (0.460564ms)
+✔ fixed Owner tenant GET: positive/negative controls, errors, identity/gates and stale session; zero POST (3.01336ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 469.347052

@@ -6,8 +6,8 @@
 <body><header><a href="/">Growth OS</a><span>公開產品頁 · 成果預覽</span></header>
 <main><section><p class="eyebrow">URL → FIRST USEFUL RESULT</p><h1>貼上產品網址，先取得可用文本。</h1>
 <p>系統讀取公開頁，整理已有名稱、描述與特性，產出 title、meta 與產品描述。使用來源摘錄規則，不呼叫模型；請確認原站事實與內容適用性。</p>
-<form id="source-form"><label for="source-url">產品頁網址</label><div class="entry"><input id="source-url" name="url" type="url" required maxlength="2048" placeholder="https://example.com/products/item" autocomplete="url"><button id="source-submit">取得第一份成果</button><button id="source-cancel" type="button" hidden>取消讀取</button></div></form>
-<p class="hint">僅公開 HTTPS、無登入內容及 query 參數。若網址含參數，請改用公開產品的 canonical 路徑。</p>
+<form id="source-form"><label for="source-url">產品頁網址</label><div class="entry"><input id="source-url" name="url" type="url" required maxlength="2048" placeholder="https://example.com/products/item" autocomplete="url" aria-describedby="source-hint source-feedback"><button id="source-submit">取得第一份成果</button><button id="source-cancel" type="button" hidden>取消讀取</button></div></form>
+<p id="source-hint" class="hint">僅公開 HTTPS、無登入內容及 query 參數。若網址含參數，請改用公開產品的 canonical 路徑。</p>
 <p id="source-feedback" role="status" aria-live="polite" tabindex="-1"></p>
 <div id="source-fallback"></div></section>
 <section id="result-section" hidden><div class="result-heading"><h2>第一份搜尋內容改善包</h2><span id="review-state" class="badge">待確認 · 未保存 · 未發布</span></div>
@@ -19,5 +19,5 @@
 <textarea id="copy-fallback" readonly hidden aria-label="手動複製文本"></textarea>
 <h3>待確認／未取得資訊</h3><ul id="result-missing"></ul>
 <details><summary>來源快照與產品理解</summary><div id="source-summary"></div><div id="source-facts"></div><div id="source-citations"></div></details>
-<p class="hint">來源已在本機／Preview 暫存；Hosted cache 可能消失，請匯出保留。尚無工作區跨登入保存、平台發布或成效資料。</p></section></main>
+<p class="hint">來源已在本機／Preview 暫存；Hosted cache 可能消失，請匯出保留。本頁預覽未保存；需另在工作區確認保存及核對確切版本，不能由本頁確認推定已發布或取得成效。</p></section></main>
 <footer>Growth OS · URL → 成果切片 · 不代表已發布或流量提升</footer></body></html>

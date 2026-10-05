@@ -67,3 +67,12 @@
 .page-observation input, .page-observation select { display:block; width:100%; max-width:100%; box-sizing:border-box; }
 /* Exact-version measurement must fit the existing mobile version card. */
 .publication-measurement{min-width:0;overflow-wrap:anywhere}.publication-measurement-form{display:grid;gap:12px;min-width:0}.publication-measurement-form label{display:grid;gap:5px;min-width:0}.publication-measurement-form fieldset{min-width:0;display:grid;gap:10px;margin:0}.publication-measurement-form input,.publication-measurement-form select{width:100%;max-width:100%;min-width:0}.publication-measurement-form button{white-space:normal}
+
+/* Core URL editing and exact-version feedback share existing workspace colours. */
+#url-result-panel button,.url-review button,.saved-result-review button,.revision-recovery-read{min-height:44px;margin:4px 8px 4px 0;padding:10px 14px;white-space:normal;max-width:100%;border:1px solid var(--green);border-radius:9px;background:var(--green);color:white;font-size:16px;line-height:1.5}
+#url-result-panel input,#url-result-panel select,.resume-editor textarea{font-size:16px;max-width:100%;min-width:0}.resume-editor textarea{min-height:140px}
+.url-review label,.resume-editor label{display:block;min-height:44px;line-height:1.6;margin-block:8px}.url-review input[type=checkbox],.resume-editor input[type=checkbox]{width:20px;height:20px;margin-right:8px;vertical-align:middle}
+.field-error{color:#a23c2a;font-weight:650;margin:6px 0}.field-error:empty{display:none}[aria-invalid=true]{border:2px solid #a23c2a}button[aria-busy=true]{cursor:wait}
+@media(max-width:540px){#url-result-panel button,.url-review button,.saved-result-review button,.revision-recovery-read{width:100%;margin:4px 0}.url-review,.saved-result-review{min-width:0}}
+
+.url-review .url-review-cancel,.saved-result-review .resume-cancel,.saved-result-review .resume-prepare{background:#eaf4eb;color:#175d46;border-color:#c9ddce}
