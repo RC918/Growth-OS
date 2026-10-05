@@ -1,6 +1,7 @@
 import {publicationMeasurement} from './publication-measurement.mjs';
 // Website observations are context only, never automatically attributed to a page/version.
-export function measurementPreparation({api,version,isCurrent,latest=false}){
+export function measurementPreparation({api,version,isCurrent,latest=false,profile=null}){
+ if(profile==='single_site_wordpress'){const root=document.createElement('section');root.className='pilot-measurement';root.textContent='基線未知 · 後續資料未知 · 效果未知（不是零）。真資料量測尚未接入；發布讀回不代表已有流量或改善效果。';return {root,setEditing(){}};}
  if(api.wordpressPublicationAvailable?.())return publicationMeasurement({api,version,isCurrent,latest});
  const root=document.createElement('section');root.className='measurement-preparation';
  const add=(parent,tag,text,cls='')=>{const node=document.createElement(tag);node.textContent=text;node.className=cls;parent.append(node);return node;};

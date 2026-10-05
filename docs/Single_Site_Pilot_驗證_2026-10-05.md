@@ -37,3 +37,7 @@ scope 為 `single_site_wordpress`，且本機 receipt 明記 `environment=isolat
 未執行：真內容公开發布、真站 grant、GSC連接／真資料日期整合、索引或流量改善、hosted backup災復、Owner實際內容事實及隱私配置終核。這些不是由本機測試推定通過。凍結 SQL與歷史 RC artifacts 保持原bytes；只更新未批准的 build-only RC manifest，其批准窗口仍 null。
 
 P3／P4：無本次額外擴修；沿用 PR20 upstream whitespace debt。crash自動接管／多writer／多CMS不在第一pilot架構，若後續主機需要，由 Dot 另選範圍，不在此 Core 擴建。
+
+## 提交後必要修正
+
+首次 PR CI run `37278172385`／job `111659805159` 在 Workspace API contract 明確失敗：apps/web 的候選 UI 已改，但 prototype/owner-workspace 對應檔未同步。分類為本交付必要P2；同步 measurement-preparation、wordpress-publication、workspace.mjs／css 的相同bytes，未放寬逐檔一致性assertion。修正後 workspace-api 本機契約14/14通過；部署路徑程式未再次變動，前述1280/390完整候選與legacy WordPress回歸仍有效，完整CI改核新HEAD，不將舊失敗記成成功。
