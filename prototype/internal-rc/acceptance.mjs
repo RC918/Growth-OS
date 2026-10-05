@@ -8,11 +8,14 @@ import {chromium} from 'playwright';
 import {root,prefix} from './deploy/compose.mjs';
 import {readSecret} from './runtime.mjs';
 import {enterWorkspaceSession} from '../owner-workspace/session-browser.mjs';
+import {controlSnapshotPHP} from './control-snapshot.mjs';
 import {checks} from '../../supabase/drafts/url_review/fixture.mjs';
 const phase=process.argv[2];if(!['phase-a','phase-b'].includes(phase))throw Error('Explicit RC phase required');
 const config=JSON.parse(await readFile(root+'/config.json','utf8')),origin=config.listen_origin,identities=JSON.parse(await readSecret(root+'/secrets/identities.json'));
 assert.equal(config.bound.run,prefix);assert.ok(Date.now()<config.bound.expires_at);assert.equal(config.backend_origin,'https://growth-internal-rc.supabase.co');
 const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});let context,page,token;
+const controlBefore=JSON.parse(await readFile(root+'/evidence/control-before.json','utf8'));
+async function checkControl(label){const actual=JSON.parse(execFileSync('docker',['exec','-i',prefix+'-wordpress','php'],{input:controlSnapshotPHP,encoding:'utf8'}));await writeFile(root+'/evidence/control-'+label+'.json',JSON.stringify(actual,null,2),{flag:'wx',mode:0o600});assert.deepEqual(actual,controlBefore,'full control page and meta preserved');}
 const snapshot=()=>JSON.parse(execFileSync('docker',['exec','-i',prefix+'-db','psql','-XAt','-U','postgres','-v','ON_ERROR_STOP=1'],{input:"select jsonb_build_object('versions',(select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from content_versions v),'reviews',(select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from content_reviews v),'audit',(select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from audit_events v));",encoding:'utf8'}));
 async function login(role,newContext=true){
  if(newContext){await context?.close();context=await browser.newContext({viewport:{width:phase==='phase-a'?1280:390,height:844},serviceWorkers:'block'});page=await context.newPage();assert.deepEqual(await context.cookies(),[]);}
@@ -38,6 +41,7 @@ try{
   await view.locator('.wp-restore').click();await view.locator('.wp-status').filter({hasText:'已恢復'}).waitFor();await publish(view);await view.locator('.wp-status').filter({hasText:'提交結果未知'}).waitFor();
   const journal=JSON.parse(await readFile(config.journal_path,'utf8')),pending=journal.events.at(-1).value.operation;assert.equal(pending.state,'submitting');
   await writeFile(root+'/evidence/bookmark.json',JSON.stringify({version_id:id,payload,evidence,measurement,pending_id:pending.id,sql:snapshot(),bound:config.bound},null,2),{flag:'wx',mode:0o600});
+  await checkControl('after-a');
   console.log('PHASE A complete: actual native Auth/SQL, real controlled HTML, HTTP service, durable publication/unknown measurement/pending; browser runner now exits.');
  }else{
   const bookmark=JSON.parse(await readFile(root+'/evidence/bookmark.json','utf8'));assert.deepEqual(config.bound,bookmark.bound);await login('owner');const view=await open(bookmark.version_id);assert.deepEqual(await payloadOf(view),bookmark.payload);assert.deepEqual(snapshot(),bookmark.sql);
@@ -52,6 +56,7 @@ try{
    for(const [rpc,input]of [['save_url_result_draft',{p_organization_id:config.bound.organization_id,p_opportunity_id:v.opportunity_id,p_request_id:randomUUID(),p_expected_version:1,p_payload:bookmark.payload}],['review_url_result',{p_organization_id:config.bound.organization_id,p_version_id:v.id,p_request_id:randomUUID(),p_source_digest:review.url_review_source_digest,p_content_digest:review.url_review_content_digest,p_version_digest:review.url_review_version_digest,p_checks:checks}]]){const denied=await fetch(origin+'/backend/rest/v1/rpc/'+rpc,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(input)});assert.equal(denied.status,403);}
   }
   assert.equal(await readFile(config.journal_path,'utf8'),journalBefore);assert.deepEqual(snapshot(),bookmark.sql);await page.screenshot({path:root+'/evidence/mobile-tenant.png',fullPage:true});
+  await checkControl('after-b');
   console.log('PHASE B complete: all old browser/runner/service processes gone; new native Auth session recovers exact persisted SQL/publication/measurement/pending, GET-only reconcile and tenant denial. Unknown remains unknown, no traffic claim.');
  }
 }catch(error){throw Error(String(error.stack??error).replace(/#access_token=[^\s"'<>]+/g,'#[redacted]').replace(/Bearer\s+[^\s"'<>]+/gi,'Bearer [redacted]'));}finally{await context?.close();await browser.close();}

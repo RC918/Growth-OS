@@ -9,7 +9,7 @@ export async function verification({site,transport,rig,width}){
  const dir='/tmp/'+site.run+'-evidence';await mkdir(dir,{mode:0o700,recursive:true});
  const journal=dir+'/'+width+'.jsonl';let service,killedPid=null;let fault=null,posts=0,staleIntent=null,holdMeasurement=false,measurementStarted=null,releaseMeasurement=null;
  const baseline=site.snapshot(),control=()=>site.snapshot().posts.find(p=>Number(p.ID)===site.control);
- const controlBefore=control();
+ const controlBefore=control(),controlFullBefore=site.controlSnapshot(),requestStart=site.requestKeys.length;
  const wrapped={...site,call:async(path,options={})=>{
   if(options.method==='POST'){
    if(fault==='before'){fault=null;killedPid=service.pid();await service.stop();throw Error('Process killed before transport');}
@@ -78,9 +78,10 @@ export async function verification({site,transport,rig,width}){
     if(phase==='after'){await restore();assert.equal(posts,4);}
    }
    assert.deepEqual(await rig.snapshot(),dbBefore);assert.deepEqual(control(),controlBefore);
+   assert.deepEqual(site.controlSnapshot(),controlFullBefore);
    const after=site.snapshot();for(const p of after.posts){const original=baseline.posts.find(x=>x.ID===p.ID);for(const k of Object.keys(p))if(!['post_modified','post_modified_gmt'].includes(k))assert.equal(p[k],original[k],'restored '+k);}assert.deepEqual(after.meta,baseline.meta);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-   await writeFile(dir+'/'+width+'-proof.json',JSON.stringify({...(await site.proof()),width,evidence,posts,bound:service.bound,restarts:service.restarts,checks:['UI confirmation','API/HTML','fresh session history','wrong page','viewer/foreign','extra field denied','before failure','after lost response GET only','verified restore','control/non-target unchanged','SQL no delta']},null,2));
+   await writeFile(dir+'/'+width+'-proof.json',JSON.stringify({...(await site.proof()),width,evidence,posts,control_before:controlFullBefore,control_after:site.controlSnapshot(),receiver_request_keys:site.requestKeys.slice(requestStart),bound:service.bound,restarts:service.restarts,checks:['UI confirmation','API/HTML','fresh session history','wrong page','viewer/foreign','extra field denied','before failure','after lost response GET only','verified restore','control/non-target unchanged','SQL no delta']},null,2));
    console.log(`PASS WordPress ${width}px: real HTTPS App Password → current diff → separate confirmation → API+HTML → SIGKILL/new PID + fresh-session exact publication/measurement → before/after commit SIGKILL cold readback/no resend → verified restore; control/non-target/SQL unchanged; ${posts} writes (2 publish + 2 restore); evidence ${dir}`);
    staleIntent=await dispatch(token,'preview',{version_id});return {page,view,token};
   },

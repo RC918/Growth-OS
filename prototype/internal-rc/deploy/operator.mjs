@@ -6,6 +6,7 @@ import {randomBytes,createHmac,createHash} from 'node:crypto';
 import {compose,root,prefix} from './compose.mjs';
 import {schema} from './schema.mjs';
 import {bootstrapDatabase} from './bootstrap.mjs';
+import {controlSnapshotPHP} from '../control-snapshot.mjs';
 import {nativeServiceEnv} from './native-env.mjs';
 import {ids} from '../../../supabase/drafts/first_result_save/fixtures.mjs';
 import {createRunJournal} from '../../wordpress-publish/journal.mjs';
@@ -50,6 +51,7 @@ if(action==='inspect'){
  docker(['exec','-i',prefix+'-wordpress','sh','-c','mkdir -p /var/www/html/wp-content/themes/growth; cat > /var/www/html/wp-content/themes/growth/style.css'],'/*\nTheme Name: Internal RC\n*/');
  docker(['exec','-i',prefix+'-wordpress','sh','-c','cat > /var/www/html/wp-content/themes/growth/index.php'],await readFile(new URL('./theme.php',import.meta.url)));
  const secret=JSON.parse(docker(['exec','-i','-e','GROWTH_APPROVED_EXPIRES='+Math.floor(until/1000),prefix+'-wordpress','php'],await readFile(new URL('./wordpress-setup.php',import.meta.url))));secret.run=prefix;await write('secrets/wordpress.json',JSON.stringify(secret));
+ await write('evidence/control-before.json',docker(['exec','-i',prefix+'-wordpress','php'],controlSnapshotPHP));
  checkWindow();execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',root+'/secrets/key.pem','-out',root+'/secrets/cert.pem','-days','1','-subj','/CN=127.0.0.1','-addext','subjectAltName=IP:127.0.0.1'],{stdio:'ignore'});
  await write('secrets/tls.json',JSON.stringify({key:await readFile(root+'/secrets/key.pem','utf8'),cert:await readFile(root+'/secrets/cert.pem','utf8')}));
  const bound={run:prefix,journal_id:'40000000-0000-4000-8000-000000000001',organization_id:ids.org,page_id:1001,target_url:'https://rc-source.example/bolt/',expires_at:Math.min(secret.expires_at,Date.parse(window.expires_at))};if(bound.expires_at!==secret.expires_at)throw Error('Insufficient approved time for original grant');

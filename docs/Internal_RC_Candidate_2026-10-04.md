@@ -2,6 +2,33 @@
 
 基準 `753dd9c47655e961221a1ef6be9bf8a9aef7194c` 已由 Reviewer `01a10857-2c6c` APPROVE；CI `37226680267` 59步、Preview `H6gCsEbPeZw3TMUoJ7xnbfUETxpX` success。父本輪指定收斂完整 RC，沒有授權真持續環境執行。本文件及 `prototype/internal-rc/` 是新候選，沒有修改歷史 frozen 包，也不因名稱 RC 自動取得新權限。
 
+## 2026-10-05 第三次 RC 已清理／必要 P2 摘要核對修正
+
+第三次批准 reference `Sentinel_a9f8eece7a308191be4ea6862d4f054e`、HEAD `fae2fdf0393cbec7388dc2e4cdd9087dd0544322`、110項digest `5cb5af95a6f1db4b75c86f9f5a53866cf1e21415c00d1b1a500e0997a51be8af`，窗口03:48:46–05:48:00 UTC。03:51:54.342Z唯一provision開始；native GoTrue自身70migration、3users/2org、實際controlled HTML→UI編輯→native JWT/HTTP SQL Save→UI signOut/新context原生login→exact payload readback/Review已走通，1version/1review/2audit。這裡的signOut仍是page-memory清除，不冒稱native logout撤銷。
+
+03:52:15Z原operation `d96a13bc-3e4c-40c0-a1f0-3e2e25eccaa7`（version `93dace75-3e5c-466d-a1a9-bad51528ed7d`）唯一WP POST200，三target fields已套用；journal為`preview→submitting→state_diverged`，03:52:45.397Z phase A exit1。原journal**保持失敗，不追認成功**。原比較的15個保留欄位中只有excerpt.rendered不同；raw均空、protected均false，rendered從`<p>Steel bolt for workshop assembly.</p>\n`變成新正文衍生值。API其他差異為已批准title/content/meta、modified時間、generated_slug、revision hash與revision links，實際slug未變。不把整個API response說成只有excerpt差異。
+
+只GET原page核對，沒有重送、restore或phase B。量測保存、第三提交故障注入、全runner退出後B讀回及完整tenant矩陣NOT_RUN。control1002當時僅失敗後id/title/content/slug/status符合setup預期，modified有觀察值；**沒有獨立發布前完整snapshot，不能稱完整bytes不變**。當時wire POST body未保存，keys由固定程式/plugin限制推導；access log只能證一次page1001 POST200。
+
+03:55:36.027672Z cleanup exit0，03:56:08.290144Z postflight無root/data/secrets/grant/own容器network，ports可用；三個消耗marker均保留。原allowlist `/workspace/shared/growth-internal-rc-evidence-20261005-attempt3` 保留至2026-10-08T05:48Z。兩份原bytes最小歸檔供跨executor審查：
+
+- [failure-summary.json](evidence/RC_Attempt3_2026-10-05/failure-summary.json)，SHA256 `0ca8ae782f9dc421a8ca8ae0908dd6644cbfb1064408788970ffaf097fff00e1`。
+- [cleanup.json](evidence/RC_Attempt3_2026-10-05/cleanup.json)，SHA256 `980207fe3472680e59a930c552181d487b1a199084ee5cc79e64eedd83b73063`。
+
+### 根因與最小新候選
+
+Reviewer01a10a36裁必要P2；父授權修同一發布核對Core。舊短命WP fixture明填`post_excerpt`，持久RC留空，所以舊regression未覆蓋WP自動摘要。現保留全部原untouched欄位與型別檢查；excerpt必須完整`raw:string/rendered:string/protected:boolean`且無額外欄位。**僅raw精確空字串且protected=false**忽略rendered相等性，仍留原/新rendered證據。明確摘要（含空白字串）及protected情形保持rendered嚴格比較；raw/protected/其他保留欄位drift、缺值／型別異常failclosed。沒有泛化generated欄位豁免。
+
+三target fields／page identity／HTML全核對才確認發布；restore同樣核API三欄、保留欄位及HTML，失敗保持restore_unknown，讀回失敗不能先變restored而解鎖新提交。發布evidence保留`excerpt_readback`，restore另存`restore_excerpt_readback`，不改原發布證據。Cold journal保留完整baseline校驗；原unknown只GET、不重發限制不變。
+
+短命fixture改用**同一RC theme.php**與固定page1001/control1002，sourceFixture預設空摘要，另保留真WP明確摘要case。原pinned WP6.8.3/MariaDB11.4.8、tmpfs、loopback與client-local TLS、run-only原900秒grant不變；不觸碰持久RC root/window。HTTP接收端新增僅keys觀察（不存body/header/credential）；control記錄完整post欄位（password只記protected布林）及全meta，publish/restore前後完全比較。新候選operator存control-before，A/B存並核對control-after；**這些新候選持久路徑尚未部署**。
+
+### Verification Loop／界線
+
+PLAN/CODE：同Core必要P2，maintenance=0。UNIT/CONTRACT：22tests含空/明確摘要、raw/protected/所有保留欄位drift、缺失/型別、錯target/HTML、restore HTML unknown維持closed與原journal/RC契約。BUILD/RUN：`excerpt-regression.mjs --mode growth-os-isolated-regression`真WP兩情形各2POST，實際commit後丟reply/SIGKILL→新PID→原ID GET-only→API/HTML確認→restore；前後excerpt、receiver keys、control完整page/meta保存到`/tmp/growth-wp-*-evidence/excerpt-proof.json`。負測另對真WP GET回應注入raw/protected/缺失/型別/slug/explicit-rendered drift而拒restore、POST無增量；這是transport fault injection，不謊稱WP原資料遭額外改寫。
+
+BROWSER/DOM、1280/390：原單一入口沿controlled HTML、synthetic Auth/session與隔離SQL，驗Save/Review→發布/恢復→fresh session→publication/measurement readback、before/after SIGKILL原ID GET-only、tenant拒絕及零拒絕案SQL/audit增量；新control全row/meta證據並存。DATABASE/AUTH：原SQL／RLS路徑沿用，沒有Auth改動；本輪WP回歸不宣稱native Auth/產品OTP或持久A/B。VERIFY：exactHEAD CI/Preview/原JSON與新artifact交既有Reviewer。第三次完整RC仍FAIL，三個provision已消耗；任何第四次完整持久RC均需新包、新窗口、新批准，不用05:48前剩餘時間重跑。
+
 ## 2026-10-05 短命原生 HTTP/JWT 整合（已驗，仍非持久 RC）
 
 Reviewer01a109d7對0b8c46c判必要P2：SQL harness寫ledger、插user、手设claims不能證明native executable交接。父已依既有日常synthetic regression授權本節最小原生整合；不是第三次持續RC，也不沿用兩個已消耗窗口。下方0b8c46c歷史段落的runtime未驗／待授權說明，以本節新實證更新；持久A/B與產品email/OTP仍未驗。
@@ -119,7 +146,7 @@ BROWSER/DOM、1280/390、SAVE→LOGOUT→FRESH SESSION→LOGIN→READBACK、TENA
 | 不確定／失敗 | 不rerun provision、不改request/intent、不重發POST、不以無回覆視為未套用；讀原journal+原頁expected-before/after。到期、撤銷、損毀、缺檔、drift停mutation，保存無secret證據；需要重新開grant或期限時另請准，不能重用這次allowance。 |
 | 清理／保留 | 停兩個app processes後，先把allowlist evidence（bookmark需不含token/secret、PNG、journal/source synthetic資料、redacted logs）移到父指定artifact；保留最多3天。`operator cleanup`核同window及own labels，停exact五容器／own network，移除唯一root與own資料／secret，使用原PG image的network-none helper只刪own bind data；不prune、不刪外部資源。刪除該DB與站亦銷毀原生identity／grant；cleanup權限在expiry後只限原已批准收尾。部分provision失敗保留`.started`，只核對／cleanup，禁止blind重跑。 |
 
-**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest（110項）：`5cb5af95a6f1db4b75c86f9f5a53866cf1e21415c00d1b1a500e0997a51be8af`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
+**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest（114項）：`04963bd0fd17e24ed1739e883834db3f447c026bbb8455ed5107ab12934f5cce`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
 
 ```sh
 # 現在可做：read-only、沒有部署或secret生成

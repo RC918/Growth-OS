@@ -120,6 +120,9 @@ jobs:
         run: |
           docker pull wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4
           docker pull mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6
+      - name: Real WordPress empty and explicit excerpt cold readback
+        timeout-minutes: 4
+        run: node prototype/wordpress-publish/excerpt-regression.mjs --mode growth-os-isolated-regression
       - name: Unattended synthetic session, SQL and controlled WordPress publication
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --wordpress

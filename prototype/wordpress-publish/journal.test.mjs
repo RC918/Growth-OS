@@ -10,7 +10,7 @@ const bound={run:'fixture',journal_id:'fixed',organization_id:'org',page_id:4,ta
 function fixture(t){
  const dir=mkdtempSync(join(tmpdir(),'growth-journal-test-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));const path=join(dir,'journal.json');createRunJournal(path,bound);
  const a={review_status:'exact_version_confirmed',binding:{organization_id:'org',version_id:'v1',review_id:'r1'},target_url:bound.target_url,fields:{title:{after:'Bolt'},meta_description:{after:'Meta'},description:{after:'Body'}}};
- const page={id:4,link:a.target_url,title:{raw:'Old'},content:{raw:'<p>Old</p>'},meta:{growth_meta_description:'Old meta'},growth_revision:'before',date_gmt:'2026-01-01T00:00:00',modified_gmt:'2026-01-01T00:00:00'};
+ const page={date:'2026-01-01T00:00:00',slug:'bolt',status:'publish',type:'page',author:2,parent:0,menu_order:0,comment_status:'closed',ping_status:'closed',template:'',featured_media:0,excerpt:{raw:'',rendered:'<p>Old</p>\n',protected:false},id:4,link:a.target_url,title:{raw:'Old'},content:{raw:'<p>Old</p>'},meta:{growth_meta_description:'Old meta'},growth_revision:'before',date_gmt:'2026-01-01T00:00:00',modified_gmt:'2026-01-01T00:00:00'};
  let posts=0,status=200;
  const site={run:bound.run,expires_at:bound.expires_at,target:4,targetURL:a.target_url,path:id=>'/?rest_route=/wp/v2/pages/'+id+'&context=edit',call:async(route,o={})=>{if(o.method==='POST'){posts++;throw Error('lost');}return {status,text:JSON.stringify(page),json:()=>structuredClone(page)};}};
  const authorize=async(token,id)=>{if(token!=='fresh-owner'||id!=='v1')throw Error('Denied session/version');return structuredClone(a);};

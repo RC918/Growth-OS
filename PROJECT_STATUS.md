@@ -389,3 +389,10 @@ c82b88c第二次01:46:03.483Z provision：PG bootstrap PASS，GoTrue migration�
 父針對Reviewer01a109d7必要P2明確授權native日常regression。共用候選PG/Auth/REST env與bootstrap/business SQL，GoTrue executable自行完成70migration、admin建立3syntheticusers、password grant真JWT。HTTP Save/Review200→logout204/舊refresh400→freshlogin200→exact全row讀回；錯簽章401、viewer/foreign寫入403、native刪身份後GETuser403/ownOrg隱藏/寫403，拒絕案business完整snapshot不變，最終1version/1review/2audit。
 
 最終本機run02:25:53.127–02:25:59.872Z PASS，10/10契約PASS；[原始JSON](docs/evidence/Native_HTTP_2026-10-05.json)及[詳述界線](docs/Internal_RC_Candidate_2026-10-04.md)。專用internal network無host ports、PG tmpfs、Auth/REST readonly、無WP、無host secret檔；按owner labels清理後無run容器/network，原root仍不存在、兩marker bytes保持。沒有SQL插身份/寫GoTrue ledger/手設claims冒native證據。JWT/logout/HTTP證據不外推產品emailOTP/browser或全runner退出持久A/B；候選CI/Preview後交既有Reviewer，不自動第三次RC。CoreMilestoneProgress=1 native子閉環、maintenance=0。
+
+
+## 2026-10-05 第三次RC摘錄核對必要P2（未第四次部署）
+
+fae2fdf第三次唯一provision已消耗並清理：native70migration/3users、UI Save→fresh native session→exact payload/Review成立；首次WP POST200三欄套用，但空raw自動excerpt.rendered改變被untouched比較判state_diverged。1publish/0restore，measurement/第三提交/B/完整tenant未跑。原failure/cleanup JSON按原SHA歸檔[RC候選記錄](docs/Internal_RC_Candidate_2026-10-04.md)，歷史不改成功，control歷史僅setup預期核對及wire body未保存限制明記。
+
+父依Reviewer必要P2授權最小修正：只有raw精確空且unprotected摘要rendered視衍生；完整raw/protected/型別與其他untouched嚴格保持，explicit rendered仍嚴格。發布/恢復皆核API/HTML，unknown不解鎖新提交。短命真WP採原RC theme，空/explicit兩case之lost reply/SIGKILL/new PID原ID GET-only、2POST publish/restore與全control page/meta、HTTP receiver keys證據；1280/390原入口回歸。新candidate增control-before/after及keys記錄，未部署。CoreMilestoneProgress為必要核對缺口修正與可審synthetic證據；完整RC完成=0，maintenance=0。CI/Preview後交既有Reviewer，再由父決定新的完整RC批准；不要求Owner登入、不沿用任何已消耗窗口。
