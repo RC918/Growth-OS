@@ -8,3 +8,5 @@
 - Owner最新明確指令優先於repo技能；技能不擴大授權，也不能凌駕平台安全、期限或安全拒絕。限定文件／只讀任務完成後停止，不自動啟動產品工程。
 - 日常 regression 必須用安全隔離的 synthetic accounts／fixtures／test-only sessions 自動完成，不依賴 Owner。安全／權限／工具限制先判是否真人必需；`HUMAN_REQUIRED` 只阻擋直接相依步驟，獨立工程、tests、CI、Preview、docs 繼續，既有普通工程授權不撤回。
 - 需本人僅限 Auth／callback／magic-link／OTP 本身改動、RC、重大 milestone 終驗、平台強制真人 challenge、不可代理的法律／授權／事實確認；RC／milestone 亦只限人員必要步驟；請人前須列確切版本未解主張、本人必要性、fixture 無法替代的原因、精確頁面及最小動作。synthetic 測試、hosted 工具執行限制、不可代理真人確認分層，工具拒絕本身不等於 HUMAN_REQUIRED。不繞過工具拒絕、不擴 remote／費用授權、不做 production bypass。
+
+- 已授權的 UI/UX 工作另明確讀取 [ui-ux-pro-max](.agents/skills/ui-ux-pro-max/SKILL.md) 與 [核心 UI/UX 規範](docs/Core_UI_UX_Guidelines.md)，沿用繁中、既有視覺與原生 HTML/CSS/ES modules。技能僅供建議，不覆蓋上述治理、Auth/tenant/發布授權或 unknown 只讀核對限制；此為 explicit file loading，不宣稱 native autodiscovery。

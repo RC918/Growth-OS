@@ -67,7 +67,7 @@ try{
  await page.evaluate(()=>{window.realFetch=window.fetch;window.pending=[];window.fetch=()=>new Promise(resolve=>window.pending.push(resolve));});
  await input.fill('https://example.com/pending');await input.press('Enter');
  await page.evaluate(()=>{document.getElementById('source-form').requestSubmit();document.getElementById('source-form').requestSubmit();});
- assert.equal(await page.evaluate(()=>window.pending.length),1);
+ assert.equal(await page.evaluate(()=>window.pending.length),1);assert.equal(await page.locator('#source-submit').getAttribute('aria-busy'),'true');assert.match(await page.locator('#source-submit').innerText(),/正在取得/);
  await page.getByRole('button',{name:'取消讀取',exact:true}).focus();await page.keyboard.press('Enter');assert.match(await page.locator('#source-feedback').innerText(),/已取消/);
  const stale=structuredClone(report);stale.preview.fields.title.suggested='STALE RESPONSE';
  async function resolve(index,value){await page.evaluate(({index,value})=>window.pending[index]({ok:true,json:async()=>value}),{index,value});await page.evaluate(()=>new Promise(requestAnimationFrame));}
@@ -113,6 +113,8 @@ try{
  async function confirmReview(){await page.locator('#review-confirm').focus();await page.keyboard.press('Enter');await page.waitForFunction(()=>document.getElementById('review-state').textContent.startsWith('本頁已確認'));}
  async function editText(key,text){const field=page.locator('#review-'+key);await field.focus();await page.keyboard.press('ControlOrMeta+A');await page.keyboard.type(text);}
  assert.equal(await page.locator('#review-confirm').isDisabled(),true);
+ for(const key of keys){const value=await page.locator('#review-'+key).inputValue();await editText(key,'   ');assert.equal(await page.locator('#review-'+key).getAttribute('aria-invalid'),'true');assert.match(await page.locator('#review-error-'+key).innerText(),/不能只有空白/);assert.ok((await page.locator('#review-'+key).getAttribute('aria-describedby')).includes('review-error-'+key));assert.equal(await page.locator('#review-confirm').isDisabled(),true);await editText(key,value);assert.equal(await page.locator('#review-'+key).getAttribute('aria-invalid'),'false');}
+ await page.locator('#review-description').focus();await page.keyboard.press('Tab');assert.equal(await page.locator('#review-check-description').evaluate(e=>e===document.activeElement),true);assert.ok(await page.evaluate(()=>getComputedStyle(document.activeElement).outlineStyle!=='none'));
  await editText('title','Revised workshop bolt');assert.match(await page.locator('#review-origin-title').innerText(),/使用者修改/);
  assert.equal(await page.locator('#result-fields .comparison').first().locator('div').first().locator('p').innerText(),namedReport.preview.fields.title.original);
  await checkUsedFacts();await confirmReview();assert.match(await page.locator('#review-state').innerText(),/本頁已確認 · 未保存 · 未發布/);
@@ -131,7 +133,7 @@ try{
  async function deferDigests(){await page.evaluate(()=>{window.realDigest=crypto.subtle.digest.bind(crypto.subtle);window.reviewDigests=[];crypto.subtle.digest=(...args)=>new Promise((resolve,reject)=>window.reviewDigests.push(()=>window.realDigest(...args).then(resolve,reject)));});}
  async function finishDigest(index){await page.evaluate(index=>window.reviewDigests[index](),index);await page.evaluate(()=>new Promise(requestAnimationFrame));}
  async function restoreDigest(){await page.evaluate(()=>{crypto.subtle.digest=window.realDigest;});}
- await deferDigests();await page.locator('#review-confirm').click();await page.evaluate(()=>document.getElementById('review-confirm').dispatchEvent(new MouseEvent('click')));assert.equal(await page.evaluate(()=>window.reviewDigests.length),1);
+ await deferDigests();await page.locator('#review-confirm').click();await page.evaluate(()=>document.getElementById('review-confirm').dispatchEvent(new MouseEvent('click')));assert.equal(await page.evaluate(()=>window.reviewDigests.length),1);assert.equal(await page.locator('#review-confirm').getAttribute('aria-busy'),'true');assert.match(await page.locator('#review-confirm').innerText(),/正在確認/);
  await editText('title','New revision wins');await checkUsedFacts();await page.locator('#review-confirm').click();assert.equal(await page.evaluate(()=>window.reviewDigests.length),2);
  await finishDigest(1);await finishDigest(0);await restoreDigest();assert.match(await page.locator('#review-state').innerText(),/^本頁已確認/);
  const newest=await exportReport(true);assert.equal(newest.preview.fields.title.suggested,'New revision wins');assert.equal(newest.review.confirmation.revision,newest.review.revision);

@@ -1,0 +1,25 @@
+✔ independent negative gates: non-test, unapproved target, missing/forged isolation reject before listen/network/DB (1.754133ms)
+✔ per-run fixed mapping, short expiry, unknown token and OTP rejection; no SQL/network fallback (3295.741671ms)
+✔ unmodified product client without fixture rejects fake callback when Auth denies; no membership/session/mutation (1.923901ms)
+✔ deployment output/import closure excludes test-only fixture and bypass entry (13.748813ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3455.880738
+PASS URL native same-request {"holder":310,"contender":312,"observer":326}
+PASS URL native same-version {"holder":366,"contender":367,"observer":382}
+PASS URL native cross-parent-request {"holder":402,"contender":403,"observer":418}
+PASS URL native save-before-revoke {"holder":438,"contender":439,"observer":454}
+PASS URL native revoke-during-org-wait
+PASS URL native revoke-before-membership-lock
+PASS URL core 1280px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth
+PASS synthetic Review invalidation 1280px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review
+PASS SQL RLS/permission 1280px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted
+PASS URL core 390px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth
+PASS synthetic Review invalidation 390px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review
+PASS SQL RLS/permission 390px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted
+PASS unattended regression entry. Real Auth engine issuance/JWT verification/OTP/2FA NOT TESTED. Product signOut is page-memory clearing only.

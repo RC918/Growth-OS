@@ -1,0 +1,12 @@
+PASS 1280px URL boundary cancel
+PASS 1280px URL boundary review_edit
+PASS 1280px URL boundary refresh
+PASS 1280px URL boundary pagehide
+PASS 1280px URL boundary read_http_failure
+PASS 1280px URL boundary read_wrong_id
+PASS 390px URL boundary cancel
+PASS 390px URL boundary review_edit
+PASS 390px URL boundary refresh
+PASS 390px URL boundary pagehide
+PASS 390px URL boundary read_http_failure
+PASS 390px URL boundary read_wrong_id

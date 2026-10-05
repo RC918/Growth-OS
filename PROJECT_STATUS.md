@@ -403,3 +403,10 @@ fae2fdf第三次唯一provision已消耗並清理：native70migration/3users、U
 Owner新窗口授權固定49db1dc候選，04:38:49Z provision；A 04:39:12Z exit0，舊runner/browser/service退出後B獨立新process於04:39:55Z開始、04:40:00Z exit0。Native JWT Save→新session exact payload/Review、受控WP publish/API+HTML readback/restore、unknown measurement持久保存、新process恢復publication與原pending GET-only、tenant負測零business/journal增量均成立。WP只2 POST（1publish/1restore），第三與B均0；control完整非secretpage＋meta前/A後/B後一致。04:42:10Z cleanup exit0、grant隨DB銷毀、四consumedmarkers保留，未延窗或再provision。
 
 [完整驗收索引與26份原始非secret證據](docs/RC_Attempt4_驗收_2026-10-05.md)；結果待既有Reviewer，非Owner真內容/live公開站或emailOTP驗收，measurement仍unknown無SEO效果主張。CoreMilestoneProgress=完整受控A/B使用者閉環證據，maintenance=0；前三次失敗歷史不改。此PR19收尾僅證據/status；UIUX另branch/PR，不把文檔HEAD視為重新執行RC。
+
+
+## 2026-10-05 核心UI回饋與project技能（獨立stacked PR）
+
+Owner已選Core：URL→result→edit→save→新session→exact版確認的操作狀態／錯誤／鍵盤手機可讀性。沿現有視覺及HTML/CSS/ES modules補loading+aria-busy、三欄近端錯誤、未保存preview狀態、44px操作和手機換行，無新runtime依賴；Auth/SQL/tenant/發布權限和unknown只核原request不變。完整synthetic1280/390與exactpayload/Review、duplicate/unknown/cancel及tenant拒絕零增量通過；[安裝／實用／改善三層證據與限制](docs/UI_UX_Core_驗證_2026-10-05.md)。
+
+UIUX Pro Max固定來源477bcb28、MIT、74來源檔完整SHA及安全審查，Python本機search及資料validator通過，當前task確實讀取並用於上述修正。僅explicit loading，native skills catalog仍空，不修loader。PR19保持RC證據收尾；此獨立分支更新的build-only RC candidate hash沒有批准窗口，不重跑RC。CoreMilestoneProgress為可見核心回饋及完整synthetic流程驗證，maintenance=0；交既有Reviewer，未自選新Core或宣告live品質／SEO結果。

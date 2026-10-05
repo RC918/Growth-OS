@@ -23,7 +23,10 @@ try{
  browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});
  for(const width of [1280,390]){
   const rig=await createSessionRig(options),transport=createAuthTransport({...options,isolation:rig.isolation});let context,page,token=null,previousToken=null,blockedTargets=0,lateRelease=null,lateStarted=null,holdDetail=false,payload=null,sourceRequests=0;
-  const contexts=[],errors=[];const before=await rig.snapshot();
+  const contexts=[],errors=[];let mutationGate=null;
+  function holdMutation(){let signal,release;const started=new Promise(r=>signal=r),gate=new Promise(r=>release=r);mutationGate=()=>{signal();return gate;};return {started,release(){mutationGate=null;release();}};}
+  async function verifyBusy(button){assert.equal(await button.getAttribute('aria-busy'),'true');assert.equal(await button.isDisabled(),true);assert.match(await button.innerText(),/正在/);await button.evaluate(b=>b.dispatchEvent(new MouseEvent('click')));}
+  async function screenshot(label){if(process.env.GROWTH_UIUX_EVIDENCE_DIR)await page.locator(label==='saving'?'#url-result-panel':'.url-review').first().screenshot({path:process.env.GROWTH_UIUX_EVIDENCE_DIR+'/'+label+'-'+width+'.png'});}const before=await rig.snapshot();
   let wp=null;
   try{
    wp=wordpressSite?await (await import('../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width}):null;
@@ -35,6 +38,7 @@ try{
      try{
       if(u.origin===origin){
        if(wp){
+        if(req.method()==='POST'&&/\/rpc\/(save_url_result_draft|review_url_result)$/.test(u.pathname)&&mutationGate)await mutationGate();
         const response=await wp.route(req);
         if(u.pathname==='/api/product-source'){assert.equal(req.method(),'POST');assert.deepEqual(req.postDataJSON(),{url:wordpressSite.targetURL});assert.equal(++sourceRequests,1);assert.equal(response.status,200);source=JSON.parse(response.body.toString());assert.ok(source.snapshot.html.includes('itemprop="description"'));}
         if(holdDetail&&u.pathname==='/backend/rest/v1/content_versions'&&u.searchParams.get('select')?.includes('first_result_payload')){lateStarted?.();await new Promise(resolve=>lateRelease=resolve);}
@@ -48,6 +52,7 @@ try{
        return route.fulfill(await rig.asset(u.pathname));
       }
       if(u.origin!==backend){blockedTargets++;return route.abort();}
+      if(req.method()==='POST'&&/\/rpc\/(save_url_result_draft|review_url_result)$/.test(u.pathname)&&mutationGate)await mutationGate();
       const response=await transport({url:req.url(),method:req.method(),headers:req.headers(),body:req.method()==='POST'?req.postDataJSON():undefined});
       if(holdDetail&&u.pathname==='/rest/v1/content_versions'&&u.searchParams.get('select')?.includes('first_result_payload')){lateStarted?.();await new Promise(resolve=>lateRelease=resolve);}
       return route.fulfill({status:response.status,contentType:'application/json',body:JSON.stringify(response.data)});
@@ -81,7 +86,8 @@ try{
    await fresh('owner',true);
    await page.locator('#url-save-preview .typed-draft').waitFor();assert.equal(rig.stats().mutations,0,'normal handoff/login never auto-save');
    assert.deepEqual(JSON.parse(await page.locator('#url-save-preview .typed-draft > details').last().locator('pre').textContent()).payload,payload,'normal opener handoff retains source and edited bytes');
-   await page.locator('#save-url-result').click();await page.locator('#url-save-feedback').filter({hasText:'已保存第 1 版'}).waitFor();
+   assert.match(await page.locator('#url-save-preview .draft-state').innerText(),/未保存預覽.*待確認保存.*未發布/);
+   const saveGate=holdMutation(),saveButton=page.locator('#save-url-result');await saveButton.focus();await page.keyboard.press('Enter');await saveGate.started;await verifyBusy(saveButton);assert.ok(await saveButton.evaluate(b=>getComputedStyle(b).minHeight==='44px'));await screenshot('saving');saveGate.release();await page.locator('#url-save-feedback').filter({hasText:'已保存第 1 版'}).waitFor();
    const saved=rig.stats().lastSave;assert.ok(saved?.id);assert.deepEqual(saved.request.p_payload,payload);assert.equal(saved.request.p_organization_id,ids.org);assert.equal(rig.stats().mutations,1);
    let view=await open(saved.id);assert.deepEqual(await readPayload(view),payload);
    const savedState=await rig.snapshot();assert.equal(savedState.content_versions.length,before.content_versions.length+1);assert.equal(savedState.growth_opportunities.length,before.growth_opportunities.length+1);assert.equal(savedState.audit_events.length,before.audit_events.length+1);assert.deepEqual(savedState.content_reviews,before.content_reviews);
@@ -90,7 +96,8 @@ try{
    // The first authoritative exact-version Review happens only after a fresh session read.
    await page.locator('#sign-out').click();await fresh('owner');view=await open(saved.id);assert.deepEqual(await readPayload(view),payload);await view.locator('.url-review-status').filter({hasText:'待確認'}).waitFor();assert.deepEqual(await rig.snapshot(),savedState);assert.equal(rig.stats().mutations,1);
    for(const key of Object.keys(checks))await view.locator(`[data-review-check="${key}"]`).check();
-   await view.locator('.url-review-confirm').click();await view.locator('.url-review-status').filter({hasText:'此已保存版本已確認'}).waitFor();
+   const reviewGate=holdMutation(),reviewButton=view.locator('.url-review-confirm');await view.locator('[data-review-check]').last().focus();await page.keyboard.press('Tab');assert.equal(await reviewButton.evaluate(b=>b===document.activeElement),true);assert.ok(await reviewButton.evaluate(b=>getComputedStyle(b).outlineStyle!=='none'));await page.keyboard.press('Enter');await reviewGate.started;await verifyBusy(reviewButton);await screenshot('confirming');reviewGate.release();await view.locator('.url-review-status').filter({hasText:'此已保存版本已確認'}).waitFor();
+   await screenshot('confirmed');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    const reviewed=rig.stats().lastReview;assert.equal(rig.stats().mutations,2);await view.locator('.url-review-read').click();await view.locator('.url-review-status').filter({hasText:reviewed.id}).waitFor();assert.equal(rig.stats().mutations,2,'confirmation record readback is GET-only');assert.equal(reviewed.request.p_version_id,saved.id);assert.equal(reviewed.request.p_organization_id,ids.org);assert.deepEqual(reviewed.request.p_checks,checks);
    const reviewState=await rig.snapshot(),reviewRow=reviewState.content_reviews.find(r=>r.id===reviewed.id);
    assert.equal(reviewState.content_reviews.length,before.content_reviews.length+1);assert.equal(reviewRow.version_id,saved.id);assert.equal(reviewRow.actor_user_id,ids.owner);assert.equal(reviewRow.organization_id,ids.org);assert.equal(reviewRow.url_review_request_id,reviewed.request.p_request_id);
