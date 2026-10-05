@@ -6,7 +6,7 @@ function day(value) {
   if (!Number.isFinite(stamp) || new Date(stamp).toISOString().slice(0, 10) !== value) throw new BaselineError('日期不存在。');
   return stamp;
 }
-export function preview(text, meta) {
+export function preview(text, meta, {allowEmpty=false}={}) {
   let url;
   try { url = new URL(meta.origin); } catch { throw new BaselineError('請填入完整 HTTPS 網站來源，例如 https://shop.example。'); }
   if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash || url.port) throw new BaselineError('網站來源只能包含 HTTPS 與主機名稱，不可附帶路徑、帳密或參數。');
@@ -36,7 +36,7 @@ export function preview(text, meta) {
     if (!Number.isSafeInteger(clicks) || !Number.isSafeInteger(impressions)) fail('數值加總超過瀏覽器可精確處理的範圍。');
     seen.add(fields[0]); rows.push({date: fields[0], clicks: c, impressions: m});
   });
-  if (!rows.length) throw new BaselineError('沒有每日資料，請貼上範本或選取檔案。');
+  if (!rows.length && !allowEmpty) throw new BaselineError('沒有每日資料，請貼上範本或選取檔案。');
   const missing = [];
   for (let d = start; d <= end; d += DAY) { const label = new Date(d).toISOString().slice(0, 10); if (!seen.has(label)) missing.push(label); }
   return {origin: url.origin, type: meta.type, aggregation: 'property_daily', start: meta.start, end: meta.end, exported: new Date(exported).toISOString(), days: (end - start) / DAY + 1, rows: rows.sort((a,b)=>a.date.localeCompare(b.date)), missing, complete: !missing.length, clicks, impressions, ctr: impressions ? clicks / impressions : null, provenance: 'caller_supplied_unverified'};

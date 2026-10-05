@@ -14,7 +14,7 @@ description: "Growth-OS 異常恢復與 authoritative state 核對。用於阻�
 1. **CLASSIFY → 是否阻塞當前 milestone**。分開記 FAIL（有失敗證據）、未實作、未驗收、工具不確定、Owner決策；timeout／lost response／unknown mutation 一律先記 **UNCERTAIN_RESULT**，不等於 FAIL、NOT_APPLIED 或 Owner blocker。依 [mission-guardrail](../mission-guardrail/SKILL.md) 分嚴重度；P3/P4不阻塞，P2須有milestone必要性。
 2. 不阻塞（含 P3/P4）：依 mission 在既有紀錄寫完整 Technical Debt，**resume exact previous task**，不一路修到底。只有當前 milestone 的 P0/P1／必要 P2 才進入 FIX：**diagnose → authoritative reconcile → safe recovery → verify → resume exact previous task**。先讀實際logs與失敗輸入，普通CI fail不可blind rerun。
 3. 保存恢復書籤：原任務／milestone、當前步驟、預期下一步、operation/request ID、attempt數、target/route、artifact hash、批准範圍與截止、dispatch時間、expected-before/after、已知證據。不得記token或secret。
-4. 用適合該操作的authoritative來源核對：Git HEAD/branch/status/remote refs；DB committed rows/catalog/ACL；migration history/body；deployment ID/HEAD/config/status；CI實際job/step logs；audit、request ID、payload/artifact hash與remote state。記來源與觀察時間，辨別舊cache與fresh state；只觀察到缺紀錄或工具無回傳，不足以假稱未套用。
+4. 重入／handoff 恢復先從最新 Owner／父派工核定當前 Core、branch、base HEAD 與 envelope，再讀 Git status/diff（包含未追蹤檔內容）歸屬進展；歷史起始訊息、舊 checkout／HEAD、舊工作書籤不得覆蓋最新派工。與當前 Core 相符的未提交修改保留續作，dirty 或歷史分支被其他 worktree 使用本身不是 STATE_DIVERGED；只有與當前 Core 明確矛盾且無法歸屬的變動才停 mutation 並具體核對。既有 engineering 第1條仍適用，不 reset/stash/drop，也不為核舊基準切 branch。用適合該操作的authoritative來源核對：Git HEAD/branch/status/remote refs；DB committed rows/catalog/ACL；migration history/body；deployment ID/HEAD/config/status；CI實際job/step logs；audit、request ID、payload/artifact hash與remote state。記來源與觀察時間，辨別舊cache與fresh state；只觀察到缺紀錄或工具無回傳，不足以假稱未套用。
 
    | State | 判定與動作 |
    |---|---|

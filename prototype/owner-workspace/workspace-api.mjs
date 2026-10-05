@@ -396,6 +396,15 @@ export function createWorkspaceApi({ origin, key, redirectOrigin, fetchImpl = fe
       if(latest.length!==1||latest[0].version_number<fresh.version_number)throw Error('最新版本讀回不符');
       return {...row,is_latest_version:latest[0].id===fresh.id&&latest[0].version_number===fresh.version_number};
     },
+    async readSuccessorCreatedAt(version) {
+      const org=activeOrg(),session=membership;
+      if(!uuid(version?.id)||!uuid(version.opportunity_id)||!Number.isSafeInteger(version.version_number))throw Error('版本身份不完整');
+      const rows=await select('content_versions','id,organization_id,opportunity_id,version_number,created_at',{organization_id:`eq.${org}`,opportunity_id:`eq.${version.opportunity_id}`,version_number:`eq.${version.version_number+1}`,limit:'2'});
+      if(membership!==session)throw Error('版本工作階段已變更');
+      if(!rows.length)return null;
+      const row=rows[0];if(rows.length!==1||!uuid(row.id)||row.organization_id!==org||row.opportunity_id!==version.opportunity_id||row.version_number!==version.version_number+1||typeof row.created_at!=='string'||!Number.isFinite(Date.parse(row.created_at)))throw Error('後續版本讀回不符');
+      return row.created_at;
+    },
     async readPublicationMeasurement(version,{isCurrent,latest,publicationId=null,data=undefined}={}) {
       const session=membership;
       const current=()=>{if(membership!==session||typeof isCurrent!=='function'||!isCurrent())throw Error('量測工作階段或版本已變更');};

@@ -4,6 +4,11 @@
 
 ## 當前授權與基準
 
+**2026-10-05 最新 Core：GSC 原生日期／來源契約（隔離驗證）。** 父指定 PR21 已 APPROVE 的 `0bd9d3e63041ec7555c29307cff222e7ff09e4a7` 為基準，branch `feat/gsc-native-date-contract`，獨立 stacked Draft PR base `feat/single-site-pilot-candidate`。本輪沿用單站發布 receipt／持久 journal 與 CSV，加入 America/Los_Angeles 原生日、DST 23／25 小時、完整日與恢復／新版本截斷、明確來源／property／頁面／篩選口徑；缺日／無資料仍 unknown，synthetic／provider_asserted 不升格 verified。63 契約與 1280／390 Save→fresh session exact readback、權限零差異通過；[逐點證據與限制](docs/GSC_Native_Date_驗證_2026-10-05.md)。待 exact HEAD CI／Preview 與既有 Reviewer 裁決，不自行宣告 APPROVE。CoreMilestoneProgress=1，maintenance=0；無 GSC/OAuth/live data、hosted mutation、新費用或持久 grant。
+
+下列「完整內部 RC 候選」為歷史快照，不作本輪派工／branch authority。
+
+
 **目前 Core：完整內部 RC 候選。** 基準 `753dd9c47655e961221a1ef6be9bf8a9aef7194c` 已由 Reviewer `01a10857-2c6c` APPROVE（CI `37226680267` 59步／Preview `H6gCsEbPeZw3TMUoJ7xnbfUETxpX` success）。父指定補實際頁面scanner來源、可信HTTP/Auth/SQL/發布接線、整個runner結束後重新登入讀回的持續候選。短命既有入口已改讀owned WordPress真HTML，不再預製URLresponse，1280/390走HTTP service完成原完整路徑；產品scanner無localhost/SSRF例外。
 
 standalone runtime、native GoTrue/PostgREST/PG與WP持續部署候選、原schema組成、兩phase整體腳本已準備；**真persistent環境／原生Auth／全部runner結束後驗收 NOT RUN**，因新持久secret/grant/deploy需父就[完整envelope與逐點證據](docs/Internal_RC_Candidate_2026-10-04.md)一次請准。現有hostedDB27、disabled8b25、frozen、不restore／Owner站／新費用界線保留。這不是完整RC/MVP/liveM3完成。CoreMilestoneProgress=1，maintenance=0；新候選CI/Preview交既有Reviewer，不自行啟動pending環境或④。

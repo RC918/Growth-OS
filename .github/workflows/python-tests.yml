@@ -141,6 +141,11 @@ jobs:
       - name: Single-site pilot fresh session, expiry and readonly recovery
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --pilot
+      - name: GSC native Pacific date and source contracts
+        run: node --test prototype/gsc-measurement/contract.test.mjs
+      - name: GSC-style publication measurement fresh-session workflow
+        timeout-minutes: 6
+        run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --gsc
       - name: Preserve synthetic pilot evidence
         if: always()
         uses: actions/upload-artifact@v4

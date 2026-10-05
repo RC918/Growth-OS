@@ -1,5 +1,6 @@
 {
   "enabled": false,
+  "gsc_measurement_enabled": false,
   "evidence_environment": null,
   "binding": null,
   "write_grant": null,

@@ -1,3 +1,4 @@
+import {compactGscData} from '../../apps/web/gsc-date-contract.mjs';
 // Single WordPress adapter. Not deployed: a runner supplies its owned site, authenticated
 // saved-version authority and run-local evidence sink. No credentials or URLs from clients.
 import {assessPublication} from '../../apps/web/publication-measurement.mjs';
@@ -12,7 +13,7 @@ const textHTML=html=>{const dom=new JSDOM(html);try{return dom.window.document.b
 const same=(a,b)=>canonical(a)===canonical(b);
 const fields=p=>({title:p.title.raw,meta_description:p.meta.growth_meta_description,description:p.content.raw});
 const unchanged=(a,b)=>{try{return same(preservedFields(a),preservedFields(b));}catch{return false;}};
-export function createWordpressPublisher({site,authorize,authorizeRead=authorize,record=async()=>{},journal=null,profile=null,authorizeReconcile=null,beforeSubmit=async()=>{}}){
+export function createWordpressPublisher({site,authorize,authorizeRead=authorize,record=async()=>{},journal=null,profile=null,authorizeReconcile=null,beforeSubmit=async()=>{},beforeMeasurementSave=async()=>{}}){
  const intents=new Map();let busy=false;const ledger=[];
  async function page(){const r=await site.call(site.path(site.target));if(r.status!==200)throw Error('WordPress read denied ('+r.status+')');const p=r.json();if(p.id!==site.target||p.link!==site.targetURL)throw Error('WordPress page identity mismatch');return p;}
  async function authority(token,version){const a=await authorize(token,version);if(a.review_status!=='exact_version_confirmed'||!a.binding.review_id||a.target_url!==site.targetURL)throw Error('Exact reviewed version / candidate page required');return a;}
@@ -33,7 +34,8 @@ export function createWordpressPublisher({site,authorize,authorizeRead=authorize
    intents.set(i.id,i);ledger.push(publicIntent(i));
   }else if(event.kind==='measurement'){
    const i=intents.get(event.publication_id);if(!i?.evidence||i.version!==event.version||!same(i.binding,event.binding)||!Number.isFinite(Date.parse(event.saved_at)))throw Error('Measurement binding mismatch');
-   assessPublication(publicIntent(i),event.data,Date.parse(event.saved_at));ledger.push(structuredClone(event));
+   if(profile?.gsc_enabled&&event.readback_observed_at!==i.evidence.observed_at)throw Error('Measurement readback identity mismatch');
+   assessPublication({...publicIntent(i),version_superseded_at:event.version_superseded_at??null,version_cutoff_unknown:event.version_cutoff_unknown??false},event.data,Date.parse(event.saved_at));ledger.push(structuredClone(event));
   }else throw Error('Unknown journal record');
  }
  for(const i of intents.values())if(['submitting','restore_submitting'].includes(i.state)){
@@ -75,22 +77,24 @@ export function createWordpressPublisher({site,authorize,authorizeRead=authorize
      const i={id:randomUUID(),version:input.version_id,binding:a.binding,values,before,after:{...values,description:contentHTML(values.description)},state:'preview',observed:new Date().toISOString()};intents.set(i.id,i);return save(i);
     }
     if(['history','measurement','measurement-save'].includes(action)) {
-     if(profile&&action!=='history')throw Error('真資料量測尚未接入；目前效果未知');
+     if(profile&&!profile.gsc_enabled&&action!=='history')throw Error('真資料量測尚未接入；目前效果未知');
      const a=await authorizeRead(token,input.version_id);
      const history=ledger.filter(v=>!v.kind&&v.state!=='preview'&&v.binding.organization_id===a.binding.organization_id&&v.version===input.version_id);
      if(history.some(v=>!same(v.binding,a.binding)||v.target_url!==a.target_url))throw Error('Historical publication binding changed');
      if(action==='history')return structuredClone(history);
      const all=[...new Map(ledger.filter(v=>!v.kind&&v.evidence&&v.binding.organization_id===a.binding.organization_id&&v.target_url===a.target_url).map(v=>[v.id,v])).values()];
-     const publications=[...new Map(history.filter(v=>v.evidence).map(v=>[v.id,v])).values()].map(v=>{const next=all.slice(all.findIndex(x=>x.id===v.id)+1)[0];return {...v,superseded_at:next?.evidence.modified_at??null};});
+     const publications=[...new Map(history.filter(v=>v.evidence).map(v=>[v.id,v])).values()].map(v=>{const next=all.slice(all.findIndex(x=>x.id===v.id)+1)[0];return {...v,superseded_at:next?.evidence.modified_at??null,...(profile?.gsc_enabled?{version_superseded_at:a.version_superseded_at??null,version_cutoff_unknown:a.version_cutoff_unknown??false}:{})};});
      const publication=input.publication_id?publications.find(v=>v.id===input.publication_id):publications.at(-1)??null;
      if(input.publication_id&&!publication)throw Error('Publication not in this exact version');
      let data=publication?ledger.findLast(v=>v.kind==='measurement'&&v.publication_id===publication.id&&same(v.binding,a.binding))?.data??{baseline:null,followup:null}:{baseline:null,followup:null};
      if(action==='measurement-save'){
       if(!publication)throw Error('Verified publication required');
       if(!input.data||Object.keys(input.data).sort().join(',')!=='baseline,followup'||JSON.stringify(input.data).length>2100000)throw Error('Invalid observation envelope');
-      assessPublication(publication,input.data); // Recompute before persistence; never accept supplied totals.
-      const entry={kind:'measurement',version:input.version_id,publication_id:publication.id,binding:a.binding,data:structuredClone(input.data),saved_at:new Date().toISOString()};
-      await journal?.append(entry);await record(entry);ledger.push(entry);data=entry.data;
+      const assessment=assessPublication(publication,input.data); // Recompute before persistence; never accept supplied totals.
+      await beforeMeasurementSave(token,input.version_id,a);
+      const savedData=profile?.gsc_enabled?compactGscData(input.data,assessment):structuredClone(input.data);
+      const entry={kind:'measurement',version:input.version_id,publication_id:publication.id,binding:a.binding,data:savedData,...(profile?.gsc_enabled?{readback_observed_at:publication.evidence.observed_at,version_superseded_at:a.version_superseded_at??null,version_cutoff_unknown:a.version_cutoff_unknown??false}:{}),saved_at:new Date().toISOString()};
+      if(!profile?.gsc_enabled||!same(savedData,data)){await journal?.append(entry);await record(entry);ledger.push(entry);}data=entry.data;
      }
      let assessment;try{assessment=assessPublication(publication,data);}catch(error){
       // Saved observations survive restoration, but their former applicability does not.

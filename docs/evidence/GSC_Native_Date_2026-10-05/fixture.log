@@ -1,0 +1,12 @@
+✔ independent negative gates: non-test, unapproved target, missing/forged isolation reject before listen/network/DB (1.597495ms)
+✔ per-run fixed mapping, short expiry, unknown token and OTP rejection; no SQL/network fallback (3093.650573ms)
+✔ unmodified product client without fixture rejects fake callback when Auth denies; no membership/session/mutation (2.378066ms)
+✔ deployment output/import closure excludes test-only fixture and bypass entry (12.375779ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3256.305388
