@@ -1,0 +1,37 @@
+✔ independent negative gates: non-test, unapproved target, missing/forged isolation reject before listen/network/DB (2.101324ms)
+✔ per-run fixed mapping, short expiry, unknown token and OTP rejection; no SQL/network fallback (3934.39659ms)
+✔ unmodified product client without fixture rejects fake callback when Auth denies; no membership/session/mutation (2.286099ms)
+✔ deployment output/import closure excludes test-only fixture and bypass entry (46.112358ms)
+✔ runtime missing/closed/invalid config refuses without secrets or implicit store; output excludes fixtures (1487.332806ms)
+✔ real child HTTP validates host/origin/method/path/body/auth; errors never expose authority detail (563.915241ms)
+✔ SIGTERM drains active HTTP authority before unlock; second writer denied, new process opens same bytes (1176.718851ms)
+✔ bounded drain timeout and SIGKILL preserve crash locks and refuse reopening, never auto repair (1426.26585ms)
+✔ world-readable durable directory or journal never acquires writer lock (618.121186ms)
+✔ closed candidate and exact server binding fail before filesystem or network (2.100383ms)
+✔ second process cannot open writer; clean new process retains exact Unicode records without grant (93.058815ms)
+✔ exact backup reopens readonly; does not restore credentials or overwrite writable history (2.082727ms)
+✔ crash lock, corruption, partial commit and bound drift never silently repair or reopen writable (34.759623ms)
+✔ durable snapshot retains exact records, restrictive mode and original run binding (7.942553ms)
+✔ missing, truncated, corrupt and partial commit journals fail closed without repair (1.471538ms)
+✔ intent commit failure prohibits POST and poisons further dispatch (74.431922ms)
+✔ cold pending operation retains ID, denies stale authorization/replay/other preview, GET reconciles before without POST (76.545934ms)
+✔ cold pending operation detects drift and remains unable to publish or restore (29.967134ms)
+✔ checksum-valid but incomplete operation evidence also fails cold startup (12.608426ms)
+✔ actual service PID replacement rechecks session, native grant and original expiration; corrupt startup stops (2246.41851ms)
+✔ server gates exact Review, target, tenant/version binding and explicit page confirmation before writes (50.580541ms)
+✔ unknown submission is consumed; repeated publish and new preview cannot cause a second write; only GET reconciliation (17.277427ms)
+✔ changed baseline blocks publish; unknown divergent content never allows restore/new write (19.177321ms)
+✔ text to WordPress content escapes markup and retains Unicode/newlines (0.207248ms)
+✔ empty raw derived excerpt and explicit excerpt publish/restore preserve raw/protected with readback evidence (67.506896ms)
+✔ raw/protected/explicit rendering or any preserved-field drift cannot confirm, restore or create another intent (360.741552ms)
+✔ missing/malformed baseline fails before POST; automatic excerpt never bypasses target fields or HTML (42.714977ms)
+✔ publication UI clears confirmation on edit and ignores a response from a replaced session (15.634164ms)
+✔ restore cannot succeed if API matches but HTML does not (55.271615ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5663.200449

@@ -146,6 +146,11 @@ jobs:
       - name: GSC-style publication measurement fresh-session workflow
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --gsc
+      - name: Single-site Node host HTTP and lifecycle contracts
+        run: node --test prototype/wordpress-pilot/host.test.mjs
+      - name: Single-site Node host real HTTP child-process workflow
+        timeout-minutes: 6
+        run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --host
       - name: Preserve synthetic pilot evidence
         if: always()
         uses: actions/upload-artifact@v4

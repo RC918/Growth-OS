@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+**2026-10-05 最新 Core：單站 Node host startup／真HTTP／私有store生命周期。** 基準PR22 `dc2ec8b6641df1fd0639bf671e7099bfececd479` 已由父核Reviewer `01a10b50` APPROVE_WITH_DEFERRED_DEBT、CI37286033704 71步及Preview F19hRfy7Z4oKJxFKwsFgV8ZJDJ5y成功。branch `feat/single-site-node-host`，獨立stacked DraftPR base `feat/gsc-native-date-contract`。新增closed-by-default Node入口，沿用單站service／Auth／Review／GSC history，實際HTTP child process、SIGTERM drain／crashlock failclosed；29相關契約與最後11 host/storage契約、1280／390完整流程及driver+service退出後fresh-token exact history/measurement讀回通過。[部署需求／逐點證據](docs/Single_Site_Node_Host_驗證_2026-10-05.md)。待exactCI/Preview与既有Reviewer，非自行APPROVE。CoreMilestoneProgress=1，maintenance=0；host／TLSproxy／secret／長期volume／backup／費用另批，未部署、無新增持久grant。
+
+以下 GSC 日期 Core 為已接受前一輪。
+
 **2026-10-05 最新 Core：GSC 原生日期／來源契約（隔離驗證）。** 父指定 PR21 已 APPROVE 的 `0bd9d3e63041ec7555c29307cff222e7ff09e4a7` 為基準，branch `feat/gsc-native-date-contract`，獨立 stacked Draft PR base `feat/single-site-pilot-candidate`。本輪沿用單站發布 receipt／持久 journal 與 CSV，加入 America/Los_Angeles 原生日、DST 23／25 小時、完整日與恢復／新版本截斷、明確來源／property／頁面／篩選口徑；缺日／無資料仍 unknown，synthetic／provider_asserted 不升格 verified。63 契約與 1280／390 Save→fresh session exact readback、權限零差異通過；[逐點證據與限制](docs/GSC_Native_Date_驗證_2026-10-05.md)。待 exact HEAD CI／Preview 與既有 Reviewer 裁決，不自行宣告 APPROVE。CoreMilestoneProgress=1，maintenance=0；無 GSC/OAuth/live data、hosted mutation、新費用或持久 grant。
 
 下列「完整內部 RC 候選」為歷史快照，不作本輪派工／branch authority。

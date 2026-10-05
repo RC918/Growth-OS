@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pacificDate,pacificDayBounds} from '../../apps/web/gsc-date-contract.mjs';
-export async function verification({dispatch,rig,site,width,dir,config,restart,counts}){
+export async function verification({dispatch,rig,site,width,dir,config,restart,counts,host=false}){
  let loseSave=false,holdRead=null,saved=null;const journal=()=>readFileSync(config.storage_directory+'/journal.json');
  const measurement=(token,id,extra={})=>dispatch(token,'measurement',{version_id:id,...extra});
  const inputFor=(id,pid,data)=>({version_id:id,publication_id:pid,data});
@@ -25,7 +25,7 @@ export async function verification({dispatch,rig,site,width,dir,config,restart,c
    for(const change of [d=>d.baseline.timezone='UTC',d=>d.baseline.property='sc-domain:other.example',d=>d.baseline.meta.source='verified',d=>d.baseline.meta.page_url='https://rc-source.example/other/',d=>d.followup.meta.start=offset(0)]){const d=structuredClone(saved.data);change(d);await assert.rejects(dispatch(token,'measurement-save',inputFor(version_id,pid,d)));assert.deepEqual(journal(),afterUnknown);}
    for(const role of ['viewer','foreign']){const t=rig.issue(role);for(const action of ['measurement','measurement-save'])await assert.rejects(dispatch(t,action,action==='measurement'?{version_id}:inputFor(version_id,pid,saved.data)));rig.retire(t);assert.deepEqual(journal(),afterUnknown);}
    assert.equal(counts().posts,writes);assert.equal(counts().gets,reads);assert.deepEqual(site.snapshot(),siteBefore);assert.deepEqual(await rig.snapshot(),database);
-   const oldToken=token;restart();await page.locator('#sign-out').click();({page,token}=await fresh());view=await open(version_id);await assert.rejects(measurement(oldToken,version_id));m=view.locator('.gsc-measurement');await read();const exact=await measurement(token,version_id);assert.deepEqual(exact,saved);assert.deepEqual(JSON.parse(await m.locator('.gsc-observation-evidence').textContent()).data,saved.data);
+   const oldToken=token;await restart();await page.locator('#sign-out').click();({page,token}=await fresh());view=await open(version_id);await assert.rejects(measurement(oldToken,version_id));m=view.locator('.gsc-measurement');await read();const exact=await measurement(token,version_id);assert.deepEqual(exact,saved);assert.deepEqual(JSON.parse(await m.locator('.gsc-observation-evidence').textContent()).data,saved.data);
    assert.ok(await m.locator('.measure-save').evaluate(b=>b.getBoundingClientRect().height>=44));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await m.screenshot({path:dir+'/'+width+'-gsc.png'});
    await view.locator('.wp-history').click();await view.locator('.wp-status').filter({hasText:'已發布並由 API'}).waitFor();
    writeFileSync(dir+'/'+width+'-gsc-proof.json',JSON.stringify({width,publication_id:pid,binding:saved.binding,data:saved.data,assessment:saved.assessment,exact_fresh_readback:true,unknown_save_get_only:true,denied_journal_delta:0,denied_sql_delta:0,measurement_wordpress_posts:0,measurement_wordpress_gets:0},null,2));
@@ -34,10 +34,10 @@ export async function verification({dispatch,rig,site,width,dir,config,restart,c
   },
   async afterRestore({view,token,version_id}){
    const before=journal(),calls=counts(),v=await measurement(token,version_id);assert.deepEqual(v.data,saved.data);assert.equal(v.assessment.followup,null);assert.equal(v.assessment.comparison,null);assert.equal(v.measurement_write_available,false);assert.ok(v.assessment.unknown.some(s=>s.includes('不適用')));
-   await assert.rejects(dispatch(token,'measurement-save',inputFor(version_id,v.publication.id,{baseline:saved.data.baseline,followup:null})),/expired/);assert.deepEqual(journal(),before);assert.deepEqual(counts(),calls);
+   await assert.rejects(dispatch(token,'measurement-save',inputFor(version_id,v.publication.id,{baseline:saved.data.baseline,followup:null})),host?/Request denied/:/expired/);assert.deepEqual(journal(),before);assert.deepEqual(counts(),calls);
    const m=view.locator('.gsc-measurement');await m.locator('.measurement-read').click();await m.locator('.measurement-status').filter({hasText:'量測已讀回'}).waitFor();assert.equal(await m.locator('.measure-save').isDisabled(),true);assert.match(await m.locator('.measurement-outcome').innerText(),/未知/);
   },
-  async recovered(service,token,version_id){const out=await service.dispatch(token,'measurement',{version_id});assert.deepEqual(out.data,saved.data);assert.equal(out.measurement_write_available,false);await assert.rejects(service.dispatch(token,'measurement-save',inputFor(version_id,out.publication.id,saved.data)),/historical reads only/);},
+  async recovered(service,token,version_id){const out=await service.dispatch(token,'measurement',{version_id});assert.deepEqual(out.data,saved.data);assert.equal(out.measurement_write_available,false);await assert.rejects(service.dispatch(token,'measurement-save',inputFor(version_id,out.publication.id,saved.data)),host?/Request denied/:/historical reads only/);},
   async stale({token,version_id,view,page,newer}){
    const before=journal(),v=await measurement(token,version_id);assert.ok(v.publication.version_superseded_at);assert.deepEqual(v.data,saved.data);assert.equal(v.assessment.comparison,null);assert.equal(v.measurement_write_available,false);
    const n=newer.locator('.gsc-measurement');await n.locator('.measurement-read').click();await n.locator('.measurement-status').filter({hasText:'量測已讀回'}).waitFor();assert.match(await n.locator('.measurement-outcome').innerText(),/尚無此版本發布證據/);

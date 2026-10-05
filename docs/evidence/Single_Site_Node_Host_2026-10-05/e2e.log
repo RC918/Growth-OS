@@ -1,0 +1,42 @@
+✔ independent negative gates: non-test, unapproved target, missing/forged isolation reject before listen/network/DB (1.998091ms)
+✔ per-run fixed mapping, short expiry, unknown token and OTP rejection; no SQL/network fallback (3056.333516ms)
+✔ unmodified product client without fixture rejects fake callback when Auth denies; no membership/session/mutation (1.994486ms)
+✔ deployment output/import closure excludes test-only fixture and bypass entry (17.338098ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3217.747169
+PASS URL native same-request {"holder":320,"contender":318,"observer":334}
+PASS URL native same-version {"holder":375,"contender":376,"observer":390}
+PASS URL native cross-parent-request {"holder":411,"contender":410,"observer":426}
+PASS URL native save-before-revoke {"holder":446,"contender":445,"observer":461}
+PASS URL native revoke-during-org-wait
+PASS URL native revoke-before-membership-lock
+PASS official local WordPress 6.8.3 / MariaDB mariadb from 11.4.8-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using  EditLine wrapper; loopback only; client-local TLS trust
+PASS GSC 1280px: Pacific CSV → missing/zero distinction → save lost reply/read only → exact durable fresh session → 5 clicks/30 impressions synthetic difference; source/property/page/filter and tenant refusals zero delta; no WordPress calls
+PASS Node host 1280px: real HTTP; driver 389625 + service 389601 exited; new driver 389641 + service 389633; fresh-session measurement exact; original broker/SQL/site alive, not host disaster recovery
+PASS pilot 1280px: URL/Save/fresh Review → exact diff → lost actual WP reply → reopen + fresh session original operation GET only → confirmed restore; 2 POST; single-attempt cap; tenant zero delta; expiry history without WP GET; readonly backup restore; /tmp/growth-wp-4b5017c8-d0c8-4ede-ac27-75238c1f8895-pilot-evidence
+PASS isolated publication service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota
+PASS URL core 1280px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth
+PASS pilot historical v1 record retained after saved v2; no write grant required
+PASS GSC 1280px: restore/new-version cutoff, write-expired historical/backup reads, denied expired save, v2 unknown, late logout response discarded; journal unchanged
+PASS synthetic Review invalidation 1280px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review
+PASS SQL RLS/permission 1280px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted
+PASS WordPress cleanup: exact run containers removed; tmpfs DB/site/credentials and local TLS key removed; no prune
+PASS official local WordPress 6.8.3 / MariaDB mariadb from 11.4.8-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using  EditLine wrapper; loopback only; client-local TLS trust
+PASS GSC 390px: Pacific CSV → missing/zero distinction → save lost reply/read only → exact durable fresh session → 5 clicks/30 impressions synthetic difference; source/property/page/filter and tenant refusals zero delta; no WordPress calls
+PASS Node host 390px: real HTTP; driver 391630 + service 391606 exited; new driver 391646 + service 391638; fresh-session measurement exact; original broker/SQL/site alive, not host disaster recovery
+PASS pilot 390px: URL/Save/fresh Review → exact diff → lost actual WP reply → reopen + fresh session original operation GET only → confirmed restore; 2 POST; single-attempt cap; tenant zero delta; expiry history without WP GET; readonly backup restore; /tmp/growth-wp-aac1dc82-c15e-4de2-89c4-01f5039a20fc-pilot-evidence
+PASS isolated publication service + actual owned WordPress HTML → unchanged scanner robots/parser/hash → result; no prebuilt URL response, isolated network transport, no public DNS/live quota
+PASS URL core 390px: input URL → source/result → edit → normal opener handoff → Save → logout/fresh context+token → exact payload → exact-version Review → record readback → fresh review readback; source/Unicode bytes preserved, 1 parent/1 version/1 review/2 audits, no live URL/Auth
+PASS pilot historical v1 record retained after saved v2; no write grant required
+PASS GSC 390px: restore/new-version cutoff, write-expired historical/backup reads, denied expired save, v2 unknown, late logout response discarded; journal unchanged
+PASS synthetic Review invalidation 390px: edited v2 saved through UI → fresh session → v2 pending, exact v1 confirmation historical only; unchanged v1 payload/review
+PASS SQL RLS/permission 390px: authenticated fixed actor, viewer read/no write, foreign OrgA read/write denied, zero rejected-case data/audit delta; unknown destination aborted
+PASS Node host read lease expired: reconciliation denied before WP GET; history unchanged and readable
+PASS unattended regression entry. Real Auth engine issuance/JWT verification/OTP/2FA NOT TESTED. Product signOut is page-memory clearing only.
+PASS WordPress cleanup: exact run containers removed; tmpfs DB/site/credentials and local TLS key removed; no prune

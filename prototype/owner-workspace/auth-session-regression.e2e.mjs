@@ -13,7 +13,8 @@ validateOptions(options); // Before subprocess, server, DB, browser or network. 
 const origin=options.target;
 const run=path=>execFileSync(process.execPath,path,{stdio:'inherit'});
 let browser,wordpressSite;
-const withGsc=args.includes('--gsc');
+const withHost=args.includes('--host');
+const withGsc=args.includes('--gsc')||withHost;
 const withPilot=args.includes('--pilot')||withGsc;
 const withWordpress=args.includes('--wordpress')||withPilot;
 try{
@@ -32,7 +33,7 @@ try{
   async function screenshot(label){if(process.env.GROWTH_UIUX_EVIDENCE_DIR)await page.locator(label==='saving'?'#url-result-panel':'.url-review').first().screenshot({path:process.env.GROWTH_UIUX_EVIDENCE_DIR+'/'+label+'-'+width+'.png'});}const before=await rig.snapshot();
   let wp=null;
   try{
-   wp=wordpressSite?await (await import(withPilot?'../wordpress-pilot/verification.mjs':'../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width,gsc:withGsc}):null;
+   wp=wordpressSite?await (await import(withPilot?'../wordpress-pilot/verification.mjs':'../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width,gsc:withGsc,host:withHost}):null;
    async function fresh(role,fromUrl=false){
     if(context){const oldPages=context.pages();await context.close();assert.ok(oldPages.every(p=>p.isClosed()),'product opener and workspace both closed');rig.retire(token);previousToken=token;}
     context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'});contexts.push(context);context.on('page',p=>p.on('pageerror',e=>errors.push(redact(e))));page=await context.newPage();
