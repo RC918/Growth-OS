@@ -1,0 +1,19 @@
+✔ runtime missing/closed/invalid config refuses without secrets or implicit store; output excludes fixtures (869.996759ms)
+✔ real child HTTP validates host/origin/method/path/body/auth; errors never expose authority detail (372.204817ms)
+✔ SIGTERM drains active HTTP authority before unlock; second writer denied, new process opens same bytes (884.229367ms)
+✔ bounded drain timeout and SIGKILL preserve crash locks and refuse reopening, never auto repair (1325.34628ms)
+✔ world-readable durable directory or journal never acquires writer lock (599.570562ms)
+✔ shutdown deadline includes a partially received HTTP header socket (398.377379ms)
+✔ production transport uses only fixed HTTPS authority/site and bound private credentials, never request targets (2.980571ms)
+✔ closed candidate and exact server binding fail before filesystem or network (1.920185ms)
+✔ second process cannot open writer; clean new process retains exact Unicode records without grant (89.85743ms)
+✔ exact backup reopens readonly; does not restore credentials or overwrite writable history (2.499727ms)
+✔ crash lock, corruption, partial commit and bound drift never silently repair or reopen writable (45.0802ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4808.053801

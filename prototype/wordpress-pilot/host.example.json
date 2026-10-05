@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "listen_origin": "http://127.0.0.1:8798",
+  "public_origin": null,
+  "service": null,
+  "wordpress": null
+}

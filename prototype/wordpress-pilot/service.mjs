@@ -42,7 +42,7 @@ export function createPilotService({config,site,fetchImpl,now=Date.now}){
    beforeMeasurementSave:async(t,id,a)=>{write();const fresh=await authorized(t,id,true);write();if(canonical(fresh)!==canonical(a))throw Error('Measurement authority changed');},
    beforeSubmit:async(kind)=>{write();const consumed=new Set(store.entries().filter(e=>e.kind==='operation'&&e.operation.state===(kind==='publish'?'submitting':'restore_submitting')).map(e=>e.operation.id));if(consumed.size>=1)throw Error('Single pilot '+kind+' attempt already consumed');}
   });
-  return {binding,backup:destination=>store.backup(destination),close:()=>store.close(),
+  return {binding,ready:()=>store.journal.assertHealthy(),backup:destination=>store.backup(destination),close:()=>store.close(),
    async dispatch(token,action,input){
     if(!['preview','publish','readback','restore','history','measurement','measurement-save'].includes(action))throw Error('Unsupported operation');
     if(store.restored&&!['history','measurement'].includes(action))throw Error('Recovered archive supports historical reads only');

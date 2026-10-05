@@ -9,8 +9,8 @@ const sync=p=>{const fd=openSync(p,'r');try{fsyncSync(fd);}finally{closeSync(fd)
 const exclusive=(p,s)=>{const fd=openSync(p,'wx',0o600);try{writeFileSync(fd,s);fsyncSync(fd);}finally{closeSync(fd);}};
 export function createStore(dir,binding){mkdirSync(dir,{mode:0o700});createRunJournal(join(dir,'journal.json'),{binding,restore:null});sync(dir);}
 export function openStore(dir,binding){
- if(!lstatSync(dir).isDirectory()||lstatSync(dir).isSymbolicLink())throw Error('Private regular store directory required');
- const path=join(dir,'journal.json');if(!lstatSync(path).isFile()||lstatSync(path).isSymbolicLink())throw Error('Regular journal required');
+ if(!lstatSync(dir).isDirectory()||lstatSync(dir).isSymbolicLink()||lstatSync(dir).uid!==process.getuid()||(lstatSync(dir).mode&0o077))throw Error('Private regular store directory required');
+ const path=join(dir,'journal.json');if(!lstatSync(path).isFile()||lstatSync(path).isSymbolicLink()||lstatSync(path).uid!==process.getuid()||(lstatSync(path).mode&0o077)||lstatSync(path).nlink!==1)throw Error('Regular journal required');
  // Stale lock is intentionally not removed. Crash recovery needs offline reconciliation;
  // an archive can be recovered to a NEW readonly store without unlocking the old writer.
  const lock=join(dir,'writer.lock');exclusive(lock,JSON.stringify({pid:process.pid})+'\n');sync(dir);let closed=false;
