@@ -1,0 +1,132 @@
+{
+  "result": "PASS bounded complete RC A/B; pending independent review",
+  "checked_at": "2026-10-05T04:41:39.648486+00:00",
+  "head": "49db1dc1625c6cb654ef3e6a810abedb045ca4a7",
+  "artifacts_digest": "04963bd0fd17e24ed1739e883834db3f447c026bbb8455ed5107ab12934f5cce",
+  "provision_started": "2026-10-05T04:38:49.136Z",
+  "phase_a": {
+    "phase": "A",
+    "exit_code": 0,
+    "shell_finished_at": "2026-10-05T04:39:12.088860+00:00"
+  },
+  "between_phases": "2026-10-05T04:39:44.375464+00:00",
+  "phase_b_start": "2026-10-05T04:39:55.628704+00:00",
+  "phase_b": {
+    "phase": "B",
+    "exit_code": 0,
+    "shell_finished_at": "2026-10-05T04:40:00.940809+00:00"
+  },
+  "active_runners": [],
+  "native_database": {
+    "uid_owner": "supabase_auth_admin",
+    "auth_users": 3,
+    "memberships": 3,
+    "auth_sessions": 5,
+    "organizations": 2,
+    "session_counts": {
+      "10000000-0000-4000-8000-000000000003": 3,
+      "10000000-0000-4000-8000-000000000005": 1,
+      "10000000-0000-4000-8000-000000000007": 1
+    },
+    "auth_migrations": 70
+  },
+  "version_id": "8c9ebac5-8ff8-41ad-b14a-4ea1a376df35",
+  "review_id": "d2a79a10-e9c5-4f8b-8059-32e0679f2c71",
+  "publication_id": "cbeb7e3b-dd30-4816-ae46-3a873f099f4f",
+  "pending_id": "6f673549-0cff-47b8-a8ef-7396148fa5c8",
+  "pending_final_state": "confirmed_not_applied",
+  "pending_reconcile": "original operation GET-only; phase B WP POST count 0",
+  "wp_posts": {
+    "publish": 1,
+    "restore": 1,
+    "total": 2,
+    "third": 0
+  },
+  "wp_post_access": [
+    "172.18.0.1 - rcpublisher [05/Oct/2026:04:39:07 +0000] \"POST /?rest_route=/wp/v2/pages/1001&context=edit HTTP/1.1\" 200 2792 \"-\" \"-\"",
+    "172.18.0.1 - rcpublisher [05/Oct/2026:04:39:10 +0000] \"POST /?rest_route=/wp/v2/pages/1001&context=edit HTTP/1.1\" 200 2663 \"-\" \"-\""
+  ],
+  "receiver_request_keys": {
+    "a": [
+      {
+        "method": "POST",
+        "keys": [
+          "content",
+          "meta",
+          "title"
+        ],
+        "meta_keys": [
+          "growth_meta_description"
+        ]
+      },
+      {
+        "method": "POST",
+        "keys": [
+          "content",
+          "meta",
+          "title"
+        ],
+        "meta_keys": [
+          "growth_meta_description"
+        ]
+      }
+    ],
+    "b": []
+  },
+  "exact_sql_payload_review_readback": true,
+  "sql_counts": {
+    "audit": 2,
+    "reviews": 1,
+    "versions": 1
+  },
+  "tenant": {
+    "viewer_org_a_rows": 1,
+    "foreign_org_a_rows": 0,
+    "viewer_foreign_save_review_status": 403,
+    "viewer_foreign_measurement_readback_status": 403,
+    "denied_business_delta": 0,
+    "denied_journal_delta": 0
+  },
+  "measurement_data": {
+    "baseline": null,
+    "followup": null
+  },
+  "measurement_comparison": null,
+  "publication_evidence_preserved": true,
+  "excerpt_readback": {
+    "mode": "empty_raw_derived",
+    "before": {
+      "raw": "",
+      "rendered": "<p>Steel bolt for workshop assembly.</p>\n",
+      "protected": false
+    },
+    "after": {
+      "raw": "",
+      "rendered": "<p>RC steel bolt. Steel bolt for workshop assembly. RC edited</p>\n",
+      "protected": false
+    }
+  },
+  "restore_excerpt_readback": {
+    "mode": "empty_raw_derived",
+    "before": {
+      "raw": "",
+      "rendered": "<p>Steel bolt for workshop assembly.</p>\n",
+      "protected": false
+    },
+    "after": {
+      "raw": "",
+      "rendered": "<p>Steel bolt for workshop assembly.</p>\n",
+      "protected": false
+    }
+  },
+  "control_full_page_meta_equal": true,
+  "page1001_restored_fields_excerpt_equal": true,
+  "grant_expires_at": "2026-10-05T04:54:02+00:00",
+  "limits": [
+    "Controlled local source network fixture, not public live URL",
+    "Native password-grant browser sessions, not email OTP; UI signOut clears page memory",
+    "Explicit raw excerpt and injected drift matrix covered by prior short-lived regression, not extra persistent RC mutations",
+    "Measurement remains unknown, no traffic or SEO effect claim"
+  ],
+  "evidence_retain_until": "2026-10-08T06:35:00Z"
+}

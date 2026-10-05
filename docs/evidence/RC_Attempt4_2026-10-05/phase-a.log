@@ -1,0 +1,4 @@
+Provisioned isolated RC; original grant capped at 900 seconds and approved cutoff, no extension. Start runtime separately.
+PHASE A complete: actual native Auth/SQL, real controlled HTML, HTTP service, durable publication/unknown measurement/pending; browser runner now exits.
+prototype/internal-rc/deploy/run-approved.sh: line 32: 298818 Killed                  node prototype/internal-rc/runtime.mjs "$rc_root/config.json" --crash-at-third-post > "$rc_root/evidence/runtime-a.log" 2>&1
+This phase and its app service have exited. Native stores remain within the original approved window; no automatic retry or reprovision.

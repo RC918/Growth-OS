@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-05T04:42:35.380949+00:00",
+  "cleanup_exit": {
+    "exit_code": 0,
+    "cleanup_command_finished_at": "2026-10-05T04:42:10.028667+00:00"
+  },
+  "root_absent": true,
+  "data_secrets_absent": true,
+  "grant_destroyed_with_owned_database": true,
+  "remaining_containers": "",
+  "remaining_networks": [
+    "bridge",
+    "host",
+    "none"
+  ],
+  "ports_available": [
+    8792,
+    8794,
+    8795,
+    8796,
+    8797
+  ],
+  "three_old_markers_unchanged": true,
+  "consumed_marker": {
+    "environment": "growth-internal-rc-01",
+    "started_at": "2026-10-05T04:38:49.136Z"
+  },
+  "head": "49db1dc1625c6cb654ef3e6a810abedb045ca4a7",
+  "manifest_114_unchanged": true,
+  "git_status": "",
+  "evidence_retain_until": "2026-10-08T06:35:00Z",
+  "no_provision_retry": true
+}

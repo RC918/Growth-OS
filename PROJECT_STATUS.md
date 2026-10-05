@@ -396,3 +396,10 @@ c82b88c第二次01:46:03.483Z provision：PG bootstrap PASS，GoTrue migration�
 fae2fdf第三次唯一provision已消耗並清理：native70migration/3users、UI Save→fresh native session→exact payload/Review成立；首次WP POST200三欄套用，但空raw自動excerpt.rendered改變被untouched比較判state_diverged。1publish/0restore，measurement/第三提交/B/完整tenant未跑。原failure/cleanup JSON按原SHA歸檔[RC候選記錄](docs/Internal_RC_Candidate_2026-10-04.md)，歷史不改成功，control歷史僅setup預期核對及wire body未保存限制明記。
 
 父依Reviewer必要P2授權最小修正：只有raw精確空且unprotected摘要rendered視衍生；完整raw/protected/型別與其他untouched嚴格保持，explicit rendered仍嚴格。發布/恢復皆核API/HTML，unknown不解鎖新提交。短命真WP採原RC theme，空/explicit兩case之lost reply/SIGKILL/new PID原ID GET-only、2POST publish/restore與全control page/meta、HTTP receiver keys證據；1280/390原入口回歸。新candidate增control-before/after及keys記錄，未部署。CoreMilestoneProgress為必要核對缺口修正與可審synthetic證據；完整RC完成=0，maintenance=0。CI/Preview後交既有Reviewer，再由父決定新的完整RC批准；不要求Owner登入、不沿用任何已消耗窗口。
+
+
+## 2026-10-05 第四輪完整RC已執行並清理（待獨立審查）
+
+Owner新窗口授權固定49db1dc候選，04:38:49Z provision；A 04:39:12Z exit0，舊runner/browser/service退出後B獨立新process於04:39:55Z開始、04:40:00Z exit0。Native JWT Save→新session exact payload/Review、受控WP publish/API+HTML readback/restore、unknown measurement持久保存、新process恢復publication與原pending GET-only、tenant負測零business/journal增量均成立。WP只2 POST（1publish/1restore），第三與B均0；control完整非secretpage＋meta前/A後/B後一致。04:42:10Z cleanup exit0、grant隨DB銷毀、四consumedmarkers保留，未延窗或再provision。
+
+[完整驗收索引與26份原始非secret證據](docs/RC_Attempt4_驗收_2026-10-05.md)；結果待既有Reviewer，非Owner真內容/live公開站或emailOTP驗收，measurement仍unknown無SEO效果主張。CoreMilestoneProgress=完整受控A/B使用者閉環證據，maintenance=0；前三次失敗歷史不改。此PR19收尾僅證據/status；UIUX另branch/PR，不把文檔HEAD視為重新執行RC。

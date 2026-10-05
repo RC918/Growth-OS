@@ -1,0 +1,3 @@
+Original window and candidate hashes match; no writes
+PHASE B complete: all old browser/runner/service processes gone; new native Auth session recovers exact persisted SQL/publication/measurement/pending, GET-only reconcile and tenant denial. Unknown remains unknown, no traffic claim.
+This phase and its app service have exited. Native stores remain within the original approved window; no automatic retry or reprovision.
