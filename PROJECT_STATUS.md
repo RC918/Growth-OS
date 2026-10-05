@@ -368,3 +368,10 @@ CoreMilestoneProgress：最近24h已從offline續編推進到一個真signed Own
 | unknown跨destroyed tab/context／跨設備，及live故障注入 | Deferred範圍界線；同origin/tab恢復已有offline證據，本輪無live故障注入 | 真實使用需求與新的核定範圍出現才重看，不擴store/retry系統 |
 
 P3/P4不阻塞已驗收子閉環，不搜尋其他edge cases；完整live角色矩陣、真客戶品質、Publish／Measure保留為各自主線驗收，不能由本輪PASS推定完成。
+
+
+## 2026-10-05 完整RC bootstrap必要P2修正（未再部署）
+
+38bc576首次批准provision已消耗：01:08:39.467Z開始、01:09:01Z phase A exit1；PG UID999無法讀host1000:1000／0600的bind SQL。真Auth、A/B驗收NOT_RUN，WP POST0、無grant；原批准cleanup exit0，01:10:17.722Z核無own root/secrets/container/network殘留，保留消耗標記。詳細時間、ownership及非敏感證據見[RC候選](docs/Internal_RC_Candidate_2026-10-04.md)。
+
+本輪只修同Core blocker：移除SQL bind與副本，由host stdin→postgres UID999 psql單transaction，final PG readiness後執行一次，成功才啟動Auth；secret modes與截止不變。8/8離線契約／短命tmpfs原生PG驗證通過，含實際UID不可讀private檔、stdin成功、rollback與client/server不洩露public sentinel。未重新provision、未新增持久身份／secret／grant。完整RC新增驗收=0，maintenance=0；候選commit/CI/Preview後交既有Reviewer，再由父一次請新執行次數／窗口／artifact批准，不要求Owner登入、不自選下一Core。

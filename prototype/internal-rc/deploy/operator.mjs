@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {randomBytes,createHmac,createHash} from 'node:crypto';
 import {compose,root,prefix} from './compose.mjs';
 import {schema} from './schema.mjs';
+import {bootstrapDatabase} from './bootstrap.mjs';
 import {ids} from '../../../supabase/drafts/first_result_save/fixtures.mjs';
 import {createRunJournal} from '../../wordpress-publish/journal.mjs';
 const action=process.argv[2],windowPath=process.argv[3];let until=Infinity;
@@ -31,14 +32,13 @@ if(action==='inspect'){
  for(const d of ['secrets','data','evidence'])await mkdir(root+'/'+d,{mode:0o700});
  const db=randomBytes(32).toString('hex'),jwt=randomBytes(40).toString('hex');
  await write('secrets/pg.env',`POSTGRES_PASSWORD=${db}\nPOSTGRES_DB=postgres\n`);
- await write('roles.sql',await readFile(new URL('./roles.sql',import.meta.url)));
  await write('secrets/auth.env',`GOTRUE_API_HOST=0.0.0.0\nGOTRUE_API_PORT=9999\nAPI_EXTERNAL_URL=http://127.0.0.1:8794\nGOTRUE_DB_DRIVER=postgres\nGOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:${db}@db:5432/postgres\nGOTRUE_DB_NAMESPACE=auth\nGOTRUE_SITE_URL=http://127.0.0.1:8792\nGOTRUE_URI_ALLOW_LIST=http://127.0.0.1:8792/workspace.html\nGOTRUE_DISABLE_SIGNUP=true\nGOTRUE_JWT_ADMIN_ROLES=service_role\nGOTRUE_JWT_AUD=authenticated\nGOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated\nGOTRUE_JWT_EXP=300\nGOTRUE_JWT_SECRET=${jwt}\nGOTRUE_EXTERNAL_EMAIL_ENABLED=true\nGOTRUE_EXTERNAL_PHONE_ENABLED=false\nGOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false\nGOTRUE_MAILER_AUTOCONFIRM=false\n`);
  await write('secrets/rest.env',`PGRST_DB_URI=postgres://authenticator:${db}@db:5432/postgres\nPGRST_DB_SCHEMAS=public\nPGRST_DB_ANON_ROLE=anon\nPGRST_JWT_SECRET=${jwt}\nPGRST_DB_MAX_ROWS=501\nPGRST_DB_USE_LEGACY_GUCS=false\n`);
  await write('secrets/maria.env',`MARIADB_ROOT_PASSWORD=${db}\nMARIADB_DATABASE=growth\nMARIADB_USER=growth\nMARIADB_PASSWORD=${db}\n`);
  await write('secrets/wp.env',`WORDPRESS_DB_HOST=mariadb\nWORDPRESS_DB_USER=growth\nWORDPRESS_DB_PASSWORD=${db}\nWORDPRESS_DB_NAME=growth\nWORDPRESS_CONFIG_EXTRA=define('WP_HOME','https://rc-source.example'); define('WP_SITEURL','https://rc-source.example'); define('WP_HTTP_BLOCK_EXTERNAL',true); define('DISABLE_WP_CRON',true); define('AUTOMATIC_UPDATER_DISABLED',true);\n`);
  await write('compose.json',JSON.stringify(await compose(),null,2));
  // First pulls/new local persistent services are within the PENDING envelope, never an offline test.
- docker(['compose','-f',root+'/compose.json','up','-d']);await ready('http://127.0.0.1:8794/health');
+ await bootstrapDatabase({docker,checkWindow,pause,root,prefix,sql:await readFile(new URL('./roles.sql',import.meta.url),'utf8')});await ready('http://127.0.0.1:8794/health');
  const b64=v=>Buffer.from(JSON.stringify(v)).toString('base64url'),unsigned=b64({alg:'HS256',typ:'JWT'})+'.'+b64({role:'service_role',aud:'authenticated',exp:Math.floor(Date.parse(window.expires_at)/1000)}),admin=unsigned+'.'+createHmac('sha256',jwt).update(unsigned).digest('base64url');
  const credentials={};for(const actor of ['owner','viewer','foreign']){const password=randomBytes(32).toString('hex');await nativeUser(admin,actor,password);credentials[actor]={id:ids[actor],email:actor+'@rc.example.invalid',password};}await write('secrets/identities.json',JSON.stringify(credentials));
  const sql=await readFile(new URL('./schema.candidate.sql',import.meta.url),'utf8');if(sql!==await schema())throw Error('Schema artifact mismatch');await write('schema.sql',sql);docker(['exec','-i',prefix+'-db','psql','-X','-U','postgres','-v','ON_ERROR_STOP=1'],sql);

@@ -1,5 +1,10 @@
 -- Only a newly created, isolated RC PostgreSQL database. Never the hosted project.
+-- Read secret from the existing container environment; never materialize it in a host SQL file.
+\set ECHO none
+set log_statement = 'none';
+set log_min_error_statement = 'panic';
 \getenv password POSTGRES_PASSWORD
+begin;
 create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin;
@@ -14,3 +19,4 @@ create function auth.uid() returns uuid language sql stable as $$
 $$;
 grant usage on schema auth to anon,authenticated;
 grant execute on function auth.uid() to anon,authenticated;
+commit;

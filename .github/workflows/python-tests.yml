@@ -71,6 +71,9 @@ jobs:
           node supabase/tests/model_trial/deadline_engine.mjs
       - name: Model trial atomic reservation on independent PG17 backends (no network)
         run: python3 -B supabase/tests/model_trial/native_ledger.py
+      - name: RC bootstrap native UID and secret boundary (ephemeral, no network)
+        timeout-minutes: 3
+        run: node --test prototype/internal-rc/deploy/bootstrap.test.mjs
       - name: URL exact-version Review PG17 concurrency (no network)
         timeout-minutes: 3
         run: node supabase/drafts/url_review/native.mjs
