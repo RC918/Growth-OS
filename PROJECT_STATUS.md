@@ -410,3 +410,11 @@ Owner新窗口授權固定49db1dc候選，04:38:49Z provision；A 04:39:12Z exit
 Owner已選Core：URL→result→edit→save→新session→exact版確認的操作狀態／錯誤／鍵盤手機可讀性。沿現有視覺及HTML/CSS/ES modules補loading+aria-busy、三欄近端錯誤、未保存preview狀態、44px操作和手機換行，無新runtime依賴；Auth/SQL/tenant/發布權限和unknown只核原request不變。完整synthetic1280/390與exactpayload/Review、duplicate/unknown/cancel及tenant拒絕零增量通過；[安裝／實用／改善三層證據與限制](docs/UI_UX_Core_驗證_2026-10-05.md)。
 
 UIUX Pro Max固定來源477bcb28、MIT、74來源檔完整SHA及安全審查，Python本機search及資料validator通過，當前task確實讀取並用於上述修正。僅explicit loading，native skills catalog仍空，不修loader。PR19保持RC證據收尾；此獨立分支更新的build-only RC candidate hash沒有批准窗口，不重跑RC。CoreMilestoneProgress為可見核心回饋及完整synthetic流程驗證，maintenance=0；交既有Reviewer，未自選新Core或宣告live品質／SEO結果。
+
+## 2026-10-05 單站真內容試點第一候選增量（未部署，待審）
+
+最新Owner授權由PR20 fa2e737獨立stacked branch實作server-only單站page/三欄候選，沿用workspace Auth/Review與publisher/journal。短write/read grant與穩定證據身份分離；write到期/憑證撤銷後仍核workspace讀歷史，backup新目錄只讀恢復，不恢復writer。1publish＋1restore attempt，原unknown GET-only；profile明記single_site_wordpress且測試environment=isolated_fixture。UI單獨恢復確認、44px/鍵盤/手機，量測明記未知、不冒真流量。
+
+[26契約及1280/390完整synthetic/實際短命WordPress驗證](docs/Single_Site_Pilot_驗證_2026-10-05.md)與[三頁核稿包](docs/pilot-content/README.md)：URL→edit→Save→全新session/exactpayload/Review→發布lost reply→原operationGET→restorelostreply→write到期只讀核對，歷史v1/備份、tenant零增量及WP控制頁/額外欄位/第三attempt拒絕。每viewport2成功WP POST；全owned container/TLS已清理。無hosted/site/account/grant/GSC/費用或公開內容。
+
+GSC America/Los_Angeles/DST/coverage真資料契約為父允許拆出的後續增量，本PR未實作；crash保留writer lock需離線核對，不宣稱託管災復。此次歷史checkout誤讀已按最新Owner/派工與PR20 authoritative head有界核清，未動PR19 worktree；不另開maintenance。CoreMilestoneProgress=單站候選持久历史/只讀復原及真內容草稿，maintenance=0；提交CI/Preview後交既有Reviewer，不自驗APPROVE。

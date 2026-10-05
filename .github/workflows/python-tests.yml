@@ -126,6 +126,18 @@ jobs:
       - name: Unattended synthetic session, SQL and controlled WordPress publication
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --wordpress
+      - name: Closed single-site pilot storage contracts
+        run: node --test prototype/wordpress-pilot/store.test.mjs
+      - name: Single-site pilot fresh session, expiry and readonly recovery
+        timeout-minutes: 6
+        run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --pilot
+      - name: Preserve synthetic pilot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-site-pilot-evidence
+          path: /tmp/growth-wp-*-pilot-evidence/
+          retention-days: 3
       - name: Preserve synthetic WordPress publication evidence
         if: always()
         uses: actions/upload-artifact@v4
