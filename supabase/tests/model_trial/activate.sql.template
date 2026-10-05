@@ -1,0 +1,27 @@
+-- Only AFTER exact remote SQL/runtime/ACL approval, human key setup, quota and
+-- current tariff readiness proof. No counting endpoint or secret in this SQL.
+BEGIN;
+DO $$ DECLARE ready_at timestamptz; effective_deadline timestamptz; BEGIN
+ -- Serialize simultaneous readiness requests; recheck staged AFTER acquiring lock.
+ PERFORM 1 FROM private.model_trial WHERE singleton FOR UPDATE;
+ ready_at:=clock_timestamp();
+ -- Conservative key cap supplied by the human; never infer key expiry.
+ effective_deadline:=least(ready_at+interval '7 days',TIMESTAMPTZ '2026-10-07T11:50:00Z');
+ -- More than 3 minutes: 2-minute reserve guard plus 1 minute preparation buffer.
+ -- Dispatch still stops 1 minute early; provider timeout remains 40 seconds.
+ IF effective_deadline<=ready_at+interval '3 minutes'
+ THEN RAISE EXCEPTION 'Insufficient trial window'; END IF;
+ IF '__READY_POLICY__'<>'gpt41mini-20250414-v2-postusage'
+ OR '__RUNTIME_REVIEWED__'<>'confirmed'
+ THEN RAISE EXCEPTION 'Readiness unconfirmed'; END IF;
+ IF NOT EXISTS(SELECT FROM public.organization_members WHERE user_id='__ACTOR_UUID__'::uuid
+ AND organization_id='__ORG_UUID__'::uuid AND role='owner')
+ THEN RAISE EXCEPTION 'Current owner required'; END IF;
+ IF NOT EXISTS(SELECT FROM private.model_trial WHERE singleton AND state='staged'
+ AND starts_at IS NULL AND deadline IS NULL AND calls_reserved=0 AND spent_nusd=0
+ AND held_nusd=0 AND active_request IS NULL)
+ THEN RAISE EXCEPTION 'Staging state differs; no reset/extension'; END IF;
+ UPDATE private.model_trial SET actor_user_id='__ACTOR_UUID__',organization_id='__ORG_UUID__',
+ starts_at=ready_at,deadline=effective_deadline,state='active' WHERE singleton;
+END $$;
+COMMIT;

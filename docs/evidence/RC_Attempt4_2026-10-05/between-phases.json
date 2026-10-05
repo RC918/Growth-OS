@@ -1,0 +1,37 @@
+{
+  "checked_at": "2026-10-05T04:39:44.375464+00:00",
+  "phase_a_exit": {
+    "phase": "A",
+    "exit_code": 0,
+    "shell_finished_at": "2026-10-05T04:39:12.088860+00:00"
+  },
+  "active_phase_a_processes": [],
+  "control_before_after_a_equal": true,
+  "wp_receiver_request_keys": [
+    {
+      "method": "POST",
+      "keys": [
+        "content",
+        "meta",
+        "title"
+      ],
+      "meta_keys": [
+        "growth_meta_description"
+      ]
+    },
+    {
+      "method": "POST",
+      "keys": [
+        "content",
+        "meta",
+        "title"
+      ],
+      "meta_keys": [
+        "growth_meta_description"
+      ]
+    }
+  ],
+  "pending_id": "6f673549-0cff-47b8-a8ef-7396148fa5c8",
+  "pending_state": "submitting",
+  "phase_b_started": false
+}

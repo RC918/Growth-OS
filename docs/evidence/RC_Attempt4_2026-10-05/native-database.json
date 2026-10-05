@@ -1,0 +1,13 @@
+{
+  "uid_owner": "supabase_auth_admin",
+  "auth_users": 3,
+  "memberships": 3,
+  "auth_sessions": 5,
+  "organizations": 2,
+  "session_counts": {
+    "10000000-0000-4000-8000-000000000003": 3,
+    "10000000-0000-4000-8000-000000000005": 1,
+    "10000000-0000-4000-8000-000000000007": 1
+  },
+  "auth_migrations": 70
+}

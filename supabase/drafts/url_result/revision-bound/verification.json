@@ -1,0 +1,72 @@
+{
+  "state": "OFFLINE_VERIFIED_NOT_REMOTE_AUTHORIZATION",
+  "baseline_head": "d5f1eb11a04d2e17808559fa767fc4e0db3bca55",
+  "cutoff": null,
+  "runtime_save_enabled": false,
+  "runtime_config_sha256": "c37e2db6efbc8079f05109435fe5a3930de49be77402a1d5e66a1513a55e5511",
+  "tests": {
+    "unit_api_marker_mirror_sql": 42,
+    "bounded_browser_desktop_mobile": 16,
+    "general_revision_desktop_mobile": 28,
+    "first_trial_desktop_mobile": 4,
+    "native_pg17_groups": 6
+  },
+  "native_image": "postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929",
+  "native_network": "none",
+  "native_host_ports": [],
+  "native_evidence": [
+    "PASS bound deadline across org lock {\"holder\":194,\"contender\":193,\"observer\":202}",
+    "PASS bound deadline across membership lock {\"holder\":235,\"contender\":234,\"observer\":249}",
+    "PASS bound deadline across parent lock {\"holder\":282,\"contender\":283,\"observer\":291}",
+    "PASS revision concurrent authenticated fixed request {\"holder\":323,\"contender\":322,\"observer\":338}",
+    "PASS revision expired replay denied; v1 unchanged",
+    "PASS revision cleanup effective ACL closed; authenticated read and 1/2/2 retained"
+  ],
+  "browser_success_budget": {
+    "save_post_max": 1,
+    "synthetic_otp_requests": 2,
+    "order": [
+      "open config deployment/reload",
+      "login1",
+      "edit/confirm/fixed intent",
+      "one Save POST; unknown GET only",
+      "SQL cleanup",
+      "closed config deployment",
+      "logout/reload",
+      "login2",
+      "exact v2/v1 readonly"
+    ]
+  },
+  "logs": {
+    "unit": {
+      "path": "/tmp/bounded-v2-all-unit.log",
+      "sha256": "28347d136b0949893423d08467bda4c17a0fff4953d63359e55e974e255e7007"
+    },
+    "candidate_final": {
+      "path": "/tmp/bounded-v2-candidate-final.log",
+      "sha256": "16975926fb898ff7f885c1dc4790f8e6c6b8d9b355415689a01412cab6a9866b"
+    },
+    "bounded_browser": {
+      "path": "/tmp/bounded-v2-browser.log",
+      "sha256": "c855473ef6afa492212c7afe3746b02a7b486a936ea85426683f8bd4b3892d34"
+    },
+    "general_revision": {
+      "path": "/tmp/bounded-v2-general-regression.log",
+      "sha256": "cc3c0fa82fd21560491a364201d386fddc4c755184ea06d0be1e147bc50bd3d2"
+    },
+    "first_trial": {
+      "path": "/tmp/bounded-v2-firsttrial-regression.log",
+      "sha256": "b3df40ad031186a8546777e146b7666f0f26a082bc1113a365414a2cd9bb3dd7"
+    },
+    "native_pg17": {
+      "path": "/tmp/bounded-v2-native.log",
+      "sha256": "8f7b9d677bdfe152439459f97ac0a53e39380a82f3ea0aa6cc57ae0b781acf7d"
+    }
+  },
+  "remote_actions": [],
+  "remaining": [
+    "new HEAD Reviewer / CI / Preview verification",
+    "Owner schedule and explicit new complete envelope",
+    "offline cutoff binding and final artifact hash review before remote execution"
+  ]
+}

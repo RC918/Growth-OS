@@ -1,0 +1,173 @@
+{
+  "run": "growth-native-http-34967e66-9e56-4e36-8ba2-42c8e497cc57",
+  "started_at": "2026-10-05T02:25:53.127Z",
+  "scope": "ephemeral native Auth/PostgREST HTTP; no WP/persistent RC/email OTP",
+  "http": [
+    {
+      "action": "native admin create owner",
+      "status": 200
+    },
+    {
+      "action": "native admin create viewer",
+      "status": 200
+    },
+    {
+      "action": "native admin create foreign",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "schema before reload",
+      "status": 404
+    },
+    {
+      "action": "owner Save",
+      "status": 200
+    },
+    {
+      "action": "exact saved version",
+      "status": 200
+    },
+    {
+      "action": "owner exact Review",
+      "status": 200
+    },
+    {
+      "action": "exact Review readback",
+      "status": 200
+    },
+    {
+      "action": "native logout",
+      "status": 204
+    },
+    {
+      "action": "logged out refresh rejected",
+      "status": 400
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "fresh exact version",
+      "status": 200
+    },
+    {
+      "action": "fresh exact Review",
+      "status": 200
+    },
+    {
+      "action": "wrong signature read",
+      "status": 401
+    },
+    {
+      "action": "wrong signature write",
+      "status": 401
+    },
+    {
+      "action": "login viewer",
+      "status": 200
+    },
+    {
+      "action": "native GET user viewer",
+      "status": 200
+    },
+    {
+      "action": "viewer OrgA read",
+      "status": 200
+    },
+    {
+      "action": "viewer Save denied",
+      "status": 403
+    },
+    {
+      "action": "viewer Review denied",
+      "status": 403
+    },
+    {
+      "action": "login foreign",
+      "status": 200
+    },
+    {
+      "action": "native GET user foreign",
+      "status": 200
+    },
+    {
+      "action": "foreign OrgA read",
+      "status": 200
+    },
+    {
+      "action": "foreign Save denied",
+      "status": 403
+    },
+    {
+      "action": "foreign Review denied",
+      "status": 403
+    },
+    {
+      "action": "native delete foreign identity",
+      "status": 200
+    },
+    {
+      "action": "deleted native user rejected",
+      "status": 403
+    },
+    {
+      "action": "deleted identity own org hidden",
+      "status": 200
+    },
+    {
+      "action": "deleted identity Save denied",
+      "status": 403
+    },
+    {
+      "action": "deleted identity Review denied",
+      "status": 403
+    }
+  ],
+  "checks": {
+    "network_internal": true,
+    "host_ports": 0,
+    "native_migrations": 70,
+    "auth_functions_owner": "supabase_auth_admin",
+    "elevated_application_roles": 0,
+    "native_users": 3,
+    "jwt_source": "GoTrue password grant; unmodified returned token accepted by native Auth and PostgREST",
+    "jwt_algorithm": "HS256",
+    "jwt_audience": "authenticated",
+    "jwt_max_lifetime_seconds": 300,
+    "schema_reload": true,
+    "fresh_native_login_exact_readback": true,
+    "logout_revokes_refresh": true,
+    "viewer_org_a_rows": 1,
+    "foreign_org_a_rows": 0,
+    "business_counts": {
+      "audit": 2,
+      "reviews": 1,
+      "versions": 1
+    },
+    "denied_business_delta": 0,
+    "deleted_native_identity_denied": true
+  },
+  "cleanup": {
+    "checked_at": "2026-10-05T02:25:59.872Z",
+    "ownership_checked": true,
+    "remaining_containers": "",
+    "remaining_networks": "",
+    "persistent_root_absent": true,
+    "old_markers_unchanged": true,
+    "errors": []
+  },
+  "result": "PASS"
+}

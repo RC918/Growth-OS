@@ -1,0 +1,63 @@
+{
+  "checked_at": "2026-10-05T03:54:39.215116+00:00",
+  "head": "fae2fdf0393cbec7388dc2e4cdd9087dd0544322",
+  "phase_a": "FAIL at first publication verification",
+  "phase_b": "NOT_RUN",
+  "operation_id": "d96a13bc-3e4c-40c0-a1f0-3e2e25eccaa7",
+  "version_id": "93dace75-3e5c-466d-a1a9-bad51528ed7d",
+  "review_id": "a2791aff-82fd-4858-9830-3ae7f5349012",
+  "journal_states": [
+    "preview",
+    "submitting",
+    "state_diverged"
+  ],
+  "http_get_status": 200,
+  "expected_three_fields_match": true,
+  "untouched_differences": {
+    "excerpt": {
+      "before": {
+        "raw": "",
+        "rendered": "<p>Steel bolt for workshop assembly.</p>\n",
+        "protected": false
+      },
+      "actual": {
+        "raw": "",
+        "rendered": "<p>RC steel bolt. Steel bolt for workshop assembly. RC edited</p>\n",
+        "protected": false
+      }
+    }
+  },
+  "wp_post_count": 1,
+  "wp_post_access": [
+    "172.18.0.1 - rcpublisher [05/Oct/2026:03:52:15 +0000] \"POST /?rest_route=/wp/v2/pages/1001&context=edit HTTP/1.1\" 200 2792 \"-\" \"-\""
+  ],
+  "restore_posts": 0,
+  "third_submission": "NOT_RUN",
+  "measurement_events": 0,
+  "sql_counts": {
+    "audit": 2,
+    "reviews": 1,
+    "versions": 1
+  },
+  "native_users": 3,
+  "native_migrations": 70,
+  "bound": {
+    "run": "growth-internal-rc-01",
+    "journal_id": "40000000-0000-4000-8000-000000000001",
+    "organization_id": "10000000-0000-4000-8000-000000000001",
+    "page_id": 1001,
+    "target_url": "https://rc-source.example/bolt/",
+    "expires_at": 1791173229000
+  },
+  "control": {
+    "id": 1002,
+    "title": "RC control",
+    "content": "<p>Never change.</p>",
+    "slug": "control",
+    "status": "publish",
+    "modified": "2026-10-05 03:52:09"
+  },
+  "control_expected_fields_match": true,
+  "reconciliation": "STATE_DIVERGED: three edited fields applied, protected derived excerpt.rendered differs; no retry or restore",
+  "evidence_retain_until": "2026-10-08T05:48:00Z"
+}

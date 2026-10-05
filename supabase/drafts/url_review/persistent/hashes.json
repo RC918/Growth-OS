@@ -1,0 +1,19 @@
+{
+  "manifest.json": "dd944d7f7e09528d0218fbd515708ea106a2dd1b475d070a47776720202d99b7",
+  "expected-schema.json": "7e1b1785a8a16e3fd8bc655ac9ded5f723a05d2dc3b67e884bdec8fad0be39c2",
+  "authority-revoke.sql": "706a8928adec0b29dae3e49ed2dcef71aff5702dfffd41aeba80cbc7a286ecb2",
+  "authority-postflight.sql": "4d8e7c627bbf33bfbc1c5ae0d6952642142f0945df53d4f0cbda21ae9591a34c",
+  "preflight.sql": "8e41d428acd2148e20c2f5103e84966585624f6a4c765cf60cf2c4a74865f921",
+  "install-closed.sql": "bac4085c43bf6422fc6953bc49774602f538b455985ac4a5409aee45a2a6dac2",
+  "enable.sql": "c43c15ed6c7b08c3ad4cf9d437c754a78a6680778dc7ddc2fe89b03f5c04cabb",
+  "disable.sql": "3ad35e8b4fc5444cc51aeed49c67d7d3b8dc193776b10c084f916eceea424e6c",
+  "restore.sql": "7809f4dc2b8cf6698ab48bbde59f9f27db88ed1841f239cd0963af2b9ad963a1",
+  "postflight-closed.sql": "3c286f6d6d29b658fae6ea2e99b535980f0855c6eee66e24c394778efd792631",
+  "postflight-enabled.sql": "db8f84f95540e2052330adf8bf51e8426157fe7677c39f59151fe05e6f9a1b52",
+  "state.sql": "9efc64d8fee3dbe1ee5904938cbd95067e5dada9c124c23900ecb8b3ade56be3",
+  "preservation.sql": "b88add9fd453931784e42e8fc824f24e18d4b7aa37f8e1fb9db19a2487bf529b",
+  "preview-enabled-config.mjs": "12cbb6fe7b7debabd67b199f4d404161e0c714c86987496bc1ead14cc2a410ca",
+  "preview-disabled-config.mjs": "8b25cfa17adaf27a10b635fbf3537f0ad19deb36c10bb4263f1733da83ee91e1",
+  "README.md": "0629bc250f2061e5a57d0ecf87cba630e22b2efb19ba6eeb4bb95ba71421454f",
+  "reconcile.sql": "1f08f61308b0138faf59613aa64df84c99ef7043914ba0e775f779dfee2295bb"
+}

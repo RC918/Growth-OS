@@ -1,0 +1,22 @@
+{
+  "result": "PASS",
+  "scope": "Offline only; no database/browser/login/network calls",
+  "checks": [
+    "4 generated artifacts byte-identical to approved generator output",
+    "4 artifact hashes match manifest",
+    "frozen input validates and payload bytes unchanged from accepted HEAD",
+    "candidate open/closed modules match exact frozen config",
+    "both served configs unchanged false/false/null",
+    "exact absolute UTC and repo-derived workspace redirect; remote verification false",
+    "cleanup matches accepted candidate; historical closed-package hash unchanged"
+  ],
+  "not_performed": [
+    "remote preflight",
+    "remote auth allowlist verification",
+    "login",
+    "migration",
+    "grant",
+    "Save POST",
+    "rerun unchanged integration suites"
+  ]
+}

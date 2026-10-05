@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-10-05T04:38:35.674362+00:00",
+  "head": "49db1dc1625c6cb654ef3e6a810abedb045ca4a7",
+  "manifest_entries": 114,
+  "artifacts_digest": "04963bd0fd17e24ed1739e883834db3f447c026bbb8455ed5107ab12934f5cce",
+  "root_absent": true,
+  "ports_available": [
+    8792,
+    8794,
+    8795,
+    8796,
+    8797
+  ],
+  "containers": "",
+  "networks": [
+    "bridge",
+    "host",
+    "none"
+  ],
+  "old_markers": {
+    "rc-approved-window.json.started": "{\"environment\":\"growth-internal-rc-01\",\"started_at\":\"2026-10-05T01:08:39.467Z\"}",
+    "rc-approved-window-next.json.started": "{\"environment\":\"growth-internal-rc-01\",\"started_at\":\"2026-10-05T01:46:03.483Z\"}",
+    "rc-approved-window-third.json.started": "{\"environment\":\"growth-internal-rc-01\",\"started_at\":\"2026-10-05T03:51:54.342Z\"}"
+  },
+  "owner_approval_reference": "Sentinel_fad2d87569dc81919b7c1dfd0ed7c5db",
+  "approval_at": "2026-10-05T04:35:52Z",
+  "expires_at": "2026-10-05T06:35:00Z",
+  "evidence_retain_until": "2026-10-08T06:35:00Z"
+}

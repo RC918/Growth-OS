@@ -7,3 +7,5 @@ __pycache__/
 .env
 .env.*
 !*.env.example
+node_modules/
+supabase/.temp/

@@ -1,0 +1,37 @@
+{
+  "observed_at": "2026-10-05T01:48:21.978Z",
+  "cleanup_exit_code": 0,
+  "cleanup_log_mtime": "2026-10-05T01:47:47.986Z",
+  "root_absent": true,
+  "owned_containers_absent": true,
+  "owned_network_absent": true,
+  "remaining_containers": "",
+  "remaining_networks": [
+    "bridge",
+    "host",
+    "none"
+  ],
+  "available_loopback_ports": [
+    8792,
+    8794,
+    8795,
+    8796,
+    8797
+  ],
+  "temporary_secrets_removed": true,
+  "effective_wp_grant": false,
+  "git_clean": true,
+  "head": "c82b88c46ce8af50e4e032ef395a135720abebeb",
+  "approved_manifest_entries": 105,
+  "approved_manifest_digest": "9c6bc1e3aef9ba787ba97fe41f5e183ec0f32cd597669623562fb7682c38991f",
+  "old_consumption_marker": {
+    "environment": "growth-internal-rc-01",
+    "started_at": "2026-10-05T01:08:39.467Z"
+  },
+  "new_consumption_marker": {
+    "environment": "growth-internal-rc-01",
+    "started_at": "2026-10-05T01:46:03.483Z"
+  },
+  "acceptance_result": "NOT_RUN: GoTrue migration failed before native users or JWT issuance",
+  "retention_until": "2026-10-08T03:44:00Z"
+}

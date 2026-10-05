@@ -1,0 +1,10 @@
+{
+  "opening.sql": "6ebda8a5e0685b6ebaf49570abbd396ce51dd5e084af28fcedb5b4c9f22efae4",
+  "cleanup.sql": "7bf358d889268321a4292e803eb154bbd689e5754f68517031aedbf8dd04778f",
+  "preview-open-config.mjs": "0d17a06519bd28d7f86443b31d453e18762ce4106bdf523e173e1c73693d1d82",
+  "preview-closed-config.mjs": "fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b",
+  "manifest.json": "2f52154af9d61c066492433cb74a22cdccdf392e2bbd5d95c53bd5dbc07972b0",
+  "v2-payload.json": "86e70a16a092114c23dd82708a0dfa0a60489a859b23dee91847d5207ad06a66",
+  "preflight.sql": "f28d16d4ebb120c3387ba3c384353d0233c0f39811320686c7c81da2cd1378bd",
+  "postflight.sql": "7bdb5e4e5899ffb6d1a4eb3213ed25d5e77e48f05de8836771889595398244b7"
+}

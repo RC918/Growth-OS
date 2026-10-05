@@ -14,18 +14,162 @@ jobs:
           python-version: '3.12'
       - name: Public audit tests
         working-directory: prototype/public-audit
-        run: python3 -m unittest -v test_scanner.py test_app.py
+        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py
       - name: Offline proof example
         working-directory: prototype/offline-proof
         run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json
       - name: CSV import preview tests
         working-directory: prototype/csv-import
-        run: python3 -m unittest -v test_validate.py test_store.py
+        run: python3 -m unittest -v test_validate.py test_store.py test_gsc_daily.py
       - name: Migration static contract checks
         working-directory: supabase
         run: python3 -m unittest -v test_migration_contract.py
+      - name: Live Auth mutation runner offline checks
+        run: python3 -m unittest discover -s supabase/tests -p test_real_auth_mutation_check.py -v
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - name: Workspace API contract checks
-        run: node --test prototype/owner-workspace/workspace-api.test.mjs
+        run: node --test prototype/owner-workspace/workspace-api.test.mjs prototype/owner-workspace/saved-result-review.test.mjs prototype/owner-workspace/revision-marker.test.mjs
+      - name: First result page review contract checks
+        run: node --test prototype/public-audit/first-result-review.test.mjs
+      - name: Unwired first result save-intent contract checks
+        run: node --test prototype/public-audit/first-result-save-intent.test.mjs
+      - name: Browser baseline data contract checks
+        run: node --test prototype/csv-import/search-baseline.test.mjs
+      - name: Install isolated UI test browser
+        run: npm ci --ignore-scripts
+      - name: Guided goal contract and DOM checks
+        run: node --test prototype/owner-workspace/goal-intake.test.mjs prototype/owner-workspace/goal-panel.test.mjs
+      - name: Offline growth plan and work card contracts (no persistence)
+        run: node --test prototype/owner-workspace/growth-plan-contract.test.mjs prototype/owner-workspace/growth-plan-session.test.mjs
+      - name: Offline inference proposal contract checks (test doubles only)
+        run: node --test prototype/owner-workspace/goal-inference-contract.test.mjs
+      - name: Offline draft confirmation state and source checks (memory only)
+        run: node --test prototype/owner-workspace/offline-draft-session.test.mjs
+      - name: Unwired goal draft adapter and panel checks (injected API only)
+        run: node --test prototype/owner-workspace/goal-draft-adapter.test.mjs
+      - name: Guided goal PostgreSQL engine checks
+        run: node supabase/tests/goal_intake_postgres.mjs
+      - name: Undeployed first-result SQL on isolated PGlite
+        run: node --test supabase/drafts/first_result_save/offline.test.mjs supabase/drafts/first_result_save/closed-package.test.mjs
+      - name: URL pending result API and isolated SQL
+        run: node --test prototype/owner-workspace/url-result-api.test.mjs supabase/drafts/url_result/offline.test.mjs supabase/drafts/url_result/native-startup.test.mjs
+      - name: Bound URL candidate frozen artifact and authenticated ACL checks
+        run: node --test supabase/drafts/url_result/bound/bound.test.mjs prototype/owner-workspace/url-result-bound.test.mjs
+      - name: URL exact-version Review contracts and isolated SQL (runtime closed)
+        run: node --test prototype/owner-workspace/publication-measurement.test.mjs prototype/wordpress-publish/publisher.test.mjs prototype/wordpress-publish/journal.test.mjs prototype/internal-rc/contract.test.mjs prototype/owner-workspace/page-observation.test.mjs prototype/owner-workspace/measurement-preparation.test.mjs prototype/owner-workspace/saved-result-delivery.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs prototype/owner-workspace/url-review.test.mjs supabase/drafts/url_review/offline.test.mjs supabase/drafts/url_review/persistent/candidate.test.mjs
+      - name: Bounded exact-v2 Review candidate and API contracts (offline only)
+        run: node --test supabase/drafts/url_review/bound/candidate.test.mjs prototype/owner-workspace/url-review-bound.test.mjs
+      - name: Offline model trial handler and ledger checks (no provider calls)
+        run: |
+          node --check supabase/functions/growth-model-trial/index.js
+          node --test supabase/tests/model_trial/handler.test.mjs
+          node --test supabase/tests/model_trial/live_single_case.test.mjs
+          node supabase/tests/model_trial/ledger_engine.mjs
+          node supabase/tests/model_trial/integration.mjs
+          node supabase/tests/model_trial/deadline_engine.mjs
+      - name: Model trial atomic reservation on independent PG17 backends (no network)
+        run: python3 -B supabase/tests/model_trial/native_ledger.py
+      - name: RC bootstrap native UID and secret boundary (ephemeral, no network)
+        timeout-minutes: 3
+        run: node --test prototype/internal-rc/deploy/bootstrap.test.mjs prototype/internal-rc/deploy/migration-compatibility.test.mjs
+      - name: Pull pinned native Auth and Data API images
+        run: |
+          docker pull supabase/gotrue:v2.196.0@sha256:c0c25187a6b835e65a6f6e6c6b39d090e832d40e6de5186f2c038e0411944232
+          docker pull postgrest/postgrest:v14.17@sha256:c9dc201e555f5d8e37e7f39cdd4df0229774996e213bfd7de8d10ac609030f2c
+      - name: Native Auth JWT and PostgREST HTTP regression (ephemeral internal network)
+        timeout-minutes: 12
+        run: node prototype/internal-rc/native-http-regression.mjs --mode growth-os-native-regression
+      - name: Preserve nonsecret native HTTP evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-http-evidence
+          path: /tmp/growth-native-http-*-evidence.json
+          retention-days: 3
+          if-no-files-found: warn
+      - name: URL exact-version Review PG17 concurrency (no network)
+        timeout-minutes: 3
+        run: node supabase/drafts/url_review/native.mjs
+      - name: Bounded exact-v2 Review PG17 deadline and concurrency
+        timeout-minutes: 3
+        run: node supabase/drafts/url_review/bound/native.mjs
+      - name: Undeployed first-result SQL on independent PG17 backends (no network)
+        timeout-minutes: 3
+        run: node supabase/drafts/first_result_save/native.mjs
+      - name: New bounded v2 candidate on existing closed schema (offline only)
+        run: node --test supabase/drafts/url_result/revision-bound/candidate.test.mjs prototype/owner-workspace/revision-bound.test.mjs
+      - name: Revision-bound v2 PG17 locks, expiry, replay and cleanup
+        timeout-minutes: 3
+        run: node supabase/drafts/url_result/revision-bound/native.mjs
+      - name: Bound URL PG17 deadline locks and single-request concurrency
+        timeout-minutes: 3
+        run: node supabase/drafts/url_result/bound/native.mjs
+      - name: Supabase Edge Runtime closed-gate user worker (no network or keys)
+        run: python3 -B supabase/tests/model_trial/edge_runtime.py
+      - name: Offline probe boundary checks (PGlite only)
+        run: node supabase/tests/goal_lock_probe/test.mjs
+      - name: Offline probe controller and DCL operator checks
+        run: |
+          python3 -B -m unittest discover -s supabase/tests/goal_lock_probe -p test_remote_overlap.py -v
+          node supabase/tests/goal_lock_probe/test_acl_operator.mjs
+      - name: Install Chromium for UI acceptance
+        run: npx playwright install --with-deps chromium
+      - name: Pull pinned official disposable WordPress and MariaDB images
+        run: |
+          docker pull wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4
+          docker pull mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6
+      - name: Real WordPress empty and explicit excerpt cold readback
+        timeout-minutes: 4
+        run: node prototype/wordpress-publish/excerpt-regression.mjs --mode growth-os-isolated-regression
+      - name: Unattended synthetic session, SQL and controlled WordPress publication
+        timeout-minutes: 6
+        run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --wordpress
+      - name: Preserve synthetic WordPress publication evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-wordpress-evidence
+          path: /tmp/growth-wp-*-evidence/
+          retention-days: 3
+      - name: Baseline desktop and mobile UI acceptance
+        run: node prototype/csv-import/baseline-ui.e2e.mjs
+      - name: Typed draft readonly workspace acceptance (synthetic transport only)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/typed-draft-ui.e2e.mjs
+      - name: Saved exact version Review continuation (synthetic transport, zero POST)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/saved-result-review.e2e.mjs
+      - name: Bound v2 exact edit, two logins and closed-config readback
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/revision-bound.e2e.mjs
+      - name: Continued revision Save and exact readback (synthetic transport and isolated SQL)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/saved-result-save.e2e.mjs
+      - name: URL exact-version Review desktop/mobile (synthetic transport and isolated SQL)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/url-review.e2e.mjs
+      - name: Bounded exact-v2 Review two-login cleanup and readback (synthetic only)
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/url-review-bound.e2e.mjs
+      - name: URL Review to pending Save desktop/mobile (synthetic transport and isolated SQL)
+        timeout-minutes: 3
+        run: |
+          node prototype/owner-workspace/url-result-ui.e2e.mjs
+          node prototype/owner-workspace/url-result-races.e2e.mjs
+      - name: Bound URL desktop/mobile GET-first and cleanup readonly
+        timeout-minutes: 3
+        run: node prototype/owner-workspace/url-result-bound.e2e.mjs
+      - name: Fixed Owner readonly tenant acceptance (synthetic transport)
+        run: node prototype/owner-workspace/owner-tenant-ui.e2e.mjs
+      - name: Workspace observation desktop and mobile UI acceptance
+        run: node prototype/owner-workspace/observations-ui.e2e.mjs
+      - name: Guided goal desktop and mobile UI acceptance
+        run: node prototype/owner-workspace/goal-intake-ui.e2e.mjs
+      - name: Offline draft confirmation desktop and mobile acceptance (no remote requests)
+        run: node prototype/owner-workspace/offline-draft-ui.e2e.mjs
+      - name: Offline growth plan desktop and mobile acceptance (memory only)
+        run: node prototype/owner-workspace/growth-plan-ui.e2e.mjs
+      - name: URL source and first useful result desktop/mobile acceptance
+        run: node prototype/public-audit/product-source-ui.e2e.mjs

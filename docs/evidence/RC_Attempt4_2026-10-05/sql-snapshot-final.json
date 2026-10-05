@@ -1,0 +1,304 @@
+{
+  "audit": [
+    {
+      "id": "05fe6ee3-702f-4aa4-999f-795a2419c145",
+      "details": {
+        "approval": "none",
+        "provenance": "caller_supplied_unverified",
+        "request_id": "dcb9eb3f-5521-495f-8d64-257c30f9b6af",
+        "source_digest": "sha256:d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c",
+        "content_digest": "sha256:1b05018c949ea1cb9f9ec2a59acd7ee547e83c8bf02ffb813e38b344635c8ee4",
+        "created_parent": true,
+        "opportunity_id": "aef646b6-b79c-4ba7-b574-14d5c7cb7c81",
+        "request_digest": "pg-jsonb-sha256:8b1c0620b601f9a75454cf72cf17764db092e8984dc2161a8bbc9e42a83d9632",
+        "version_number": 1
+      },
+      "object_id": "8c9ebac5-8ff8-41ad-b14a-4ea1a376df35",
+      "event_type": "url_result_draft_saved",
+      "object_type": "content_version",
+      "occurred_at": "2026-10-05T04:39:05.585637+00:00",
+      "actor_user_id": "10000000-0000-4000-8000-000000000003",
+      "organization_id": "10000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "06ef5e4e-278d-4f21-8bd5-2bda31b6d404",
+      "details": {
+        "published": false,
+        "review_id": "d2a79a10-e9c5-4f8b-8059-32e0679f2c71",
+        "request_id": "b43df64a-e47d-49c9-9714-32a957f08a1e",
+        "source_digest": "sha256:d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c",
+        "content_digest": "sha256:1b05018c949ea1cb9f9ec2a59acd7ee547e83c8bf02ffb813e38b344635c8ee4",
+        "version_digest": "pg-jsonb-sha256:8b1c0620b601f9a75454cf72cf17764db092e8984dc2161a8bbc9e42a83d9632",
+        "version_number": 1
+      },
+      "object_id": "8c9ebac5-8ff8-41ad-b14a-4ea1a376df35",
+      "event_type": "url_result_reviewed",
+      "object_type": "content_version",
+      "occurred_at": "2026-10-05T04:39:06.604861+00:00",
+      "actor_user_id": "10000000-0000-4000-8000-000000000003",
+      "organization_id": "10000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "d2a79a10-e9c5-4f8b-8059-32e0679f2c71",
+      "reason": "\u5df2\u6838\u5c0d\u539f\u6587\u3001\u4fee\u6539\u3001\u4f86\u6e90\u53ca\u76f8\u95dc\u4e8b\u5be6\uff1b\u672a\u767c\u5e03",
+      "decision": "approved",
+      "version_id": "8c9ebac5-8ff8-41ad-b14a-4ea1a376df35",
+      "reviewed_at": "2026-10-05T04:39:06.604861+00:00",
+      "actor_user_id": "10000000-0000-4000-8000-000000000003",
+      "organization_id": "10000000-0000-4000-8000-000000000001",
+      "url_review_checks": {
+        "title": true,
+        "source": true,
+        "description": true,
+        "meta_description": true,
+        "blocking_facts_clear": true
+      },
+      "url_review_request_id": "b43df64a-e47d-49c9-9714-32a957f08a1e",
+      "url_review_source_digest": "sha256:d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c",
+      "url_review_content_digest": "sha256:1b05018c949ea1cb9f9ec2a59acd7ee547e83c8bf02ffb813e38b344635c8ee4",
+      "url_review_version_digest": "pg-jsonb-sha256:8b1c0620b601f9a75454cf72cf17764db092e8984dc2161a8bbc9e42a83d9632"
+    }
+  ],
+  "versions": [
+    {
+      "id": "8c9ebac5-8ff8-41ad-b14a-4ea1a376df35",
+      "title": "RC steel bolt RC edited",
+      "status": "draft",
+      "created_at": "2026-10-05T04:39:05.585637+00:00",
+      "created_by": "10000000-0000-4000-8000-000000000003",
+      "draft_body": "RC steel bolt. Steel bolt for workshop assembly. RC edited",
+      "opportunity_id": "aef646b6-b79c-4ba7-b574-14d5c7cb7c81",
+      "version_number": 1,
+      "organization_id": "10000000-0000-4000-8000-000000000001",
+      "first_result_payload": {
+        "facts": {
+          "use": null,
+          "title": {
+            "kind": "fact",
+            "value": "RC steel bolt",
+            "citations": [
+              "s3"
+            ],
+            "verification": "source_asserted"
+          },
+          "features": [],
+          "description": {
+            "kind": "fact",
+            "value": "Steel bolt for workshop assembly.",
+            "citations": [
+              "s5",
+              "s2"
+            ],
+            "verification": "source_asserted",
+            "product_scope": {
+              "locator": "main[22]",
+              "name_locator": "h1[23]",
+              "product_name": "RC steel bolt"
+            }
+          },
+          "product_name": {
+            "kind": "fact",
+            "value": "RC steel bolt",
+            "citations": [
+              "s2"
+            ],
+            "verification": "source_asserted"
+          },
+          "meta_description": {
+            "kind": "fact",
+            "value": "Steel bolt baseline",
+            "citations": [
+              "s4"
+            ],
+            "verification": "source_asserted"
+          }
+        },
+        "review": {
+          "scope": "page_only",
+          "edited": {
+            "title": true,
+            "description": true,
+            "meta_description": true
+          },
+          "revision": 3,
+          "final_url": "https://rc-source.example/bolt/",
+          "persisted": false,
+          "fact_checks": {
+            "title": true,
+            "description": true,
+            "meta_description": true
+          },
+          "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+          "confirmation": {
+            "scope": "page_only",
+            "revision": 3,
+            "final_url": "https://rc-source.example/bolt/",
+            "fact_checks": {
+              "title": true,
+              "description": true,
+              "meta_description": true
+            },
+            "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+            "original_url": "https://rc-source.example/bolt/",
+            "content_digest": "sha256:1b05018c949ea1cb9f9ec2a59acd7ee547e83c8bf02ffb813e38b344635c8ee4",
+            "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+          },
+          "original_url": "https://rc-source.example/bolt/",
+          "content_digest": "sha256:1b05018c949ea1cb9f9ec2a59acd7ee547e83c8bf02ffb813e38b344635c8ee4",
+          "schema_version": 1,
+          "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c",
+          "original_suggestions": {
+            "title": "RC steel bolt",
+            "description": "RC steel bolt. Steel bolt for workshop assembly.",
+            "meta_description": "Steel bolt for workshop assembly."
+          }
+        },
+        "missing": [
+          "use",
+          "features",
+          "specifications",
+          "price",
+          "certifications",
+          "performance",
+          "comparisons",
+          "guarantees"
+        ],
+        "preview": {
+          "fields": {
+            "title": {
+              "reason": "Make the existing product name the focused page title.",
+              "original": "RC steel bolt",
+              "citations": [
+                "s2"
+              ],
+              "suggested": "RC steel bolt RC edited",
+              "user_edited": true,
+              "citation_role": "reference_only_for_user_edit"
+            },
+            "description": {
+              "reason": "Group the existing name, description and stated features without inventing claims.",
+              "original": "Steel bolt for workshop assembly.",
+              "citations": [
+                "s2",
+                "s5"
+              ],
+              "suggested": "RC steel bolt. Steel bolt for workshop assembly. RC edited",
+              "user_edited": true,
+              "citation_role": "reference_only_for_user_edit"
+            },
+            "meta_description": {
+              "reason": "Use a concise excerpt of the public product description.",
+              "original": "Steel bolt baseline",
+              "citations": [
+                "s5",
+                "s2"
+              ],
+              "suggested": "Steel bolt for workshop assembly. RC edited",
+              "user_edited": true,
+              "citation_role": "reference_only_for_user_edit"
+            }
+          },
+          "status": "locally_confirmed",
+          "published": false,
+          "generation": "extractive_rules",
+          "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c",
+          "source_snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+          "pending_confirmation": [
+            "Confirm source assertions and suitability before applying.",
+            "use",
+            "features",
+            "specifications",
+            "price",
+            "certifications",
+            "performance",
+            "comparisons",
+            "guarantees"
+          ]
+        },
+        "snapshot": {
+          "id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+          "html": "<!doctype html><html><head><title>RC steel bolt</title><meta property=\"og:type\" content=\"product\"><meta name='robots' content='noindex, nofollow' />\n\t<style>img:is([sizes=\"auto\" i], [sizes^=\"auto,\" i]) { contain-intrinsic-size: 3000px 1500px }</style>\n\t<script type=\"text/javascript\">\n/* <![CDATA[ */\nwindow._wpemojiSettings = {\"baseUrl\":\"https:\\/\\/s.w.org\\/images\\/core\\/emoji\\/16.0.1\\/72x72\\/\",\"ext\":\".png\",\"svgUrl\":\"https:\\/\\/s.w.org\\/images\\/core\\/emoji\\/16.0.1\\/svg\\/\",\"svgExt\":\".svg\",\"source\":{\"concatemoji\":\"https:\\/\\/rc-source.example\\/wp-includes\\/js\\/wp-emoji-release.min.js?ver=6.8.3\"}};\n/*! This file is auto-generated */\n!function(s,n){var o,i,e;function c(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function p(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data),a=(e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0),new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data));return t.every(function(e,t){return e===a[t]})}function u(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);for(var n=e.getImageData(16,16,1,1),a=0;a<n.data.length;a++)if(0!==n.data[a])return!1;return!0}function f(e,t,n,a){switch(t){case\"flag\":return n(e,\"\\ud83c\\udff3\\ufe0f\\u200d\\u26a7\\ufe0f\",\"\\ud83c\\udff3\\ufe0f\\u200b\\u26a7\\ufe0f\")?!1:!n(e,\"\\ud83c\\udde8\\ud83c\\uddf6\",\"\\ud83c\\udde8\\u200b\\ud83c\\uddf6\")&&!n(e,\"\\ud83c\\udff4\\udb40\\udc67\\udb40\\udc62\\udb40\\udc65\\udb40\\udc6e\\udb40\\udc67\\udb40\\udc7f\",\"\\ud83c\\udff4\\u200b\\udb40\\udc67\\u200b\\udb40\\udc62\\u200b\\udb40\\udc65\\u200b\\udb40\\udc6e\\u200b\\udb40\\udc67\\u200b\\udb40\\udc7f\");case\"emoji\":return!a(e,\"\\ud83e\\udedf\")}return!1}function g(e,t,n,a){var r=\"undefined\"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):s.createElement(\"canvas\"),o=r.getContext(\"2d\",{willReadFrequently:!0}),i=(o.textBaseline=\"top\",o.font=\"600 32px Arial\",{});return e.forEach(function(e){i[e]=t(o,e,n,a)}),i}function t(e){var t=s.createElement(\"script\");t.src=e,t.defer=!0,s.head.appendChild(t)}\"undefined\"!=typeof Promise&&(o=\"wpEmojiSettingsSupports\",i=[\"flag\",\"emoji\"],n.supports={everything:!0,everythingExceptFlag:!0},e=new Promise(function(e){s.addEventListener(\"DOMContentLoaded\",e,{once:!0})}),new Promise(function(t){var n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if(\"object\"==typeof e&&\"number\"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&\"object\"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if(\"undefined\"!=typeof Worker&&\"undefined\"!=typeof OffscreenCanvas&&\"undefined\"!=typeof URL&&URL.createObjectURL&&\"undefined\"!=typeof Blob)try{var e=\"postMessage(\"+g.toString()+\"(\"+[JSON.stringify(i),f.toString(),p.toString(),u.toString()].join(\",\")+\"));\",a=new Blob([e],{type:\"text/javascript\"}),r=new Worker(URL.createObjectURL(a),{name:\"wpTestEmojiSupports\"});return void(r.onmessage=function(e){c(n=e.data),r.terminate(),t(n)})}catch(e){}c(n=g(i,f,p,u))}t(n)}).then(function(e){for(var t in e)n.supports[t]=e[t],n.supports.everything=n.supports.everything&&n.supports[t],\"flag\"!==t&&(n.supports.everythingExceptFlag=n.supports.everythingExceptFlag&&n.supports[t]);n.supports.everythingExceptFlag=n.supports.everythingExceptFlag&&!n.supports.flag,n.DOMReady=!1,n.readyCallback=function(){n.DOMReady=!0}}).then(function(){return e}).then(function(){var e;n.supports.everything||(n.readyCallback(),(e=n.source||{}).concatemoji?t(e.concatemoji):e.wpemoji&&e.twemoji&&(t(e.twemoji),t(e.wpemoji)))}))}((window,document),window._wpemojiSettings);\n/* ]]> */\n</script>\n<style id='wp-emoji-styles-inline-css' type='text/css'>\n\n\timg.wp-smiley, img.emoji {\n\t\tdisplay: inline !important;\n\t\tborder: none !important;\n\t\tbox-shadow: none !important;\n\t\theight: 1em !important;\n\t\twidth: 1em !important;\n\t\tmargin: 0 0.07em !important;\n\t\tvertical-align: -0.1em !important;\n\t\tbackground: none !important;\n\t\tpadding: 0 !important;\n\t}\n</style>\n<link rel='stylesheet' id='wp-block-library-css' href='https://rc-source.example/wp-includes/css/dist/block-library/style.min.css?ver=6.8.3' type='text/css' media='all' />\n<style id='classic-theme-styles-inline-css' type='text/css'>\n/*! This file is auto-generated */\n.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}\n</style>\n<style id='global-styles-inline-css' type='text/css'>\n:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgba(252,185,0,1) 0%,rgba(255,105,0,1) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgba(255,105,0,1) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgba(255, 255, 255, 1), 6px 6px rgba(0, 0, 0, 1);--wp--preset--shadow--crisp: 6px 6px 0px rgba(0, 0, 0, 1);}:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}\n:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}\n:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}\n:root :where(.wp-block-pullquote){font-size: 1.5em;line-height: 1.6;}\n</style>\n<link rel=\"https://api.w.org/\" href=\"https://rc-source.example/wp-json/\" /><link rel=\"alternate\" title=\"JSON\" type=\"application/json\" href=\"https://rc-source.example/wp-json/wp/v2/pages/1001\" /><link rel=\"EditURI\" type=\"application/rsd+xml\" title=\"RSD\" href=\"https://rc-source.example/xmlrpc.php?rsd\" />\n<meta name=\"generator\" content=\"WordPress 6.8.3\" />\n<link rel=\"canonical\" href=\"https://rc-source.example/bolt/\" />\n<link rel='shortlink' href='https://rc-source.example/?p=1001' />\n<link rel=\"alternate\" title=\"oEmbed (JSON)\" type=\"application/json+oembed\" href=\"https://rc-source.example/wp-json/oembed/1.0/embed?url=https%3A%2F%2Frc-source.example%2Fbolt%2F\" />\n<link rel=\"alternate\" title=\"oEmbed (XML)\" type=\"text/xml+oembed\" href=\"https://rc-source.example/wp-json/oembed/1.0/embed?url=https%3A%2F%2Frc-source.example%2Fbolt%2F&#038;format=xml\" />\n<meta name=\"description\" content=\"Steel bolt baseline\">\n</head><body><main itemscope itemtype=\"https://schema.org/Product\"><h1 itemprop=\"name\">RC steel bolt</h1><article data-page-id=\"1001\"><p itemprop=\"description\">Steel bolt for workshop assembly.</p>\n</article></main></body></html>\n",
+          "version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c",
+          "encoding": "utf-8-with-replacement",
+          "citations": [
+            {
+              "id": "s1",
+              "url": "https://rc-source.example/bolt/",
+              "quote": "product",
+              "locator": "meta[property=og:type]",
+              "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+              "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+            },
+            {
+              "id": "s2",
+              "url": "https://rc-source.example/bolt/",
+              "quote": "RC steel bolt",
+              "locator": "h1[23]",
+              "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+              "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+            },
+            {
+              "id": "s3",
+              "url": "https://rc-source.example/bolt/",
+              "quote": "RC steel bolt",
+              "locator": "title",
+              "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+              "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+            },
+            {
+              "id": "s4",
+              "url": "https://rc-source.example/bolt/",
+              "quote": "Steel bolt baseline",
+              "locator": "meta[name=description]",
+              "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+              "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+            },
+            {
+              "id": "s5",
+              "url": "https://rc-source.example/bolt/",
+              "quote": "Steel bolt for workshop assembly.",
+              "locator": "p[25]",
+              "snapshot_id": "b4a74df2-1e76-48d0-a77c-71f8b647267d",
+              "source_version": "d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+            }
+          ],
+          "final_url": "https://rc-source.example/bolt/",
+          "fetched_at": "2026-10-05T04:39:04.765641+00:00",
+          "limitations": [
+            "Public static HTML only.",
+            "Source assertions, not independent factual verification.",
+            "No cookies, login, JavaScript execution or model calls."
+          ],
+          "original_url": "https://rc-source.example/bolt/",
+          "content_base64": "PCFkb2N0eXBlIGh0bWw+PGh0bWw+PGhlYWQ+PHRpdGxlPlJDIHN0ZWVsIGJvbHQ8L3RpdGxlPjxtZXRhIHByb3BlcnR5PSJvZzp0eXBlIiBjb250ZW50PSJwcm9kdWN0Ij48bWV0YSBuYW1lPSdyb2JvdHMnIGNvbnRlbnQ9J25vaW5kZXgsIG5vZm9sbG93JyAvPgoJPHN0eWxlPmltZzppcyhbc2l6ZXM9ImF1dG8iIGldLCBbc2l6ZXNePSJhdXRvLCIgaV0pIHsgY29udGFpbi1pbnRyaW5zaWMtc2l6ZTogMzAwMHB4IDE1MDBweCB9PC9zdHlsZT4KCTxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4KLyogPCFbQ0RBVEFbICovCndpbmRvdy5fd3BlbW9qaVNldHRpbmdzID0geyJiYXNlVXJsIjoiaHR0cHM6XC9cL3Mudy5vcmdcL2ltYWdlc1wvY29yZVwvZW1vamlcLzE2LjAuMVwvNzJ4NzJcLyIsImV4dCI6Ii5wbmciLCJzdmdVcmwiOiJodHRwczpcL1wvcy53Lm9yZ1wvaW1hZ2VzXC9jb3JlXC9lbW9qaVwvMTYuMC4xXC9zdmdcLyIsInN2Z0V4dCI6Ii5zdmciLCJzb3VyY2UiOnsiY29uY2F0ZW1vamkiOiJodHRwczpcL1wvcmMtc291cmNlLmV4YW1wbGVcL3dwLWluY2x1ZGVzXC9qc1wvd3AtZW1vamktcmVsZWFzZS5taW4uanM/dmVyPTYuOC4zIn19OwovKiEgVGhpcyBmaWxlIGlzIGF1dG8tZ2VuZXJhdGVkICovCiFmdW5jdGlvbihzLG4pe3ZhciBvLGksZTtmdW5jdGlvbiBjKGUpe3RyeXt2YXIgdD17c3VwcG9ydFRlc3RzOmUsdGltZXN0YW1wOihuZXcgRGF0ZSkudmFsdWVPZigpfTtzZXNzaW9uU3RvcmFnZS5zZXRJdGVtKG8sSlNPTi5zdHJpbmdpZnkodCkpfWNhdGNoKGUpe319ZnVuY3Rpb24gcChlLHQsbil7ZS5jbGVhclJlY3QoMCwwLGUuY2FudmFzLndpZHRoLGUuY2FudmFzLmhlaWdodCksZS5maWxsVGV4dCh0LDAsMCk7dmFyIHQ9bmV3IFVpbnQzMkFycmF5KGUuZ2V0SW1hZ2VEYXRhKDAsMCxlLmNhbnZhcy53aWR0aCxlLmNhbnZhcy5oZWlnaHQpLmRhdGEpLGE9KGUuY2xlYXJSZWN0KDAsMCxlLmNhbnZhcy53aWR0aCxlLmNhbnZhcy5oZWlnaHQpLGUuZmlsbFRleHQobiwwLDApLG5ldyBVaW50MzJBcnJheShlLmdldEltYWdlRGF0YSgwLDAsZS5jYW52YXMud2lkdGgsZS5jYW52YXMuaGVpZ2h0KS5kYXRhKSk7cmV0dXJuIHQuZXZlcnkoZnVuY3Rpb24oZSx0KXtyZXR1cm4gZT09PWFbdF19KX1mdW5jdGlvbiB1KGUsdCl7ZS5jbGVhclJlY3QoMCwwLGUuY2FudmFzLndpZHRoLGUuY2FudmFzLmhlaWdodCksZS5maWxsVGV4dCh0LDAsMCk7Zm9yKHZhciBuPWUuZ2V0SW1hZ2VEYXRhKDE2LDE2LDEsMSksYT0wO2E8bi5kYXRhLmxlbmd0aDthKyspaWYoMCE9PW4uZGF0YVthXSlyZXR1cm4hMTtyZXR1cm4hMH1mdW5jdGlvbiBmKGUsdCxuLGEpe3N3aXRjaCh0KXtjYXNlImZsYWciOnJldHVybiBuKGUsIlx1ZDgzY1x1ZGZmM1x1ZmUwZlx1MjAwZFx1MjZhN1x1ZmUwZiIsIlx1ZDgzY1x1ZGZmM1x1ZmUwZlx1MjAwYlx1MjZhN1x1ZmUwZiIpPyExOiFuKGUsIlx1ZDgzY1x1ZGRlOFx1ZDgzY1x1ZGRmNiIsIlx1ZDgzY1x1ZGRlOFx1MjAwYlx1ZDgzY1x1ZGRmNiIpJiYhbihlLCJcdWQ4M2NcdWRmZjRcdWRiNDBcdWRjNjdcdWRiNDBcdWRjNjJcdWRiNDBcdWRjNjVcdWRiNDBcdWRjNmVcdWRiNDBcdWRjNjdcdWRiNDBcdWRjN2YiLCJcdWQ4M2NcdWRmZjRcdTIwMGJcdWRiNDBcdWRjNjdcdTIwMGJcdWRiNDBcdWRjNjJcdTIwMGJcdWRiNDBcdWRjNjVcdTIwMGJcdWRiNDBcdWRjNmVcdTIwMGJcdWRiNDBcdWRjNjdcdTIwMGJcdWRiNDBcdWRjN2YiKTtjYXNlImVtb2ppIjpyZXR1cm4hYShlLCJcdWQ4M2VcdWRlZGYiKX1yZXR1cm4hMX1mdW5jdGlvbiBnKGUsdCxuLGEpe3ZhciByPSJ1bmRlZmluZWQiIT10eXBlb2YgV29ya2VyR2xvYmFsU2NvcGUmJnNlbGYgaW5zdGFuY2VvZiBXb3JrZXJHbG9iYWxTY29wZT9uZXcgT2Zmc2NyZWVuQ2FudmFzKDMwMCwxNTApOnMuY3JlYXRlRWxlbWVudCgiY2FudmFzIiksbz1yLmdldENvbnRleHQoIjJkIix7d2lsbFJlYWRGcmVxdWVudGx5OiEwfSksaT0oby50ZXh0QmFzZWxpbmU9InRvcCIsby5mb250PSI2MDAgMzJweCBBcmlhbCIse30pO3JldHVybiBlLmZvckVhY2goZnVuY3Rpb24oZSl7aVtlXT10KG8sZSxuLGEpfSksaX1mdW5jdGlvbiB0KGUpe3ZhciB0PXMuY3JlYXRlRWxlbWVudCgic2NyaXB0Iik7dC5zcmM9ZSx0LmRlZmVyPSEwLHMuaGVhZC5hcHBlbmRDaGlsZCh0KX0idW5kZWZpbmVkIiE9dHlwZW9mIFByb21pc2UmJihvPSJ3cEVtb2ppU2V0dGluZ3NTdXBwb3J0cyIsaT1bImZsYWciLCJlbW9qaSJdLG4uc3VwcG9ydHM9e2V2ZXJ5dGhpbmc6ITAsZXZlcnl0aGluZ0V4Y2VwdEZsYWc6ITB9LGU9bmV3IFByb21pc2UoZnVuY3Rpb24oZSl7cy5hZGRFdmVudExpc3RlbmVyKCJET01Db250ZW50TG9hZGVkIixlLHtvbmNlOiEwfSl9KSxuZXcgUHJvbWlzZShmdW5jdGlvbih0KXt2YXIgbj1mdW5jdGlvbigpe3RyeXt2YXIgZT1KU09OLnBhcnNlKHNlc3Npb25TdG9yYWdlLmdldEl0ZW0obykpO2lmKCJvYmplY3QiPT10eXBlb2YgZSYmIm51bWJlciI9PXR5cGVvZiBlLnRpbWVzdGFtcCYmKG5ldyBEYXRlKS52YWx1ZU9mKCk8ZS50aW1lc3RhbXArNjA0ODAwJiYib2JqZWN0Ij09dHlwZW9mIGUuc3VwcG9ydFRlc3RzKXJldHVybiBlLnN1cHBvcnRUZXN0c31jYXRjaChlKXt9cmV0dXJuIG51bGx9KCk7aWYoIW4pe2lmKCJ1bmRlZmluZWQiIT10eXBlb2YgV29ya2VyJiYidW5kZWZpbmVkIiE9dHlwZW9mIE9mZnNjcmVlbkNhbnZhcyYmInVuZGVmaW5lZCIhPXR5cGVvZiBVUkwmJlVSTC5jcmVhdGVPYmplY3RVUkwmJiJ1bmRlZmluZWQiIT10eXBlb2YgQmxvYil0cnl7dmFyIGU9InBvc3RNZXNzYWdlKCIrZy50b1N0cmluZygpKyIoIitbSlNPTi5zdHJpbmdpZnkoaSksZi50b1N0cmluZygpLHAudG9TdHJpbmcoKSx1LnRvU3RyaW5nKCldLmpvaW4oIiwiKSsiKSk7IixhPW5ldyBCbG9iKFtlXSx7dHlwZToidGV4dC9qYXZhc2NyaXB0In0pLHI9bmV3IFdvcmtlcihVUkwuY3JlYXRlT2JqZWN0VVJMKGEpLHtuYW1lOiJ3cFRlc3RFbW9qaVN1cHBvcnRzIn0pO3JldHVybiB2b2lkKHIub25tZXNzYWdlPWZ1bmN0aW9uKGUpe2Mobj1lLmRhdGEpLHIudGVybWluYXRlKCksdChuKX0pfWNhdGNoKGUpe31jKG49ZyhpLGYscCx1KSl9dChuKX0pLnRoZW4oZnVuY3Rpb24oZSl7Zm9yKHZhciB0IGluIGUpbi5zdXBwb3J0c1t0XT1lW3RdLG4uc3VwcG9ydHMuZXZlcnl0aGluZz1uLnN1cHBvcnRzLmV2ZXJ5dGhpbmcmJm4uc3VwcG9ydHNbdF0sImZsYWciIT09dCYmKG4uc3VwcG9ydHMuZXZlcnl0aGluZ0V4Y2VwdEZsYWc9bi5zdXBwb3J0cy5ldmVyeXRoaW5nRXhjZXB0RmxhZyYmbi5zdXBwb3J0c1t0XSk7bi5zdXBwb3J0cy5ldmVyeXRoaW5nRXhjZXB0RmxhZz1uLnN1cHBvcnRzLmV2ZXJ5dGhpbmdFeGNlcHRGbGFnJiYhbi5zdXBwb3J0cy5mbGFnLG4uRE9NUmVhZHk9ITEsbi5yZWFkeUNhbGxiYWNrPWZ1bmN0aW9uKCl7bi5ET01SZWFkeT0hMH19KS50aGVuKGZ1bmN0aW9uKCl7cmV0dXJuIGV9KS50aGVuKGZ1bmN0aW9uKCl7dmFyIGU7bi5zdXBwb3J0cy5ldmVyeXRoaW5nfHwobi5yZWFkeUNhbGxiYWNrKCksKGU9bi5zb3VyY2V8fHt9KS5jb25jYXRlbW9qaT90KGUuY29uY2F0ZW1vamkpOmUud3BlbW9qaSYmZS50d2Vtb2ppJiYodChlLnR3ZW1vamkpLHQoZS53cGVtb2ppKSkpfSkpfSgod2luZG93LGRvY3VtZW50KSx3aW5kb3cuX3dwZW1vamlTZXR0aW5ncyk7Ci8qIF1dPiAqLwo8L3NjcmlwdD4KPHN0eWxlIGlkPSd3cC1lbW9qaS1zdHlsZXMtaW5saW5lLWNzcycgdHlwZT0ndGV4dC9jc3MnPgoKCWltZy53cC1zbWlsZXksIGltZy5lbW9qaSB7CgkJZGlzcGxheTogaW5saW5lICFpbXBvcnRhbnQ7CgkJYm9yZGVyOiBub25lICFpbXBvcnRhbnQ7CgkJYm94LXNoYWRvdzogbm9uZSAhaW1wb3J0YW50OwoJCWhlaWdodDogMWVtICFpbXBvcnRhbnQ7CgkJd2lkdGg6IDFlbSAhaW1wb3J0YW50OwoJCW1hcmdpbjogMCAwLjA3ZW0gIWltcG9ydGFudDsKCQl2ZXJ0aWNhbC1hbGlnbjogLTAuMWVtICFpbXBvcnRhbnQ7CgkJYmFja2dyb3VuZDogbm9uZSAhaW1wb3J0YW50OwoJCXBhZGRpbmc6IDAgIWltcG9ydGFudDsKCX0KPC9zdHlsZT4KPGxpbmsgcmVsPSdzdHlsZXNoZWV0JyBpZD0nd3AtYmxvY2stbGlicmFyeS1jc3MnIGhyZWY9J2h0dHBzOi8vcmMtc291cmNlLmV4YW1wbGUvd3AtaW5jbHVkZXMvY3NzL2Rpc3QvYmxvY2stbGlicmFyeS9zdHlsZS5taW4uY3NzP3Zlcj02LjguMycgdHlwZT0ndGV4dC9jc3MnIG1lZGlhPSdhbGwnIC8+CjxzdHlsZSBpZD0nY2xhc3NpYy10aGVtZS1zdHlsZXMtaW5saW5lLWNzcycgdHlwZT0ndGV4dC9jc3MnPgovKiEgVGhpcyBmaWxlIGlzIGF1dG8tZ2VuZXJhdGVkICovCi53cC1ibG9jay1idXR0b25fX2xpbmt7Y29sb3I6I2ZmZjtiYWNrZ3JvdW5kLWNvbG9yOiMzMjM3M2M7Ym9yZGVyLXJhZGl1czo5OTk5cHg7Ym94LXNoYWRvdzpub25lO3RleHQtZGVjb3JhdGlvbjpub25lO3BhZGRpbmc6Y2FsYyguNjY3ZW0gKyAycHgpIGNhbGMoMS4zMzNlbSArIDJweCk7Zm9udC1zaXplOjEuMTI1ZW19LndwLWJsb2NrLWZpbGVfX2J1dHRvbntiYWNrZ3JvdW5kOiMzMjM3M2M7Y29sb3I6I2ZmZjt0ZXh0LWRlY29yYXRpb246bm9uZX0KPC9zdHlsZT4KPHN0eWxlIGlkPSdnbG9iYWwtc3R5bGVzLWlubGluZS1jc3MnIHR5cGU9J3RleHQvY3NzJz4KOnJvb3R7LS13cC0tcHJlc2V0LS1hc3BlY3QtcmF0aW8tLXNxdWFyZTogMTstLXdwLS1wcmVzZXQtLWFzcGVjdC1yYXRpby0tNC0zOiA0LzM7LS13cC0tcHJlc2V0LS1hc3BlY3QtcmF0aW8tLTMtNDogMy80Oy0td3AtLXByZXNldC0tYXNwZWN0LXJhdGlvLS0zLTI6IDMvMjstLXdwLS1wcmVzZXQtLWFzcGVjdC1yYXRpby0tMi0zOiAyLzM7LS13cC0tcHJlc2V0LS1hc3BlY3QtcmF0aW8tLTE2LTk6IDE2Lzk7LS13cC0tcHJlc2V0LS1hc3BlY3QtcmF0aW8tLTktMTY6IDkvMTY7LS13cC0tcHJlc2V0LS1jb2xvci0tYmxhY2s6ICMwMDAwMDA7LS13cC0tcHJlc2V0LS1jb2xvci0tY3lhbi1ibHVpc2gtZ3JheTogI2FiYjhjMzstLXdwLS1wcmVzZXQtLWNvbG9yLS13aGl0ZTogI2ZmZmZmZjstLXdwLS1wcmVzZXQtLWNvbG9yLS1wYWxlLXBpbms6ICNmNzhkYTc7LS13cC0tcHJlc2V0LS1jb2xvci0tdml2aWQtcmVkOiAjY2YyZTJlOy0td3AtLXByZXNldC0tY29sb3ItLWx1bWlub3VzLXZpdmlkLW9yYW5nZTogI2ZmNjkwMDstLXdwLS1wcmVzZXQtLWNvbG9yLS1sdW1pbm91cy12aXZpZC1hbWJlcjogI2ZjYjkwMDstLXdwLS1wcmVzZXQtLWNvbG9yLS1saWdodC1ncmVlbi1jeWFuOiAjN2JkY2I1Oy0td3AtLXByZXNldC0tY29sb3ItLXZpdmlkLWdyZWVuLWN5YW46ICMwMGQwODQ7LS13cC0tcHJlc2V0LS1jb2xvci0tcGFsZS1jeWFuLWJsdWU6ICM4ZWQxZmM7LS13cC0tcHJlc2V0LS1jb2xvci0tdml2aWQtY3lhbi1ibHVlOiAjMDY5M2UzOy0td3AtLXByZXNldC0tY29sb3ItLXZpdmlkLXB1cnBsZTogIzliNTFlMDstLXdwLS1wcmVzZXQtLWdyYWRpZW50LS12aXZpZC1jeWFuLWJsdWUtdG8tdml2aWQtcHVycGxlOiBsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLHJnYmEoNiwxNDcsMjI3LDEpIDAlLHJnYigxNTUsODEsMjI0KSAxMDAlKTstLXdwLS1wcmVzZXQtLWdyYWRpZW50LS1saWdodC1ncmVlbi1jeWFuLXRvLXZpdmlkLWdyZWVuLWN5YW46IGxpbmVhci1ncmFkaWVudCgxMzVkZWcscmdiKDEyMiwyMjAsMTgwKSAwJSxyZ2IoMCwyMDgsMTMwKSAxMDAlKTstLXdwLS1wcmVzZXQtLWdyYWRpZW50LS1sdW1pbm91cy12aXZpZC1hbWJlci10by1sdW1pbm91cy12aXZpZC1vcmFuZ2U6IGxpbmVhci1ncmFkaWVudCgxMzVkZWcscmdiYSgyNTIsMTg1LDAsMSkgMCUscmdiYSgyNTUsMTA1LDAsMSkgMTAwJSk7LS13cC0tcHJlc2V0LS1ncmFkaWVudC0tbHVtaW5vdXMtdml2aWQtb3JhbmdlLXRvLXZpdmlkLXJlZDogbGluZWFyLWdyYWRpZW50KDEzNWRlZyxyZ2JhKDI1NSwxMDUsMCwxKSAwJSxyZ2IoMjA3LDQ2LDQ2KSAxMDAlKTstLXdwLS1wcmVzZXQtLWdyYWRpZW50LS12ZXJ5LWxpZ2h0LWdyYXktdG8tY3lhbi1ibHVpc2gtZ3JheTogbGluZWFyLWdyYWRpZW50KDEzNWRlZyxyZ2IoMjM4LDIzOCwyMzgpIDAlLHJnYigxNjksMTg0LDE5NSkgMTAwJSk7LS13cC0tcHJlc2V0LS1ncmFkaWVudC0tY29vbC10by13YXJtLXNwZWN0cnVtOiBsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLHJnYig3NCwyMzQsMjIwKSAwJSxyZ2IoMTUxLDEyMCwyMDkpIDIwJSxyZ2IoMjA3LDQyLDE4NikgNDAlLHJnYigyMzgsNDQsMTMwKSA2MCUscmdiKDI1MSwxMDUsOTgpIDgwJSxyZ2IoMjU0LDI0OCw3NikgMTAwJSk7LS13cC0tcHJlc2V0LS1ncmFkaWVudC0tYmx1c2gtbGlnaHQtcHVycGxlOiBsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLHJnYigyNTUsMjA2LDIzNikgMCUscmdiKDE1MiwxNTAsMjQwKSAxMDAlKTstLXdwLS1wcmVzZXQtLWdyYWRpZW50LS1ibHVzaC1ib3JkZWF1eDogbGluZWFyLWdyYWRpZW50KDEzNWRlZyxyZ2IoMjU0LDIwNSwxNjUpIDAlLHJnYigyNTQsNDUsNDUpIDUwJSxyZ2IoMTA3LDAsNjIpIDEwMCUpOy0td3AtLXByZXNldC0tZ3JhZGllbnQtLWx1bWlub3VzLWR1c2s6IGxpbmVhci1ncmFkaWVudCgxMzVkZWcscmdiKDI1NSwyMDMsMTEyKSAwJSxyZ2IoMTk5LDgxLDE5MikgNTAlLHJnYig2NSw4OCwyMDgpIDEwMCUpOy0td3AtLXByZXNldC0tZ3JhZGllbnQtLXBhbGUtb2NlYW46IGxpbmVhci1ncmFkaWVudCgxMzVkZWcscmdiKDI1NSwyNDUsMjAzKSAwJSxyZ2IoMTgyLDIyNywyMTIpIDUwJSxyZ2IoNTEsMTY3LDE4MSkgMTAwJSk7LS13cC0tcHJlc2V0LS1ncmFkaWVudC0tZWxlY3RyaWMtZ3Jhc3M6IGxpbmVhci1ncmFkaWVudCgxMzVkZWcscmdiKDIwMiwyNDgsMTI4KSAwJSxyZ2IoMTEzLDIwNiwxMjYpIDEwMCUpOy0td3AtLXByZXNldC0tZ3JhZGllbnQtLW1pZG5pZ2h0OiBsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLHJnYigyLDMsMTI5KSAwJSxyZ2IoNDAsMTE2LDI1MikgMTAwJSk7LS13cC0tcHJlc2V0LS1mb250LXNpemUtLXNtYWxsOiAxM3B4Oy0td3AtLXByZXNldC0tZm9udC1zaXplLS1tZWRpdW06IDIwcHg7LS13cC0tcHJlc2V0LS1mb250LXNpemUtLWxhcmdlOiAzNnB4Oy0td3AtLXByZXNldC0tZm9udC1zaXplLS14LWxhcmdlOiA0MnB4Oy0td3AtLXByZXNldC0tc3BhY2luZy0tMjA6IDAuNDRyZW07LS13cC0tcHJlc2V0LS1zcGFjaW5nLS0zMDogMC42N3JlbTstLXdwLS1wcmVzZXQtLXNwYWNpbmctLTQwOiAxcmVtOy0td3AtLXByZXNldC0tc3BhY2luZy0tNTA6IDEuNXJlbTstLXdwLS1wcmVzZXQtLXNwYWNpbmctLTYwOiAyLjI1cmVtOy0td3AtLXByZXNldC0tc3BhY2luZy0tNzA6IDMuMzhyZW07LS13cC0tcHJlc2V0LS1zcGFjaW5nLS04MDogNS4wNnJlbTstLXdwLS1wcmVzZXQtLXNoYWRvdy0tbmF0dXJhbDogNnB4IDZweCA5cHggcmdiYSgwLCAwLCAwLCAwLjIpOy0td3AtLXByZXNldC0tc2hhZG93LS1kZWVwOiAxMnB4IDEycHggNTBweCByZ2JhKDAsIDAsIDAsIDAuNCk7LS13cC0tcHJlc2V0LS1zaGFkb3ctLXNoYXJwOiA2cHggNnB4IDBweCByZ2JhKDAsIDAsIDAsIDAuMik7LS13cC0tcHJlc2V0LS1zaGFkb3ctLW91dGxpbmVkOiA2cHggNnB4IDBweCAtM3B4IHJnYmEoMjU1LCAyNTUsIDI1NSwgMSksIDZweCA2cHggcmdiYSgwLCAwLCAwLCAxKTstLXdwLS1wcmVzZXQtLXNoYWRvdy0tY3Jpc3A6IDZweCA2cHggMHB4IHJnYmEoMCwgMCwgMCwgMSk7fTp3aGVyZSguaXMtbGF5b3V0LWZsZXgpe2dhcDogMC41ZW07fTp3aGVyZSguaXMtbGF5b3V0LWdyaWQpe2dhcDogMC41ZW07fWJvZHkgLmlzLWxheW91dC1mbGV4e2Rpc3BsYXk6IGZsZXg7fS5pcy1sYXlvdXQtZmxleHtmbGV4LXdyYXA6IHdyYXA7YWxpZ24taXRlbXM6IGNlbnRlcjt9LmlzLWxheW91dC1mbGV4ID4gOmlzKCosIGRpdil7bWFyZ2luOiAwO31ib2R5IC5pcy1sYXlvdXQtZ3JpZHtkaXNwbGF5OiBncmlkO30uaXMtbGF5b3V0LWdyaWQgPiA6aXMoKiwgZGl2KXttYXJnaW46IDA7fTp3aGVyZSgud3AtYmxvY2stY29sdW1ucy5pcy1sYXlvdXQtZmxleCl7Z2FwOiAyZW07fTp3aGVyZSgud3AtYmxvY2stY29sdW1ucy5pcy1sYXlvdXQtZ3JpZCl7Z2FwOiAyZW07fTp3aGVyZSgud3AtYmxvY2stcG9zdC10ZW1wbGF0ZS5pcy1sYXlvdXQtZmxleCl7Z2FwOiAxLjI1ZW07fTp3aGVyZSgud3AtYmxvY2stcG9zdC10ZW1wbGF0ZS5pcy1sYXlvdXQtZ3JpZCl7Z2FwOiAxLjI1ZW07fS5oYXMtYmxhY2stY29sb3J7Y29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS1ibGFjaykgIWltcG9ydGFudDt9Lmhhcy1jeWFuLWJsdWlzaC1ncmF5LWNvbG9ye2NvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tY3lhbi1ibHVpc2gtZ3JheSkgIWltcG9ydGFudDt9Lmhhcy13aGl0ZS1jb2xvcntjb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLXdoaXRlKSAhaW1wb3J0YW50O30uaGFzLXBhbGUtcGluay1jb2xvcntjb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLXBhbGUtcGluaykgIWltcG9ydGFudDt9Lmhhcy12aXZpZC1yZWQtY29sb3J7Y29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1yZWQpICFpbXBvcnRhbnQ7fS5oYXMtbHVtaW5vdXMtdml2aWQtb3JhbmdlLWNvbG9ye2NvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tbHVtaW5vdXMtdml2aWQtb3JhbmdlKSAhaW1wb3J0YW50O30uaGFzLWx1bWlub3VzLXZpdmlkLWFtYmVyLWNvbG9ye2NvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tbHVtaW5vdXMtdml2aWQtYW1iZXIpICFpbXBvcnRhbnQ7fS5oYXMtbGlnaHQtZ3JlZW4tY3lhbi1jb2xvcntjb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLWxpZ2h0LWdyZWVuLWN5YW4pICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtZ3JlZW4tY3lhbi1jb2xvcntjb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLXZpdmlkLWdyZWVuLWN5YW4pICFpbXBvcnRhbnQ7fS5oYXMtcGFsZS1jeWFuLWJsdWUtY29sb3J7Y29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS1wYWxlLWN5YW4tYmx1ZSkgIWltcG9ydGFudDt9Lmhhcy12aXZpZC1jeWFuLWJsdWUtY29sb3J7Y29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1jeWFuLWJsdWUpICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtcHVycGxlLWNvbG9ye2NvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tdml2aWQtcHVycGxlKSAhaW1wb3J0YW50O30uaGFzLWJsYWNrLWJhY2tncm91bmQtY29sb3J7YmFja2dyb3VuZC1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLWJsYWNrKSAhaW1wb3J0YW50O30uaGFzLWN5YW4tYmx1aXNoLWdyYXktYmFja2dyb3VuZC1jb2xvcntiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tY3lhbi1ibHVpc2gtZ3JheSkgIWltcG9ydGFudDt9Lmhhcy13aGl0ZS1iYWNrZ3JvdW5kLWNvbG9ye2JhY2tncm91bmQtY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS13aGl0ZSkgIWltcG9ydGFudDt9Lmhhcy1wYWxlLXBpbmstYmFja2dyb3VuZC1jb2xvcntiYWNrZ3JvdW5kLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tcGFsZS1waW5rKSAhaW1wb3J0YW50O30uaGFzLXZpdmlkLXJlZC1iYWNrZ3JvdW5kLWNvbG9ye2JhY2tncm91bmQtY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1yZWQpICFpbXBvcnRhbnQ7fS5oYXMtbHVtaW5vdXMtdml2aWQtb3JhbmdlLWJhY2tncm91bmQtY29sb3J7YmFja2dyb3VuZC1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLWx1bWlub3VzLXZpdmlkLW9yYW5nZSkgIWltcG9ydGFudDt9Lmhhcy1sdW1pbm91cy12aXZpZC1hbWJlci1iYWNrZ3JvdW5kLWNvbG9ye2JhY2tncm91bmQtY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS1sdW1pbm91cy12aXZpZC1hbWJlcikgIWltcG9ydGFudDt9Lmhhcy1saWdodC1ncmVlbi1jeWFuLWJhY2tncm91bmQtY29sb3J7YmFja2dyb3VuZC1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLWxpZ2h0LWdyZWVuLWN5YW4pICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtZ3JlZW4tY3lhbi1iYWNrZ3JvdW5kLWNvbG9ye2JhY2tncm91bmQtY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1ncmVlbi1jeWFuKSAhaW1wb3J0YW50O30uaGFzLXBhbGUtY3lhbi1ibHVlLWJhY2tncm91bmQtY29sb3J7YmFja2dyb3VuZC1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLXBhbGUtY3lhbi1ibHVlKSAhaW1wb3J0YW50O30uaGFzLXZpdmlkLWN5YW4tYmx1ZS1iYWNrZ3JvdW5kLWNvbG9ye2JhY2tncm91bmQtY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1jeWFuLWJsdWUpICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtcHVycGxlLWJhY2tncm91bmQtY29sb3J7YmFja2dyb3VuZC1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLXZpdmlkLXB1cnBsZSkgIWltcG9ydGFudDt9Lmhhcy1ibGFjay1ib3JkZXItY29sb3J7Ym9yZGVyLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tYmxhY2spICFpbXBvcnRhbnQ7fS5oYXMtY3lhbi1ibHVpc2gtZ3JheS1ib3JkZXItY29sb3J7Ym9yZGVyLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tY3lhbi1ibHVpc2gtZ3JheSkgIWltcG9ydGFudDt9Lmhhcy13aGl0ZS1ib3JkZXItY29sb3J7Ym9yZGVyLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0td2hpdGUpICFpbXBvcnRhbnQ7fS5oYXMtcGFsZS1waW5rLWJvcmRlci1jb2xvcntib3JkZXItY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS1wYWxlLXBpbmspICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtcmVkLWJvcmRlci1jb2xvcntib3JkZXItY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1yZWQpICFpbXBvcnRhbnQ7fS5oYXMtbHVtaW5vdXMtdml2aWQtb3JhbmdlLWJvcmRlci1jb2xvcntib3JkZXItY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS1sdW1pbm91cy12aXZpZC1vcmFuZ2UpICFpbXBvcnRhbnQ7fS5oYXMtbHVtaW5vdXMtdml2aWQtYW1iZXItYm9yZGVyLWNvbG9ye2JvcmRlci1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLWx1bWlub3VzLXZpdmlkLWFtYmVyKSAhaW1wb3J0YW50O30uaGFzLWxpZ2h0LWdyZWVuLWN5YW4tYm9yZGVyLWNvbG9ye2JvcmRlci1jb2xvcjogdmFyKC0td3AtLXByZXNldC0tY29sb3ItLWxpZ2h0LWdyZWVuLWN5YW4pICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtZ3JlZW4tY3lhbi1ib3JkZXItY29sb3J7Ym9yZGVyLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tdml2aWQtZ3JlZW4tY3lhbikgIWltcG9ydGFudDt9Lmhhcy1wYWxlLWN5YW4tYmx1ZS1ib3JkZXItY29sb3J7Ym9yZGVyLWNvbG9yOiB2YXIoLS13cC0tcHJlc2V0LS1jb2xvci0tcGFsZS1jeWFuLWJsdWUpICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtY3lhbi1ibHVlLWJvcmRlci1jb2xvcntib3JkZXItY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1jeWFuLWJsdWUpICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtcHVycGxlLWJvcmRlci1jb2xvcntib3JkZXItY29sb3I6IHZhcigtLXdwLS1wcmVzZXQtLWNvbG9yLS12aXZpZC1wdXJwbGUpICFpbXBvcnRhbnQ7fS5oYXMtdml2aWQtY3lhbi1ibHVlLXRvLXZpdmlkLXB1cnBsZS1ncmFkaWVudC1iYWNrZ3JvdW5ke2JhY2tncm91bmQ6IHZhcigtLXdwLS1wcmVzZXQtLWdyYWRpZW50LS12aXZpZC1jeWFuLWJsdWUtdG8tdml2aWQtcHVycGxlKSAhaW1wb3J0YW50O30uaGFzLWxpZ2h0LWdyZWVuLWN5YW4tdG8tdml2aWQtZ3JlZW4tY3lhbi1ncmFkaWVudC1iYWNrZ3JvdW5ke2JhY2tncm91bmQ6IHZhcigtLXdwLS1wcmVzZXQtLWdyYWRpZW50LS1saWdodC1ncmVlbi1jeWFuLXRvLXZpdmlkLWdyZWVuLWN5YW4pICFpbXBvcnRhbnQ7fS5oYXMtbHVtaW5vdXMtdml2aWQtYW1iZXItdG8tbHVtaW5vdXMtdml2aWQtb3JhbmdlLWdyYWRpZW50LWJhY2tncm91bmR7YmFja2dyb3VuZDogdmFyKC0td3AtLXByZXNldC0tZ3JhZGllbnQtLWx1bWlub3VzLXZpdmlkLWFtYmVyLXRvLWx1bWlub3VzLXZpdmlkLW9yYW5nZSkgIWltcG9ydGFudDt9Lmhhcy1sdW1pbm91cy12aXZpZC1vcmFuZ2UtdG8tdml2aWQtcmVkLWdyYWRpZW50LWJhY2tncm91bmR7YmFja2dyb3VuZDogdmFyKC0td3AtLXByZXNldC0tZ3JhZGllbnQtLWx1bWlub3VzLXZpdmlkLW9yYW5nZS10by12aXZpZC1yZWQpICFpbXBvcnRhbnQ7fS5oYXMtdmVyeS1saWdodC1ncmF5LXRvLWN5YW4tYmx1aXNoLWdyYXktZ3JhZGllbnQtYmFja2dyb3VuZHtiYWNrZ3JvdW5kOiB2YXIoLS13cC0tcHJlc2V0LS1ncmFkaWVudC0tdmVyeS1saWdodC1ncmF5LXRvLWN5YW4tYmx1aXNoLWdyYXkpICFpbXBvcnRhbnQ7fS5oYXMtY29vbC10by13YXJtLXNwZWN0cnVtLWdyYWRpZW50LWJhY2tncm91bmR7YmFja2dyb3VuZDogdmFyKC0td3AtLXByZXNldC0tZ3JhZGllbnQtLWNvb2wtdG8td2FybS1zcGVjdHJ1bSkgIWltcG9ydGFudDt9Lmhhcy1ibHVzaC1saWdodC1wdXJwbGUtZ3JhZGllbnQtYmFja2dyb3VuZHtiYWNrZ3JvdW5kOiB2YXIoLS13cC0tcHJlc2V0LS1ncmFkaWVudC0tYmx1c2gtbGlnaHQtcHVycGxlKSAhaW1wb3J0YW50O30uaGFzLWJsdXNoLWJvcmRlYXV4LWdyYWRpZW50LWJhY2tncm91bmR7YmFja2dyb3VuZDogdmFyKC0td3AtLXByZXNldC0tZ3JhZGllbnQtLWJsdXNoLWJvcmRlYXV4KSAhaW1wb3J0YW50O30uaGFzLWx1bWlub3VzLWR1c2stZ3JhZGllbnQtYmFja2dyb3VuZHtiYWNrZ3JvdW5kOiB2YXIoLS13cC0tcHJlc2V0LS1ncmFkaWVudC0tbHVtaW5vdXMtZHVzaykgIWltcG9ydGFudDt9Lmhhcy1wYWxlLW9jZWFuLWdyYWRpZW50LWJhY2tncm91bmR7YmFja2dyb3VuZDogdmFyKC0td3AtLXByZXNldC0tZ3JhZGllbnQtLXBhbGUtb2NlYW4pICFpbXBvcnRhbnQ7fS5oYXMtZWxlY3RyaWMtZ3Jhc3MtZ3JhZGllbnQtYmFja2dyb3VuZHtiYWNrZ3JvdW5kOiB2YXIoLS13cC0tcHJlc2V0LS1ncmFkaWVudC0tZWxlY3RyaWMtZ3Jhc3MpICFpbXBvcnRhbnQ7fS5oYXMtbWlkbmlnaHQtZ3JhZGllbnQtYmFja2dyb3VuZHtiYWNrZ3JvdW5kOiB2YXIoLS13cC0tcHJlc2V0LS1ncmFkaWVudC0tbWlkbmlnaHQpICFpbXBvcnRhbnQ7fS5oYXMtc21hbGwtZm9udC1zaXple2ZvbnQtc2l6ZTogdmFyKC0td3AtLXByZXNldC0tZm9udC1zaXplLS1zbWFsbCkgIWltcG9ydGFudDt9Lmhhcy1tZWRpdW0tZm9udC1zaXple2ZvbnQtc2l6ZTogdmFyKC0td3AtLXByZXNldC0tZm9udC1zaXplLS1tZWRpdW0pICFpbXBvcnRhbnQ7fS5oYXMtbGFyZ2UtZm9udC1zaXple2ZvbnQtc2l6ZTogdmFyKC0td3AtLXByZXNldC0tZm9udC1zaXplLS1sYXJnZSkgIWltcG9ydGFudDt9Lmhhcy14LWxhcmdlLWZvbnQtc2l6ZXtmb250LXNpemU6IHZhcigtLXdwLS1wcmVzZXQtLWZvbnQtc2l6ZS0teC1sYXJnZSkgIWltcG9ydGFudDt9Cjp3aGVyZSgud3AtYmxvY2stcG9zdC10ZW1wbGF0ZS5pcy1sYXlvdXQtZmxleCl7Z2FwOiAxLjI1ZW07fTp3aGVyZSgud3AtYmxvY2stcG9zdC10ZW1wbGF0ZS5pcy1sYXlvdXQtZ3JpZCl7Z2FwOiAxLjI1ZW07fQo6d2hlcmUoLndwLWJsb2NrLWNvbHVtbnMuaXMtbGF5b3V0LWZsZXgpe2dhcDogMmVtO306d2hlcmUoLndwLWJsb2NrLWNvbHVtbnMuaXMtbGF5b3V0LWdyaWQpe2dhcDogMmVtO30KOnJvb3QgOndoZXJlKC53cC1ibG9jay1wdWxscXVvdGUpe2ZvbnQtc2l6ZTogMS41ZW07bGluZS1oZWlnaHQ6IDEuNjt9Cjwvc3R5bGU+CjxsaW5rIHJlbD0iaHR0cHM6Ly9hcGkudy5vcmcvIiBocmVmPSJodHRwczovL3JjLXNvdXJjZS5leGFtcGxlL3dwLWpzb24vIiAvPjxsaW5rIHJlbD0iYWx0ZXJuYXRlIiB0aXRsZT0iSlNPTiIgdHlwZT0iYXBwbGljYXRpb24vanNvbiIgaHJlZj0iaHR0cHM6Ly9yYy1zb3VyY2UuZXhhbXBsZS93cC1qc29uL3dwL3YyL3BhZ2VzLzEwMDEiIC8+PGxpbmsgcmVsPSJFZGl0VVJJIiB0eXBlPSJhcHBsaWNhdGlvbi9yc2QreG1sIiB0aXRsZT0iUlNEIiBocmVmPSJodHRwczovL3JjLXNvdXJjZS5leGFtcGxlL3htbHJwYy5waHA/cnNkIiAvPgo8bWV0YSBuYW1lPSJnZW5lcmF0b3IiIGNvbnRlbnQ9IldvcmRQcmVzcyA2LjguMyIgLz4KPGxpbmsgcmVsPSJjYW5vbmljYWwiIGhyZWY9Imh0dHBzOi8vcmMtc291cmNlLmV4YW1wbGUvYm9sdC8iIC8+CjxsaW5rIHJlbD0nc2hvcnRsaW5rJyBocmVmPSdodHRwczovL3JjLXNvdXJjZS5leGFtcGxlLz9wPTEwMDEnIC8+CjxsaW5rIHJlbD0iYWx0ZXJuYXRlIiB0aXRsZT0ib0VtYmVkIChKU09OKSIgdHlwZT0iYXBwbGljYXRpb24vanNvbitvZW1iZWQiIGhyZWY9Imh0dHBzOi8vcmMtc291cmNlLmV4YW1wbGUvd3AtanNvbi9vZW1iZWQvMS4wL2VtYmVkP3VybD1odHRwcyUzQSUyRiUyRnJjLXNvdXJjZS5leGFtcGxlJTJGYm9sdCUyRiIgLz4KPGxpbmsgcmVsPSJhbHRlcm5hdGUiIHRpdGxlPSJvRW1iZWQgKFhNTCkiIHR5cGU9InRleHQveG1sK29lbWJlZCIgaHJlZj0iaHR0cHM6Ly9yYy1zb3VyY2UuZXhhbXBsZS93cC1qc29uL29lbWJlZC8xLjAvZW1iZWQ/dXJsPWh0dHBzJTNBJTJGJTJGcmMtc291cmNlLmV4YW1wbGUlMkZib2x0JTJGJiMwMzg7Zm9ybWF0PXhtbCIgLz4KPG1ldGEgbmFtZT0iZGVzY3JpcHRpb24iIGNvbnRlbnQ9IlN0ZWVsIGJvbHQgYmFzZWxpbmUiPgo8L2hlYWQ+PGJvZHk+PG1haW4gaXRlbXNjb3BlIGl0ZW10eXBlPSJodHRwczovL3NjaGVtYS5vcmcvUHJvZHVjdCI+PGgxIGl0ZW1wcm9wPSJuYW1lIj5SQyBzdGVlbCBib2x0PC9oMT48YXJ0aWNsZSBkYXRhLXBhZ2UtaWQ9IjEwMDEiPjxwIGl0ZW1wcm9wPSJkZXNjcmlwdGlvbiI+U3RlZWwgYm9sdCBmb3Igd29ya3Nob3AgYXNzZW1ibHkuPC9wPgo8L2FydGljbGU+PC9tYWluPjwvYm9keT48L2h0bWw+Cg==",
+          "schema_version": 1,
+          "content_fingerprint": "sha256:d31c8b298f60da9b608082659ad72498029ff4319f716c29c0fc8e779841cb3c"
+        },
+        "page_type": "product",
+        "extraction": {
+          "method": "explicit_product_microdata",
+          "limitations": [
+            "Source assertions only; no independent verification.",
+            "WooCommerce support requires one main#main product-N container, direct summary/title/short-description, and consistent optional description tab; arbitrary layouts and lists are not supported."
+          ]
+        },
+        "inferences": [
+          {
+            "kind": "inference",
+            "basis": "Product Open Graph type and one visible main heading",
+            "value": "Supported single product page",
+            "citations": [
+              "s2",
+              "s1"
+            ]
+          }
+        ]
+      },
+      "first_result_request_id": "dcb9eb3f-5521-495f-8d64-257c30f9b6af",
+      "first_result_request_digest": "pg-jsonb-sha256:8b1c0620b601f9a75454cf72cf17764db092e8984dc2161a8bbc9e42a83d9632",
+      "first_result_expected_version": 0
+    }
+  ]
+}
