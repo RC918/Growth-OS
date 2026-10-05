@@ -1,7 +1,7 @@
 import {preview} from './search-baseline.mjs';
 
 // Applicability of caller-described, page-filtered daily rows; never publication authority.
-export function checkPageCsv(text,meta,candidate,{localWordpress=false}={}){
+export function checkPageCsv(text,meta,candidate,{localWordpress=false,allowEmpty=false}={}){
  const keys=['page_url','scope','source','filter','type','start','end','exported'];
  if(!meta||Object.keys(meta).length!==keys.length||keys.some(k=>typeof meta[k]!=='string'))throw Error('資料說明欄位不完整或含不支援欄位。');
  if(!['synthetic','provider_asserted'].includes(meta.source))throw Error('來源只能是合成範例或提供者聲明，不能自行標為已核實。');
@@ -12,7 +12,7 @@ export function checkPageCsv(text,meta,candidate,{localWordpress=false}={}){
  // Reuse daily arithmetic/validation only. Do not promote website snapshot format.
  // Exact href matching below retains the port; only reused daily arithmetic sees a port-free origin.
  const arithmeticOrigin=new URL(declared.origin);if(localWordpress&&arithmeticOrigin.hostname==='127.0.0.1')arithmeticOrigin.port='';
- const daily=preview(text,{origin:arithmeticOrigin.origin,type:meta.type,start:meta.start,end:meta.end,exported:meta.exported});
+ const daily=preview(text,{origin:arithmeticOrigin.origin,type:meta.type,start:meta.start,end:meta.end,exported:meta.exported},{allowEmpty});
  const matches=declared.href===target.href,applicable=meta.scope==='page'&&matches;
  return {page_url:declared.href,candidate_url:target.href,scope:meta.scope,source:meta.source,filter:meta.filter.trim(),matches,applicable,
   reason:meta.scope==='site'?'網站彙總不可作為此頁基線。':!matches?'頁面不吻合；同網域或不同參數的頁面不可作為此頁基線。':'聲明的頁面 URL 與候選頁吻合；僅可檢視頁面觀測，不代表資料或篩選已核實。',

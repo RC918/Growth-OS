@@ -137,7 +137,7 @@ function typedVersion(version, current, history = null, editable = false, latest
       const review=api.urlReviewAvailable(version)?urlResultReview({api,version:row,isCurrent:visible,latest}):null;
       if(review)body.append(review.root);
       const pageData=pageObservation({api,version:row,isCurrent:visible,latest});body.append(pageData.root);
-      const measurement=measurementPreparation({api,version:row,isCurrent:visible,latest,profile:publicationConfig.wordpressPublicationProfile});body.append(measurement.root);
+      const measurement=measurementPreparation({api,version:row,isCurrent:visible,latest,profile:publicationConfig.wordpressPublicationProfile,gscEnabled:publicationConfig.gscMeasurementEnabled===true});body.append(measurement.root);
       const delivery=savedResultDelivery({api,version:row,isCurrent:visible,latest});body.append(delivery.root);
       const publish=api.wordpressPublicationAvailable()?wordpressPublication({api,version:row,isCurrent:visible,latest,profile:publicationConfig.wordpressPublicationProfile}):urlPublishPreview({api,version:row,isCurrent:visible,latest});body.append(publish.root);
       if(editable&&(urlSaveTrial?.kind!=='revision'||api.revisionTrialAvailable(version)))body.append(savedResultReview({api,version,isCurrent:visible,onEditingChange:value=>{review?.setEditing(value);publish.setEditing(value);delivery.setEditing(value);measurement.setEditing(value);pageData.setEditing(value);},enabled:urlSaveEnabled&&urlResultSchemaEnabled&&(!urlSaveTrial||api.revisionTrialAvailable(version))}));
