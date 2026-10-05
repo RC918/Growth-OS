@@ -1,0 +1,398 @@
+{
+  "run": "growth-wp-eef5f8ed-3363-46f8-85fc-e9cfaabcd34e",
+  "images": {
+    "wordpress": "wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4",
+    "database": "mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6"
+  },
+  "wordpress": "6.8.3",
+  "resource_scope": "run containers/tmpfs/local TLS only",
+  "cases": [
+    {
+      "name": "query excerpt",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query slug",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query status",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query author",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query parent",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query menu_order",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query template",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query featured_media",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query comment_status",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query ping_status",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query date",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query id",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query title",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query content",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query meta[growth_meta_description]",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "query meta[extra]",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "native injected default",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "native injected url",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "native injected form",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "native injected file",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "extra JSON field",
+      "status": 403,
+      "code": "fields",
+      "attempts": 0
+    },
+    {
+      "name": "JSON nested extra meta",
+      "status": 403,
+      "code": "fields",
+      "attempts": 0
+    },
+    {
+      "name": "form-urlencoded",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "multipart",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "text/plain JSON",
+      "status": 415,
+      "code": "content_type",
+      "attempts": 0
+    },
+    {
+      "name": "vendor JSON",
+      "status": 415,
+      "code": "content_type",
+      "attempts": 0
+    },
+    {
+      "name": "malformed JSON",
+      "status": 403,
+      "code": "fields",
+      "attempts": 0
+    },
+    {
+      "name": "query context array",
+      "status": 403,
+      "code": "parameter_sources",
+      "attempts": 0
+    },
+    {
+      "name": "control target",
+      "status": 403,
+      "code": "scope",
+      "attempts": 0
+    }
+  ],
+  "negative_attempts": 0,
+  "successful_posts": 2,
+  "normal_publish_restore": true,
+  "before": {
+    "posts": [
+      {
+        "ID": "1001",
+        "post_author": "2",
+        "post_date": "2026-01-01 00:00:00",
+        "post_date_gmt": "2026-01-01 00:00:00",
+        "post_content": "<p>Baseline steel bolt.</p>",
+        "post_title": "Synthetic bolt baseline",
+        "post_excerpt": "Keep this excerpt",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "growth-os",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-01-01 00:00:00",
+        "post_modified_gmt": "2026-01-01 00:00:00",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:37651/?page_id=1001",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      },
+      {
+        "ID": "1002",
+        "post_author": "1",
+        "post_date": "2026-10-05 08:02:14",
+        "post_date_gmt": "2026-10-05 08:02:14",
+        "post_content": "<p>Never change.</p>",
+        "post_title": "Unchanged control",
+        "post_excerpt": "",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "control",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-10-05 08:02:14",
+        "post_modified_gmt": "2026-10-05 08:02:14",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:37651/?page_id=1002",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      }
+    ],
+    "meta": [
+      {
+        "meta_id": "3",
+        "post_id": "1001",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Baseline description"
+      },
+      {
+        "meta_id": "4",
+        "post_id": "1002",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Control description"
+      }
+    ]
+  },
+  "after": {
+    "posts": [
+      {
+        "ID": "1001",
+        "post_author": "2",
+        "post_date": "2026-01-01 00:00:00",
+        "post_date_gmt": "2026-01-01 00:00:00",
+        "post_content": "<p>Baseline steel bolt.</p>",
+        "post_title": "Synthetic bolt baseline",
+        "post_excerpt": "Keep this excerpt",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "growth-os",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-10-05 08:02:47",
+        "post_modified_gmt": "2026-10-05 08:02:47",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:37651/?page_id=1001",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      },
+      {
+        "ID": "1002",
+        "post_author": "1",
+        "post_date": "2026-10-05 08:02:14",
+        "post_date_gmt": "2026-10-05 08:02:14",
+        "post_content": "<p>Never change.</p>",
+        "post_title": "Unchanged control",
+        "post_excerpt": "",
+        "post_status": "publish",
+        "comment_status": "closed",
+        "ping_status": "closed",
+        "post_password": "",
+        "post_name": "control",
+        "to_ping": "",
+        "pinged": "",
+        "post_modified": "2026-10-05 08:02:14",
+        "post_modified_gmt": "2026-10-05 08:02:14",
+        "post_content_filtered": "",
+        "post_parent": "0",
+        "guid": "https://127.0.0.1:37651/?page_id=1002",
+        "menu_order": "0",
+        "post_type": "page",
+        "post_mime_type": "",
+        "comment_count": "0"
+      }
+    ],
+    "meta": [
+      {
+        "meta_id": "3",
+        "post_id": "1001",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Baseline description"
+      },
+      {
+        "meta_id": "4",
+        "post_id": "1002",
+        "meta_key": "growth_meta_description",
+        "meta_value": "Control description"
+      }
+    ]
+  },
+  "control_before": {
+    "page": {
+      "ID": 1002,
+      "post_author": "1",
+      "post_date": "2026-10-05 08:02:14",
+      "post_date_gmt": "2026-10-05 08:02:14",
+      "post_content": "<p>Never change.</p>",
+      "post_title": "Unchanged control",
+      "post_excerpt": "",
+      "post_status": "publish",
+      "comment_status": "closed",
+      "ping_status": "closed",
+      "post_name": "control",
+      "to_ping": "",
+      "pinged": "",
+      "post_modified": "2026-10-05 08:02:14",
+      "post_modified_gmt": "2026-10-05 08:02:14",
+      "post_content_filtered": "",
+      "post_parent": 0,
+      "guid": "https://127.0.0.1:37651/?page_id=1002",
+      "menu_order": 0,
+      "post_type": "page",
+      "post_mime_type": "",
+      "comment_count": "0",
+      "filter": "raw",
+      "ancestors": [],
+      "page_template": "",
+      "post_category": [],
+      "tags_input": [],
+      "protected": false
+    },
+    "meta": {
+      "growth_meta_description": [
+        "Control description"
+      ]
+    }
+  },
+  "control_after": {
+    "page": {
+      "ID": 1002,
+      "post_author": "1",
+      "post_date": "2026-10-05 08:02:14",
+      "post_date_gmt": "2026-10-05 08:02:14",
+      "post_content": "<p>Never change.</p>",
+      "post_title": "Unchanged control",
+      "post_excerpt": "",
+      "post_status": "publish",
+      "comment_status": "closed",
+      "ping_status": "closed",
+      "post_name": "control",
+      "to_ping": "",
+      "pinged": "",
+      "post_modified": "2026-10-05 08:02:14",
+      "post_modified_gmt": "2026-10-05 08:02:14",
+      "post_content_filtered": "",
+      "post_parent": 0,
+      "guid": "https://127.0.0.1:37651/?page_id=1002",
+      "menu_order": 0,
+      "post_type": "page",
+      "post_mime_type": "",
+      "comment_count": "0",
+      "filter": "raw",
+      "ancestors": [],
+      "page_template": "",
+      "post_category": [],
+      "tags_input": [],
+      "protected": false
+    },
+    "meta": {
+      "growth_meta_description": [
+        "Control description"
+      ]
+    }
+  }
+}

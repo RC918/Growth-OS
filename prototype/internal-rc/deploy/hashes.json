@@ -90,7 +90,7 @@
   "prototype/wordpress-publish/service-worker.mjs": "8b333e955f2afb3b9bd7c8d8498b039d8f87aa2a24d641a47737f748e405fad1",
   "prototype/wordpress-publish/service.mjs": "41b6b56a88d7e2fcfe1e82c0b46e40fb8d39509562fcc06d1db4a8be9a82b264",
   "prototype/wordpress-publish/site-plugin.php": "336efd906cf12ca76383a4f0246097bbf6e232074b9f764c32b9f7e58cfe9bec",
-  "prototype/wordpress-publish/site.mjs": "03430fc1e461895d3918257d5e8a509c56a65614a6251fae0435abe75e0adc46",
+  "prototype/wordpress-publish/site.mjs": "c905d4de44404f86a9d7c0477b0f9747cf78df6c91ff8949045eb781725582e3",
   "prototype/wordpress-publish/verification.mjs": "09f4d89444b757a15b09e144b641f8f4f7dcca935988433da4c169e90c5cb26e",
   "supabase/drafts/first_result_save/disable_writes.sql": "cf739b442d6437d71d4f7f5cefb0efc93f2d5593f9507785fe3a0040e31568c6",
   "supabase/drafts/first_result_save/fixtures.mjs": "65a487f9fcfa643d6370857999b4d33aa0568f765032ed8c002a31929dc717b4",

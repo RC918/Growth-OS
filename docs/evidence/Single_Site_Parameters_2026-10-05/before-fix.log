@@ -1,0 +1,4 @@
+PASS official local WordPress 6.8.3 / MariaDB mariadb from 11.4.8-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using  EditLine wrapper; loopback only; client-local TLS trust
+REPRODUCED: legal JSON + query excerpt changed real WP target; attempt 0→1, HTTP200
+
+PASS WordPress cleanup: exact run containers removed; tmpfs DB/site/credentials and local TLS key removed; no prune

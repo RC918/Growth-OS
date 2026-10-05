@@ -1,0 +1,27 @@
+✔ RC config/transport denies hosted fallback, nonloopback, expired grant and missing durable data (2.579566ms)
+✔ actual HTTP boundary + browser runtime route mapping; no admin/unknown RPC/foreign Origin/foreign page access (81.955326ms)
+✔ new isolated schema candidate retains native roles/RLS and exact Save/Review contracts; never inserts Auth users (4281.207154ms)
+✔ deployment candidate uses fixed own bind storage, pinned images and loopback ports; not started (3.338325ms)
+✔ frozen RC candidate bytes match the reviewable deployment manifest (27.27806ms)
+✔ native integration is explicit test-only and shares the candidate configuration without secret interpolation into argv (85.533794ms)
+✔ closed candidate and exact server binding fail before filesystem or network (1.963571ms)
+✔ second process cannot open writer; clean new process retains exact Unicode records without grant (132.610762ms)
+✔ exact backup reopens readonly; does not restore credentials or overwrite writable history (11.95718ms)
+✔ crash lock, corruption, partial commit and bound drift never silently repair or reopen writable (47.945836ms)
+✔ server gates exact Review, target, tenant/version binding and explicit page confirmation before writes (62.636136ms)
+✔ unknown submission is consumed; repeated publish and new preview cannot cause a second write; only GET reconciliation (18.067062ms)
+✔ changed baseline blocks publish; unknown divergent content never allows restore/new write (22.036195ms)
+✔ text to WordPress content escapes markup and retains Unicode/newlines (0.299025ms)
+✔ empty raw derived excerpt and explicit excerpt publish/restore preserve raw/protected with readback evidence (221.171318ms)
+✔ raw/protected/explicit rendering or any preserved-field drift cannot confirm, restore or create another intent (1030.800371ms)
+✔ missing/malformed baseline fails before POST; automatic excerpt never bypasses target fields or HTML (103.88345ms)
+✔ publication UI clears confirmation on edit and ignores a response from a replaced session (36.411567ms)
+✔ restore cannot succeed if API matches but HTML does not (184.870395ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5079.895248

@@ -418,3 +418,7 @@ UIUX Pro Max固定來源477bcb28、MIT、74來源檔完整SHA及安全審查，P
 [26契約及1280/390完整synthetic/實際短命WordPress驗證](docs/Single_Site_Pilot_驗證_2026-10-05.md)與[三頁核稿包](docs/pilot-content/README.md)：URL→edit→Save→全新session/exactpayload/Review→發布lost reply→原operationGET→restorelostreply→write到期只讀核對，歷史v1/備份、tenant零增量及WP控制頁/額外欄位/第三attempt拒絕。每viewport2成功WP POST；全owned container/TLS已清理。無hosted/site/account/grant/GSC/費用或公開內容。
 
 GSC America/Los_Angeles/DST/coverage真資料契約為父允許拆出的後續增量，本PR未實作；crash保留writer lock需離線核對，不宣稱託管災復。此次歷史checkout誤讀已按最新Owner/派工與PR20 authoritative head有界核清，未動PR19 worktree；不另開maintenance。CoreMilestoneProgress=單站候選持久历史/只讀復原及真內容草稿，maintenance=0；提交CI/Preview後交既有Reviewer，不自驗APPROVE。
+
+## 2026-10-05 PR21 必要P2：WordPress參數來源限制
+
+Reviewer指出JSON三欄以外仍可由query更新excerpt；固定8ba1444於新短命原生WP重現HTTP200、attempt0→1、excerpt改動後清理。候選gate改於native route/defaults/sanitize後、controller前，逐來源白名單＋merged exact JSON核對，再扣attempt。29負測均在attempt0被拒、完整target/control page/meta不變，正常JSON publish/restore仍200；1280/390完整fresh session/Review/unknown GET-only/restore/歷史/tenant回歸及19契約PASS。原證據hash與三頁草稿不改，新[重現及修正證據](docs/evidence/Single_Site_Parameters_2026-10-05/SHA256.json)另存，同PR新HEAD CI/Preview後交原Reviewer。CoreMilestoneProgress為必要安全缺口解除，maintenance=0；無hosted或跨run grant，GSC下一Core未啟動。

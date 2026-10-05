@@ -41,3 +41,21 @@ P3／P4：無本次額外擴修；沿用 PR20 upstream whitespace debt。crash�
 ## 提交後必要修正
 
 首次 PR CI run `37278172385`／job `111659805159` 在 Workspace API contract 明確失敗：apps/web 的候選 UI 已改，但 prototype/owner-workspace 對應檔未同步。分類為本交付必要P2；同步 measurement-preparation、wordpress-publication、workspace.mjs／css 的相同bytes，未放寬逐檔一致性assertion。修正後 workspace-api 本機契約14/14通過；部署路徑程式未再次變動，前述1280/390完整候選與legacy WordPress回歸仍有效，完整CI改核新HEAD，不將舊失敗記成成功。
+
+## Reviewer 必要P2：WordPress 混合參數來源（同 PR 修正）
+
+Reviewer01a10b08 對固定 `8ba14448f71e8e2ecea047d29b34355ac5e3818f` 判 BLOCKED：原 plugin 只核 JSON 三欄，未限制 query。先在新短命 pinned WP6.8.3／MariaDB11.4.8 動態重現：attempt=0、合法 JSON 三欄保持原文，加 `excerpt=changed` query，HTTP200 且 excerpt.raw 變為 changed，attempt=1；隨即清理該專用 fixture，沒有真站或跨run grant。
+
+根因：WordPress controller 透過 merged request 取值；JSON 沒有的欄位仍可能從 POST／GET／URL／defaults 取得。[官方參數順序](https://developer.wordpress.org/reference/classes/wp_rest_request/get_parameter_order/)及[controller prepare_item_for_database](https://developer.wordpress.org/reference/classes/wp_rest_posts_controller/prepare_item_for_database/)與 pinned runtime 的 get_parameter_order 原始碼一致。原 rest_pre_dispatch 檢查亦早於 route defaults 完備，不能只在該階段補 query 白名單就宣稱覆蓋全部來源。
+
+最小修正：將候選 dedicated user 的 gate 移至 `rest_request_before_callbacks`，在 route/defaults／validation／sanitize 後、controller 前，逐來源檢查。query 只容許精確 rest_route 與 context=edit；URL只容許固定 id；defaults只容許非寫入的 context；form／files拒絕。POST只接受 application/json（含charset可），JSON必須精確title/content/meta三欄，meta只含字串growth_meta_description；核 merged keys與三欄有效值完全等於 JSON，再核 revision及扣attempt。GET僅必要route/read參數且不得夾body。保留controller／既有權限檢查，沒有清掉惡意參數後默許寫入。
+
+新證據：[獨立目錄及SHA索引](evidence/Single_Site_Parameters_2026-10-05/SHA256.json)。原七份交付證據／其hash保持不變，新結果不覆寫舊驗收。驗證迴圈由受影響的WP參數入口重新跑：
+
+- native參數測試29案：合法JSON＋query欄位（含excerpt、slug、status、author、parent、menu_order、template、featured_media、comment/ping_status、date、id及三欄重複來源）、額外JSON／meta、form-urlencoded、multipart、text/plain、vendor+json、malformedJSON、context陣列、control頁；每案HTTP400/403/415，錯誤code不是attempts，前後attempt一直0，target/control完整page/meta逐項deepEqual。
+- default／URL／form／file分源同時存在情境，由額外test-only MU plugin在實際authenticated HTTP request注入，再交native dispatch處理；此probe僅`parameterFixture=true`短命runner載入，不在候選部署plugin中。真wire form/content-type案例另列，不將注入試例冒稱外部wire來源。
+- 全部拒絕後，application/json;charset=UTF-8 的正常publish及標準JSONrestore仍HTTP200，attempt0→1→2，原摘要及所有其他頁／meta保持；全restore快照僅容許modified時間差。
+- 19個publisher/store/manifest契約PASS；完整1280／390 URL→Save→fresh session／exactpayload／Review→publish lost reply→原operation GET-only→restore lost reply→write到期readback、readonly backup、historical v1、tenant拒絕零增量均PASS。UI未改，既有畫面證據仍適用。原生Auth／SQL程式未改，由完整新HEAD CI繼續回歸，不外推hosted／OTP驗收。
+- 未批准的114-file build-only RC manifest按fixture變更重新產生，window仍null；不改歷史frozen SQL、RC artifacts、closed flags或三頁草稿。新增CI native參數step與3天artifact保存，待新HEAD terminal／Preview後交同Reviewer。
+
+Core範圍只解除本必要P2，不另開GSC日期、託管或P3修復。

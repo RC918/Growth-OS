@@ -126,6 +126,16 @@ jobs:
       - name: Unattended synthetic session, SQL and controlled WordPress publication
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --wordpress
+      - name: Single-site WordPress parameter-source restrictions (attempts unconsumed)
+        timeout-minutes: 3
+        run: node prototype/wordpress-pilot/parameter-regression.mjs --mode growth-os-isolated-regression
+      - name: Preserve parameter-source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-site-parameter-evidence
+          path: /tmp/growth-wp-*-parameter-proof.json
+          retention-days: 3
       - name: Closed single-site pilot storage contracts
         run: node --test prototype/wordpress-pilot/store.test.mjs
       - name: Single-site pilot fresh session, expiry and readonly recovery
