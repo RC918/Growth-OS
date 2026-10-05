@@ -41,3 +41,10 @@ test('frozen RC candidate bytes match the reviewable deployment manifest',async(
  const {createHash}=await import('node:crypto');const hashes=JSON.parse(await readFile(new URL('./deploy/hashes.json',import.meta.url),'utf8'));
  for(const [path,sha]of Object.entries(hashes))assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'),sha,path);
 });
+test('native integration is explicit test-only and shares the candidate configuration without secret interpolation into argv',async()=>{
+ const {nativeServiceEnv}=await import('./deploy/native-env.mjs');
+ assert.throws(()=>nativeServiceEnv({db:'x\nPOSTGRES_HOST_AUTH_METHOD=trust',jwt:'b'.repeat(80)}));
+ const e=nativeServiceEnv({db:'a'.repeat(64),jwt:'b'.repeat(80)});assert.ok(e.auth.includes('GOTRUE_JWT_EXP=300\n'));assert.ok(e.rest.includes('PGRST_DB_URI=postgres://authenticator:'));assert.ok(!e.pg.includes('POSTGRES_HOST_AUTH_METHOD'));
+ const operator=await readFile(new URL('./deploy/operator.mjs',import.meta.url),'utf8');assert.ok(operator.includes('nativeEnv=nativeServiceEnv({db,jwt})'));
+ const {spawnSync}=await import('node:child_process');const wrong=spawnSync(process.execPath,['prototype/internal-rc/native-http-regression.mjs','--mode','production'],{encoding:'utf8'});assert.notEqual(wrong.status,0);assert.match(wrong.stderr,/Explicit isolated native regression mode required; no services started/);
+});

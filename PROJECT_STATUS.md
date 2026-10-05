@@ -382,3 +382,10 @@ P3/P4不阻塞已驗收子閉環，不搜尋其他edge cases；完整live角色�
 c82b88c第二次01:46:03.483Z provision：PG bootstrap PASS，GoTrue migration因postgres預建auth.uid ownership衝突FAIL；A/B驗收、JWT、Save/Review NOT_RUN，WP POST0、無grant。原批准cleanup exit0，01:48:21.978Z核無root/secrets/containers/network殘留，兩消耗標記保留。原始兩JSON及SHA已隨[RC候選RCA](docs/Internal_RC_Candidate_2026-10-04.md)附入repo，便於跨executor核對，未改歷史bytes。
 
 有界RCA後移除Auth shim預建，GoTrue唯一管理Auth schema內tables/functions；角色不升權，business候選SQL不變。新增只讀Auth owner/權限閘門及Data API readiness在WP短grant之前。9/9本機契約與原生PG SQL驗證：70官方migration image/tag bytes一致，以非superuser authadmin全部執行後接exact business SQL，再以authenticator/JSON claims驗Save/Review/fresh SQL readback及tenant拒絕。這不是GoTrue/PostgREST executable/JWT/HTTP runtime驗收，完整持久A/B仍NOT_RUN；候選交既有Reviewer後由父決定新精確批准，不自動重跑。Core完整RC新增驗收=0，maintenance=0；本輪解除直接相容性缺口並補有界整體SQL證據。
+
+
+## 2026-10-05 短命原生Auth/PostgREST整合（非持久RC）
+
+父針對Reviewer01a109d7必要P2明確授權native日常regression。共用候選PG/Auth/REST env與bootstrap/business SQL，GoTrue executable自行完成70migration、admin建立3syntheticusers、password grant真JWT。HTTP Save/Review200→logout204/舊refresh400→freshlogin200→exact全row讀回；錯簽章401、viewer/foreign寫入403、native刪身份後GETuser403/ownOrg隱藏/寫403，拒絕案business完整snapshot不變，最終1version/1review/2audit。
+
+最終本機run02:25:53.127–02:25:59.872Z PASS，10/10契約PASS；[原始JSON](docs/evidence/Native_HTTP_2026-10-05.json)及[詳述界線](docs/Internal_RC_Candidate_2026-10-04.md)。專用internal network無host ports、PG tmpfs、Auth/REST readonly、無WP、無host secret檔；按owner labels清理後無run容器/network，原root仍不存在、兩marker bytes保持。沒有SQL插身份/寫GoTrue ledger/手設claims冒native證據。JWT/logout/HTTP證據不外推產品emailOTP/browser或全runner退出持久A/B；候選CI/Preview後交既有Reviewer，不自動第三次RC。CoreMilestoneProgress=1 native子閉環、maintenance=0。

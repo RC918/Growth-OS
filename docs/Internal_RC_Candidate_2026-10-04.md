@@ -2,6 +2,38 @@
 
 基準 `753dd9c47655e961221a1ef6be9bf8a9aef7194c` 已由 Reviewer `01a10857-2c6c` APPROVE；CI `37226680267` 59步、Preview `H6gCsEbPeZw3TMUoJ7xnbfUETxpX` success。父本輪指定收斂完整 RC，沒有授權真持續環境執行。本文件及 `prototype/internal-rc/` 是新候選，沒有修改歷史 frozen 包，也不因名稱 RC 自動取得新權限。
 
+## 2026-10-05 短命原生 HTTP/JWT 整合（已驗，仍非持久 RC）
+
+Reviewer01a109d7對0b8c46c判必要P2：SQL harness寫ledger、插user、手设claims不能證明native executable交接。父已依既有日常synthetic regression授權本節最小原生整合；不是第三次持續RC，也不沿用兩個已消耗窗口。下方0b8c46c歷史段落的runtime未驗／待授權說明，以本節新實證更新；持久A/B與產品email/OTP仍未驗。
+
+**唯一入口**：`node prototype/internal-rc/native-http-regression.mjs --mode growth-os-native-regression`；缺mode／production mode在任何資源或憑證生成前拒絕。原pinned PG17.6、GoTrue v2.196.0與PostgREST v14.17；專用unique run labels與Docker internal network，只允許該run三容器連線，**無host ports、無WP**。PG資料與socket tmpfs，Auth/REST read-only及/tmp tmpfs，無host bind data、沒有持續root或marker。600秒測試上限，finally按名稱與owner label只清該run容器/network。
+
+候選和fixture共用純函式`nativeServiceEnv`，沿原db／jwt生成格式、role／aud／300秒設定、db alias、closed signup及loopback logical callback設定；只是把原operator三個env模板抽出，內容未改。fixture透過Docker子程序環境傳值，命令列只含環境變數名稱，不寫env／token檔、不打印secret。HTTP僅可指向該run經ownership與internal network核對的容器IP，服務無外部egress。兩次前置fixture失敗分別為Node socket stdin不能由Docker env-file開啟，以及internal network不發布host ports；均在驗收前清理，非敏感probe釐清後改受控child env與internal IP；不是安全拒絕或持久RC重試。
+
+**真正啟動交接**：原roles.sql/bootstrap→GoTrue executable自身migration→health＋auth-ready.sql owner／最小role gate→原生admin API建立三個synthetic users→原生password grant→候選原business SQL→PostgREST NOTIFY schema reload→HTTP流程。此入口不匯入migration replay、不SQL插Auth身份／ledger、不SET ROLE／手設JWT claims。SQL只用批准的bootstrap/business候選及只讀狀態／計數；樣本payload仍來自原非敏感HTML fixture，不外呼live URL。
+
+### 本機原始實證與HTTP結果
+
+最終run `growth-native-http-34967e66-9e56-4e36-8ba2-42c8e497cc57`：02:25:53.127Z開始、02:25:59.872Z完成清理，result PASS。[原始非敏感JSON](evidence/Native_HTTP_2026-10-05.json) SHA256 `80fe2a526e74e9c8a6faa304f3a458bda283a23461e354bafd1c1784aaf58e61`。無token/password/env；CI同入口另保留native-http-evidence最多3天。先前兩次持久失敗JSON/SHA保持原樣，不被本次PASS覆蓋。
+
+| 核對 | 實際結果 |
+|---|---|
+| Native migration／role | GoTrue自身建立70筆migration ledger；uid owner=auth admin；5個應用角色superuser/createdb/createrole/bypassrls數0。 |
+| 身份／JWT | 三個native admin create皆200；owner兩次＋viewer/foreign各一次password grant皆200；原樣返回JWT由native GET user與PostgREST驗證，另核HS256 signature／sub／role authenticated／aud authenticated／exp-iat≤300。未用harness簽的user session；admin bootstrap token只用於native admin API。 |
+| Schema reload | business表尚未存在時HTTP404；原候選SQL提交及NOTIFY後，GET變200，未手動建立cache或改claims。 |
+| Save／Review | HTTP Save200，exact完整payload讀回200；exact source/content/version digests Review200，精確Review row讀回200。最終1version/1review/2business audit。 |
+| Logout／fresh login | 原生logout204；舊refresh token400；丟棄原session後重新password grant200，新JWT不同，native GET user200，version全row與Review全row讀回完全一致。這是native HTTP session，不是browser/callback/emailOTP驗收。 |
+| 簽章／tenant | 改JWT signature之GET/Save均401；viewer OrgA GET200/1row、foreign GET200/0row（RLS隱藏，不誤稱HTTP403）；兩者Save與Review皆403。 |
+| 已失效身份 | native admin刪foreign測試身份200，GET user403；原token對自己的OrgB從1row變0row，Save/Review403；不是SQL假造失效。native Auth刪除引發membership FK cascade屬測試setup，不混入拒絕案零增量。 |
+| 拒絕案資料 | 比較versions/reviews/business audit完整snapshot前後bytes一致，拒絕案增量0。Auth自己的login/logout/audit/session變化不冒稱0。 |
+| 清理 | 每項先核本run label；container/network列表皆空、tmpfs資料與憑證隨容器銷毀、無env/token檔；持久RC root仍不存在、兩個舊marker bytes不變。 |
+
+**重要界線**：native logout證明refresh session失效；不宣稱stateless access JWT立即失效。產品`signOut`仍只是既有page-memory清除，這次没有修改原Auth/UI/RLS。已刪身份的資料讀寫由現行membership/RLS及native GET user拒絕，沒有加繞過或放寬權限。短命原生PASS只涵蓋同run服務／JWT／HTTP／SQL整合；不外推整個runner退出後的持久A/B、跨run秘密、WP平台grant或產品emailOTP。
+
+### Verification Loop
+
+PLAN/CODE：只補Reviewer必要P2之native交接證據，共用候選env避免兩份配置漂移，maintenance=0。UNIT/CONTRACT：10/10 PASS，保留70 SQL相容性與UID/secret邊界，再加explicit test-only gate與候選env共用檢查。BUILD/RUN、DATABASE/AUTH、HTTP SAVE→REVIEW→LOGOUT→fresh LOGIN→READBACK、TENANT：以上真native流程PASS。BROWSER/DOM及1280/390：本輪不改UI，CI沿原全部synthetic E2E驗回歸，不能宣稱native browser或Owner email登入通過。VERIFY：同HEAD CI/Preview與原生HTTP artifact交既有Reviewer；父再決定完整持久RC精確新包，沒有新批准不部署。CoreMilestoneProgress=1（真native HTTP/JWT子閉環首次成立），持久RC完成進度仍未驗收。
+
 ## 2026-10-05 第二次啟動 RCA 與原生相容性候選（未再部署）
 
 本輪基準 `c82b88c46ce8af50e4e032ef395a135720abebeb`，105項digest `9c6bc1e3aef9ba787ba97fe41f5e183ec0f32cd597669623562fb7682c38991f`。第二次批准reference `Sentinel_1b222cd538648191808264f921960391`、窗口01:44:08–03:44:00 UTC，已消耗且清理；**以下新候選不沿用該批准**。第一次 `.json.started` 與第二次 `/workspace/rc-approved-window-next.json.started` 都保留；文件下方第三次window路徑只是待批准範例，不是新marker／環境已建立。
@@ -87,7 +119,7 @@ BROWSER/DOM、1280/390、SAVE→LOGOUT→FRESH SESSION→LOGIN→READBACK、TENA
 | 不確定／失敗 | 不rerun provision、不改request/intent、不重發POST、不以無回覆視為未套用；讀原journal+原頁expected-before/after。到期、撤銷、損毀、缺檔、drift停mutation，保存無secret證據；需要重新開grant或期限時另請准，不能重用這次allowance。 |
 | 清理／保留 | 停兩個app processes後，先把allowlist evidence（bookmark需不含token/secret、PNG、journal/source synthetic資料、redacted logs）移到父指定artifact；保留最多3天。`operator cleanup`核同window及own labels，停exact五容器／own network，移除唯一root與own資料／secret，使用原PG image的network-none helper只刪own bind data；不prune、不刪外部資源。刪除該DB與站亦銷毀原生identity／grant；cleanup權限在expiry後只限原已批准收尾。部分provision失敗保留`.started`，只核對／cleanup，禁止blind重跑。 |
 
-**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest（108項）：`a450d3e08c20351506cd5799f009de35b92d1c496106139be675a7c30336a294`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
+**批准 artifact identity**：`prototype/internal-rc/deploy/hashes.json`列候選程式、SQL、原scanner、Auth/RLS依賴與apps/web逐檔SHA256；`operator inspect`只讀顯示該sorted manifest 的SHA256 `artifacts_digest`。本候選digest（110項）：`5cb5af95a6f1db4b75c86f9f5a53866cf1e21415c00d1b1a500e0997a51be8af`。父將該digest＋具體Owner批准reference＋絕對UTC截止填入 `window.example.json`副本，才可執行；目前example為null，不是批准。腳本的window欄位／reference是操作書籤，不是安全審核替代或自行批准機制。
 
 ```sh
 # 現在可做：read-only、沒有部署或secret生成

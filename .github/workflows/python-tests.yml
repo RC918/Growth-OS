@@ -74,6 +74,21 @@ jobs:
       - name: RC bootstrap native UID and secret boundary (ephemeral, no network)
         timeout-minutes: 3
         run: node --test prototype/internal-rc/deploy/bootstrap.test.mjs prototype/internal-rc/deploy/migration-compatibility.test.mjs
+      - name: Pull pinned native Auth and Data API images
+        run: |
+          docker pull supabase/gotrue:v2.196.0@sha256:c0c25187a6b835e65a6f6e6c6b39d090e832d40e6de5186f2c038e0411944232
+          docker pull postgrest/postgrest:v14.17@sha256:c9dc201e555f5d8e37e7f39cdd4df0229774996e213bfd7de8d10ac609030f2c
+      - name: Native Auth JWT and PostgREST HTTP regression (ephemeral internal network)
+        timeout-minutes: 12
+        run: node prototype/internal-rc/native-http-regression.mjs --mode growth-os-native-regression
+      - name: Preserve nonsecret native HTTP evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-http-evidence
+          path: /tmp/growth-native-http-*-evidence.json
+          retention-days: 3
+          if-no-files-found: warn
       - name: URL exact-version Review PG17 concurrency (no network)
         timeout-minutes: 3
         run: node supabase/drafts/url_review/native.mjs

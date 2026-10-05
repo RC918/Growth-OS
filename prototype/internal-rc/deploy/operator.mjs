@@ -6,6 +6,7 @@ import {randomBytes,createHmac,createHash} from 'node:crypto';
 import {compose,root,prefix} from './compose.mjs';
 import {schema} from './schema.mjs';
 import {bootstrapDatabase} from './bootstrap.mjs';
+import {nativeServiceEnv} from './native-env.mjs';
 import {ids} from '../../../supabase/drafts/first_result_save/fixtures.mjs';
 import {createRunJournal} from '../../wordpress-publish/journal.mjs';
 const action=process.argv[2],windowPath=process.argv[3];let until=Infinity;
@@ -30,10 +31,10 @@ if(action==='inspect'){
 }else if(action==='provision'){
  const window=await approval();until=Date.parse(window.expires_at);await writeFile(windowPath+'.started',JSON.stringify({environment:prefix,started_at:new Date().toISOString()}),{flag:'wx',mode:0o600});await mkdir(root,{mode:0o700});await write('window.json',JSON.stringify(window,null,2)); // exclusive: refuse previous installation
  for(const d of ['secrets','data','evidence'])await mkdir(root+'/'+d,{mode:0o700});
- const db=randomBytes(32).toString('hex'),jwt=randomBytes(40).toString('hex');
- await write('secrets/pg.env',`POSTGRES_PASSWORD=${db}\nPOSTGRES_DB=postgres\n`);
- await write('secrets/auth.env',`GOTRUE_API_HOST=0.0.0.0\nGOTRUE_API_PORT=9999\nAPI_EXTERNAL_URL=http://127.0.0.1:8794\nGOTRUE_DB_DRIVER=postgres\nGOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:${db}@db:5432/postgres\nGOTRUE_DB_NAMESPACE=auth\nGOTRUE_SITE_URL=http://127.0.0.1:8792\nGOTRUE_URI_ALLOW_LIST=http://127.0.0.1:8792/workspace.html\nGOTRUE_DISABLE_SIGNUP=true\nGOTRUE_JWT_ADMIN_ROLES=service_role\nGOTRUE_JWT_AUD=authenticated\nGOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated\nGOTRUE_JWT_EXP=300\nGOTRUE_JWT_SECRET=${jwt}\nGOTRUE_EXTERNAL_EMAIL_ENABLED=true\nGOTRUE_EXTERNAL_PHONE_ENABLED=false\nGOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false\nGOTRUE_MAILER_AUTOCONFIRM=false\n`);
- await write('secrets/rest.env',`PGRST_DB_URI=postgres://authenticator:${db}@db:5432/postgres\nPGRST_DB_SCHEMAS=public\nPGRST_DB_ANON_ROLE=anon\nPGRST_JWT_SECRET=${jwt}\nPGRST_DB_MAX_ROWS=501\nPGRST_DB_USE_LEGACY_GUCS=false\n`);
+ const db=randomBytes(32).toString('hex'),jwt=randomBytes(40).toString('hex'),nativeEnv=nativeServiceEnv({db,jwt});
+ await write('secrets/pg.env',nativeEnv.pg);
+ await write('secrets/auth.env',nativeEnv.auth);
+ await write('secrets/rest.env',nativeEnv.rest);
  await write('secrets/maria.env',`MARIADB_ROOT_PASSWORD=${db}\nMARIADB_DATABASE=growth\nMARIADB_USER=growth\nMARIADB_PASSWORD=${db}\n`);
  await write('secrets/wp.env',`WORDPRESS_DB_HOST=mariadb\nWORDPRESS_DB_USER=growth\nWORDPRESS_DB_PASSWORD=${db}\nWORDPRESS_DB_NAME=growth\nWORDPRESS_CONFIG_EXTRA=define('WP_HOME','https://rc-source.example'); define('WP_SITEURL','https://rc-source.example'); define('WP_HTTP_BLOCK_EXTERNAL',true); define('DISABLE_WP_CRON',true); define('AUTOMATIC_UPDATER_DISABLED',true);\n`);
  await write('compose.json',JSON.stringify(await compose(),null,2));
