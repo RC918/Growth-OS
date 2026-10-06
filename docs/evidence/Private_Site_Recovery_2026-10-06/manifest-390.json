@@ -1,0 +1,95 @@
+{
+  "format": "growth-private-recovery-1",
+  "checkpoint": {
+    "id": "ba2ee716-87c5-4289-84f4-1a950683aed8",
+    "cut_at": "2026-10-06T04:08:14.447Z",
+    "binding": {
+      "organization_id": "84d69b08-39cf-4aff-b8b9-17a0263777a4",
+      "page_id": 1001,
+      "pilot_id": "growth-wp-cf189bb2-8e89-4790-8141-aa727e8e2b83-390",
+      "target_url": "https://rc-source.example/growth-os/"
+    },
+    "version_id": "5f1d94d3-5f83-4adf-9672-7f8509c878cc",
+    "page_ids": {
+      "growth-os": 1001,
+      "about": 1002,
+      "privacy": 1005
+    },
+    "operations": [
+      {
+        "id": "d8129393-4314-44b4-af70-2f069ecc4b79",
+        "version": "5f1d94d3-5f83-4adf-9672-7f8509c878cc",
+        "state": "restored",
+        "observed_at": "2026-10-06T04:08:10.565Z"
+      }
+    ],
+    "quiescence": {
+      "all_writers_stopped": true,
+      "wordpress_apache_processes_stopped": true,
+      "source_wordpress": "growth-wp-cf189bb2-8e89-4790-8141-aa727e8e2b83",
+      "wordpress": {
+        "apache": [
+          {
+            "pid": 1,
+            "stopped": true
+          },
+          {
+            "pid": 64,
+            "stopped": true
+          },
+          {
+            "pid": 65,
+            "stopped": true
+          },
+          {
+            "pid": 66,
+            "stopped": true
+          },
+          {
+            "pid": 67,
+            "stopped": true
+          },
+          {
+            "pid": 68,
+            "stopped": true
+          }
+        ],
+        "mariadb_read_only": true
+      },
+      "publisher_exited": true,
+      "gateway_closed": true,
+      "scanner_pid": 177980,
+      "scanner_exited": true,
+      "api_containers_exited": true,
+      "writer_acl_closed": true,
+      "source": "growth-recovery-native-ddd16e43-a970-4545-add0-12f8154fae2e"
+    }
+  },
+  "components": {
+    "wordpress-files": {
+      "file": "wordpress-files.json",
+      "sha256": "b0cb9b23e45025b62cf1f70e384adaa796a55c059e27b4b5669b8e65ba7dc6f9",
+      "bytes": 17313
+    },
+    "mariadb": {
+      "file": "mariadb.json",
+      "sha256": "2e4722e9d0a9731a893460505ab45c58990dcbcf01042ae670d1f0d3be802245",
+      "bytes": 28181
+    },
+    "scanner-sqlite": {
+      "file": "scanner-sqlite.json",
+      "sha256": "0a6f12e567cbffcf8676b1690b547a3c5306174c602e7ef767e5a489f549056c",
+      "bytes": 66760
+    },
+    "publisher-journal": {
+      "file": "publisher-journal.json",
+      "sha256": "f66ca5be9857c50cec15447523fd73066b44eba15f4aa9d484de893c62780b66",
+      "bytes": 46882
+    },
+    "native-business": {
+      "file": "native-business.json",
+      "sha256": "c1a05b8ae012a1de5e8a7cebfa06b90d798ff866aa8365acf07a9c47d8b23d64",
+      "bytes": 38315
+    }
+  }
+}

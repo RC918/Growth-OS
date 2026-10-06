@@ -4,6 +4,11 @@
 
 ## 當前授權與基準
 
+
+**2026-10-06 最新 Core：共同 stopped-writer cut／全新隔離 target 恢復（未部署）。** 父核已審 PR26 `f08c30d748bf73bbf9ab96496f428fa23bc12abb`，獨立 `feat/private-site-recovery` stacked base `feat/private-site-theme`。WP 真 tmpfs files／MariaDB一致性邏輯資料／scanner SQLite backup API／既有 readonly journal，加本機native14表與新credentials UUID連結，一個checkpoint後原服務全退出才啟動新target。1280/390 fresh native session exact version/review/audit/history、3頁raw/meta/controls/filemetadata、SQL/defaultACL/autoRLS、secret/grant不復活、unknown GET-only／mixed/hash/incomplete/nonempty/crashlock拒絕PASS；[逐點證據](docs/Private_Site_Recovery_驗證_2026-10-06.md)。候選限已知三頁/allowlist，非任意WP/hostedAuth全站備份。CI/Preview exact receipt 見本輪PR，交既有Reviewer `01a10f3b-3546-72bb-b3d1-4a37140556ea`，非Primary自行APPROVE。CoreMilestoneProgress=1、maintenance=0；無hosted/SSH/DNS/磁碟/費用/持久grant/Owner登入/RC操作，frozen/舊worktree未動，不另建治理修復。沒有獨立必要Core自動續開，待Owner整體部署批准；retention/credentials/destructive restore/preflight另批。
+
+以下 PR26 為已接受前一輪。
+
 **2026-10-06 最新 Core：三頁正式WP theme／內容垂直候選（未部署）。** 父核Reviewer `01a10f18-4cc4-766d-8ba4-0bde0f4f73cd` APPROVE_WITH_DEFERRED_DEBT PR25 `b7d2e93e01793d3cb33a6709fbcdacd1892d0006`，獨立 `feat/private-site-theme` stacked base `feat/private-site-schema`。只有明確產品頁輸出單一Product name/description；About/Privacy為控制頁，Privacy已知公司/聯絡/資源區域與待核SMTP/analytics/保留刪除分列，public_ready=false。新schema/nativeAuth→真WPscanner→Save/freshlogin/Review→gateway/publisher兩POST publish/restore、unknown GET-only、控制頁SQL/HTML不變、1280/390鍵盤及journal readonly recovery PASS，[逐點證據](docs/Private_Site_Theme_驗證_2026-10-06.md)。完整WPfiles/MariaDB/scannerSQLite共同備份還原依父允許先拆下一slice，交[候選manifest](prototype/private-site/theme/recovery-manifest.json)，NOT_IMPLEMENTED_NOT_RUN，不能以journal恢復替代。未hosted連線/部署/本人登入/新增grant/費用，P3 limiter/CIaction不擴修，frozenRC與worktree不動。待exactCI/Preview與既有Reviewer；CoreMilestoneProgress=1、maintenance=0。
 
 以下PR25為已接受前一輪。

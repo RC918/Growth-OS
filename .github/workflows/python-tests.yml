@@ -186,6 +186,22 @@ jobs:
             /tmp/growth-native-http-*-theme-ui.json
             /tmp/growth-native-http-*-theme-*.png
           retention-days: 3
+      - name: Common recovery cut and refusal contracts
+        run: node --test prototype/private-site/recovery/contract.test.mjs
+      - name: Full candidate isolated restore with native Auth and desktop mobile readback
+        timeout-minutes: 10
+        run: node prototype/private-site/recovery/native-regression.mjs --mode growth-os-private-recovery-regression
+      - name: Preserve private recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-site-recovery-evidence
+          path: |
+            /tmp/growth-recovery-*-evidence.json
+            /tmp/growth-recovery-*-recovery-*.json
+            /tmp/growth-recovery-*-recovery-*.png
+            /tmp/growth-recovery-*-backup/
+          retention-days: 3
       - name: Preserve synthetic pilot evidence
         if: always()
         uses: actions/upload-artifact@v4

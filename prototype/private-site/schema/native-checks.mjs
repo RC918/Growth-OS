@@ -17,13 +17,16 @@ export function checkCatalog(sql,enabled){
  const defaultGrants=Number(sql("select count(*) from pg_default_acl d cross join lateral aclexplode(d.defaclacl) a where d.defaclrole='postgres'::regrole and d.defaclobjtype='r' and d.defaclnamespace in (0,'public'::regnamespace) and a.grantee in (0,'anon'::regrole,'authenticated'::regrole,'service_role'::regrole);"));assert.equal(defaultGrants,0);
  return {tables:actualTables,policies,acl,functions,future_table_api_grants:defaultGrants};
 }
-export async function installAndCheck({sql,ids}){
- // Reproduce relevant managed defaults and auto-RLS only in this disposable PostgreSQL.
+export function installFixtureDefaults(sql){
  sql(`alter default privileges for role postgres in schema public grant all on tables to postgres;
  alter default privileges for role postgres in schema public grant execute on functions to anon,authenticated,service_role;
  create schema fixture_security;
  create function fixture_security.rls_auto_enable() returns event_trigger language plpgsql as $$declare c record;begin for c in select * from pg_event_trigger_ddl_commands() where object_type='table' and schema_name='public' loop execute 'alter table '||c.object_identity||' enable row level security';end loop;end $$;
  create event trigger ensure_rls on ddl_command_end when tag in ('CREATE TABLE','CREATE TABLE AS','SELECT INTO') execute function fixture_security.rls_auto_enable();`);
+}
+export async function installAndCheck({sql,ids}){
+ // Reproduce relevant managed defaults and auto-RLS only in this disposable PostgreSQL.
+ installFixtureDefaults(sql);
  const before=defaults(sql),rlsBefore=trigger(sql),authBefore=sql("select md5(string_agg(pg_get_functiondef(oid),E'\\n' order by oid)) from pg_proc where pronamespace='auth'::regnamespace and prokind='f';");
  const install=await readFile(new URL('./install.sql',import.meta.url),'utf8');
  sql('alter default privileges for role postgres in schema public grant select on tables to anon;');assert.throws(()=>sql(install),/Future table defaults must already be closed/);assert.equal(Number(sql("select count(*) from pg_class where relnamespace='public'::regnamespace and relkind='r';")),0);sql('alter default privileges for role postgres in schema public revoke select on tables from anon;');
