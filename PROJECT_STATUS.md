@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+**2026-10-06 最新 Core：新專案非RC schema／RLS／Save–Review候選（未部署）。** 父核PR24 `3cc7d84776de88f7e5f480426369353735ac9ae1` APPROVE_WITH_DEFERRED_DEBT；獨立 `feat/private-site-schema` stacked base `feat/private-site-wiring`。14表／14原SELECT policies／24函式與exact ACL manifest、future-default不變、closed writer＋四支EXECUTE activation/disable、無identityseed，準備[未來一次批准包](prototype/private-site/schema/README.md)。隔離native PostgreSQL/GoTrue/PostgREST與1280/390 Save→真logout→fresh native login→exact readback/Review、unknown GET-only、tenant/ACL拒絕PASS，[逐點證據](docs/Private_Site_Schema_驗證_2026-10-06.md)。本輪重入誤採thread最初PR19初始化，未改branch或既有內容，最小SYSTEMIC_FIX將最新派工優先核對提升AGENTS入口；未動CLI/loader。未連hosted／舊DB27／key／Ownerlogin，無DataAPI／持久grant／部署／費用變更。待exact CI/Preview與既有Reviewer，非自行APPROVE；CoreMilestoneProgress=1、maintenance=0。三頁正式theme另slice、P3 debt沿用不擴修。
+
+以下PR24為已接受前一輪。
+
 **2026-10-06 最新 Core：單站私有部署候選接線（未部署）。** 父核 PR23 `566255f37aadb51ef72ae0f810659f610d9bf23b` 已審 APPROVE_WITH_DEFERRED_DEBT，CI37289957080／Preview62u7v8ysnw6qUxjYWKK9GPNSjMmR success。由此建立 `feat/private-site-wiring`，stacked Draft PR base `feat/single-site-node-host`。沿用 UI／Python product_api／Node publication host／WP/MariaDB，以精確Host/Origin固定代理、新Supabase runtime/CSP allowlist、closed activation與service啟停模板補接線。13契約及1280/390完整synthetic流程、真TLS CLI重啟、unknown GET-only／2WP POST／fresh-token歷史與tenant拒絕均列於[逐點證據](docs/Private_Site_Wiring_驗證_2026-10-06.md)；exact CI/Preview見PR交審。Systemd目標主機啟動未跑，非RC schema與三頁正式模板另slice；[精確部署批准包](prototype/private-site/README.md)尚未執行。CoreMilestoneProgress=1，maintenance=0。未部署AWS/Supabase、無持久grant／公開網路／DataAPI／磁碟／費用或舊DB27變更，待既有Reviewer，不自行驗收。
 
 以下 PR23 Core 為已接受前一輪。
