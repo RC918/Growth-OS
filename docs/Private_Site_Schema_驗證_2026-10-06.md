@@ -14,7 +14,7 @@
 |---|---|
 | PLAN | 適用：latest Core／branch／base／envelope 對齐；保留原未提交候選工作。 |
 | CODE | 適用：manifest 可重建、明列 table grants／function signatures；兩 public RPC + 原 private validators，legacy writers 不存在。 |
-| UNIT / CONTRACT | PASS：deterministic 1契約；既有 auth-session fixture 4契約（deployment closure 不包含 test entry）。 |
+| UNIT / CONTRACT | PASS：schema 2契約＋frozen RC 6契約；既有 auth-session fixture 4契約（deployment closure 不包含 test entry）。 |
 | BUILD / RUN | PASS：builder 產生 SQL；native PG17.6／GoTrue2.196／PostgREST14.17 真服務執行，無 mock SQL/Auth functions。無另需編譯的 schema build；Preview 只算靜態輸出檢查。 |
 | BROWSER / DOM | PASS：原 product HTML/JS + loopback gateway，fixed logical backend 全量攔截轉至本次 native HTTP，其他外部網路拒絕；hash 清除、cookies 空、無 pageerror。 |
 | DESKTOP + MOBILE | PASS：1280／390，成果 import→Save→Review，無 horizontal overflow；兩截圖已人工目視。scanner／WP 不重驗（本次未改，PR24既有覆蓋），不宣稱 URL scan端到端。 |
@@ -27,11 +27,13 @@
 
 ## 可核證證據
 
-本機 run `growth-native-http-a7e22569-1897-4078-911f-73c6e4104a99`，完成清理時間 `2026-10-06T02:16:58.796Z`。五份payload位於 [evidence目錄](evidence/Private_Site_Schema_2026-10-06/)，[SHA256SUMS](evidence/Private_Site_Schema_2026-10-06/SHA256SUMS) 可核原生HTTP/catalog/cleanup JSON、UI逐尺寸JSON、兩張PNG、static contract log。不含密碼、JWT、service key或真Owner資料；syntheticUUID不是部署參數。
+本機 run `growth-native-http-48085045-b55b-4d50-8baf-595d7817bd9d`，完成清理時間 `2026-10-06T02:22:30.791Z`。五份payload位於 [evidence目錄](evidence/Private_Site_Schema_2026-10-06/)，[SHA256SUMS](evidence/Private_Site_Schema_2026-10-06/SHA256SUMS) 可核原生HTTP/catalog/cleanup JSON、UI逐尺寸JSON、兩張PNG、static contract log。不含密碼、JWT、service key或真Owner資料；syntheticUUID不是部署參數。
 
 CI 加入候選契約、native+browser驗證及3日artifact retention；維持舊native regression原mode與既有fixture gates。exact CI run/job/steps／Preview deployment identity記在 PR與交審回覆，避免為更新HEAD自引用反覆commit。
 
 ## 本輪必要修正與 SYSTEMIC_FIX
+
+- CI 37403586143／job112076040533 第24步驗出原native runner屬RC frozen hash清單；首版擴充其參數違反bytes契約。改以schema目錄內獨立candidate runner，舊runner還原PR24原始bytes、frozen hashes不改。沿用原生服務生命周期helpers，沒有import RC business schema builder；從frozen契約與新native流程重新驗證。
 
 - 組裝期 SQL-language membership predicate 需在所查 tables 後建立；native creation證明並修順序。
 - function manifest regex漏掉 `fr_utf16_length`／`fr_decode_utf8` 數字名稱，native catalog完整比對揭露；修正identifier解析，現在全部24函式皆明確REVOKE。由 runtime catalog抗漏清單，不單靠生成器自比。

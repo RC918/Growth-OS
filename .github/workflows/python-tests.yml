@@ -160,7 +160,7 @@ jobs:
         run: node --test prototype/private-site/schema/contract.test.mjs
       - name: Non-RC schema native ACL Auth and desktop mobile Save Review
         timeout-minutes: 10
-        run: node prototype/internal-rc/native-http-regression.mjs --mode growth-os-native-regression --schema-candidate
+        run: node prototype/private-site/schema/native-regression.mjs --mode growth-os-private-schema-regression
       - name: Preserve non-RC schema evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -12,3 +12,10 @@ test('candidate is deterministic, explicitly scoped and separated from identitie
  for(const signature of writers){assert.ok(b.sql.includes('revoke all on function '+signature)||b.sql.includes(signature));assert.ok(b.enable.includes('grant execute on function '+signature+' to authenticated;'));assert.ok(b.disable.includes('revoke all on function '+signature));}
  assert.equal(b.manifest.functions.filter(f=>f.authenticated.length).length,1);
 });
+test('standalone native candidate rejects unapproved mode before services and never imports RC business schema',async()=>{
+ const {spawnSync}=await import('node:child_process');
+ const file='prototype/private-site/schema/native-regression.mjs';
+ const r=spawnSync(process.execPath,[file,'--mode','production'],{encoding:'utf8'});
+ assert.notEqual(r.status,0);assert.match(r.stderr,/Explicit isolated native regression mode required; no services started/);
+ assert.doesNotMatch(await readFile(file,'utf8'),/import.*deploy\/schema\.mjs|schema\.candidate\.sql/);
+});

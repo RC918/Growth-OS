@@ -1,7 +1,7 @@
 {
   "candidate": "private-site-schema",
-  "run": "growth-native-http-a7e22569-1897-4078-911f-73c6e4104a99",
-  "started_at": "2026-10-06T02:16:35.105Z",
+  "run": "growth-native-http-48085045-b55b-4d50-8baf-595d7817bd9d",
+  "started_at": "2026-10-06T02:22:08.400Z",
   "scope": "ephemeral native Auth/PostgREST HTTP; no WP/persistent RC/email OTP",
   "http": [
     {
@@ -2720,7 +2720,7 @@
     }
   },
   "cleanup": {
-    "checked_at": "2026-10-06T02:16:58.796Z",
+    "checked_at": "2026-10-06T02:22:30.791Z",
     "ownership_checked": true,
     "remaining_containers": "",
     "remaining_networks": "",

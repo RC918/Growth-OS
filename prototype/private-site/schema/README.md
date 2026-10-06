@@ -30,7 +30,7 @@
 ```
 node prototype/private-site/schema/build.mjs
 node --test prototype/private-site/schema/contract.test.mjs
-node prototype/internal-rc/native-http-regression.mjs --mode growth-os-native-regression --schema-candidate
+node prototype/private-site/schema/native-regression.mjs --mode growth-os-private-schema-regression
 ```
 
 第三行需預裝 pinned images 和 Chromium；本機可明設 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium`。所有 SQL、Auth admin fixture seed、短 JWT、activation、失敗注入與後續清理只在此次 label-owned local containers；business builder 不依賴 `native-checks.mjs`／`ui-fixture.mjs`。瀏覽器的固定 backend origin 由 route guard 完整轉交本次 native HTTP，其他 origin 拒絕，沒有 hosted fallback。UI 使用已接受 URL payload import 聚焦 schema Save/Review；不宣稱重驗 scanner、WordPress、email OTP 或 magic link。
