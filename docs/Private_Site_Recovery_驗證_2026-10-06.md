@@ -42,9 +42,13 @@
 
 ## 本機最後驗證 receipt
 
-`growth-recovery-d38f8b25-4d02-4856-8bc8-8bd7fd95fb6a`，2026-10-06T03:51:32.480Z，1280／390 全部 PASS。6 個 recovery/schema/theme contracts、12 個 gateway/RC/frozen contracts PASS。
+`growth-recovery-ecd9f368-36f8-4977-a182-f25d2565441f`，2026-10-06T04:08:57.276Z，TCP readiness修正後1280／390全部 PASS。先前6個 recovery/schema/theme contracts、12個 gateway/RC/frozen contracts PASS仍適用；新CI按新HEAD完整執行。
 
-- 1280：checkpoint `1d0fee5a-7a7a-4fca-ac9a-ea3dab549ffe`，manifest SHA256 `732aed95db5ea3defff961ecd542c9d7aeec9f5ddb2b0a13fc8761933daab56d`；source WP POST=2，target publisher WP calls=0，attempt=2。
-- 390：checkpoint `9bb98804-fabc-4614-98e7-2ea619db5b45`，manifest SHA256 `624279f7d67eda27eb7b1dab7e218aad385f81138a250e9cb03d87afbb5b9d33`；source WP POST=2，target publisher WP calls=0，attempt=2。
+- 1280：checkpoint `adffabb3-2e38-4db3-a14d-dbff241e0456`，manifest SHA256 `4d0d1b9a009df338263247d2c14d970531b3687687e5a71ddcdb016b888a78e3`；source WP POST=2，target publisher WP calls=0，attempt=2。
+- 390：checkpoint `ba2ee716-87c5-4289-84f4-1a950683aed8`，manifest SHA256 `1c02b332dd68ed941ed6d2dfd2612b2d44fbf4ed8542e465818a0255759493d8`；source WP POST=2，target publisher WP calls=0，attempt=2。
 
-12 個 evidence payloads（含 sources.json）及 SHA256SUMS；source code hashes 19 項。完整 backup 為 private synthetic artifact，不把 SQLite/journal bytes當秘密憑證備份。
+12個 evidence payloads（含sources.json）與SHA256SUMS；source hashes19項。
+
+## CI readiness 必要 P2 修正
+
+首個 HEAD `847949f40f4e30a4b89be5f503c784160634e9e4` 的 run `37411065614`／job `112099392002`，第62步在 native PG roles 安裝前失敗，未執行後續 mutation。新 fixture 使用 Unix socket pg_isready，誤採官方 image entrypoint 初始化期間的短命 server；實際 pinned entrypoint 顯示臨時 server 以 `listen_addresses=''` 啟動後關閉。改成與既有 runner 相同的 `pg_isready -h 127.0.0.1`，只在正式 TCP server ready 後安裝 roles，不 retry mutation。修正後重新從 native啟動跑完整 desktop/mobile迴圈；最終 CI 以新 HEAD receipt 為準。

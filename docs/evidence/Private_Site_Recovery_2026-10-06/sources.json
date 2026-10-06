@@ -2,7 +2,7 @@
   ".github/workflows/python-tests.yml": "6e933c7496ba1008146276d4d486a2aefb4078ef0185394d34e303713db5655c",
   "prototype/private-site/recovery/archive.mjs": "08a64214aab43a74f872d9ceea78828bf0d19913ee20109f5cf8bdb17349d304",
   "prototype/private-site/recovery/contract.test.mjs": "97c0ddb3aa9a5ed8389f7bbdcb6894c995a9523c40dec0adf40f016fb4479527",
-  "prototype/private-site/recovery/native-fixture.mjs": "c30c8707b0d30071651de8fb9caf40bbd59d934eb67d4f57a9953afebe03775d",
+  "prototype/private-site/recovery/native-fixture.mjs": "d3d4171e90f4d9d87e846c4d37624a22c368f5457342f02e0edcf6ca1a4d44d2",
   "prototype/private-site/recovery/native-regression.mjs": "955a8e10572534a4c7253772b27470ff825cbedd1ab6ded9f9f4c10f71892fab",
   "prototype/private-site/recovery/verification.mjs": "ec946d436aa6f985e3cb07a70a8108d6ffcd959f6d0b8feafd85b250b6d2caab",
   "prototype/private-site/recovery/wp-fixture.mjs": "4d781bb4565e0326eac0596ba90589e9e5bb268e6f21cd4afbe15c9eb53090f8",
