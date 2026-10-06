@@ -1,0 +1,21 @@
+{
+  ".github/workflows/python-tests.yml": "6e933c7496ba1008146276d4d486a2aefb4078ef0185394d34e303713db5655c",
+  "prototype/private-site/recovery/archive.mjs": "08a64214aab43a74f872d9ceea78828bf0d19913ee20109f5cf8bdb17349d304",
+  "prototype/private-site/recovery/contract.test.mjs": "97c0ddb3aa9a5ed8389f7bbdcb6894c995a9523c40dec0adf40f016fb4479527",
+  "prototype/private-site/recovery/native-fixture.mjs": "c30c8707b0d30071651de8fb9caf40bbd59d934eb67d4f57a9953afebe03775d",
+  "prototype/private-site/recovery/native-regression.mjs": "955a8e10572534a4c7253772b27470ff825cbedd1ab6ded9f9f4c10f71892fab",
+  "prototype/private-site/recovery/verification.mjs": "ec946d436aa6f985e3cb07a70a8108d6ffcd959f6d0b8feafd85b250b6d2caab",
+  "prototype/private-site/recovery/wp-fixture.mjs": "4d781bb4565e0326eac0596ba90589e9e5bb268e6f21cd4afbe15c9eb53090f8",
+  "prototype/private-site/schema/disable-save-review.sql": "4ade5b6beaef4549e0aefa381c818bbafabbe29e10a065e48db1107c92f7de0a",
+  "prototype/private-site/schema/enable-save-review.sql": "e29d261aa9739318b7da9da050eb27cc717b228a8d0fc22900a2230958476da2",
+  "prototype/private-site/schema/install.sql": "bb13b326cb06cd6549af42a83474c386042123a1f4bb5321566c9c537f189a68",
+  "prototype/private-site/schema/manifest.json": "e420916246bc9848f41fdb1be9f568cbc9ca2f4f5d2fd2efa0fef26522849592",
+  "prototype/private-site/schema/native-checks.mjs": "e7c8c2bef0cf246cc8c2acd6a65c12c296ace6d5554c4bc58fe1bf73a4386642",
+  "prototype/private-site/schema/preconditions.sql": "c174dc717fd51309f80cd2505b914185c9828856875da114e37a12c7a4bf2cd7",
+  "prototype/private-site/theme/growth-private/functions.php": "6e3b951a77a31509acb4cb786e15865722697a5771a11dacba583258aac52f90",
+  "prototype/private-site/theme/growth-private/index.php": "5835d7c862cf40f8d2176095a24d08165d56022ca4e54fb801bfd873763a879b",
+  "prototype/private-site/theme/growth-private/style.css": "260325d10062320c7b54caefbbd47c876d65208a2a4abcbf368627f3f8c5001a",
+  "prototype/private-site/theme/recovery-manifest.json": "fec90efe021df4743eea6c284a67972d73974126f691eb3afe1bac502401eb82",
+  "prototype/private-site/theme/verification.mjs": "9ad09f8f176155793c55e5afa369e16831ba48b0c94bf315b1ce0dc916ce5bd6",
+  "prototype/private-site/wiring-fixture.mjs": "799d1b3e66944ae701dcb59eb73fee41396ac3eb008606cafbe8523ace1134b7"
+}
