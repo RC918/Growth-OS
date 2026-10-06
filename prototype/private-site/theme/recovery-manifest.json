@@ -1,0 +1,21 @@
+{
+  "format": "growth-private-full-recovery-candidate-1",
+  "status": "NOT_IMPLEMENTED_NOT_RUN",
+  "scope": "next independent slice; no hosted authorization",
+  "consistency_boundary": "stop ingress, drain and stop scanner/publication/WP writers; capture all stores under one checkpoint ID; never mix snapshots from distinct cuts",
+  "stores": [
+    {"name":"wordpress_files","required":["wp-content theme/plugin/uploads","WordPress image digest","file paths/mode/uid/gid/sha256"],"secrets":"exclude wp-config.php/env/App Password material; reprovision only separately approved credentials","restore":"fresh empty owned volume; reject symlinks/traversal and hash mismatch"},
+    {"name":"mariadb","required":["consistent dump of exact WP database including pages/postmeta/options/revisions","MariaDB version/image digest","dump sha256","site origin/page IDs"],"secrets":"DB backup contains user/auth-related records; encrypt and restrict operator access; disable/revoke publisher credentials in isolated restore before exposure","restore":"new isolated DB; no import into original; do not resume old grants or reset attempt counters"},
+    {"name":"publisher_journal","required":["existing openStore.backup archive","binding","sequence/count/checksum","pending request IDs"],"restore":"existing restoreBackup to new readonly store; unknown operations GET-only, never auto-replay"},
+    {"name":"scanner_sqlite","required":["SQLite consistent backup API after quiescence","integrity_check","schema/version","snapshot ID/fingerprint/count","backup sha256"],"restore":"new SQLite file with exact snapshot readback; no synthetic missing rows"}
+  ],
+  "supabase_candidate_only": {
+    "connect_project": false,
+    "objects": "prototype/private-site/schema/manifest.json",
+    "required": ["all 14 business tables and schema/RLS/ACL/function definitions", "Auth identity linkage and separately approved native Auth recovery process", "snapshot cutoff and row counts/digests per organization", "constraints/reviews/version/request/audit linkage", "migration receipts and default ACL/ensure_rls pre-post snapshots"],
+    "secret_policy": "no Auth passwords/keys/JWT in repository or public evidence; encrypted restricted backup only under separate approval",
+    "restore": "fresh isolated native stack; native Auth identity recovery separately verified; business rows cannot create trusted identities"
+  },
+  "acceptance": ["all processes exited before consistent cut", "WP exact title/meta/article and About/Privacy controls", "fresh native login and exact version/review/audit readback", "restored journal history after all original processes exit", "unknown only GET reconciliation with new approved read authority", "no old writer/secret/grant resurrection", "corrupt/mixed/incomplete archives rejected without touching original", "owned restore resources cleaned"],
+  "unapproved": ["schedule", "retention period", "deletion policy", "encryption/key custody choice", "hosted backup", "remote import", "RPO/RTO promises"]
+}

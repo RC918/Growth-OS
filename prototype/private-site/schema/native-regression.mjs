@@ -8,9 +8,10 @@ import {compose} from '../../internal-rc/deploy/compose.mjs';
 import {nativeServiceEnv} from '../../internal-rc/deploy/native-env.mjs';
 import {ids as fixtureIds,fixtures,parent,request,checks} from '../../../supabase/drafts/url_review/fixture.mjs';
 const ids={...fixtureIds,...Object.fromEntries(['owner','viewer','foreign','org','other'].map(k=>[k,randomUUID()]))};
-if(process.argv.length!==4||process.argv[2]!=='--mode'||process.argv[3]!=='growth-os-private-schema-regression')throw Error('Explicit isolated native regression mode required; no services started');
+const withTheme=process.argv.length===5&&process.argv[4]==='--theme';
+if((process.argv.length!==4&&!withTheme)||process.argv[2]!=='--mode'||process.argv[3]!=='growth-os-private-schema-regression')throw Error('Explicit isolated native regression mode required; no services started');
 const run='growth-native-http-'+randomUUID(),network=run+'-net',label='growth.native_fixture',names=['db','auth','rest'].map(n=>run+'-'+n),deadline=Date.now()+600000;
-const report={candidate:'private-site-schema',run,started_at:new Date().toISOString(),scope:'ephemeral native Auth/PostgREST HTTP; no WP/persistent RC/email OTP',http:[],checks:{},cleanup:null};
+const report={candidate:withTheme?'private-site-theme':'private-site-schema',run,started_at:new Date().toISOString(),scope:withTheme?'ephemeral native Auth/PostgREST plus owned WordPress theme; no persistent RC/hosted/email OTP':'ephemeral native Auth/PostgREST HTTP; no WP/persistent RC/email OTP',http:[],checks:{},cleanup:null};
 const redactions=new Set();let stage='preflight',authOrigin,restOrigin;const hide=v=>(redactions.add(v),v);
 const db=hide(randomBytes(32).toString('hex')),jwt=hide(randomBytes(40).toString('hex')),env=nativeServiceEnv({db,jwt});
 const bounded=()=>{if(Date.now()>=deadline)throw Error('Native fixture deadline expired');};
@@ -95,7 +96,7 @@ try{
  assert.equal(snapshot(),before,'rejected operations leave versions/reviews/business audit identical');
  report.checks.business_counts=JSON.parse(sql("select jsonb_build_object('versions',(select count(*) from content_versions),'reviews',(select count(*) from content_reviews),'audit',(select count(*) from audit_events));"));assert.deepEqual(report.checks.business_counts,{versions:1,reviews:1,audit:2});
  report.checks.denied_business_delta=0;report.checks.deleted_native_identity_denied=true;
- {stage='native candidate desktop/mobile';report.checks.ui=await (await import('./ui-fixture.mjs')).verifyUI({login,call,authOrigin,restOrigin,payload,ids,snapshot,run});const candidate=await import('./native-checks.mjs');report.checks.final_acl=candidate.checkCatalog(sql,true);sql(await readFile(new URL('./disable-save-review.sql',import.meta.url),'utf8'));assert.ok([403,404].includes((await rpc('save_url_result_draft',fresh.access_token,save,'writer disabled at cleanup')).status),'closed after disable');report.checks.closed_after_disable=candidate.checkCatalog(sql,false);}
+ {stage='native candidate desktop/mobile';report.checks.ui=await (await import(withTheme?'../theme/verification.mjs':'./ui-fixture.mjs')).verifyUI({login,call,authOrigin,restOrigin,payload,ids,snapshot,run});const candidate=await import('./native-checks.mjs');report.checks.final_acl=candidate.checkCatalog(sql,true);sql(await readFile(new URL('./disable-save-review.sql',import.meta.url),'utf8'));assert.ok([403,404].includes((await rpc('save_url_result_draft',fresh.access_token,save,'writer disabled at cleanup')).status),'closed after disable');report.checks.closed_after_disable=candidate.checkCatalog(sql,false);}
  report.result='PASS';
 }catch(error){report.result='FAIL';let message=String(error.message);for(const value of redactions)if(value)message=message.replaceAll(value,'[REDACTED]');message=message.replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[REDACTED JWT]');report.failure={stage,message};try{let logs=docker(['logs',names[1]]);for(const value of redactions)if(value)logs=logs.replaceAll(value,'[REDACTED]');logs=logs.replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[REDACTED JWT]');report.failure.auth_diagnostic=logs.split('\n').filter(l=>/fatal|error/i.test(l)).join('\n').slice(-5000);}catch{}process.exitCode=1;}
 finally{
