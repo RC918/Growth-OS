@@ -1,0 +1,15 @@
+{
+  "enabled": false,
+  "listen_origin": "https://127.0.0.1:8443",
+  "public_origin": "https://app.example.invalid",
+  "supabase": {
+    "origin": "https://wqepyttadrcnphtyjpjy.supabase.co",
+    "allowed_origins": ["https://wqepyttadrcnphtyjpjy.supabase.co"],
+    "publishable_key": null
+  },
+  "source_origin": "http://127.0.0.1:8080",
+  "publication_origin": "http://127.0.0.1:8798",
+  "activation": null,
+  "wordpress": {"origin": "https://site.example.invalid", "upstream": "http://127.0.0.1:8082", "page_id": null},
+  "tls": {"certificate_file": "/etc/growth-private/tls.crt", "key_file": "/etc/growth-private/tls.key"}
+}

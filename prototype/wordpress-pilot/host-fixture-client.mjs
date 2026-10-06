@@ -4,8 +4,10 @@ import {createServer} from 'node:net';
 import {writeFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 export async function freeOrigin(){const s=createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+s.address().port;await new Promise(r=>s.close(r));return origin;}
-export async function childHost({config,site,fetchImpl,now=Date.now,shutdownMs=30000}){
- const origin=await freeOrigin(),path=config.storage_directory+'-host.json';
+export async function childHost({config,site,fetchImpl,now=Date.now,shutdownMs=30000,origin=null}){
+ origin??=await freeOrigin();
+ if(!/^http:\/\/127\.0\.0\.1:[0-9]+$/.test(origin))throw Error('Loopback fixture required');
+ const path=config.storage_directory+'-host.json';
  const hostConfig={enabled:true,listen_origin:origin,public_origin:config.authority.redirectOrigin,service:config,wordpress:{origin:new URL(config.binding.target_url).origin,credential_file:'/tmp/unused-isolated-credential'}};
  writeFileSync(path,JSON.stringify(hostConfig),{mode:0o600});
  const child=fork(new URL('./host-fixture.mjs',import.meta.url),['--mode=growth-os-isolated-host',path],{env:{...process.env,NODE_ENV:'test',GROWTH_ISOLATED_SHUTDOWN_MS:String(shutdownMs)},stdio:['ignore','pipe','pipe','ipc']});let output='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);

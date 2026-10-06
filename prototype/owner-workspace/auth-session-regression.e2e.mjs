@@ -13,7 +13,9 @@ validateOptions(options); // Before subprocess, server, DB, browser or network. 
 const origin=options.target;
 const run=path=>execFileSync(process.execPath,path,{stdio:'inherit'});
 let browser,wordpressSite;
-const withHost=args.includes('--host');
+const withWiring=args.includes('--wiring');
+const wiringBackend='https://wqepyttadrcnphtyjpjy.supabase.co';
+const withHost=args.includes('--host')||withWiring;
 const withGsc=args.includes('--gsc')||withHost;
 const withPilot=args.includes('--pilot')||withGsc;
 const withWordpress=args.includes('--wordpress')||withPilot;
@@ -33,7 +35,7 @@ try{
   async function screenshot(label){if(process.env.GROWTH_UIUX_EVIDENCE_DIR)await page.locator(label==='saving'?'#url-result-panel':'.url-review').first().screenshot({path:process.env.GROWTH_UIUX_EVIDENCE_DIR+'/'+label+'-'+width+'.png'});}const before=await rig.snapshot();
   let wp=null;
   try{
-   wp=wordpressSite?await (await import(withPilot?'../wordpress-pilot/verification.mjs':'../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width,gsc:withGsc,host:withHost}):null;
+   wp=wordpressSite?await (await import(withPilot?'../wordpress-pilot/verification.mjs':'../wordpress-publish/verification.mjs')).verification({site:wordpressSite,transport,rig,width,gsc:withGsc,host:withHost,wiring:withWiring}):null;
    async function fresh(role,fromUrl=false){
     if(context){const oldPages=context.pages();await context.close();assert.ok(oldPages.every(p=>p.isClosed()),'product opener and workspace both closed');rig.retire(token);previousToken=token;}
     context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'});contexts.push(context);context.on('page',p=>p.on('pageerror',e=>errors.push(redact(e))));page=await context.newPage();
@@ -55,9 +57,9 @@ try{
        if(u.pathname==='/url-result-config.mjs')return route.fulfill({contentType:'text/javascript',body:'export const urlSaveEnabled=true;export const urlResultSchemaEnabled=true;export const urlSaveTrial=null;export const urlReviewEnabled=true;'});
        return route.fulfill(await rig.asset(u.pathname));
       }
-      if(u.origin!==backend){blockedTargets++;return route.abort();}
+      if(u.origin!==(withWiring?wiringBackend:backend)){blockedTargets++;return route.abort();}
       if(req.method()==='POST'&&/\/rpc\/(save_url_result_draft|review_url_result)$/.test(u.pathname)&&mutationGate)await mutationGate();
-      const response=await transport({url:req.url(),method:req.method(),headers:req.headers(),body:req.method()==='POST'?req.postDataJSON():undefined});
+      const response=await transport({url:withWiring?backend+u.pathname+u.search:req.url(),method:req.method(),headers:req.headers(),body:req.method()==='POST'?req.postDataJSON():undefined});
       if(holdDetail&&u.pathname==='/rest/v1/content_versions'&&u.searchParams.get('select')?.includes('first_result_payload')){lateStarted?.();await new Promise(resolve=>lateRelease=resolve);}
       return route.fulfill({status:response.status,contentType:'application/json',body:JSON.stringify(response.data)});
      }catch(error){errors.push(redact(error));return route.abort();}
@@ -86,7 +88,7 @@ try{
    }
    async function open(id){const view=page.locator(`.typed-version[data-version-id="${id}"]`);await view.locator('.typed-loader > summary').click();await view.locator('.typed-draft').waitFor();return view;}
    const readPayload=async view=>JSON.parse(await view.locator('.typed-draft > details').last().locator('pre').textContent()).payload;
-   const request=async(path,{method='GET',body}={})=>page.evaluate(async({url,method,body,token})=>{const r=await fetch(url,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,data:await r.json()};},{url:(wp?origin+'/backend':backend)+path,method,body,token});
+   const request=async(path,{method='GET',body}={})=>page.evaluate(async({url,method,body,token})=>{const r=await fetch(url,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,data:await r.json()};},{url:(withWiring?wiringBackend:wp?origin+'/backend':backend)+path,method,body,token});
    await fresh('owner',true);
    await page.locator('#url-save-preview .typed-draft').waitFor();assert.equal(rig.stats().mutations,0,'normal handoff/login never auto-save');
    assert.deepEqual(JSON.parse(await page.locator('#url-save-preview .typed-draft > details').last().locator('pre').textContent()).payload,payload,'normal opener handoff retains source and edited bytes');

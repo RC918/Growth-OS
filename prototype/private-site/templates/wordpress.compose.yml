@@ -1,0 +1,49 @@
+# Candidate only. Requires pre-existing approved paths, private secret files and pinned images.
+# No named volumes, public ports, automatic restart, image pull, site installer or DB seed.
+services:
+  database:
+    image: mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6
+    pull_policy: never
+    command: ["--bind-address=127.0.0.1"]
+    restart: "no"
+    ports: ["127.0.0.1:8082:80"]
+    environment:
+      MARIADB_DATABASE: growth
+      MARIADB_USER: growth
+      MARIADB_PASSWORD_FILE: /run/secrets/database_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/database_root_password
+    secrets: [database_password, database_root_password]
+    volumes:
+      - type: bind
+        source: /srv/growth-private/mariadb
+        target: /var/lib/mysql
+        bind: {create_host_path: false}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  wordpress:
+    image: wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4
+    pull_policy: never
+    network_mode: service:database
+    restart: "no"
+    depends_on:
+      database: {condition: service_healthy}
+    environment:
+      WORDPRESS_DB_HOST: 127.0.0.1
+      WORDPRESS_DB_USER: growth
+      WORDPRESS_DB_NAME: growth
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/database_password
+      WORDPRESS_CONFIG_EXTRA: "define('WP_HTTP_BLOCK_EXTERNAL',true); define('DISABLE_WP_CRON',true); define('AUTOMATIC_UPDATER_DISABLED',true);"
+    secrets: [database_password]
+    volumes:
+      - type: bind
+        source: /srv/growth-private/wordpress
+        target: /var/www/html
+        bind: {create_host_path: false}
+secrets:
+  database_password:
+    file: /etc/growth-private/database.password
+  database_root_password:
+    file: /etc/growth-private/database-root.password

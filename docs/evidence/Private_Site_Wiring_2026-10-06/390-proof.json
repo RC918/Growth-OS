@@ -1,0 +1,65 @@
+{
+  "binding": {
+    "organization_id": "10000000-0000-4000-8000-000000000001",
+    "page_id": 1001,
+    "pilot_id": "growth-wp-c8a0462e-97cf-4306-9e08-495a2b0116ce-390",
+    "target_url": "https://rc-source.example/growth-os/"
+  },
+  "width": 390,
+  "posts": 2,
+  "evidence": {
+    "scope": "single_site_wordpress",
+    "environment": "isolated_fixture",
+    "binding": {
+      "organization_id": "10000000-0000-4000-8000-000000000001",
+      "version_id": "fb024ae6-3cb5-4f20-9a18-08ed7395389f",
+      "version_number": 1,
+      "review_id": "5231b1dc-09a3-4f49-ab58-899c2ab363b3",
+      "source_digest": "sha256:674626a65ad6ad589645eb79af0f0fd04c012601fe93048e33f9e3197b5c369a",
+      "content_digest": "sha256:85e385588db6d233f0a81e8bd9d1d815fce6139226668959e9568f513b714a30",
+      "version_digest": "pg-jsonb-sha256:dbeb5518818e228343ab2774143f257d1bfffd42d3d7535651c54ea1d8a6c844"
+    },
+    "page_id": 1001,
+    "target_url": "https://rc-source.example/growth-os/",
+    "first_published_at": "2026-01-01T00:00:00Z",
+    "modified_at": "2026-10-06T01:30:51Z",
+    "observed_at": "2026-10-06T01:30:53.399Z",
+    "api_fields": {
+      "title": "合成鋼製螺栓 🧪 é",
+      "meta_description": "合成验收：Baseline steel bolt.",
+      "description": "<p>Synthetic bolt baseline. Baseline steel bolt.\nUnicode é é 🧪 保留。</p>"
+    },
+    "html_fields": {
+      "title": "合成鋼製螺栓 🧪 é",
+      "meta_description": "合成验收：Baseline steel bolt.",
+      "description": "Synthetic bolt baseline. Baseline steel bolt.\nUnicode é é 🧪 保留。"
+    },
+    "excerpt_readback": {
+      "mode": "empty_raw_derived",
+      "before": {
+        "raw": "",
+        "rendered": "<p>Baseline steel bolt.</p>\n",
+        "protected": false
+      },
+      "after": {
+        "raw": "",
+        "rendered": "<p>Synthetic bolt baseline. Baseline steel bolt. Unicode é é 🧪 保留。</p>\n",
+        "protected": false
+      }
+    },
+    "before_revision": "0b96f853dcc202f20c4159afe31365ef0017ac2986271d6bfd4292bb62bef930",
+    "after_revision": "e12150fe971dad1ea97a5dbc6885e4bfffec51add2a6d7f08cbecedcd0b28c57",
+    "traffic": "unknown",
+    "platform_grant": "explicit_single_site"
+  },
+  "backup": {
+    "sha256": "9d715bf25a62668f32a28de59c326ad18abf885d95076175b80e70f7d9f68437",
+    "records": 10
+  },
+  "history_after_write_expiry": true,
+  "recovered_history_exact": true,
+  "control_unchanged": true,
+  "denied_journal_delta": 0,
+  "denied_sql_delta": 0,
+  "scope": "synthetic SQL sessions + ephemeral real WordPress; no live site"
+}

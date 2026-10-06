@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+**2026-10-06 最新 Core：單站私有部署候選接線（未部署）。** 父核 PR23 `566255f37aadb51ef72ae0f810659f610d9bf23b` 已審 APPROVE_WITH_DEFERRED_DEBT，CI37289957080／Preview62u7v8ysnw6qUxjYWKK9GPNSjMmR success。由此建立 `feat/private-site-wiring`，stacked Draft PR base `feat/single-site-node-host`。沿用 UI／Python product_api／Node publication host／WP/MariaDB，以精確Host/Origin固定代理、新Supabase runtime/CSP allowlist、closed activation與service啟停模板補接線。13契約及1280/390完整synthetic流程、真TLS CLI重啟、unknown GET-only／2WP POST／fresh-token歷史與tenant拒絕均列於[逐點證據](docs/Private_Site_Wiring_驗證_2026-10-06.md)；exact CI/Preview見PR交審。Systemd目標主機啟動未跑，非RC schema與三頁正式模板另slice；[精確部署批准包](prototype/private-site/README.md)尚未執行。CoreMilestoneProgress=1，maintenance=0。未部署AWS/Supabase、無持久grant／公開網路／DataAPI／磁碟／費用或舊DB27變更，待既有Reviewer，不自行驗收。
+
+以下 PR23 Core 為已接受前一輪。
+
 **2026-10-05 最新 Core：單站 Node host startup／真HTTP／私有store生命周期。** 基準PR22 `dc2ec8b6641df1fd0639bf671e7099bfececd479` 已由父核Reviewer `01a10b50` APPROVE_WITH_DEFERRED_DEBT、CI37286033704 71步及Preview F19hRfy7Z4oKJxFKwsFgV8ZJDJ5y成功。branch `feat/single-site-node-host`，獨立stacked DraftPR base `feat/gsc-native-date-contract`。新增closed-by-default Node入口，沿用單站service／Auth／Review／GSC history，實際HTTP child process、SIGTERM drain／crashlock failclosed；29相關契約與最後11 host/storage契約、1280／390完整流程及driver+service退出後fresh-token exact history/measurement讀回通過。[部署需求／逐點證據](docs/Single_Site_Node_Host_驗證_2026-10-05.md)。待exactCI/Preview与既有Reviewer，非自行APPROVE。CoreMilestoneProgress=1，maintenance=0；host／TLSproxy／secret／長期volume／backup／費用另批，未部署、無新增持久grant。
 
 以下 GSC 日期 Core 為已接受前一輪。

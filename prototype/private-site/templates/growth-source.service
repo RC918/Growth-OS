@@ -1,0 +1,24 @@
+[Unit]
+Description=Growth OS existing bounded public-source API
+PartOf=growth-private.target
+
+[Service]
+Type=simple
+User=growth-source
+Group=growth-source
+WorkingDirectory=/opt/growth-os/prototype/public-audit
+ExecStart=/usr/bin/python3 -B /opt/growth-os/prototype/public-audit/app.py
+Environment=COMMERCE_GROWTH_HOST=127.0.0.1
+Environment=COMMERCE_GROWTH_PORT=8080
+Environment=COMMERCE_GROWTH_DB=/srv/growth-private/source/source.sqlite3
+Restart=no
+TimeoutStopSec=40
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/growth-private/source
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LimitNOFILE=256
+MemoryMax=512M
