@@ -1,0 +1,4 @@
+[Unit]
+Description=Growth OS private candidate (manual start after separate approval)
+Wants=growth-source.service growth-publication.service growth-gateway.service growth-wordpress.service
+After=growth-source.service growth-publication.service growth-wordpress.service

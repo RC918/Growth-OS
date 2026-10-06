@@ -1,0 +1,5 @@
+growth-gateway.service: Command /usr/bin/node is not executable: No such file or directory
+growth-publication.service: Command /usr/bin/node is not executable: No such file or directory
+growth-wordpress.service: Failed to create growth-wordpress.service/start: Unit docker.service not found.
+growth-wordpress.service: Command /usr/bin/docker is not executable: No such file or directory
+growth-wordpress.service: Command /usr/bin/docker is not executable: No such file or directory

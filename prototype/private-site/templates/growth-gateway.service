@@ -1,0 +1,22 @@
+[Unit]
+Description=Growth OS fixed private TLS gateway
+PartOf=growth-private.target
+After=growth-source.service growth-publication.service growth-wordpress.service
+
+[Service]
+Type=simple
+User=growth-app
+Group=growth-app
+WorkingDirectory=/opt/growth-os
+ExecStart=/usr/bin/node /opt/growth-os/prototype/private-site/gateway.mjs /etc/growth-private/gateway.json /etc/growth-private/publisher.json
+Restart=no
+TimeoutStopSec=40
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LimitNOFILE=256
+MemoryMax=256M

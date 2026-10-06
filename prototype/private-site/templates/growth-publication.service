@@ -1,0 +1,23 @@
+[Unit]
+Description=Growth OS existing single-site publication host
+PartOf=growth-private.target
+ConditionPathExists=/etc/growth-private/publisher.json
+
+[Service]
+Type=simple
+User=growth-app
+Group=growth-app
+WorkingDirectory=/opt/growth-os
+ExecStart=/usr/bin/node /opt/growth-os/prototype/wordpress-pilot/runtime.mjs /etc/growth-private/publisher.json
+Restart=no
+TimeoutStopSec=40
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/growth-private/publisher
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LimitNOFILE=256
+MemoryMax=512M

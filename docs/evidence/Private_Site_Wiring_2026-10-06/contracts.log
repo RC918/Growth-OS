@@ -1,0 +1,21 @@
+✔ closed/missing/unsafe config and old/wildcard backend cannot start; no credentials logged (1638.718756ms)
+✔ TLS entry serves precise runtime/CSP, closed flags, no backend proxy or sensitive files; restart same config (117.252779ms)
+✔ source keeps public Host; publisher gets loopback Host; forwarding/cookies stripped, precise Origin/method/routes (85.426061ms)
+✔ WordPress exact page REST and three public paths only; no admin, other page, query mutation or cookie (105.053215ms)
+✔ real gateway child SIGTERM exits cleanly and new PID serves same TLS/runtime without listeners remaining (629.775377ms)
+✔ candidate Compose renders only loopback port, pinned images and no implicit host path creation (70.32363ms)
+✔ runtime missing/closed/invalid config refuses without secrets or implicit store; output excludes fixtures (1106.273338ms)
+✔ real child HTTP validates host/origin/method/path/body/auth; errors never expose authority detail (444.96061ms)
+✔ SIGTERM drains active HTTP authority before unlock; second writer denied, new process opens same bytes (913.978471ms)
+✔ bounded drain timeout and SIGKILL preserve crash locks and refuse reopening, never auto repair (1237.32035ms)
+✔ world-readable durable directory or journal never acquires writer lock (560.141874ms)
+✔ shutdown deadline includes a partially received HTTP header socket (389.032135ms)
+✔ production transport uses only fixed HTTPS authority/site and bound private credentials, never request targets (3.017627ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5065.760936

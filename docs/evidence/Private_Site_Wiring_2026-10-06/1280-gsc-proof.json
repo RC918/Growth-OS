@@ -1,0 +1,180 @@
+{
+  "width": 1280,
+  "publication_id": "0cbd846e-e7b1-4876-9b8e-db8e57599c4e",
+  "binding": {
+    "organization_id": "10000000-0000-4000-8000-000000000001",
+    "version_id": "b85fd320-1870-408e-92c5-26ef872241a8",
+    "version_number": 1,
+    "review_id": "6ac06722-a3b7-43d0-86a3-1ecd498638ca",
+    "source_digest": "sha256:674626a65ad6ad589645eb79af0f0fd04c012601fe93048e33f9e3197b5c369a",
+    "content_digest": "sha256:e9e5d6034306afa6e40edd5f8e2e778c743fb75817036b3706b1a0c769edb14b",
+    "version_digest": "pg-jsonb-sha256:e0451deee15e858977418aca979460ee05003eaffc716b10cb96b7263fab45dd"
+  },
+  "data": {
+    "baseline": {
+      "text": "date,clicks,impressions\n2026-10-03,0,0\n2026-10-04,0,0",
+      "source_name": "Synthetic GSC-style fixture",
+      "property": "sc-domain:rc-source.example",
+      "timezone": "America/Los_Angeles",
+      "data_state": "final",
+      "meta": {
+        "page_url": "https://rc-source.example/growth-os/",
+        "scope": "page",
+        "source": "synthetic",
+        "filter": "page equals https://rc-source.example/growth-os/; country/device all",
+        "type": "web",
+        "start": "2026-10-03",
+        "end": "2026-10-04",
+        "exported": "2026-10-05T07:00:00.000Z"
+      }
+    },
+    "followup": {
+      "text": "date,clicks,impressions\n2026-10-06,2,10\n2026-10-07,3,20",
+      "source_name": "Synthetic GSC-style fixture",
+      "property": "sc-domain:rc-source.example",
+      "timezone": "America/Los_Angeles",
+      "data_state": "final",
+      "meta": {
+        "page_url": "https://rc-source.example/growth-os/",
+        "scope": "page",
+        "source": "synthetic",
+        "filter": "page equals https://rc-source.example/growth-os/; country/device all",
+        "type": "web",
+        "start": "2026-10-06",
+        "end": "2026-10-07",
+        "exported": "2026-10-08T07:00:00.000Z"
+      }
+    }
+  },
+  "assessment": {
+    "baseline": {
+      "page_url": "https://rc-source.example/growth-os/",
+      "candidate_url": "https://rc-source.example/growth-os/",
+      "scope": "page",
+      "source": "synthetic",
+      "filter": "page equals https://rc-source.example/growth-os/; country/device all",
+      "matches": true,
+      "applicable": true,
+      "reason": "聲明的頁面 URL 與候選頁吻合；僅可檢視頁面觀測，不代表資料或篩選已核實。",
+      "type": "web",
+      "start": "2026-10-03",
+      "end": "2026-10-04",
+      "exported": "2026-10-05T07:00:00.000Z",
+      "days": 2,
+      "rows": [
+        {
+          "date": "2026-10-03",
+          "clicks": 0,
+          "impressions": 0
+        },
+        {
+          "date": "2026-10-04",
+          "clicks": 0,
+          "impressions": 0
+        }
+      ],
+      "missing": [],
+      "complete": true,
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": null,
+      "publication": {
+        "status": "unverified",
+        "published_at": null
+      },
+      "version_effect": {
+        "clicks": null,
+        "impressions": null,
+        "causal_claim": false
+      },
+      "origin": "https://rc-source.example",
+      "aggregation": "page_daily",
+      "source_name": "Synthetic GSC-style fixture",
+      "property": "sc-domain:rc-source.example",
+      "data_state": "final",
+      "timezone": "America/Los_Angeles",
+      "simulated_future": false,
+      "period_verified": false,
+      "window": {
+        "start": "2026-10-03T07:00:00.000Z",
+        "end_exclusive": "2026-10-05T07:00:00.000Z",
+        "hours": 48
+      }
+    },
+    "followup": {
+      "page_url": "https://rc-source.example/growth-os/",
+      "candidate_url": "https://rc-source.example/growth-os/",
+      "scope": "page",
+      "source": "synthetic",
+      "filter": "page equals https://rc-source.example/growth-os/; country/device all",
+      "matches": true,
+      "applicable": true,
+      "reason": "聲明的頁面 URL 與候選頁吻合；僅可檢視頁面觀測，不代表資料或篩選已核實。",
+      "type": "web",
+      "start": "2026-10-06",
+      "end": "2026-10-07",
+      "exported": "2026-10-08T07:00:00.000Z",
+      "days": 2,
+      "rows": [
+        {
+          "date": "2026-10-06",
+          "clicks": 2,
+          "impressions": 10
+        },
+        {
+          "date": "2026-10-07",
+          "clicks": 3,
+          "impressions": 20
+        }
+      ],
+      "missing": [],
+      "complete": true,
+      "clicks": 5,
+      "impressions": 30,
+      "ctr": 0.16666666666666666,
+      "publication": {
+        "status": "unverified",
+        "published_at": null
+      },
+      "version_effect": {
+        "clicks": null,
+        "impressions": null,
+        "causal_claim": false
+      },
+      "origin": "https://rc-source.example",
+      "aggregation": "page_daily",
+      "source_name": "Synthetic GSC-style fixture",
+      "property": "sc-domain:rc-source.example",
+      "data_state": "final",
+      "timezone": "America/Los_Angeles",
+      "simulated_future": true,
+      "period_verified": false,
+      "window": {
+        "start": "2026-10-06T07:00:00.000Z",
+        "end_exclusive": "2026-10-08T07:00:00.000Z",
+        "hours": 48
+      }
+    },
+    "comparison": {
+      "clickDifference": 5,
+      "impressionDifference": 30,
+      "interpretation": "observed_difference_not_causal_lift",
+      "provenance": "synthetic",
+      "scenario": true,
+      "causal_claim": false
+    },
+    "unknown": [
+      "來源與篩選仍未獨立驗真；無資料不等於未收錄，索引狀態未知。"
+    ],
+    "causal_claim": false,
+    "traffic_verified": false,
+    "indexing_status": "unknown",
+    "timezone": "America/Los_Angeles"
+  },
+  "exact_fresh_readback": true,
+  "unknown_save_get_only": true,
+  "denied_journal_delta": 0,
+  "denied_sql_delta": 0,
+  "measurement_wordpress_posts": 0,
+  "measurement_wordpress_gets": 0
+}

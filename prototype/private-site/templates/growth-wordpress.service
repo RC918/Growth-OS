@@ -1,0 +1,14 @@
+[Unit]
+Description=Growth OS private WordPress and MariaDB candidate
+PartOf=growth-private.target
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/growth-os/prototype/private-site/templates
+ExecStart=/usr/bin/docker compose -p growth-private -f wordpress.compose.yml up -d --pull never --wait
+ExecStop=/usr/bin/docker compose -p growth-private -f wordpress.compose.yml stop -t 40
+TimeoutStartSec=180
+TimeoutStopSec=100

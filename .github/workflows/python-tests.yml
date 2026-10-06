@@ -151,6 +151,11 @@ jobs:
       - name: Single-site Node host real HTTP child-process workflow
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --host
+      - name: Private single-site gateway contracts
+        run: node --test prototype/private-site/gateway.test.mjs
+      - name: Private single-site wiring desktop and mobile workflow
+        timeout-minutes: 6
+        run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --wiring
       - name: Preserve synthetic pilot evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -6,22 +6,25 @@ import {createPilotService} from './service.mjs';
 import {scanOwnedSite} from '../internal-rc/source-fixture.mjs';
 import {ids} from '../../supabase/drafts/first_result_save/fixtures.mjs';
 import {backend} from '../owner-workspace/auth-session-fixture.mjs';
-export async function verification({site,transport,rig,width,gsc=false,host=false}){
+export async function verification({site,transport,rig,width,gsc=false,host=false,wiring=false}){
  const dir='/tmp/'+site.run+'-pilot-evidence';mkdirSync(dir,{mode:0o700,recursive:true});
  const binding={organization_id:ids.org,page_id:site.target,pilot_id:site.run+'-'+width,target_url:site.targetURL};
- let clock=Date.now(),posts=0,gets=0,lose=true,service;
+ let clock=Date.now(),posts=0,gets=0,lose=true,service,gateway=null;
  const grant={pilot_id:binding.pilot_id,approval_reference:'synthetic-isolated-fixture',starts_at:clock-1,expires_at:clock+120000};
  const config={enabled:true,gsc_measurement_enabled:gsc,evidence_environment:'isolated_fixture',binding,write_grant:grant,read_grant:{...grant,expires_at:clock+240000},storage_directory:dir+'/'+width,authority:{origin:backend,key:'sb_publishable_synthetic',redirectOrigin:'http://127.0.0.1:8791'}};
  createStore(config.storage_directory,binding);
  const fetchImpl=async(url,o={})=>{const r=await transport({url,method:o.method??'GET',headers:o.headers,body:o.body?JSON.parse(o.body):undefined});return {ok:r.status>=200&&r.status<300,status:r.status,json:async()=>JSON.parse(JSON.stringify(r.data))};};
- const wrapped={...site,call:async(p,o={})=>{if(o.method==='POST')posts++;else gets++;const r=await site.call(p,o);if(o.method==='POST'&&lose){lose=false;throw Error('Lost reply after WordPress commit');}return r;}};
+ const wrapped={...site,call:async(p,o={})=>{if(o.method==='POST')posts++;else gets++;const r=await (gateway?gateway.siteCall(p,o):site.call(p,o));if(o.method==='POST'&&lose){lose=false;throw Error('Lost reply after WordPress commit');}return r;}};
  const hostTools=host?await import('./host-fixture-client.mjs'):null;
- const start=async(c=config)=>host?hostTools.childHost({config:c,site:wrapped,fetchImpl,now:()=>clock}):createPilotService({config:c,site:wrapped,fetchImpl,now:()=>clock});service=await start();
+ const hostOrigin=wiring?await hostTools.freeOrigin():null;
+ const start=async(c=config)=>host?hostTools.childHost({config:c,site:wrapped,fetchImpl,now:()=>clock,...(wiring&&c===config?{origin:hostOrigin}:{})}):createPilotService({config:c,site:wrapped,fetchImpl,now:()=>clock});service=await start();
+ try{gateway=wiring?await (await import('../private-site/wiring-fixture.mjs')).wiringFixture({site,database:dir+'/'+width+'-source.sqlite',publication_origin:hostOrigin}):null;}catch(e){await service.close();throw e;}
  const restart=async()=>{await service.close();service=await start();};
  const dispatch=(t,a,i)=>service.dispatch(t,a,i),control=site.controlSnapshot();let last;
  const measurement=gsc?await (await import('../gsc-measurement/verification.mjs')).verification({dispatch,rig,site,width,dir,config,restart,host,counts:()=>({posts,gets})}):null;
  return {
   async route(req){const u=new URL(req.url());
+   if(gateway&&!u.pathname.startsWith('/backend/')){const response=await gateway.route(req);if(measurement&&u.pathname.startsWith('/api/wordpress-publication/')){const override=await measurement.response(req,response.status,response.body.toString());if(override)return override;}return response;}
    if(u.pathname.startsWith('/api/wordpress-publication/')){const response=host?await fetch(service.origin+u.pathname+u.search,{method:req.method(),headers:{'content-type':'application/json',authorization:req.headers().authorization,origin:config.authority.redirectOrigin},body:req.postData()}):await service.handle(new Request(req.url(),{method:req.method(),headers:req.headers(),body:req.postData()}));const body=await response.text();if(measurement){const override=await measurement.response(req,response.status,body);if(override)return override;}if(response.status!==200)console.log('Pilot fixture request denied',u.pathname,body);return {status:response.status,contentType:'application/json',body};}
    if(u.pathname.startsWith('/backend/')){const r=await transport({url:backend+u.pathname.slice(8)+u.search,method:req.method(),headers:req.headers(),body:req.method()==='POST'?req.postDataJSON():undefined});return {status:r.status,contentType:'application/json',body:JSON.stringify(r.data)};}
    if(u.pathname==='/api/product-source')return {status:200,contentType:'application/json',body:JSON.stringify(await scanOwnedSite(site,dir+'/'+width+'-source.sqlite'))};
@@ -60,6 +63,6 @@ export async function verification({site,transport,rig,width,gsc=false,host=fals
   },
   async stale(token,version_id,{view,page,newer}){const count=posts;await view.locator('.wp-history').click();await view.locator('.wp-status').filter({hasText:'已恢復'}).waitFor();assert.deepEqual(await dispatch(token,'history',{version_id}),last);assert.equal(posts,count);await assert.rejects(dispatch(token,'preview',{version_id}));console.log('PASS pilot historical v1 record retained after saved v2; no write grant required');if(measurement)await measurement.stale({token,version_id,view,page,newer});},
   async grantChecks(version_id){const t=rig.issue('owner');try{await site.expire();assert.equal((await site.call(site.path(site.target))).status,200,'independent read lease');await site.revoke();const before=gets;assert.deepEqual(await dispatch(t,'history',{version_id}),last);assert.equal(gets,before);if(host){clock=config.read_grant.expires_at+1;service.clock();const bytes=readFileSync(config.storage_directory+'/journal.json');await assert.rejects(dispatch(t,'readback',{version_id,intent_id:last.at(-1).id}));assert.equal(gets,before);assert.deepEqual(await dispatch(t,'history',{version_id}),last);assert.deepEqual(readFileSync(config.storage_directory+'/journal.json'),bytes);console.log('PASS Node host read lease expired: reconciliation denied before WP GET; history unchanged and readable');}}finally{rig.retire(t);}},
-  async finish(){await service.close();assert.deepEqual(site.controlSnapshot(),control);}
+  async finish(){try{if(gateway){const proof=gateway.proof();assert.equal(proof.wordpress_proxy_calls.POST,2);assert.equal(proof.routes['/api/product-source'],1);writeFileSync(dir+'/'+width+'-wiring-proof.json',JSON.stringify(proof,null,2));console.log('PASS private wiring '+width+'px: actual source/publication/WordPress proxy HTTP, 2 WP POST, new-origin runtime/CSP');}}finally{try{await gateway?.close();}finally{await service.close();}}assert.deepEqual(site.controlSnapshot(),control);}
  };
 }

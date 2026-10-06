@@ -8,7 +8,7 @@ Before：單站 service 可由測試 route 呼叫，但沒有自己的 Node HTTP
 
 `host.example.json` 預設 closed；實際設定與 WordPress credential 都是 server-only 絕對路徑，owner-owned、0600、不可symlink/hardlink，config≤64KiB。store目錄0700、journal0600，同UID，既有32MiB journal上限與fsync/rename保留。正式入口只接受owner_site；isolated_fixture、IPC傳輸與clock/fault control只在explicit test child entry，沒有從正式runtime import進去，Vercel output亦不帶fixture。
 
-真 HTTP listen限`127.0.0.1`明確port。固定7個publication action，精確Host／Origin，無query、無absolute target、duplicate header拒絕；Bearer每次由原authority核對，cookie／forwarded header不替代身份。POST只接受JSON，普通body≤4096 bytes、measurement≤2100000 bytes，headers≤16KiB、最多32 connections；body讀取5秒、headers10秒、完整request15秒，上游HTTPS每call10秒及3MB response cap，不跟redirect。錯誤／health／readiness不回secret、path、grant、tenant或journal內容。health/readiness只證明listener及本機journal未進入uncertain狀態，不等於上游可用或發布授權有效。
+真 HTTP listen限`127.0.0.1`明確port。固定7個publication action，精確Host／Origin，無query、無absolute target、duplicate header拒絕；Bearer每次由原authority核對，cookie／forwarded header不替代身份。POST只接受JSON，普通body≤4096 bytes、measurement≤2100000 bytes，headers≤16KiB、最多32 connections；body讀取5秒、headers10秒、requestTimeout 15秒（接收完整 request 的期限，不是 handler／整段上游工作的總期限），上游HTTPS每call10秒及3MB response cap，不跟redirect。錯誤／health／readiness不回secret、path、grant、tenant或journal內容。health/readiness只證明listener及本機journal未進入uncertain狀態，不等於上游可用或發布授權有效。
 
 SIGTERM／SIGINT停止新接單，最多30秒等進行中handler和socket都結束，成功才釋放writer.lock並exit0；超時關socket、保留lock並exit1。SIGKILL同樣留下lock，重啟fail closed。pending操作已由原publisher在POST前durable寫入；回應遺失仍unknown，不能因client斷線或重啟重送。沒有自動 crash unlock／多writer／host disaster recovery。
 

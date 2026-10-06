@@ -1,0 +1,12 @@
+{
+  "width": 1280,
+  "old_driver": 19584,
+  "new_driver": 19600,
+  "old_service": 19560,
+  "new_service": 19592,
+  "exact_measurement": true,
+  "exact_history": true,
+  "fresh_session": true,
+  "transport": "actual loopback HTTP to child process",
+  "remaining": "original fixture broker/SQL/site remain alive; not host disaster recovery"
+}
