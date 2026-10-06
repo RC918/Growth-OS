@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+**2026-10-06 最新 Core：三頁正式WP theme／內容垂直候選（未部署）。** 父核Reviewer `01a10f18-4cc4-766d-8ba4-0bde0f4f73cd` APPROVE_WITH_DEFERRED_DEBT PR25 `b7d2e93e01793d3cb33a6709fbcdacd1892d0006`，獨立 `feat/private-site-theme` stacked base `feat/private-site-schema`。只有明確產品頁輸出單一Product name/description；About/Privacy為控制頁，Privacy已知公司/聯絡/資源區域與待核SMTP/analytics/保留刪除分列，public_ready=false。新schema/nativeAuth→真WPscanner→Save/freshlogin/Review→gateway/publisher兩POST publish/restore、unknown GET-only、控制頁SQL/HTML不變、1280/390鍵盤及journal readonly recovery PASS，[逐點證據](docs/Private_Site_Theme_驗證_2026-10-06.md)。完整WPfiles/MariaDB/scannerSQLite共同備份還原依父允許先拆下一slice，交[候選manifest](prototype/private-site/theme/recovery-manifest.json)，NOT_IMPLEMENTED_NOT_RUN，不能以journal恢復替代。未hosted連線/部署/本人登入/新增grant/費用，P3 limiter/CIaction不擴修，frozenRC與worktree不動。待exactCI/Preview與既有Reviewer；CoreMilestoneProgress=1、maintenance=0。
+
+以下PR25為已接受前一輪。
+
 **2026-10-06 最新 Core：新專案非RC schema／RLS／Save–Review候選（未部署）。** 父核PR24 `3cc7d84776de88f7e5f480426369353735ac9ae1` APPROVE_WITH_DEFERRED_DEBT；獨立 `feat/private-site-schema` stacked base `feat/private-site-wiring`。14表／14原SELECT policies／24函式與exact ACL manifest、future-default不變、closed writer＋四支EXECUTE activation/disable、無identityseed，準備[未來一次批准包](prototype/private-site/schema/README.md)。隔離native PostgreSQL/GoTrue/PostgREST與1280/390 Save→真logout→fresh native login→exact readback/Review、unknown GET-only、tenant/ACL拒絕PASS，[逐點證據](docs/Private_Site_Schema_驗證_2026-10-06.md)。本輪重入誤採thread最初PR19初始化，未改branch或既有內容，最小SYSTEMIC_FIX將最新派工優先核對提升AGENTS入口；未動CLI/loader。未連hosted／舊DB27／key／Ownerlogin，無DataAPI／持久grant／部署／費用變更。待exact CI/Preview與既有Reviewer，非自行APPROVE；CoreMilestoneProgress=1、maintenance=0。三頁正式theme另slice、P3 debt沿用不擴修。
 
 以下PR24為已接受前一輪。

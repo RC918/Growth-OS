@@ -1,0 +1,155 @@
+{
+  "format": 1,
+  "public_ready": false,
+  "operator": {
+    "name": "古德茉莉科技股份有限公司",
+    "english_name": "Good Morning Digital Co., Ltd.",
+    "email": "hello@gmdgrowth.com",
+    "candidate_domain": "gmdgrowth.com"
+  },
+  "blockers": [
+    "retention_and_deletion",
+    "actual_smtp_analytics_third_parties",
+    "actual_logs_and_data_flows",
+    "rights_and_effective_date",
+    "public_deployment_approval"
+  ],
+  "pages": [
+    {
+      "slug": "growth-os",
+      "path": "/growth-os/",
+      "kind": "product",
+      "title": "Growth OS｜開發中的網站內容改善產品",
+      "meta_description": "Growth OS 正在開發從產品網址產出可檢視的內容改善建議、確認版本、授權發布與觀測資料的流程。目前仍在驗證，尚無真實流量改善結果。",
+      "product_name": "Growth OS",
+      "description": "Growth OS 是開發中的網站內容改善產品。產品方向是從一個產品頁網址開始，提供有來源的標題、搜尋摘要及產品描述建議，讓使用者檢視與調整，再確認要使用的版本。",
+      "sections": [
+        {
+          "heading": "從網址開始，查看可確認的內容改善",
+          "blocks": [
+            {
+              "paragraph": "我們正在驗證從網址、第一份可用成果、版本確認，到授權發布及效果觀測的連續流程。已有隔離環境中的保存、重新登入讀回、版本確認與受控 WordPress 發布／恢復測試；這些工程測試不代表所有網站已可使用，也不代表正式服務已上線。"
+            }
+          ]
+        },
+        {
+          "heading": "使用者應能知道哪些事",
+          "blocks": [
+            {
+              "paragraph": "改善建議應讓使用者看見來源、原文與建議的差異，以及仍需確認的資訊。發布前應核對目標頁與確切版本。沒有取得觀測資料時，效果應顯示未知，不以零或推測代替。"
+            }
+          ]
+        },
+        {
+          "heading": "目前狀態",
+          "blocks": [
+            {
+              "paragraph": "Growth OS 仍在開發與試點準備階段。網站格式與平台支援有範圍限制，尚未提供任意網站的相容性承諾。目前沒有可公布的真實流量改善數據，也不保證搜尋曝光、排名或營收成果。"
+            },
+            {
+              "paragraph": "關於本次試點的範圍，請見「關於／試點說明」。"
+            }
+          ]
+        }
+      ],
+      "source": "docs/pilot-content/growth-os.md",
+      "source_sha256": "6d42c61312022de07bdead66f36cf060e32239f4d8dd05a60f0c64fd8cee3f15"
+    },
+    {
+      "slug": "about",
+      "path": "/about/",
+      "kind": "control",
+      "title": "關於 Growth OS 與內容試點",
+      "meta_description": "說明 Growth OS 開發中產品的內容試點範圍：先核對單頁改善、版本與發布紀錄，再觀察可取得的資料；不以測試結果宣稱流量成長。",
+      "product_name": null,
+      "description": null,
+      "sections": [
+        {
+          "heading": "營運者與聯絡",
+          "blocks": [
+            {
+              "paragraph": "Growth OS 由古德茉莉科技股份有限公司（Good Morning Digital Co., Ltd.）開發。聯絡信箱為 hello@gmdgrowth.com；候選網站網域為 gmdgrowth.com，尚未公開上線。"
+            }
+          ]
+        },
+        {
+          "heading": "為什麼準備這個試點",
+          "blocks": [
+            {
+              "paragraph": "這個網站擬用於介紹開發中的 Growth OS，並驗證一個小範圍的內容改善流程。試點計畫只將「Growth OS 產品介紹」列為改善頁；本頁及隱私說明不納入改善寫入。"
+            }
+          ]
+        },
+        {
+          "heading": "我們要核對的內容",
+          "blocks": [
+            {
+              "paragraph": "在公開試點獲准並完成建置後，我們計畫核對改善前後的文字、使用者確認的版本、實際發布讀回與可恢復的發布前內容。若取得適當授權及資料，再觀察對應頁面的搜尋曝光與點擊。"
+            },
+            {
+              "paragraph": "搜尋資料可能尚未累積或無法取得。缺少資料會記為未知，不補零；前後數值的不同也不能直接解釋為內容改善造成的效果。搜尋曝光、搜尋點擊及到站訪問不是同一種指標。"
+            }
+          ]
+        },
+        {
+          "heading": "開發與試點的界線",
+          "blocks": [
+            {
+              "paragraph": "目前僅有受控環境的工程驗證。本站試點內容、站點建置、公開發布與資料連接仍須個別核定，尚無可公布的真實流量成果。這不是向外部商家提供已完成驗證服務的承諾。"
+            }
+          ]
+        }
+      ],
+      "source": "docs/pilot-content/about.md",
+      "source_sha256": "89fc4d629bffc2827f3fe823a785d9aaf5290742515dacc18d7d5f3b8060d3f5"
+    },
+    {
+      "slug": "privacy",
+      "path": "/privacy/",
+      "kind": "control",
+      "title": "Growth OS 試點網站隱私說明（草稿）",
+      "meta_description": "本試點网站隱私說明尚待依實際主機、記錄與資料服務配置核對；目前不能據此推定已啟用特定分析、登入或追蹤服務。",
+      "product_name": null,
+      "description": null,
+      "sections": [
+        {
+          "heading": "這份說明的狀態",
+          "blocks": [
+            {
+              "paragraph": "網站尚在建置準備階段。以下資訊必須依實際配置確認後，才能形成適用於公開網站的完整說明。"
+            }
+          ]
+        },
+        {
+          "heading": "已確認的營運資訊",
+          "blocks": [
+            {
+              "paragraph": "營運者為古德茉莉科技股份有限公司（Good Morning Digital Co., Ltd.）；聯絡信箱為 hello@gmdgrowth.com，候選網域為 gmdgrowth.com。"
+            },
+            {
+              "paragraph": "目前已確認的資源配置為 AWS 與 Supabase 新加坡區域，以及既有 Zoho 美國資料中心。這些資訊不表示本候選網站已部署、已將訪客資料傳送至上述服務，或已啟用 SMTP、分析及第三方連接。Brevo Free 的實際設定仍待核對。"
+            }
+          ]
+        },
+        {
+          "heading": "公開前必須核對",
+          "blocks": [
+            {
+              "list": [
+                "實際接收網站資料的服務、資料項目、連線／伺服器記錄與各自用途：待核。",
+                "是否使用 cookies、嵌入內容、分析或其他追蹤技術，以及用途與選擇方式：待核；不預設已啟用或不存在。",
+                "本三頁候選不提供會員、商店或表單；SMTP、郵件傳送及第三方實際接線尚待核對，不能推定已啟用。",
+                "是否連接搜尋資料服务、取得的資料與授權用途：待核；目前工程候選不等於已建立連接。",
+                "各類資料的保存期間、刪除方式、接收者及跨境處理情形：待核。",
+                "適用地區、使用者權利及請求處理方式：待核，不宣稱已符合特定法規或取得認證。",
+                "正式生效日期、後續修改與通知方式：待核。"
+              ]
+            }
+          ]
+        }
+      ],
+      "source": "docs/pilot-content/privacy.md",
+      "source_sha256": "477d199d715983a77afda3b5348eec8837a522c62f644852ac35a6c36c37342e"
+    }
+  ]
+}
