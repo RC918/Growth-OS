@@ -5,6 +5,9 @@
 ## 當前授權與基準
 
 
+**2026-10-06 私有主機 closed bootstrap 離線交付。** 以已審PR27 `eec7a640c26878a33139179522d495463b7c382c` 為base，`feat/private-host-bootstrap`。固定Node24官方SHA／git-object source bundle、NVMe by-id/serial/signature與Owner精確receipt gate、UUID mount每次啟動檢查、nologin帳號與closed systemd初始化、JSON結果/退出；[執行及一次批准範圍](prototype/private-site/bootstrap/README.md)。12個synthetic gates＋13個既有gateway/host契約PASS，無真disk/OS/hosted mutation。實機套件版本、disk mapping與格式化批准未取得；SMTP/Auth/TLS/DB/WP秘密、image/Compose初始化與完整privateapp均留下一階段。無UI變更／無boundedRC重跑；待exact CI/Preview/source artifact與既有Reviewer，不自行APPROVE。CoreMilestoneProgress=1（Mac執行closed bootstrap的可審artifact），maintenance=0。
+
+
 **2026-10-06 最新 Core：共同 stopped-writer cut／全新隔離 target 恢復（未部署）。** 父核已審 PR26 `f08c30d748bf73bbf9ab96496f428fa23bc12abb`，獨立 `feat/private-site-recovery` stacked base `feat/private-site-theme`。WP 真 tmpfs files／MariaDB一致性邏輯資料／scanner SQLite backup API／既有 readonly journal，加本機native14表與新credentials UUID連結，一個checkpoint後原服務全退出才啟動新target。1280/390 fresh native session exact version/review/audit/history、3頁raw/meta/controls/filemetadata、SQL/defaultACL/autoRLS、secret/grant不復活、unknown GET-only／mixed/hash/incomplete/nonempty/crashlock拒絕PASS；[逐點證據](docs/Private_Site_Recovery_驗證_2026-10-06.md)。候選限已知三頁/allowlist，非任意WP/hostedAuth全站備份。CI/Preview exact receipt 見本輪PR，交既有Reviewer `01a10f3b-3546-72bb-b3d1-4a37140556ea`，非Primary自行APPROVE。CoreMilestoneProgress=1、maintenance=0；無hosted/SSH/DNS/磁碟/費用/持久grant/Owner登入/RC操作，frozen/舊worktree未動，不另建治理修復。沒有獨立必要Core自動續開，待Owner整體部署批准；retention/credentials/destructive restore/preflight另批。
 
 以下 PR26 為已接受前一輪。

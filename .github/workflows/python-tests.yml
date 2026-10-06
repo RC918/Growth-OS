@@ -12,6 +12,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Private host bootstrap synthetic gates (no devices or hosted calls)
+        run: python3 -B -m unittest discover -s prototype/private-site/bootstrap -p 'test_*.py' -v
+      - name: Build and verify exact-commit bootstrap source bundle
+        run: |
+          mkdir /tmp/growth-bootstrap-source
+          python3 -B prototype/private-site/bootstrap/bundle.py build --head "$(git rev-parse HEAD)" --file /tmp/growth-bootstrap-source/source.tar > /tmp/growth-bootstrap-source/receipt.json
+          python3 -B - <<'PYVERIFY'
+          import json, subprocess
+          receipt = json.load(open('/tmp/growth-bootstrap-source/receipt.json'))
+          subprocess.run(['python3', '-B', 'prototype/private-site/bootstrap/bundle.py', 'verify', '--head', receipt['head'], '--file', '/tmp/growth-bootstrap-source/source.tar', '--sha256', receipt['bundle_sha256']], check=True)
+          PYVERIFY
+      - name: Preserve deployable closed-bootstrap source (separate from evidence)
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-host-bootstrap-source
+          path: /tmp/growth-bootstrap-source/
+          retention-days: 7
+          if-no-files-found: error
       - name: Public audit tests
         working-directory: prototype/public-audit
         run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py
