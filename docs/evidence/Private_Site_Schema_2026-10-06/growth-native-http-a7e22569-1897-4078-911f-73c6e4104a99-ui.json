@@ -1,0 +1,36 @@
+[
+  {
+    "width": 1280,
+    "save_posts": 1,
+    "review_posts": 1,
+    "native_logout_refresh_revoked": true,
+    "fresh_server_jwt": true,
+    "exact_payload": true,
+    "exact_review": true,
+    "lost_save_and_review_get_only": true,
+    "viewer_read_no_write": true,
+    "sql_delta": {
+      "versions": 1,
+      "reviews": 1,
+      "audit": 2
+    },
+    "horizontal_overflow": false
+  },
+  {
+    "width": 390,
+    "save_posts": 1,
+    "review_posts": 1,
+    "native_logout_refresh_revoked": true,
+    "fresh_server_jwt": true,
+    "exact_payload": true,
+    "exact_review": true,
+    "lost_save_and_review_get_only": true,
+    "viewer_read_no_write": true,
+    "sql_delta": {
+      "versions": 1,
+      "reviews": 1,
+      "audit": 2
+    },
+    "horizontal_overflow": false
+  }
+]

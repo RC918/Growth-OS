@@ -1,0 +1,2732 @@
+{
+  "candidate": "private-site-schema",
+  "run": "growth-native-http-a7e22569-1897-4078-911f-73c6e4104a99",
+  "started_at": "2026-10-06T02:16:35.105Z",
+  "scope": "ephemeral native Auth/PostgREST HTTP; no WP/persistent RC/email OTP",
+  "http": [
+    {
+      "action": "native admin create owner",
+      "status": 200
+    },
+    {
+      "action": "native admin create viewer",
+      "status": 200
+    },
+    {
+      "action": "native admin create foreign",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "schema before reload",
+      "status": 404
+    },
+    {
+      "action": "installed writer closed",
+      "status": 404
+    },
+    {
+      "action": "owner Save",
+      "status": 200
+    },
+    {
+      "action": "exact saved version",
+      "status": 200
+    },
+    {
+      "action": "pre-Review native logout",
+      "status": 204
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "owner exact Review",
+      "status": 200
+    },
+    {
+      "action": "exact Review readback",
+      "status": 200
+    },
+    {
+      "action": "native logout",
+      "status": 204
+    },
+    {
+      "action": "logged out refresh rejected",
+      "status": 400
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "fresh exact version",
+      "status": 200
+    },
+    {
+      "action": "fresh exact Review",
+      "status": 200
+    },
+    {
+      "action": "anon organizations denied",
+      "status": 401
+    },
+    {
+      "action": "anon organization_members denied",
+      "status": 401
+    },
+    {
+      "action": "anon sites denied",
+      "status": 401
+    },
+    {
+      "action": "anon audit_events denied",
+      "status": 401
+    },
+    {
+      "action": "anon business_profiles denied",
+      "status": 401
+    },
+    {
+      "action": "anon growth_opportunities denied",
+      "status": 401
+    },
+    {
+      "action": "anon opportunity_sources denied",
+      "status": 401
+    },
+    {
+      "action": "anon opportunity_decisions denied",
+      "status": 401
+    },
+    {
+      "action": "anon content_versions denied",
+      "status": 401
+    },
+    {
+      "action": "anon content_reviews denied",
+      "status": 401
+    },
+    {
+      "action": "anon content_action_plans denied",
+      "status": 401
+    },
+    {
+      "action": "anon search_observation_versions denied",
+      "status": 401
+    },
+    {
+      "action": "anon growth_goals denied",
+      "status": 401
+    },
+    {
+      "action": "anon growth_goal_turns denied",
+      "status": 401
+    },
+    {
+      "action": "anon RPC denied",
+      "status": 401
+    },
+    {
+      "action": "anon RPC denied",
+      "status": 401
+    },
+    {
+      "action": "direct PATCH denied",
+      "status": 403
+    },
+    {
+      "action": "direct DELETE denied",
+      "status": 403
+    },
+    {
+      "action": "direct POST denied",
+      "status": 403
+    },
+    {
+      "action": "direct POST denied",
+      "status": 403
+    },
+    {
+      "action": "exact Save replay",
+      "status": 200
+    },
+    {
+      "action": "exact Review replay",
+      "status": 200
+    },
+    {
+      "action": "replay changed payload",
+      "status": 400
+    },
+    {
+      "action": "stale expected version",
+      "status": 409
+    },
+    {
+      "action": "duplicate Review request",
+      "status": 409
+    },
+    {
+      "action": "wrong source digest",
+      "status": 400
+    },
+    {
+      "action": "unchecked Review",
+      "status": 400
+    },
+    {
+      "action": "absent legacy RPC save_first_result_draft",
+      "status": 404
+    },
+    {
+      "action": "absent legacy RPC create_content_draft",
+      "status": 404
+    },
+    {
+      "action": "absent legacy RPC save_goal_turn",
+      "status": 404
+    },
+    {
+      "action": "absent legacy RPC save_business_profile",
+      "status": 404
+    },
+    {
+      "action": "absent legacy RPC model_trial_reserve",
+      "status": 404
+    },
+    {
+      "action": "unknown Save request readback",
+      "status": 200
+    },
+    {
+      "action": "wrong signature read",
+      "status": 401
+    },
+    {
+      "action": "wrong signature write",
+      "status": 401
+    },
+    {
+      "action": "login viewer",
+      "status": 200
+    },
+    {
+      "action": "native GET user viewer",
+      "status": 200
+    },
+    {
+      "action": "viewer OrgA read",
+      "status": 200
+    },
+    {
+      "action": "viewer Save denied",
+      "status": 403
+    },
+    {
+      "action": "viewer Review denied",
+      "status": 403
+    },
+    {
+      "action": "login foreign",
+      "status": 200
+    },
+    {
+      "action": "native GET user foreign",
+      "status": 200
+    },
+    {
+      "action": "foreign OrgA read",
+      "status": 200
+    },
+    {
+      "action": "foreign Save denied",
+      "status": 403
+    },
+    {
+      "action": "foreign Review denied",
+      "status": 403
+    },
+    {
+      "action": "native delete foreign identity",
+      "status": 200
+    },
+    {
+      "action": "deleted native user rejected",
+      "status": 403
+    },
+    {
+      "action": "deleted identity own org hidden",
+      "status": 200
+    },
+    {
+      "action": "deleted identity Save denied",
+      "status": 403
+    },
+    {
+      "action": "deleted identity Review denied",
+      "status": 403
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "login viewer",
+      "status": 200
+    },
+    {
+      "action": "native GET user viewer",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "login owner",
+      "status": 200
+    },
+    {
+      "action": "native GET user owner",
+      "status": 200
+    },
+    {
+      "action": "login viewer",
+      "status": 200
+    },
+    {
+      "action": "native GET user viewer",
+      "status": 200
+    },
+    {
+      "action": "writer disabled at cleanup",
+      "status": 403
+    }
+  ],
+  "checks": {
+    "network_internal": true,
+    "host_ports": 0,
+    "native_migrations": 70,
+    "auth_functions_owner": "supabase_auth_admin",
+    "elevated_application_roles": 0,
+    "native_users": 3,
+    "jwt_source": "GoTrue password grant; unmodified returned token accepted by native Auth and PostgREST",
+    "jwt_algorithm": "HS256",
+    "jwt_audience": "authenticated",
+    "jwt_max_lifetime_seconds": 300,
+    "schema_candidate": {
+      "catalog": {
+        "tables": [
+          {
+            "rls": true,
+            "name": "audit_events",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "business_profiles",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "content_action_plans",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "content_reviews",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "content_versions",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "growth_goal_turns",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "growth_goals",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "growth_opportunities",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "opportunity_decisions",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "opportunity_sources",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "organization_members",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "organizations",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "search_observation_versions",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "sites",
+            "owner": "postgres"
+          }
+        ],
+        "policies": [
+          {
+            "name": "audit_read_owner",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "audit_events",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "business_profiles_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "business_profiles",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "content_action_plans_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "content_action_plans",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "content_reviews_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "content_reviews",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "content_versions_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "content_versions",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "goal_turns_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "growth_goal_turns",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "goals_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "growth_goals",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "growth_opportunities_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "growth_opportunities",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "opportunity_decisions_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "opportunity_decisions",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "opportunity_sources_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "opportunity_sources",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "members_read_workspace",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "organization_members",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "organizations_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "organizations",
+            "using": "private.has_org_role(id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "observation_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "search_observation_versions",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "sites_read_workspace",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "sites",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          }
+        ],
+        "acl": [
+          {
+            "table": "audit_events",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "business_profiles",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "content_action_plans",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "content_reviews",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "content_versions",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "growth_goal_turns",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "growth_goals",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "growth_opportunities",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "opportunity_decisions",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "opportunity_sources",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "organization_members",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "organizations",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "search_observation_versions",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "sites",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          }
+        ],
+        "functions": [
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_content_digest(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_decode_utf8(bytea)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_fact(jsonb,jsonb,jsonb,boolean)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_json_bounds(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_keys(jsonb,text[])"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_refs(jsonb,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_request_digest(uuid,uuid,uuid,uuid,integer,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_require(boolean,text)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_strings(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_text(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_url(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_utf16_length(text)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_valid_payload(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.guard_url_parent()"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.guard_url_version()"
+          },
+          {
+            "anon": false,
+            "auth": true,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": true,
+            "service": false,
+            "signature": "private.has_org_role(uuid,text[])"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.observation_keys(jsonb,text[])"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.observation_path(text)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": true,
+            "service": false,
+            "signature": "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": true,
+            "service": false,
+            "signature": "private.save_url_result_draft_impl(uuid,uuid,uuid,integer,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.url_source_identity(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.valid_search_observation(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "review_url_result(uuid,uuid,uuid,text,text,text,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "save_url_result_draft(uuid,uuid,uuid,integer,jsonb)"
+          }
+        ],
+        "future_table_api_grants": 0
+      },
+      "defaults_unchanged": true,
+      "default_acl_sha256": "ba77140f0acda18885dcb67076baef13f188457590923900c24e4c2fd8cbf3e3",
+      "ensure_rls_unchanged": true,
+      "ensure_rls": {
+        "enabled": "O",
+        "function_md5": "38023de38c24fd6d445393010eacf54d"
+      },
+      "auth_functions_unchanged": true,
+      "unsafe_defaults_rejected_atomically": true,
+      "reapply_rejected_without_changes": true,
+      "new_future_table": {
+        "rls": true,
+        "anon": false,
+        "auth": false,
+        "service": false
+      }
+    },
+    "schema_reload": true,
+    "save_logout_fresh_before_review": true,
+    "fresh_native_login_exact_readback": true,
+    "logout_revokes_refresh": true,
+    "schema_negatives": {
+      "anonymous_tables_denied": 14,
+      "anonymous_rpcs_denied": 2,
+      "direct_writes_and_truncate_denied": true,
+      "replay_exact_zero_delta": true,
+      "changed_or_stale_replay_rejected": true,
+      "duplicate_review_rejected": true,
+      "wrong_digest_and_unchecked_rejected": true,
+      "legacy_rpcs_absent": true,
+      "unknown_readback_zero_delta": true,
+      "catalog": {
+        "tables": [
+          {
+            "rls": true,
+            "name": "audit_events",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "business_profiles",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "content_action_plans",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "content_reviews",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "content_versions",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "growth_goal_turns",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "growth_goals",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "growth_opportunities",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "opportunity_decisions",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "opportunity_sources",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "organization_members",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "organizations",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "search_observation_versions",
+            "owner": "postgres"
+          },
+          {
+            "rls": true,
+            "name": "sites",
+            "owner": "postgres"
+          }
+        ],
+        "policies": [
+          {
+            "name": "audit_read_owner",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "audit_events",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "business_profiles_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "business_profiles",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "content_action_plans_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "content_action_plans",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "content_reviews_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "content_reviews",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "content_versions_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "content_versions",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "goal_turns_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "growth_goal_turns",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "goals_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "growth_goals",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "growth_opportunities_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "growth_opportunities",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "opportunity_decisions_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "opportunity_decisions",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "opportunity_sources_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "opportunity_sources",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "members_read_workspace",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "organization_members",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "organizations_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "organizations",
+            "using": "private.has_org_role(id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "observation_read_members",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "search_observation_versions",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          },
+          {
+            "name": "sites_read_workspace",
+            "check": null,
+            "roles": [
+              "authenticated"
+            ],
+            "table": "sites",
+            "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+            "command": "SELECT"
+          }
+        ],
+        "acl": [
+          {
+            "table": "audit_events",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "business_profiles",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "content_action_plans",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "content_reviews",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "content_versions",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "growth_goal_turns",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "growth_goals",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "growth_opportunities",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "opportunity_decisions",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "opportunity_sources",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "organization_members",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "organizations",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "search_observation_versions",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          },
+          {
+            "table": "sites",
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "SELECT"
+          }
+        ],
+        "functions": [
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_content_digest(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_decode_utf8(bytea)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_fact(jsonb,jsonb,jsonb,boolean)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_json_bounds(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_keys(jsonb,text[])"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_refs(jsonb,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_request_digest(uuid,uuid,uuid,uuid,integer,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_require(boolean,text)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_strings(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_text(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_url(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_utf16_length(text)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.fr_valid_payload(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.guard_url_parent()"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.guard_url_version()"
+          },
+          {
+            "anon": false,
+            "auth": true,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": true,
+            "service": false,
+            "signature": "private.has_org_role(uuid,text[])"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.observation_keys(jsonb,text[])"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.observation_path(text)"
+          },
+          {
+            "anon": false,
+            "auth": true,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": true,
+            "service": false,
+            "signature": "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": true,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": true,
+            "service": false,
+            "signature": "private.save_url_result_draft_impl(uuid,uuid,uuid,integer,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.url_source_identity(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": false,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "private.valid_search_observation(jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": true,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "review_url_result(uuid,uuid,uuid,text,text,text,jsonb)"
+          },
+          {
+            "anon": false,
+            "auth": true,
+            "owner": "postgres",
+            "config": [
+              "search_path=\"\""
+            ],
+            "definer": false,
+            "service": false,
+            "signature": "save_url_result_draft(uuid,uuid,uuid,integer,jsonb)"
+          }
+        ],
+        "future_table_api_grants": 0
+      }
+    },
+    "viewer_org_a_rows": 1,
+    "foreign_org_a_rows": 0,
+    "business_counts": {
+      "audit": 2,
+      "reviews": 1,
+      "versions": 1
+    },
+    "denied_business_delta": 0,
+    "deleted_native_identity_denied": true,
+    "ui": [
+      {
+        "width": 1280,
+        "save_posts": 1,
+        "review_posts": 1,
+        "native_logout_refresh_revoked": true,
+        "fresh_server_jwt": true,
+        "exact_payload": true,
+        "exact_review": true,
+        "lost_save_and_review_get_only": true,
+        "viewer_read_no_write": true,
+        "sql_delta": {
+          "versions": 1,
+          "reviews": 1,
+          "audit": 2
+        },
+        "horizontal_overflow": false
+      },
+      {
+        "width": 390,
+        "save_posts": 1,
+        "review_posts": 1,
+        "native_logout_refresh_revoked": true,
+        "fresh_server_jwt": true,
+        "exact_payload": true,
+        "exact_review": true,
+        "lost_save_and_review_get_only": true,
+        "viewer_read_no_write": true,
+        "sql_delta": {
+          "versions": 1,
+          "reviews": 1,
+          "audit": 2
+        },
+        "horizontal_overflow": false
+      }
+    ],
+    "final_acl": {
+      "tables": [
+        {
+          "rls": true,
+          "name": "audit_events",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "business_profiles",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "content_action_plans",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "content_reviews",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "content_versions",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "growth_goal_turns",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "growth_goals",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "growth_opportunities",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "opportunity_decisions",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "opportunity_sources",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "organization_members",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "organizations",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "search_observation_versions",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "sites",
+          "owner": "postgres"
+        }
+      ],
+      "policies": [
+        {
+          "name": "audit_read_owner",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "audit_events",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "business_profiles_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "business_profiles",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "content_action_plans_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "content_action_plans",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "content_reviews_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "content_reviews",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "content_versions_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "content_versions",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "goal_turns_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "growth_goal_turns",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "goals_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "growth_goals",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "growth_opportunities_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "growth_opportunities",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "opportunity_decisions_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "opportunity_decisions",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "opportunity_sources_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "opportunity_sources",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "members_read_workspace",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "organization_members",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "organizations_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "organizations",
+          "using": "private.has_org_role(id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "observation_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "search_observation_versions",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "sites_read_workspace",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "sites",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        }
+      ],
+      "acl": [
+        {
+          "table": "audit_events",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "business_profiles",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "content_action_plans",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "content_reviews",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "content_versions",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "growth_goal_turns",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "growth_goals",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "growth_opportunities",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "opportunity_decisions",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "opportunity_sources",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "organization_members",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "organizations",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "search_observation_versions",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "sites",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        }
+      ],
+      "functions": [
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_content_digest(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_decode_utf8(bytea)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_fact(jsonb,jsonb,jsonb,boolean)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_json_bounds(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_keys(jsonb,text[])"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_refs(jsonb,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_request_digest(uuid,uuid,uuid,uuid,integer,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_require(boolean,text)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_strings(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_text(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_url(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_utf16_length(text)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_valid_payload(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.guard_url_parent()"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.guard_url_version()"
+        },
+        {
+          "anon": false,
+          "auth": true,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": true,
+          "service": false,
+          "signature": "private.has_org_role(uuid,text[])"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.observation_keys(jsonb,text[])"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.observation_path(text)"
+        },
+        {
+          "anon": false,
+          "auth": true,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": true,
+          "service": false,
+          "signature": "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": true,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": true,
+          "service": false,
+          "signature": "private.save_url_result_draft_impl(uuid,uuid,uuid,integer,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.url_source_identity(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.valid_search_observation(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": true,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "review_url_result(uuid,uuid,uuid,text,text,text,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": true,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "save_url_result_draft(uuid,uuid,uuid,integer,jsonb)"
+        }
+      ],
+      "future_table_api_grants": 0
+    },
+    "closed_after_disable": {
+      "tables": [
+        {
+          "rls": true,
+          "name": "audit_events",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "business_profiles",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "content_action_plans",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "content_reviews",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "content_versions",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "growth_goal_turns",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "growth_goals",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "growth_opportunities",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "opportunity_decisions",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "opportunity_sources",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "organization_members",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "organizations",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "search_observation_versions",
+          "owner": "postgres"
+        },
+        {
+          "rls": true,
+          "name": "sites",
+          "owner": "postgres"
+        }
+      ],
+      "policies": [
+        {
+          "name": "audit_read_owner",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "audit_events",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "business_profiles_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "business_profiles",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "content_action_plans_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "content_action_plans",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "content_reviews_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "content_reviews",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "content_versions_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "content_versions",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "goal_turns_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "growth_goal_turns",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "goals_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "growth_goals",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "growth_opportunities_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "growth_opportunities",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "opportunity_decisions_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "opportunity_decisions",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "opportunity_sources_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "opportunity_sources",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "members_read_workspace",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "organization_members",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "organizations_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "organizations",
+          "using": "private.has_org_role(id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "observation_read_members",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "search_observation_versions",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        },
+        {
+          "name": "sites_read_workspace",
+          "check": null,
+          "roles": [
+            "authenticated"
+          ],
+          "table": "sites",
+          "using": "private.has_org_role(organization_id, ARRAY['owner'::text, 'editor'::text, 'viewer'::text])",
+          "command": "SELECT"
+        }
+      ],
+      "acl": [
+        {
+          "table": "audit_events",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "business_profiles",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "content_action_plans",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "content_reviews",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "content_versions",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "growth_goal_turns",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "growth_goals",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "growth_opportunities",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "opportunity_decisions",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "opportunity_sources",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "organization_members",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "organizations",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "search_observation_versions",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        },
+        {
+          "table": "sites",
+          "grantee": "authenticated",
+          "grantable": false,
+          "privilege": "SELECT"
+        }
+      ],
+      "functions": [
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_content_digest(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_decode_utf8(bytea)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_fact(jsonb,jsonb,jsonb,boolean)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_json_bounds(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_keys(jsonb,text[])"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_refs(jsonb,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_request_digest(uuid,uuid,uuid,uuid,integer,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_require(boolean,text)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_strings(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_text(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_url(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_utf16_length(text)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.fr_valid_payload(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.guard_url_parent()"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.guard_url_version()"
+        },
+        {
+          "anon": false,
+          "auth": true,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": true,
+          "service": false,
+          "signature": "private.has_org_role(uuid,text[])"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.observation_keys(jsonb,text[])"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.observation_path(text)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": true,
+          "service": false,
+          "signature": "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": true,
+          "service": false,
+          "signature": "private.save_url_result_draft_impl(uuid,uuid,uuid,integer,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.url_source_identity(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "private.valid_search_observation(jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "review_url_result(uuid,uuid,uuid,text,text,text,jsonb)"
+        },
+        {
+          "anon": false,
+          "auth": false,
+          "owner": "postgres",
+          "config": [
+            "search_path=\"\""
+          ],
+          "definer": false,
+          "service": false,
+          "signature": "save_url_result_draft(uuid,uuid,uuid,integer,jsonb)"
+        }
+      ],
+      "future_table_api_grants": 0
+    }
+  },
+  "cleanup": {
+    "checked_at": "2026-10-06T02:16:58.796Z",
+    "ownership_checked": true,
+    "remaining_containers": "",
+    "remaining_networks": "",
+    "persistent_root_absent": true,
+    "old_markers_unchanged": true,
+    "errors": []
+  },
+  "result": "PASS"
+}

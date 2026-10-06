@@ -1,5 +1,7 @@
 # Growth-OS 工作總則
 
+- **重入先核最新派工**：Cloud thread 最初的初始化／checkout 要求可能已完成或被後續 Core 取代。先對照最新父訊息與恢復摘要，寫明當前 Core／branch／base／envelope，讀 status/diff 後才決定是否切分支；不能直接重播最初 PR19／`feat/passwordless-workspace`／`6663b7f` 要求。摘要與目前可見指令有時間順序疑義時先只讀核現況，不以歷史 checkout 測試新 Core；依 [recovery 第4條](.codex/skills/recovery-reconciliation/SKILL.md) 保留可歸屬修改。
+
 - 唯一產品主線是 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)：URL → First Useful Result → Review → Publish → Measure。
 - `AGENTS.md`＋repo `SKILL.md` 為正式治理來源；每個 Core task 開始前依序直接讀本檔 → [mission-guardrail](.codex/skills/mission-guardrail/SKILL.md) → [engineering-executor](.codex/skills/engineering-executor/SKILL.md)，異常再讀 [recovery-reconciliation](.codex/skills/recovery-reconciliation/SKILL.md)。`skills.list` 空不阻塞，也不觸發環境維修。
 - Owner 2026-10-04 核定內部順序：①URL 到編輯／保存／新 session 取回／確切版確認核心可靠→②執行端受控站單平台授權／發布／讀回／恢復→③版本／頁／發布時間／基線／後續量測→④Owner 自有真內容且開放搜尋站試點→⑤修正後外部商家。外部商家不是目前前提；具體門檻只引用唯一藍圖，不自行延伸 CSV 支線。方向不授權改 Owner 既有站、帳密、外部授權或費用。

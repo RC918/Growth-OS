@@ -1,0 +1,448 @@
+{
+  "version": 1,
+  "scope": "new-empty-project-only; build candidate, never remote authorization",
+  "creator": "postgres",
+  "tables": [
+    {
+      "schema": "public",
+      "name": "organizations",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "organization_members",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "sites",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "audit_events",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "business_profiles",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "growth_opportunities",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "opportunity_sources",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "opportunity_decisions",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "content_versions",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "content_reviews",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "content_action_plans",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "search_observation_versions",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "growth_goals",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    },
+    {
+      "schema": "public",
+      "name": "growth_goal_turns",
+      "rls": true,
+      "authenticated": [
+        "SELECT"
+      ],
+      "anon": [],
+      "service_role": [],
+      "direct_writes": []
+    }
+  ],
+  "policies": [
+    {
+      "name": "organizations_read_members",
+      "table": "organizations"
+    },
+    {
+      "name": "members_read_workspace",
+      "table": "organization_members"
+    },
+    {
+      "name": "sites_read_workspace",
+      "table": "sites"
+    },
+    {
+      "name": "audit_read_owner",
+      "table": "audit_events"
+    },
+    {
+      "name": "business_profiles_read_members",
+      "table": "business_profiles"
+    },
+    {
+      "name": "growth_opportunities_read_members",
+      "table": "growth_opportunities"
+    },
+    {
+      "name": "opportunity_sources_read_members",
+      "table": "opportunity_sources"
+    },
+    {
+      "name": "opportunity_decisions_read_members",
+      "table": "opportunity_decisions"
+    },
+    {
+      "name": "content_versions_read_members",
+      "table": "content_versions"
+    },
+    {
+      "name": "content_reviews_read_members",
+      "table": "content_reviews"
+    },
+    {
+      "name": "content_action_plans_read_members",
+      "table": "content_action_plans"
+    },
+    {
+      "name": "observation_read_members",
+      "table": "search_observation_versions"
+    },
+    {
+      "name": "goals_read_members",
+      "table": "growth_goals"
+    },
+    {
+      "name": "goal_turns_read_members",
+      "table": "growth_goal_turns"
+    }
+  ],
+  "functions": [
+    {
+      "signature": "private.observation_keys(jsonb,text[])",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.observation_path(text)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.valid_search_observation(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.has_org_role(uuid,text[])",
+      "authenticated": [
+        "EXECUTE"
+      ],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_require(boolean,text)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_keys(jsonb,text[])",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_text(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_strings(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_utf16_length(text)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_url(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_decode_utf8(bytea)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_content_digest(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_refs(jsonb,jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_fact(jsonb,jsonb,jsonb,boolean)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_json_bounds(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_valid_payload(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.fr_request_digest(uuid,uuid,uuid,uuid,integer,jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.url_source_identity(jsonb)",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.guard_url_parent()",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.guard_url_version()",
+      "authenticated": [],
+      "activation_execute": false,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.save_url_result_draft_impl(uuid,uuid,uuid,integer,jsonb)",
+      "authenticated": [],
+      "activation_execute": true,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "public.save_url_result_draft(uuid,uuid,uuid,integer,jsonb)",
+      "authenticated": [],
+      "activation_execute": true,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "private.review_url_result_impl(uuid,uuid,uuid,text,text,text,jsonb)",
+      "authenticated": [],
+      "activation_execute": true,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    },
+    {
+      "signature": "public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb)",
+      "authenticated": [],
+      "activation_execute": true,
+      "public": [],
+      "anon": [],
+      "service_role": []
+    }
+  ],
+  "schemas": {
+    "private": {
+      "authenticated": [
+        "USAGE"
+      ],
+      "expose_in_data_api": false
+    },
+    "public": {
+      "authenticated": [
+        "USAGE"
+      ]
+    }
+  },
+  "default_privileges": "assert existing postgres future-table defaults closed; change none",
+  "identities": "none; Auth users and owner membership initialized only under separate approval",
+  "sources": {
+    "supabase/migrations/202609280001_initial.sql": "023d8de7a29ff2b1910a15d0faf79cd1dee5187016d5c3cfbfe6a7ff3e101c61",
+    "supabase/migrations/202609280002_tenant_rls.sql": "11a534f60d59d9bea91f1e1d903843732ae321660b17a12bad9e752755963670",
+    "supabase/migrations/20260928160322_growth_opportunities_v1.sql": "d6651be4507a33774d8e87b9926fff85eb1bdd7be02b17785e3f9576cc90c244",
+    "supabase/migrations/20260929143139_content_draft_versions.sql": "2666d81c4cbaf2c8934ff1a08be4c64310ef99f427253841b29d887dfb4633e0",
+    "supabase/migrations/20260929150804_content_draft_review.sql": "7db0424fe14e6f1034419539440f1178e8f6fc15d08295c4b826e0536aa78d9a",
+    "supabase/migrations/20260929162849_content_action_plans.sql": "1193f7e6b252b2398c4f0e89b3eae77a927d2bb28ddc12c7b7d2ddab7235a173",
+    "supabase/migrations/20260930023345_search_observation_versions.sql": "61c69630a5970a718064739543cbe6262ccc99e98f7a23e5979859185a3b87fa",
+    "supabase/migrations/20260930112010_growth_goal_intake.sql": "1847dbc0af1b11c4f9c316f04cd26f14d2d5754c848cd12fb01337ca723308a7",
+    "supabase/drafts/first_result_save/proposal.sql": "c7ea292b44cbb038a6384fb178e9542905e99cd36db5e4a09ef3b23ccdb1d87d",
+    "supabase/drafts/url_result/proposal.sql": "c70b7492496f63cfebb0b5d618d063573fa0927892ea1ef05cf14e48c0915f4f",
+    "supabase/drafts/url_review/proposal.sql": "6039feb2f8e8932d10ef7bd01c26058b8f4724b56c8bab04f46e61d817ec568e"
+  },
+  "hashes": {
+    "install.sql": "bb13b326cb06cd6549af42a83474c386042123a1f4bb5321566c9c537f189a68",
+    "enable-save-review.sql": "e29d261aa9739318b7da9da050eb27cc717b228a8d0fc22900a2230958476da2",
+    "disable-save-review.sql": "4ade5b6beaef4549e0aefa381c818bbafabbe29e10a065e48db1107c92f7de0a"
+  }
+}

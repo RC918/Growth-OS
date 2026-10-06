@@ -156,6 +156,21 @@ jobs:
       - name: Private single-site wiring desktop and mobile workflow
         timeout-minutes: 6
         run: node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791 --wiring
+      - name: Non-RC empty-project schema contract
+        run: node --test prototype/private-site/schema/contract.test.mjs
+      - name: Non-RC schema native ACL Auth and desktop mobile Save Review
+        timeout-minutes: 10
+        run: node prototype/internal-rc/native-http-regression.mjs --mode growth-os-native-regression --schema-candidate
+      - name: Preserve non-RC schema evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-site-schema-evidence
+          path: |
+            /tmp/growth-native-http-*-evidence.json
+            /tmp/growth-native-http-*-ui.json
+            /tmp/growth-native-http-*.png
+          retention-days: 3
       - name: Preserve synthetic pilot evidence
         if: always()
         uses: actions/upload-artifact@v4
