@@ -4,10 +4,12 @@ import argparse
 import hashlib
 import io
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import tarfile
+import tempfile
 
 ROOTS = ('apps/web/', 'prototype/public-audit/', 'prototype/wordpress-pilot/',
          'prototype/wordpress-publish/', 'prototype/private-site/')
@@ -44,13 +46,47 @@ def build(head, output):
                 'files': {n: {'sha256': sha(data), 'bytes': len(data), 'mode': mode}
                           for n, (mode, data) in sorted(files.items())}}
     payload = json.dumps(manifest, sort_keys=True, indent=2).encode() + b'\n'
-    with open(output, 'xb') as f, tarfile.open(fileobj=f, mode='w', format=tarfile.USTAR_FORMAT) as tar:
-        for name, (mode, data) in [('SOURCE-MANIFEST.json', (0o644, payload)), *sorted(files.items())]:
-            info = tarfile.TarInfo(name)
-            info.size, info.mode, info.mtime = len(data), mode, 0
-            tar.addfile(info, io.BytesIO(data))
-    return {'head': head, 'bundle_sha256': sha(Path(output).read_bytes()),
-            'manifest_sha256': sha(payload), 'files': len(files)}
+    output = Path(output).absolute()
+    # A same-directory hard link publishes a complete inode atomically and refuses
+    # every existing destination (including dangling symlinks). Never rename over it.
+    directory = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+    temporary = None
+    published = False
+    try:
+        fd, name = tempfile.mkstemp(prefix=f'.{output.name}.', suffix='.tmp', dir=output.parent)
+        temporary = Path(name)
+        with os.fdopen(fd, 'wb') as f:
+            with tarfile.open(fileobj=f, mode='w', format=tarfile.USTAR_FORMAT) as tar:
+                for name, (mode, data) in [('SOURCE-MANIFEST.json', (0o644, payload)), *sorted(files.items())]:
+                    info = tarfile.TarInfo(name)
+                    info.size, info.mode, info.mtime = len(data), mode, 0
+                    tar.addfile(info, io.BytesIO(data))
+            f.flush()
+            os.fsync(f.fileno())
+        receipt = {'head': head, 'bundle_sha256': sha(temporary.read_bytes()),
+                   'manifest_sha256': sha(payload), 'files': len(files)}
+        verify(temporary, receipt['bundle_sha256'], head)
+        os.link(temporary, output)
+        published = True
+        os.fsync(directory)
+        temporary.unlink()
+        temporary = None
+        os.fsync(directory)
+        return receipt
+    except Exception as e:
+        if published:
+            raise RuntimeError('publication applied; durability/cleanup/receipt uncertain; '
+                               'verify existing output before any retry') from e
+        raise
+    finally:
+        # A killed process can leave this private temp. After publication retain it
+        # on failure for reconciliation; never remove or replace the final path.
+        try:
+            if temporary is not None and not published:
+                temporary.unlink()
+                os.fsync(directory)
+        finally:
+            os.close(directory)
 
 def verify(path, expected_hash, head, destination=None):
     require(re.fullmatch('[0-9a-f]{64}', expected_hash), 'trusted bundle SHA256 required')

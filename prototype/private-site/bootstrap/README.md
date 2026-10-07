@@ -30,6 +30,14 @@ python3 -B bundle.py verify --head "$APPROVED_HEAD" --file source.tar --sha256 "
 sudo python3 -B bundle.py verify --head "$APPROVED_HEAD" --file source.tar --sha256 "$APPROVED_BUNDLE_SHA256" --extract /opt/growth-os
 ```
 
+### Source tar 原子發布與中斷核對
+
+`build` 先在輸出同目錄建立0600私有暫存檔，完成原有 deterministic tar、flush/file fsync、逐檔驗證與hash，再以 hard link 原子發布，fsync父目錄、移除自身暫存、再次fsync父目錄後才回receipt。目標須為可信操作者控制的既有目錄，檔案系統須支援POSIX hard link與directory fsync；不支援就失敗，不降級為覆蓋式rename。新tar內容／hash與舊演算法相同，外部檔案權限固定0600。
+
+既有任何目標（有效／無效tar、目錄、symlink）均不覆蓋或刪除。兩個builder競爭同一個不存在目標時只有一個能發布。寫入中或發布前被中止，final尚不存在；發布後則是完整已驗證tar。中止可能留下 `.source.tar.<random>.tmp`；**暫存存在不表示未套用**。成功link後、unlink／receipt前失聯時，final與暫存可為同inode，此時依可信 exact HEAD／SHA256唯讀執行上述verify，成功即 `CONFIRMED_APPLIED`，不得重建／覆蓋。只有已確認屬於該次操作的暫存才可在另行收尾範圍中處置，不使用glob刪除。
+
+回傳STOP或缺receipt不證明未發布；尤其directory fsync／cleanup失敗可已發布但持久性或回傳未知。先查final及可信digest，無法核對即保留 `UNCERTAIN_RESULT`；既有錯誤tar則 `STATE_DIVERGED`，不自動修復。file／directory fsync提供檔案系統的持久性邊界；synthetic SIGKILL測試不證明斷電、硬體或Cloud平台跨task恢復，也不增加主機操作授權。Stage2證據見 [AR2紀錄](../../../docs/Autonomy_Readiness_Stage2_2026-10-07.md)。
+
 批准的 readonly前置：`cat /etc/os-release; uname -m; id; sudo -n true; df -B1 / /var; date -u`；需 Ubuntu24.04/x86_64。`/opt/growth-os`與`/opt/growth-node`既存即停。Node固定 v24.19.0，官方SHA已讀取並釘在 `artifacts.json`，本輪另下載實際Linux x64 archive核SHA一致；不是獨立驗過release簽章。
 
 套件操作前先核既有 apt sources／package policy，只有Ubuntu Noble官方archive與Docker官方Noble amd64來源可用；代理或mirror需另列可驗來源，不默認可信。無現成curl/CA時先從Ubuntu簽名索引安裝固定candidate版 `ca-certificates curl`。若需新增Docker apt來源，使用 [官方apt步驟](https://docs.docker.com/engine/install/ubuntu/#install-using-the-apt-repository)：獨立 `/etc/apt/keyrings/docker.asc`、`docker.sources`，Signed-By、noble、amd64，不覆蓋既有檔，不curl管線執行shell。執行 apt update 是明列主機寫入，僅批准後。

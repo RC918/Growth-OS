@@ -3,6 +3,10 @@ import datetime as dt
 import importlib.util
 import io
 import json
+import os
+import selectors
+import signal
+import stat
 from pathlib import Path
 import subprocess
 import tarfile
@@ -162,6 +166,155 @@ class Gates(unittest.TestCase):
                 with self.assertRaises(ValueError): b.install_closed(r)
 
 class Bundle(unittest.TestCase):
+    GOLDEN = 'bf490758bb494038e77da66649e91246253c73808c246b1c9da4917fdcf7c7bf'
+
+    @staticmethod
+    def fixture_git(*args):
+        if args[0] == 'ls-tree':
+            return b'100644 blob ' + b'b'*40 + b'\tprototype/private-site/bootstrap/bootstrap.py\0'
+        return b'# synthetic\n'
+
+    def test_legacy_bytes_and_sync_order(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(bundle, 'git', side_effect=self.fixture_git):
+            output = Path(tmp)/'source.tar'
+            calls = []
+            real_sync, real_link = os.fsync, os.link
+            def sync(fd):
+                calls.append('directory' if stat.S_ISDIR(os.fstat(fd).st_mode) else 'file')
+                return real_sync(fd)
+            def link(src, dst):
+                self.assertEqual(calls, ['file'])
+                bundle.verify(src, self.GOLDEN, 'a'*40)
+                calls.append('publish')
+                return real_link(src, dst)
+            with patch.object(bundle.os, 'fsync', side_effect=sync), patch.object(bundle.os, 'link', side_effect=link):
+                receipt = bundle.build('a'*40, output)
+            self.assertEqual(receipt['bundle_sha256'], self.GOLDEN)
+            self.assertEqual(calls, ['file', 'publish', 'directory', 'directory'])
+            self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(list(Path(tmp).iterdir()), [output])
+
+    def test_existing_paths_are_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(bundle, 'git', side_effect=self.fixture_git):
+            root = Path(tmp)
+            valid = root/'valid.tar'
+            bundle.build('a'*40, valid)
+            existing = root/'existing.tar'; existing.write_bytes(b'keep incomplete evidence')
+            dangling = root/'dangling.tar'; dangling.symlink_to(root/'missing')
+            linked = root/'linked.tar'; linked.symlink_to(valid)
+            directory = root/'directory'; directory.mkdir()
+            for output in (valid, existing, dangling, linked, directory):
+                before = output.lstat()
+                with self.subTest(path=output.name), self.assertRaises(FileExistsError):
+                    bundle.build('a'*40, output)
+                self.assertEqual(output.lstat(), before)
+            self.assertEqual(existing.read_bytes(), b'keep incomplete evidence')
+            bundle.verify(valid, self.GOLDEN, 'a'*40)
+            self.assertFalse(list(root.glob('.*.tmp')))
+
+    def child(self, output, stage):
+        # Test-only hooks: a real child stops at a precise boundary, then the
+        # parent SIGKILLs it. No fault flags exist in the production CLI.
+        script = r'''
+import sys, os
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import bundle
+bundle.git = lambda *a: (b'100644 blob '+b'b'*40+b'\tprototype/private-site/bootstrap/bootstrap.py\0') if a[0]=='ls-tree' else b'# synthetic\n'
+stage = sys.argv[3]
+def pause():
+    print('READY', flush=True)
+    sys.stdin.readline()
+if stage == 'writing':
+    original = bundle.tarfile.TarFile.addfile
+    def addfile(self, *a, **kw):
+        result = original(self, *a, **kw)
+        self.fileobj.flush()
+        pause()
+        return result
+    bundle.tarfile.TarFile.addfile = addfile
+elif stage in ('before', 'after', 'race'):
+    original = os.link
+    def link(*a, **kw):
+        if stage != 'after': pause()
+        result = original(*a, **kw)
+        if stage == 'after': pause()
+        return result
+    os.link = link
+elif stage == 'receipt':
+    original = bundle.build
+    def build(*a):
+        result = original(*a)
+        pause()
+        return result
+    bundle.build = build
+try:
+    print(bundle.build('a'*40, sys.argv[2]), flush=True)
+except FileExistsError:
+    sys.exit(3)
+'''
+        child = subprocess.Popen([sys.executable, '-B', '-c', script,
+                                  str(Path(bundle.__file__).parent), str(output), stage],
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        def cleanup():
+            if child.poll() is None: child.kill()
+            child.communicate(timeout=10)
+        self.addCleanup(cleanup)
+        with selectors.DefaultSelector() as selector:
+            selector.register(child.stdout, selectors.EVENT_READ)
+            self.assertTrue(selector.select(timeout=10), 'child failed to reach boundary')
+        self.assertEqual(child.stdout.readline().strip(), 'READY')
+        return child
+
+    def test_sigkill_boundaries_and_readonly_reconciliation(self):
+        for stage in ('writing', 'before', 'after', 'receipt'):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as tmp:
+                output = Path(tmp)/'source.tar'
+                child = self.child(output, stage)
+                child.kill()
+                stdout, stderr = child.communicate(timeout=10)
+                self.assertEqual(child.returncode, -signal.SIGKILL)
+                self.assertEqual((stdout, stderr), ('', ''))
+                leftovers = list(Path(tmp).glob('.source.tar.*.tmp'))
+                if stage in ('writing', 'before'):
+                    self.assertFalse(output.exists())
+                    self.assertEqual(len(leftovers), 1)
+                    if stage == 'before': bundle.verify(leftovers[0], self.GOLDEN, 'a'*40)
+                    else: self.assertNotEqual(bundle.sha(leftovers[0].read_bytes()), self.GOLDEN)
+                else:
+                    identity = output.stat()
+                    bundle.verify(output, self.GOLDEN, 'a'*40)
+                    if stage == 'after':
+                        self.assertEqual(len(leftovers), 1)
+                        self.assertEqual(leftovers[0].stat().st_ino, identity.st_ino)
+                    else: self.assertEqual(leftovers, [])
+                    with patch.object(bundle, 'git', side_effect=self.fixture_git), self.assertRaises(FileExistsError):
+                        bundle.build('a'*40, output)
+                    self.assertEqual(output.stat().st_ino, identity.st_ino)
+
+    def test_two_process_publication_race(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)/'source.tar'
+            children = [self.child(output, 'race') for _ in range(2)]
+            for child in children:
+                child.stdin.write('\n'); child.stdin.flush()
+            for child in children: child.communicate(timeout=10)
+            self.assertEqual(sorted(c.returncode for c in children), [0, 3])
+            bundle.verify(output, self.GOLDEN, 'a'*40)
+            self.assertFalse(list(Path(tmp).glob('.*.tmp')))
+
+    def test_sync_failure_after_publication_preserves_applied_output(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(bundle, 'git', side_effect=self.fixture_git):
+            output = Path(tmp)/'source.tar'
+            real_sync = os.fsync
+            def sync(fd):
+                if stat.S_ISDIR(os.fstat(fd).st_mode): raise OSError('synthetic directory sync failure')
+                return real_sync(fd)
+            with patch.object(bundle.os, 'fsync', side_effect=sync), self.assertRaisesRegex(RuntimeError, 'publication applied'):
+                bundle.build('a'*40, output)
+            bundle.verify(output, self.GOLDEN, 'a'*40)
+            self.assertEqual(len(list(Path(tmp).glob('.*.tmp'))), 1)
+
     def test_deterministic_exact_tree_and_tamper_refusals(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

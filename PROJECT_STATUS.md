@@ -4,6 +4,8 @@
 
 ## 當前授權與基準
 
+**2026-10-07 AR2-CLOUD-01：工程可靠性／自主執行驗證，CoreMilestoneProgress=0。** 最新派工在 `feat/private-host-bootstrap`，起點 `263e6f4d63cd18164284d6e56f67c93f2098cd5c`；窗口12:04–16:04 UTC，不是8小時試跑。source tar改同目錄完整暫存、fsync、原子不覆蓋發布，新增SIGKILL與並行builder synthetic驗證；舊HEAD的tar／manifest hash保持相同。17個bootstrap測試PASS。contract已接受；PR授權仍 `BLOCKED / AUTHORIZATION_PROPAGATION_FAILURE`，不重試、不繞route，Stage2不能報整體PASS。commit／push／exact CI／Preview及既有Reviewer、父controlled continuation按 [單一action／證據紀錄](docs/Autonomy_Readiness_Stage2_2026-10-07.md) 接續。無新產品能力、主機操作、登入或live URL／模型呼叫。
+
 
 **2026-10-06 私有主機 closed bootstrap 離線交付。** 以已審PR27 `eec7a640c26878a33139179522d495463b7c382c` 為base，`feat/private-host-bootstrap`。固定Node24官方SHA／git-object source bundle、NVMe by-id/serial/signature與Owner精確receipt gate、UUID mount每次啟動檢查、nologin帳號與closed systemd初始化、JSON結果/退出；[執行及一次批准範圍](prototype/private-site/bootstrap/README.md)。12個synthetic gates＋13個既有gateway/host契約PASS，無真disk/OS/hosted mutation。實機套件版本、disk mapping與格式化批准未取得；SMTP/Auth/TLS/DB/WP秘密、image/Compose初始化與完整privateapp均留下一階段。無UI變更／無boundedRC重跑；待exact CI/Preview/source artifact與既有Reviewer，不自行APPROVE。CoreMilestoneProgress=1（Mac執行closed bootstrap的可審artifact），maintenance=0。
 
