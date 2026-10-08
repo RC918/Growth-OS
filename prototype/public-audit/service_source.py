@@ -2,6 +2,114 @@
 from product_source import ProductParser, PageParser, clean, build_snapshot as build_product_snapshot
 import json
 import re
+from urllib.parse import urlsplit
+
+
+def static_subpage_preview(parser, snapshot, cite):
+    """URL-bound WebPage metadata plus an unambiguous local header introduction.
+
+    This is a static page introduction, never an assertion that the page is the
+    site's SoftwareApplication or that the extracted prose is independently true.
+    """
+    pages, entities, visited, invalid = [], [], 0, False
+    def walk(value, path, context=None, depth=0):
+        nonlocal visited, invalid
+        visited += 1
+        if depth > 32 or visited > 5000:
+            invalid = True
+            return
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                if visited > 5000: break
+                walk(child, f'{path}[{index}]', context, depth + 1)
+        elif isinstance(value, dict):
+            context = value.get('@context', context)
+            types = value.get('@type', [])
+            types = [types] if isinstance(types, str) else types
+            if isinstance(types, list):
+                if 'WebPage' in types: pages.append((value, types, path, context))
+                if any(t in ('Product', 'Service', 'SoftwareApplication') for t in types): entities.append((value, types))
+            for key, child in value.items():
+                if visited > 5000: break
+                if isinstance(child, (dict, list)): walk(child, path + '.' + key, context, depth + 1)
+    for index, raw in enumerate(parser.scripts[:20]):
+        try: walk(json.loads(raw), f'jsonld[{index + 1}]')
+        except (ValueError, RecursionError): invalid = True
+    if not pages: return None
+    refusal = {'snapshot': snapshot, 'page_type': 'not_supported_static_subpage', 'facts': {}, 'inferences': [],
+               'missing': ['子頁 URL、metadata 與唯一介紹區塊必須明確一致；含糊或衝突時不產生草稿。'], 'preview': None}
+    if invalid or len(parser.scripts) > 20 or len(pages) != 1: return refusal
+    page, types, path, context = pages[0]
+    final = snapshot['final_url']; parsed = urlsplit(final)
+    root = parsed.scheme + '://' + parsed.netloc + '/'
+    if types != ['WebPage'] or context not in ('https://schema.org', 'https://schema.org/', 'http://schema.org', 'http://schema.org/'): return refusal
+    if parsed.path in ('', '/') or page.get('@id') != final or page.get('url') != final: return refusal
+    if 'mainEntity' in page or 'mainEntityOfPage' in page: return refusal
+    # Only a clearly separate site-root application may coexist; never borrow
+    # its name, description, Offer or price for this subpage.
+    for entity, entity_types in entities:
+        if entity_types != ['SoftwareApplication'] or entity.get('url') != root or not str(entity.get('@id', '')).startswith(root + '#'):
+            return refusal
+    nodes = {n['locator']: n for n in parser.nodes}
+    def safe(node):
+        return not any(n['blocked'] or n['tag'] in ('form', 'input', 'textarea', 'select', 'button', 'template', 'script', 'a')
+                       or n['scope'] is not None or 'itemprop' in n['attrs'] or 'inert' in n['attrs']
+                       or n['attrs'].get('contenteditable', 'false').lower() != 'false'
+                       or n['attrs'].get('role', '').lower() in ('button', 'textbox', 'combobox', 'link')
+                       or re.search(r'(?:display\s*:\s*none|visibility\s*:\s*(?:hidden|collapse)|opacity\s*:\s*0(?:\D|$)|content-visibility\s*:\s*hidden)', n['attrs'].get('style', ''), re.I)
+                       for n in [node] + [nodes[a] for a in node['ancestors']])
+    def tag(name): return [n for n in parser.nodes if n['tag'] == name]
+    heads, titles, mains, headings = tag('head'), tag('title'), tag('main'), tag('h1')
+    canonicals = [n for n in tag('link') if 'canonical' in n['attrs'].get('rel', '').lower().split()]
+    def metas(key):
+        return [n for n in tag('meta') if key in (n['attrs'].get('name', '').lower(), n['attrs'].get('property', '').lower())]
+    descriptions = metas('description')
+    if any(len(group) != 1 for group in (heads, titles, mains, headings, canonicals, descriptions)): return refusal
+    title, meta, canonical = titles[0], descriptions[0], canonicals[0]
+    if any(n['parent'] != heads[0]['locator'] or not safe(n) for n in (title, meta, canonical)): return refusal
+    name, description = clean(' '.join(title['text'])), clean(meta['attrs'].get('content'))
+    if title['text_size'] >= 2000 or not 1 <= len(name) <= 200 or not 15 <= len(description) <= 500: return refusal
+    if canonical['attrs'].get('href') != final or clean(page.get('name')) != name or clean(page.get('description')) != description: return refusal
+    for key, expected in [('og:title', name), ('twitter:title', name), ('og:description', description), ('twitter:description', description), ('og:url', final), ('twitter:url', final)]:
+        matches = metas(key)
+        if len(matches) > 1 or any(n['parent'] != heads[0]['locator'] or not safe(n) or
+                                  (n['attrs'].get('content') if key.endswith(':url') else clean(n['attrs'].get('content'))) != expected for n in matches): return refusal
+    main, heading = mains[0], headings[0]
+    headers = [n for n in tag('header') if n['parent'] == main['locator']]
+    if len(headers) != 1 or not safe(main) or not safe(headers[0]) or heading['parent'] != headers[0]['locator']: return refusal
+    children = [n for n in parser.nodes if n['parent'] == headers[0]['locator']]
+    index = children.index(heading)
+    following = children[index + 1:]
+    if not following or following[0]['tag'] != 'p': return refusal
+    intro = following[0]
+    later_paragraphs = [n for n in parser.nodes[parser.nodes.index(heading) + 1:] if n['tag'] == 'p' and headers[0]['locator'] in n['ancestors']]
+    if later_paragraphs != [intro]: return refusal
+    for n in (heading, intro):
+        descendants = [child for child in parser.nodes if n['locator'] in child['ancestors']]
+        if not safe(n) or n.get('mixed_scope') or n['text_size'] >= 2000 or any(not safe(child) for child in descendants): return refusal
+    heading_text, intro_text = heading.get('value', ''), intro.get('value', '')
+    if not 1 <= len(heading_text) <= 200 or not 15 <= len(intro_text) <= 1000: return refusal
+    binding = [cite(path + '.url', final), cite(canonical['locator'] + '@href', final)]
+    def source(value, locations):
+        return {'kind': 'fact', 'verification': 'source_asserted', 'value': value,
+                'citations': [cite(location, value) for location in locations]}
+    facts = {'page_name': source(name, [title['locator'], path + '.name']),
+             'heading': source(heading_text, [heading['locator']]),
+             'intro_description': source(intro_text, [intro['locator']]),
+             'meta_description': source(description, [meta['locator'] + '@content', path + '.description'])}
+    def field(key):
+        f = facts[key]
+        return {'original': f['value'], 'suggested': f['value'], 'citations': f['citations'],
+                'change': 'unchanged', 'improvement_verified': False, 'reason': '保留原文；未產生改善。'}
+    return {'snapshot': snapshot, 'page_type': 'static_subpage', 'facts': facts,
+            'extraction': {'method': 'url_bound_webpage_header', 'limitations': [
+                '僅靜態子頁來源綁定；不驗證外部 CSS 可見性、產品事實或商業／搜尋改善。']},
+            'inferences': [{'kind': 'inference', 'value': '靜態子頁介紹',
+                            'basis': '唯一精確 URL WebPage／canonical／metadata，與同 header 的唯一標題及緊接介紹段落', 'citations': binding}],
+            'missing': [], 'preview': {'generation': 'extractive_rules', 'status': 'preview_only', 'published': False,
+                'source_snapshot_id': snapshot['id'], 'source_version': snapshot['version'],
+                'fields': {'title': field('page_name'), 'meta_description': field('meta_description'), 'description': field('intro_description')},
+                'pending_confirmation': ['僅靜態子頁來源對照與草稿預覽；保留原文未產生改善；不支援確認、匯出保存或發布。']}}
 
 def service_preview(parser, page, snapshot, cite, fact):
     """Static explicit ownership only; never infer a service from arbitrary prose."""
@@ -94,4 +202,6 @@ def build_snapshot(raw_url, *args, **kwargs):
     def fact(value, locator):
         return {'kind': 'fact', 'verification': 'source_asserted', 'value': value,
                 'citations': [cite(locator, value)]} if value else None
-    return service_preview(parser, page, snapshot, cite, fact) or result
+    service = service_preview(parser, page, snapshot, cite, fact)
+    if service is not None and service['preview'] is not None: return service
+    return static_subpage_preview(parser, snapshot, cite) or service or result

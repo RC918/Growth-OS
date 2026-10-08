@@ -1,5 +1,33 @@
 # 明確服務／工具來源與草稿預覽
 
+## 2026-10-08 子頁適配後續包（起點 7d511115）
+
+Owner 14:00 UTC 批准同包做到已下載真頁離線重驗、CI 與原 Reviewer。固定起點 `7d5111156b96d6c8fa02311bada279926b50bdc3`、原 branch／PR28／base 不變。以下早先 af4／RC 修正紀錄保留為歷史，不代表本次新候選已完成真頁驗收。
+
+來源依據為父轉交既有只讀 task `01a11b9a-c504-73e4-b719-a529ef08e0be` 的最小 DOM 分析回條：既有 HTML 13131 bytes，SHA256 `7061a900b6aad2703ff9f7ce46a44cfa95f6be3ed0370bd686f1d32f32a6713d`。唯一精確 URL WebPage 與 canonical／title／meta 一致；唯一 main 的直接 header 含唯一 H1，後方緊接直接 p 為子頁 intro；前方宣傳 p、form 整棵與補充 section 不屬本次 intro。全站 SoftwareApplication 指向根頁，不能冒充子頁。這是來源分析證據，不是 Primary 持有／重新抓取真頁；真頁 raw 未進 Git。本次 Primary 無目標 GET、route 切換或完整 raw 中繼。
+
+實作限 `service_source.py`、候選 `service-result.html/mjs`、相依原 fixture／tests 與本紀錄：
+
+- 新頁型 `static_subpage`／method `url_bound_webpage_header`，明確稱「靜態子頁介紹」。分開 `page_name`、`heading`、`intro_description`、`meta_description`；H1 不必等於頁名，meta 不替代 intro。
+- WebPage 唯一，schema.org context／單一型別、`@id`／`url`／唯一 canonical 精確等於 final URL，title／meta 與 WebPage name／description 正規化一致；OG／Twitter 相同欄位若存在也必須唯一且一致。競爭 WebPage、local service/product/software、URL／metadata 衝突均拒絕。僅允許根 URL 與根 fragment ID 的全站 SoftwareApplication 共存，完全不取其文案／價格。
+- 唯一 main／全頁 H1／main 直接 header；H1 直接屬 header，intro 是其後緊接的唯一 p。其他 header 段落競爭、間插元素、hidden／interactive／form／template／mixed scope／截斷均拒絕；不依賴 hostname、class、id、節點序號或特定文案。延續 HTML 20000 節點／128 深度與 JSON 20 scripts／5000 nodes／32 深度限制。
+- title、meta、intro 三欄均保留抽取的正規化原文，各有原始位置引用，`unchanged`、`improvement_verified=false`。頁型判定只表示靜態來源綁定，不表示外部 CSS 可見性、原站宣稱或商業改善已驗證。
+- 既有嚴格 service/software 成功契約優先且未修改；frozen HTML／JS／product parser／hash／assert 全部原樣。UI 新頁型沿用編輯／還原／複製及拒絕後保留成功成果；確認／JSON 匯出／handoff 及下游商品 payload 驗證仍拒絕新頁型。
+
+本機驗證：`prototype/public-audit` 下 47 Python tests PASS（原 44＋3 子頁測試，負向表列含 metadata／URL／結構／內容歸屬與安全預算拒絕）；26 Node contracts PASS（6 frozen＋20 既有 Review／save-intent）；1280／390 真 loopback HTTP→parser→UI PASS。兩尺寸均核分離欄位、未改善標記、引用、編輯／複製／還原、衝突保留、scripted downstream clicks 零 request／download；原商品每尺寸22次真下載及 service/software 回歸保持通過。全部 HTML fixtures 自造且非秘密，不使用真頁原文。
+
+本機命令：`python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py test_service_source.py`；`node --test prototype/internal-rc/contract.test.mjs prototype/public-audit/first-result-review.test.mjs prototype/public-audit/first-result-save-intent.test.mjs`；`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node prototype/public-audit/product-source-ui.e2e.mjs`。`git diff --check` PASS；frozen檔案對起點 `git diff --exit-code` 回0。
+
+| 本機 log | SHA256 |
+|---|---|
+| `/tmp/subpage-python.log` | `a93d5faf20a62a35f52a2f77066a600b71f8379179f1da75407c3d440ff3b15a` |
+| `/tmp/subpage-contract.log` | `a6a5c853b93ad65488b4bb0afe44d2f0a93de67a92f01c0bccae710c034bf750` |
+| `/tmp/subpage-ui.log` | `315489385cf1489432407578ac50f2e4f4094a9410de90cc5a1301118e6a5f06` |
+
+Verification loop：PLAN／CODE／UNIT-CONTRACT／BUILD-RUN／DOM／DESKTOP-MOBILE 適用且上述本機通過；DB/Auth／Save/logout/login/readback／tenant mutation 不適用，本包未開啟。只維持既有暫存 fixture 與下游拒絕證據。新 exact commit／remote／CI／Preview receipt 由交審訊息補齊，不追加自引用 commit；既有只讀 task 使用保留真頁離線跑新 parser 與原 Reviewer 最終判定均 **PENDING**，不可把 synthetic PASS 或 exit 0 當真頁適配通過。CoreMilestoneProgress 只計本機窄子頁草稿能力，非已驗商業成效；不開下一包。
+
+---
+
 起點：`62c295f03b0c11d5a50b88c912a4b0b4414284f1`，`feat/private-host-bootstrap`，既有 Draft PR28／base `feat/private-site-recovery`。Owner 2026-10-08 11:11 UTC批准服務／工具頁來源對照與草稿預覽；父後續明確准許先交付嚴格結構的獨立工程，指定真站適配保持未驗證。舊窗口不沿用，停止條件為本功能交既有Reviewer，不開下一Core或8小時測試。
 
 ## 結果與來源契約

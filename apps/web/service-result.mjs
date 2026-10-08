@@ -2,9 +2,9 @@ import {createResultHandoff} from './first-result-handoff.mjs';
 import {createResultReview,reviewFields} from './first-result-review.mjs';
 const $=id=>document.getElementById(id),node=(tag,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 let current=null,review=null,epoch=0,controller=null,activeExport=null;
-const previewOnly=()=>current?.page_type==='service'||current?.page_type==='software_application';
+const previewOnly=()=>['service','software_application','static_subpage'].includes(current?.page_type);
 const handoff=createResultHandoff({button:$('handoff-result'),cancelButton:$('cancel-handoff'),getReview:()=>previewOnly()?null:review,isBusy:()=>!!controller,report:actionReport});
-const names={product_name:'產品名稱',title:'Title',meta_description:'Meta description',description:'產品描述',features:'特性',use:'用途',specifications:'规格',price:'價格',certifications:'認證',performance:'效果',comparisons:'比較',guarantees:'保證'};
+const names={page_name:'子頁名稱',heading:'頁面標題',intro_description:'子頁介紹',product_name:'產品名稱',title:'Title',meta_description:'Meta description',description:'產品描述',features:'特性',use:'用途',specifications:'规格',price:'價格',certifications:'認證',performance:'效果',comparisons:'比較',guarantees:'保證'};
 const errors={page_complexity:"頁面結構超過安全解析上限。網址已保留，請改用較簡單的公開產品頁。",invalid_url:'請提供公開 HTTPS 產品網址。',private_target:'禁止內網、localhost 或非公開 IP。請選公開產品頁。',unsupported_query:'請改用沒有 query 參數的公開產品 canonical 網址。',restricted_content:'頁面需要登入或含密碼表單；請提供不需登入的公開產品頁。',timeout:'讀取超時。網址已保留，可重試或改用另一公開產品頁。',too_large:'頁面超過 1 MB。請使用較小的公開產品頁。',robots_unavailable:'無法核對 robots 規則，已停止讀取；可改用允許讀取的公開頁。',robots_disallowed:'網站不允許此讀取，請選其他公開來源。',not_html:'目前只支援公開 HTML 產品頁，請更換網址。',cross_domain_redirect:'網址轉到不同網域；請核對並直接提交目的站的公開產品網址。',too_many_redirects:'跳轉超過限制，請提供產品頁的最終網址。',dns_failed:'無法解析網域，請檢查拼字或稍後重試。',dns_busy:'解析服務忙碌，請稍後重試。',peer_mismatch:'實際連線與安全驗證位址不同，已停止讀取。',rate_limit:'本小時請求上限已到，請稍後重試。',busy:'目前有讀取正在處理，請稍後重試。',snapshot_capacity:'暫存來源容量已滿，無法保存新成果。若本頁已有成功成果，仍可複製或匯出備份；匯出不會釋放容量。目前沒有自行清理功能。'};
 function report(text,error=false){$('source-feedback').textContent=text;$('source-feedback').classList.toggle('error',error);}
 function actionReport(text){$('result-feedback').textContent=text;}
@@ -17,7 +17,7 @@ function refreshReview(restore=false){
  if(!review)return;const v=review.view();
  const limited=previewOnly();
  for(const id of ['review-confirm','export-result','handoff-result']){$(id).hidden=limited;$(id).disabled=limited;}
- $('result-title').textContent=limited?'服務／工具頁 · 來源對照與草稿預覽':'第一份搜尋內容改善包';
+ $('result-title').textContent=current.page_type==='static_subpage'?'靜態子頁介紹 · 來源對照與草稿預覽':limited?'服務／工具頁 · 來源對照與草稿預覽':'第一份搜尋內容改善包';
  $('result-scope').hidden=!limited;
  $('result-storage-hint').hidden=limited;
  if(activeExport&&(activeExport.review!==review||activeExport.token!==v.token)){
@@ -27,7 +27,7 @@ function refreshReview(restore=false){
  $('review-status').textContent=(v.pending?'正在綁定目前版本…':v.valid?'內容版本 '+v.revision+'；'+(v.receipt?'已確認目前內容與事實核對狀態。':'修改或來源變更後需重新確認。'):'三欄各需 1–2000 字；目前版本尚不能確認。')+' 僅本頁記憶體，重新整理會失去 Review。';
  $('review-confirm').setAttribute('aria-busy',String(v.pending));$('review-confirm').textContent=v.pending?'正在確認目前版本…':'確認目前版本';
  $('review-confirm').disabled=limited||!!controller||v.pending||!v.canConfirm||!!v.receipt;
- if(limited){$('review-state').textContent='僅草稿預覽 · 未保存 · 未發布';$('review-status').textContent='頁型：'+(current.page_type==='service'?'服務':'軟體工具')+'；來源文字不等於已驗證事實，文字差異不等於改善。';}
+ if(limited){$('review-state').textContent='僅草稿預覽 · 未保存 · 未發布';$('review-status').textContent='頁型：'+(current.page_type==='static_subpage'?'靜態子頁介紹':current.page_type==='service'?'服務':'軟體工具')+'；來源文字不等於已驗證事實，文字差異不等於改善。';}
  for(const key of reviewFields){
   const input=$('review-'+key),check=$('review-check-'+key);if(!input)continue;
   const invalid=!v.fields[key].trim()||v.fields[key].length>2000;input.setAttribute('aria-invalid',String(invalid));$('review-error-'+key).textContent=invalid?names[key]+'需填寫 1–2000 字，不能只有空白。':'';
@@ -40,14 +40,15 @@ function refreshReview(restore=false){
 function render(r){
  $('source-fallback').replaceChildren();
  if(!r.preview){
+  if(r.page_type==='not_supported_static_subpage'){$('source-fallback').append(node('h2','無法可靠綁定靜態子頁介紹'),node('p',r.missing.join(' ')));report('本次未產生新草稿；網址與最後成功成果保留。');return;}
   if(r.page_type==='not_supported_service'){$('source-fallback').append(node('h2','無法可靠辨識單一服務／工具'),node('p',r.missing.join(' ')));report('本次未產生新草稿；網址與最後成功成果保留。');return;}
   const box=$('source-fallback');box.append(node('h2',r.page_type==='product'?'還缺必要的公開描述':'請選擇要改善的產品頁'));
   box.append(node('p',r.page_type==='product'?'已找到產品名稱，但無法將公開描述明確歸屬於此產品，或存在多份矛盾描述。請提供具明確產品名稱與描述的產品頁；不會借用配送或其他商品文字。':'尚不能可靠辨識單一產品。只在這個缺口請你選擇產品；以下候選尚未驗證。'));
   for(const candidate of r.inferences.filter(v=>v.url)){const b=node('button','使用候選：'+candidate.label);b.type='button';b.addEventListener('click',()=>{$('source-url').value=candidate.url;$('source-form').requestSubmit();});box.append(b,node('p',candidate.url));}
   report('本次未產生新成果；網址保留，請選產品候選或改用公開產品頁。');return;
  }
- const next=createResultReview(r);review?.invalidate();review=next;current=r;$('copy-fallback').hidden=true;actionReport('');
- $('retained-source').textContent='最後成功成果來源：'+r.snapshot.final_url+' · 版本 '+r.snapshot.version+'。新輸入、失敗或取消不會替換此成果；重新整理頁面將失去本頁保留內容，請匯出備份。';
+ const next=createResultReview(r);review?.invalidate();review=next;current=r;names.description=r.page_type==='static_subpage'?'子頁介紹':'產品描述';$('copy-fallback').hidden=true;actionReport('');
+ $('retained-source').textContent='最後成功成果來源：'+r.snapshot.final_url+' · 版本 '+r.snapshot.version+'。新輸入、失敗或取消不會替換此成果；重新整理頁面將失去本頁保留內容，'+(previewOnly()?'請複製需要的草稿文字。':'請匯出備份。');
  $('result-section').hidden=false;const fields=$('result-fields');fields.replaceChildren();
  for(const [key,f] of Object.entries(r.preview.fields)){
   const card=node('article');card.className='field';card.append(node('h3',names[key]));const compare=node('div');compare.className='comparison';
@@ -68,7 +69,7 @@ function render(r){
  for(const item of r.inferences)$('source-facts').append(node('p','inference · '+item.value+' — '+item.basis));
  $('source-facts').append(node('p','unknown · '+r.missing.map(k=>names[k]||k).join('、')));
  $('source-citations').replaceChildren(...s.citations.map(c=>{const a=node('article');a.append(node('strong',c.id+' · '+c.locator),node('p','「'+c.quote+'」'),node('p',c.url+' · '+c.source_version));return a;}));
- report(previewOnly()?'服務／工具草稿已備妥；請比較來源，保留原文的欄位未產生改善。':'第一份文本已備妥，請檢查來源及待確認資訊；尚未發布。');
+ report(previewOnly()?'來源對照草稿已備妥；請比較來源，保留原文的欄位未產生改善。':'第一份文本已備妥，請檢查來源及待確認資訊；尚未發布。');
 }
 $('source-form').addEventListener('submit',async event=>{
  event.preventDefault();if(controller)return;review?.invalidate();controller=new AbortController();refreshReview();const own=controller,ticket=++epoch;$('source-fallback').replaceChildren();$('source-submit').disabled=true;sourceBusy(true);$('source-url').removeAttribute('aria-invalid');$('source-cancel').hidden=false;report('正在安全讀取公開頁與整理來源…');

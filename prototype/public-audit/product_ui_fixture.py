@@ -11,7 +11,7 @@ from product_source import build_snapshot
 from scanner import ScanError
 from test_product_source import PRODUCT, MIXED_PRODUCT, WOO_PRODUCT, WOO_MICRO_NO_SHORT, WOO_MICRO_NAME_CONFLICT, fixture
 from urllib.parse import urlsplit
-from test_service_source import service_html
+from test_service_source import service_html, subpage_html
 def fetch(url):
     parts=urlsplit(url)
     if parts.hostname!='example.com':raise ScanError('private_target','Fixture boundary rejects all other hosts.')
@@ -23,6 +23,10 @@ def fetch(url):
     if parts.path=='/catalog':return 200,{'content-type':'text/html'},b'<main><h1>Catalog</h1><a href="/products/bolt">Bolt A</a></main>'
     if parts.path=='/service':return 200,{'content-type':'text/html'},service_html()
     if parts.path=='/software':return 200,{'content-type':'text/html'},service_html('SoftwareApplication')
+    if parts.path in ('/subpage','/subpage-conflict'):
+        body=subpage_html(url)
+        if parts.path=='/subpage-conflict':body=body.replace(b'</header>',b'<p>Another competing introductory paragraph.</p></header>')
+        return 200,{'content-type':'text/html'},body
     if parts.path=='/service-conflict':return 200,{'content-type':'text/html'},service_html().replace(b'<h1 itemprop="name">Workshop help',b'<h1 itemprop="name">Other')
     if parts.path=='/complexity':return 200,{'content-type':'text/html'},b'<div>'*150+b'x'+b'</div>'*150
     if parts.path=='/woo-micro':return 200,{'content-type':'text/html'},WOO_MICRO_NO_SHORT
