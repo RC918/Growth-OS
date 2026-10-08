@@ -14,6 +14,11 @@
 <p id="result-scope" hidden>服務／工具頁與靜態子頁僅提供來源對照、編輯與複製草稿；不支援版本確認、JSON 匯出／匯入、工作區保存或發布。來源整理尚未證明內容更好或搜尋效果提升。</p>
 <p>這是可複製的文本預覽；原站陳述尚未獨立查核，不包含新增規格、價格、認證或效果保證。</p>
 <p id="retained-source"></p><p id="review-status" role="status" aria-live="polite"></p><p class="hint">只核對目前三段內容涉及的事實；無關的未知項不必補填。使用者修改不會自動取得來源支持。本頁確認不代表工作區核准或發布授權。</p>
+<section id="intro-panel" hidden aria-labelledby="intro-heading"><h3 id="intro-heading">介紹改寫候選</h3>
+<p>本次受控測試的候選可在這裡比較與審閱；本頁不會呼叫模型。</p>
+<label for="intro-file">載入本次候選</label><input id="intro-file" type="file" accept="application/json,.json" aria-describedby="intro-status">
+<p id="intro-status" role="status" aria-live="polite">尚未載入改寫候選。</p><div id="intro-output"></div>
+<button id="intro-apply" type="button" disabled>套用到介紹草稿</button></section>
 <div id="result-fields"></div><div class="actions"><button id="review-confirm" type="button">確認目前版本</button><button id="review-cancel" type="button">取消修改，還原原建議</button></div><div class="actions"><button id="copy-result" type="button">複製全部文本</button><button id="export-result" type="button">匯出成果與來源 JSON</button></div>
 <div class="actions"><button id="handoff-result" type="button">登入後保存待審草稿</button><button id="cancel-handoff" type="button" hidden>取消保存交接</button></div>
 <p id="result-feedback" role="status" aria-live="polite"></p>

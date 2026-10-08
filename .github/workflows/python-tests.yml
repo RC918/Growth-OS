@@ -51,6 +51,8 @@ jobs:
         run: node --test prototype/owner-workspace/workspace-api.test.mjs prototype/owner-workspace/saved-result-review.test.mjs prototype/owner-workspace/revision-marker.test.mjs
       - name: First result page review contract checks
         run: node --test prototype/public-audit/first-result-review.test.mjs
+      - name: Introduction trial offline contract and budget
+        run: node --test prototype/intro-trial/intro-trial.test.mjs
       - name: Unwired first result save-intent contract checks
         run: node --test prototype/public-audit/first-result-save-intent.test.mjs
       - name: Browser baseline data contract checks

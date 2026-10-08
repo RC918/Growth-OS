@@ -1,7 +1,10 @@
+import {createIntroPanel} from './intro-candidate-panel.mjs';
 import {createResultHandoff} from './first-result-handoff.mjs';
 import {createResultReview,reviewFields} from './first-result-review.mjs';
 const $=id=>document.getElementById(id),node=(tag,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 let current=null,review=null,epoch=0,controller=null,activeExport=null;
+const introPanel=createIntroPanel({root:$('intro-panel'),getReport:()=>current,getReview:()=>review});
+$('intro-panel').addEventListener('intro-applied',()=>{refreshReview(true);$('review-origin-description').textContent='已套用改寫候選；引用僅供對照，仍需人工核實。';});
 const previewOnly=()=>['service','software_application','static_subpage'].includes(current?.page_type);
 const handoff=createResultHandoff({button:$('handoff-result'),cancelButton:$('cancel-handoff'),getReview:()=>previewOnly()?null:review,isBusy:()=>!!controller,report:actionReport});
 const names={page_name:'子頁名稱',heading:'頁面標題',intro_description:'子頁介紹',product_name:'產品名稱',title:'Title',meta_description:'Meta description',description:'產品描述',features:'特性',use:'用途',specifications:'规格',price:'價格',certifications:'認證',performance:'效果',comparisons:'比較',guarantees:'保證'};
@@ -47,7 +50,7 @@ function render(r){
   for(const candidate of r.inferences.filter(v=>v.url)){const b=node('button','使用候選：'+candidate.label);b.type='button';b.addEventListener('click',()=>{$('source-url').value=candidate.url;$('source-form').requestSubmit();});box.append(b,node('p',candidate.url));}
   report('本次未產生新成果；網址保留，請選產品候選或改用公開產品頁。');return;
  }
- const next=createResultReview(r);review?.invalidate();review=next;current=r;names.description=r.page_type==='static_subpage'?'子頁介紹':'產品描述';$('copy-fallback').hidden=true;actionReport('');
+ const next=createResultReview(r);review?.invalidate();review=next;current=r;introPanel.sourceChanged(true);names.description=r.page_type==='static_subpage'?'子頁介紹':'產品描述';$('copy-fallback').hidden=true;actionReport('');
  $('retained-source').textContent='最後成功成果來源：'+r.snapshot.final_url+' · 版本 '+r.snapshot.version+'。新輸入、失敗或取消不會替換此成果；重新整理頁面將失去本頁保留內容，'+(previewOnly()?'請複製需要的草稿文字。':'請匯出備份。');
  $('result-section').hidden=false;const fields=$('result-fields');fields.replaceChildren();
  for(const [key,f] of Object.entries(r.preview.fields)){
@@ -55,7 +58,7 @@ function render(r){
   const original=node('div');original.append(node('strong','原文'));const p=node('p',f.original||'來源未提供');p.className='copy-text';original.append(p);
   const suggested=node('div'),label=node('label','建議／目前編輯：'+names[key]);label.htmlFor='review-'+key;
   const input=node('textarea');input.id=label.htmlFor;input.value=f.suggested;input.maxLength=2000;input.className='copy-text review-input';input.setAttribute('aria-describedby','review-origin-'+key+' review-error-'+key);
-  input.addEventListener('input',()=>{review.edit(key,input.value);$('copy-fallback').hidden=true;actionReport('');refreshReview();});
+  input.addEventListener('input',()=>{review.edit(key,input.value);introPanel.draftChanged();$('copy-fallback').hidden=true;actionReport('');refreshReview();});
   const origin=node('p');origin.id='review-origin-'+key;const error=node('p');error.id='review-error-'+key;error.className='field-error';
   const checkLabel=node('label');checkLabel.className='review-check';const check=node('input');check.type='checkbox';check.id='review-check-'+key;
   check.addEventListener('change',()=>{review.check(key,check.checked);refreshReview();});checkLabel.append(check,node('span','已核對 '+names[key]+' 目前內容及相關事實'));
@@ -72,7 +75,7 @@ function render(r){
  report(previewOnly()?'來源對照草稿已備妥；請比較來源，保留原文的欄位未產生改善。':'第一份文本已備妥，請檢查來源及待確認資訊；尚未發布。');
 }
 $('source-form').addEventListener('submit',async event=>{
- event.preventDefault();if(controller)return;review?.invalidate();controller=new AbortController();refreshReview();const own=controller,ticket=++epoch;$('source-fallback').replaceChildren();$('source-submit').disabled=true;sourceBusy(true);$('source-url').removeAttribute('aria-invalid');$('source-cancel').hidden=false;report('正在安全讀取公開頁與整理來源…');
+ event.preventDefault();if(controller)return;introPanel.sourceChanged();review?.invalidate();controller=new AbortController();refreshReview();const own=controller,ticket=++epoch;$('source-fallback').replaceChildren();$('source-submit').disabled=true;sourceBusy(true);$('source-url').removeAttribute('aria-invalid');$('source-cancel').hidden=false;report('正在安全讀取公開頁與整理來源…');
  const timeout=setTimeout(()=>own.abort(),40000);
  try{const response=await fetch('/api/service-source',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:$('source-url').value}),signal:own.signal});
   let r;try{r=await response.json();}catch{throw Error('backend_unavailable');}
@@ -80,7 +83,7 @@ $('source-form').addEventListener('submit',async event=>{
  }catch(e){if(ticket===epoch){if(['invalid_url','private_target','unsupported_query'].includes(e.message))$('source-url').setAttribute('aria-invalid','true');report(errors[e.message]||(e.name==='AbortError'?errors.timeout:'未收到完整成果。網址已保留；請重試或更換公開產品頁。'),true);}}
  finally{clearTimeout(timeout);if(ticket===epoch){idle();$('source-feedback').focus();}}
 });
-$('source-url').addEventListener('input',()=>{$('source-url').removeAttribute('aria-invalid');cancel('網址已修改；請重新取得成果。'+(current?'最後成功成果仍保留於下方。':''));});
+$('source-url').addEventListener('input',()=>{introPanel.sourceChanged();$('source-url').removeAttribute('aria-invalid');cancel('網址已修改；請重新取得成果。'+(current?'最後成功成果仍保留於下方。':''));});
 $('source-cancel').addEventListener('click',()=>{cancel('已取消等待；網址已保留。'+(current?'最後成功成果仍保留於下方。':'')+'已送出的讀取可能仍會完成，但不會替換本頁成果。');$('source-feedback').focus();});
 $('review-confirm').addEventListener('click',async()=>{
  if(!review||controller||previewOnly())return;const own=review,ticket=own.view().token;
@@ -88,7 +91,7 @@ $('review-confirm').addEventListener('click',async()=>{
  catch(e){if(review===own&&own.view().token===ticket)actionReport(e.message==='STALE_REVIEW'?'內容或來源已變更，舊確認已失效。':'目前版本無法確認，請核對內容與勾選狀態。');}
  finally{if(review===own)refreshReview();}
 });
-$('review-cancel').addEventListener('click',()=>{if(!review)return;review.cancel();$('copy-fallback').hidden=true;actionReport('已還原此來源的原建議；先前確認已失效。');refreshReview(true);});
+$('review-cancel').addEventListener('click',()=>{if(!review)return;introPanel.draftChanged();review.cancel();$('copy-fallback').hidden=true;actionReport('已還原此來源的原建議；先前確認已失效。');refreshReview(true);});
 $('copy-result').addEventListener('click',async()=>{
  if(!review)return;const own=review,view=own.view(),text=textPack(view);
  const same=()=>review===own&&own.view().token===view.token;

@@ -44,7 +44,7 @@ app.DB_PATH=Path(sys.argv[1])
 class Handler(app.Handler):
     def log_message(self,*_args):pass
     def do_GET(self):
-        if self.path in ('/service-result.html','/service-result.mjs'):
+        if self.path in ('/service-result.html','/service-result.mjs','/intro-candidate.mjs','/intro-candidate-panel.mjs'):
             path=Path(__file__).resolve().parents[2]/'apps/web'/self.path.lstrip('/')
             body=path.read_bytes();self.send_response(200)
             self.send_header('Content-Type','text/javascript' if self.path.endswith('.mjs') else 'text/html; charset=utf-8')

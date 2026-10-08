@@ -4,6 +4,8 @@
 
 ## 當前授權與基準
 
+**2026-10-08 INTRO-TRIAL-01（16:16:40UTC批准）。** 起點 `3609252bc1425459f47e294214d5ec761edd672b`，原branch／PR28。新增受控單批runner、固定三source候選JSON及靜態子頁預覽載入→引用／原文差異／理由→套用編輯複製；凍結商品與Review核心、DB/Save/Publish不變。live **NOT_RUN**：count計費與稅上限未知，有效runtime binding未確認；Owner截圖餘額US$5、auto-reload OFF不再列未知，不沿用過期keys。本包不讀secret、不建正式journal、不重抓目標。離線驗證與安全邊界見[本包說明](prototype/intro-trial/README.md)；exact CI／Preview與既有Reviewer另附，Primary不自行驗收。CoreMilestoneProgress=1僅候選載入審閱能力，不代表模型改善或live成功。
+
 **2026-10-08 子頁來源適配（14:00 UTC批准後續包）。** 起點 `7d5111156b96d6c8fa02311bada279926b50bdc3`，原branch／PR28。依既有只讀task最小真頁DOM分析，在service候選入口新增精確URL WebPage／canonical／metadata＋唯一header介紹綁定，輸出static_subpage、分離頁名／H1／intro／meta，三欄保留原文未改善；隔離全站產品／form／補充段落，歧義拒絕。47 Python＋26 frozen/Review契約＋1280/390 synthetic UI本機PASS；frozen bytes/hash/assert、Save/Publish未變。Primary未GET目標或取得完整raw；固定候選交父做保留真頁離線重驗與原Reviewer，exact CI／Preview尚待本包交審回條。[本包證據與限制](docs/Service_Source_Preview_2026-10-08.md)。CoreMilestoneProgress=1僅本機窄子頁來源草稿能力，真頁與商業改善不冒PASS，不新增功能包。
 
 **2026-10-08 服務／工具來源預覽（本機候選）。** Owner批准、父限定先完成可獨立驗證的單一schema.org Service／SoftwareApplication＋相符可見scope名稱／描述契約；正確頁型、來源對照、草稿預覽／複製、未改善標記。44 Python＋20 Node＋6 frozen契約＋1280／390（含既有商品每尺寸22下載）本機PASS，Save/Publish與商品payload契約不放寬。af4已push、Preview成功，但CI frozen檔案檢查FAIL；必要修正將原HTML／JS／parser恢復exact bytes，能力移至service-result獨立候選入口與薄API adapter，本機重驗通過，待修正HEAD的完整CI／Preview與原Reviewer重核。父已確認原免費CI／Preview批准；指定健檢站來源存取受阻，未再嘗試、真站適配未驗。[範圍／證據／checkpoint](docs/Service_Source_Preview_2026-10-08.md)。CoreMilestoneProgress=1僅指新增窄頁型的本機能力；不代表內容品質、真站驗收或搜尋成效。舊窗口不沿用，全面英文修正仍延後。

@@ -1,0 +1,44 @@
+{
+  "trial": "INTRO-TRIAL-01",
+  "cases": [
+    {
+      "id": "public-intro",
+      "source": {
+        "url": "https://growthos.genman.work/ai-citation-check",
+        "version": "7061a900b6aad2703ff9f7ce46a44cfa95f6be3ed0370bd686f1d32f32a6713d",
+        "fields": {
+          "page_name": "Free AI citation check · GrowthOS",
+          "heading": "Is AI recommending your brand?",
+          "intro_description": "Enter your website and brand name. We check your brand identity, ask AI engines three real buyer questions and show what to fix first.",
+          "meta_description": "Free AI citation check: see whether AI engines cite your brand for three real buyer questions, which brand identity issues to fix and your simplified readiness score. No account needed."
+        }
+      }
+    },
+    {
+      "id": "synthetic-workshop",
+      "source": {
+        "url": "https://example.com/synthetic-workshop",
+        "version": "a7e700df21d80655827da274003bb8f0a7814550d5bbe3e33c52869f893ab988",
+        "fields": {
+          "page_name": "Sample workshop checklist",
+          "heading": "Prepare your workshop",
+          "intro_description": "Describe your workshop goals and list the materials you plan to bring.",
+          "meta_description": "A fictional workshop preparation checklist."
+        }
+      }
+    },
+    {
+      "id": "synthetic-library",
+      "source": {
+        "url": "https://example.com/synthetic-library",
+        "version": "1a818fa59119b7c35fcef3e9c4a726816a2873f9e4e3d89d75e1669858182227",
+        "fields": {
+          "page_name": "Sample reading list",
+          "heading": "Plan your reading",
+          "intro_description": "Write down the books you want to read and add a short note about each choice.",
+          "meta_description": "A fictional personal reading list exercise."
+        }
+      }
+    }
+  ]
+}
