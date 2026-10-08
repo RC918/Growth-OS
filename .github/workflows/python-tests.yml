@@ -32,7 +32,7 @@ jobs:
           if-no-files-found: error
       - name: Public audit tests
         working-directory: prototype/public-audit
-        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py
+        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py test_service_source.py
       - name: Offline proof example
         working-directory: prototype/offline-proof
         run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json

@@ -3,14 +3,15 @@
 <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'">
 <title>Growth OS｜從網址取得第一份成果</title><link rel="stylesheet" href="./first-result.css"><script type="module" src="./first-result.mjs"></script></head>
-<body><header><a href="/">Growth OS</a><span>公開產品頁 · 成果預覽</span></header>
-<main><section><p class="eyebrow">URL → FIRST USEFUL RESULT</p><h1>貼上產品網址，先取得可用文本。</h1>
+<body><header><a href="/">Growth OS</a><span>公開產品／服務工具頁 · 成果預覽</span></header>
+<main><section><p class="eyebrow">URL → FIRST USEFUL RESULT</p><h1>貼上公開頁網址，先查看有來源的文本。</h1>
 <p>系統讀取公開頁，整理已有名稱、描述與特性，產出 title、meta 與產品描述。使用來源摘錄規則，不呼叫模型；請確認原站事實與內容適用性。</p>
 <form id="source-form"><label for="source-url">產品頁網址</label><div class="entry"><input id="source-url" name="url" type="url" required maxlength="2048" placeholder="https://example.com/products/item" autocomplete="url" aria-describedby="source-hint source-feedback"><button id="source-submit">取得第一份成果</button><button id="source-cancel" type="button" hidden>取消讀取</button></div></form>
-<p id="source-hint" class="hint">僅公開 HTTPS、無登入內容及 query 參數。若網址含參數，請改用公開產品的 canonical 路徑。</p>
+<p id="source-hint" class="hint">僅公開 HTTPS、無登入內容及 query 參數。若網址含參數，請改用公開頁的 canonical 路徑。亦支援具明確一致名稱與描述的服務／工具介紹頁，僅提供草稿預覽。</p>
 <p id="source-feedback" role="status" aria-live="polite" tabindex="-1"></p>
 <div id="source-fallback"></div></section>
-<section id="result-section" hidden><div class="result-heading"><h2>第一份搜尋內容改善包</h2><span id="review-state" class="badge">待確認 · 未保存 · 未發布</span></div>
+<section id="result-section" hidden><div class="result-heading"><h2 id="result-title">第一份搜尋內容改善包</h2><span id="review-state" class="badge">待確認 · 未保存 · 未發布</span></div>
+<p id="result-scope" hidden>服務／工具頁僅提供來源對照、編輯與複製草稿；不支援版本確認、JSON 匯出／匯入、工作區保存或發布。來源整理尚未證明內容更好或搜尋效果提升。</p>
 <p>這是可複製的文本預覽；原站陳述尚未獨立查核，不包含新增規格、價格、認證或效果保證。</p>
 <p id="retained-source"></p><p id="review-status" role="status" aria-live="polite"></p><p class="hint">只核對目前三段內容涉及的事實；無關的未知項不必補填。使用者修改不會自動取得來源支持。本頁確認不代表工作區核准或發布授權。</p>
 <div id="result-fields"></div><div class="actions"><button id="review-confirm" type="button">確認目前版本</button><button id="review-cancel" type="button">取消修改，還原原建議</button></div><div class="actions"><button id="copy-result" type="button">複製全部文本</button><button id="export-result" type="button">匯出成果與來源 JSON</button></div>
@@ -19,5 +20,5 @@
 <textarea id="copy-fallback" readonly hidden aria-label="手動複製文本"></textarea>
 <h3>待確認／未取得資訊</h3><ul id="result-missing"></ul>
 <details><summary>來源快照與產品理解</summary><div id="source-summary"></div><div id="source-facts"></div><div id="source-citations"></div></details>
-<p class="hint">來源已在本機／Preview 暫存；Hosted cache 可能消失，請匯出保留。本頁預覽未保存；需另在工作區確認保存及核對確切版本，不能由本頁確認推定已發布或取得成效。</p></section></main>
+<p id="result-storage-hint" class="hint">來源已在本機／Preview 暫存；Hosted cache 可能消失，請匯出保留。本頁預覽未保存；需另在工作區確認保存及核對確切版本，不能由本頁確認推定已發布或取得成效。</p></section></main>
 <footer>Growth OS · URL → 成果切片 · 不代表已發布或流量提升</footer></body></html>

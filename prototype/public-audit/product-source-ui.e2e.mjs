@@ -5,6 +5,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
+import {createResultReview} from '../../apps/web/first-result-review.mjs';
+import {validateReport} from '../../apps/web/first-result-payload.mjs';
 const temp=await mkdtemp(join(tmpdir(),'growth-source-ui-'));
 const server=spawn('python3',['-B','prototype/public-audit/product_ui_fixture.py',join(temp,'sources.sqlite3')],{stdio:['ignore','pipe','pipe']});
 let browser;
@@ -145,6 +147,33 @@ try{
  const afterDrift=await exportReport(true);assert.equal(afterDrift.preview.fields.title.suggested,'Visible after export drift');assert.equal(afterDrift.review.confirmation,null);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(await page.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
  assert.equal(downloadCount,22);
+ // New service/software contracts remain preview-only, including scripted clicks.
+ server.kill('SIGUSR1');
+ const serviceResponse=page.waitForResponse(r=>r.url().endsWith('/api/product-source')&&r.request().method()==='POST');
+ await submit('/service');const service=await (await serviceResponse).json();
+ assert.equal(service.page_type,'service');
+ assert.match(await page.locator('#result-title').innerText(),/服務／工具/);
+ assert.match(await page.locator('#review-origin-description').innerText(),/保留原文；未產生改善/);
+ assert.match(await page.locator('#review-origin-title').innerText(),/來源整理/);
+ assert.match(await page.locator('#source-facts').innerText(),/服務／工具名稱/);
+ for(const id of ['review-confirm','handoff-result','export-result'])assert.equal(await page.locator('#'+id).isVisible(),false);
+ await assert.rejects(()=>createResultReview(service).export().then(validateReport),/INVALID_EVIDENCE_SCHEMA/);
+ const extraRequests=[],downloads=[];const requestListener=r=>extraRequests.push(r.url());const downloadListener=d=>downloads.push(d);
+ page.on('request',requestListener);page.on('download',downloadListener);
+ await page.evaluate(()=>{for(const id of ['review-confirm','handoff-result','export-result'])document.getElementById(id).dispatchEvent(new MouseEvent('click'));});
+ await page.locator('#copy-result').focus();await page.keyboard.press('Enter');
+ assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/Workshop help/);
+ assert.equal(context.pages().length,1);assert.deepEqual(extraRequests,[]);assert.deepEqual(downloads,[]);
+ page.off('request',requestListener);page.off('download',downloadListener);
+ await editText('description','User supplied draft text.');assert.match(await page.locator('#review-origin-description').innerText(),/使用者修改；未核實/);
+ await page.locator('#review-cancel').click();assert.match(await page.locator('#review-origin-description').innerText(),/保留原文/);
+ await submit('/service-conflict');assert.match(await page.locator('#source-fallback').innerText(),/無法可靠辨識/);
+ assert.equal(await page.locator('#review-title').inputValue(),'Workshop help');
+ await submit('/software');assert.match(await page.locator('#review-status').innerText(),/軟體工具/);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await submit('/products/bolt');assert.equal(await page.locator('#export-result').isVisible(),true);assert.equal(await page.locator('#handoff-result').isVisible(),true);
+ assert.deepEqual(remote,[]);assert.deepEqual(errors,[]);
+ console.log('PASS '+width+'px service/software source comparison, unchanged markers, edit/copy, conflict retention, closed handoff/export/import; synthetic only');
  await context.close();console.log('PASS '+width+'px URL/API/SQLite/parser/preview/citations/unknown/copy/export/fallback/recovery; 22 real downloads; no remote/storage/errors/overflow');
  }
 }finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));await rm(temp,{recursive:true,force:true});}
