@@ -1,7 +1,7 @@
 """Synthetic explicit source contracts; no live site content or network."""
 import json
 import unittest
-from product_source import build_snapshot
+from service_source import build_snapshot
 from test_product_source import fixture, PRODUCT
 
 

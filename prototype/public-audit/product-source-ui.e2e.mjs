@@ -149,12 +149,20 @@ try{
  assert.equal(downloadCount,22);
  // New service/software contracts remain preview-only, including scripted clicks.
  server.kill('SIGUSR1');
- const serviceResponse=page.waitForResponse(r=>r.url().endsWith('/api/product-source')&&r.request().method()==='POST');
+ const oldEndpointResponse=page.waitForResponse(r=>r.url().endsWith('/api/product-source')&&r.request().method()==='POST');
+ await submit('/service');assert.equal((await (await oldEndpointResponse).json()).preview,null);
+ await page.goto(origin+'/service-result.html');
+ const deniedOrigin=await context.request.post(origin+'/api/service-source',{headers:{Origin:'https://attacker.example'},data:{url:'https://example.com/service'}});
+ assert.equal(deniedOrigin.status(),403);
+ const deniedQuery=await context.request.post(origin+'/api/service-source',{data:{url:'https://example.com/service?private=1'}});
+ assert.equal(deniedQuery.status(),400);
+ const serviceResponse=page.waitForResponse(r=>r.url().endsWith('/api/service-source')&&r.request().method()==='POST');
  await submit('/service');const service=await (await serviceResponse).json();
  assert.equal(service.page_type,'service');
  assert.match(await page.locator('#result-title').innerText(),/服務／工具/);
  assert.match(await page.locator('#review-origin-description').innerText(),/保留原文；未產生改善/);
  assert.match(await page.locator('#review-origin-title').innerText(),/來源整理/);
+ await page.getByText('來源快照與產品理解',{exact:true}).click();
  assert.match(await page.locator('#source-facts').innerText(),/服務／工具名稱/);
  for(const id of ['review-confirm','handoff-result','export-result'])assert.equal(await page.locator('#'+id).isVisible(),false);
  await assert.rejects(()=>createResultReview(service).export().then(validateReport),/INVALID_EVIDENCE_SCHEMA/);

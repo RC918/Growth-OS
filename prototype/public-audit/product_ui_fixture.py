@@ -5,6 +5,8 @@ from pathlib import Path
 from http.server import ThreadingHTTPServer
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import app,product_api
+import service_api
+from service_source import build_snapshot as build_service_snapshot
 from product_source import build_snapshot
 from scanner import ScanError
 from test_product_source import PRODUCT, MIXED_PRODUCT, WOO_PRODUCT, WOO_MICRO_NO_SHORT, WOO_MICRO_NAME_CONFLICT, fixture
@@ -33,10 +35,23 @@ def fetch(url):
     if parts.path=='/unknown':return 200,{'content-type':'text/html'},b'<h1>Unsupported page</h1>'
     return fixture(url)
 product_api.build_snapshot=lambda url:build_snapshot(url,fetch)
+service_api.api.build_snapshot=lambda url:build_service_snapshot(url,fetch)
 app.DB_PATH=Path(sys.argv[1])
 class Handler(app.Handler):
     def log_message(self,*_args):pass
-signal.signal(signal.SIGUSR1, lambda *_args: product_api.RECENT.clear())
+    def do_GET(self):
+        if self.path in ('/service-result.html','/service-result.mjs'):
+            path=Path(__file__).resolve().parents[2]/'apps/web'/self.path.lstrip('/')
+            body=path.read_bytes();self.send_response(200)
+            self.send_header('Content-Type','text/javascript' if self.path.endswith('.mjs') else 'text/html; charset=utf-8')
+            self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
+        super().do_GET()
+    def do_POST(self):
+        if self.path=='/api/service-source':return service_api.handle_product(self,app.DB_PATH)
+        super().do_POST()
+def reset_limits(*_args):
+    product_api.RECENT.clear();service_api.api.RECENT.clear()
+signal.signal(signal.SIGUSR1, reset_limits)
 server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
 print(server.server_address[1],flush=True)
 server.serve_forever()

@@ -4,7 +4,7 @@
 
 ## 當前授權與基準
 
-**2026-10-08 服務／工具來源預覽（本機候選）。** Owner批准、父限定先完成可獨立驗證的單一schema.org Service／SoftwareApplication＋相符可見scope名稱／描述契約；正確頁型、來源對照、草稿預覽／複製、未改善標記。44 Python＋20 Node＋1280／390（含既有商品每尺寸22下載）PASS，Save/Publish與商品payload契約不放寬。指定健檢站來源存取受阻，未再嘗試、真站適配未驗；未push/CI/部署，待免費條件與既有Reviewer獨立取證。[範圍／證據／checkpoint](docs/Service_Source_Preview_2026-10-08.md)。CoreMilestoneProgress=1僅指新增窄頁型的本機能力；不代表內容品質、真站驗收或搜尋成效。舊窗口不沿用，全面英文修正仍延後。
+**2026-10-08 服務／工具來源預覽（本機候選）。** Owner批准、父限定先完成可獨立驗證的單一schema.org Service／SoftwareApplication＋相符可見scope名稱／描述契約；正確頁型、來源對照、草稿預覽／複製、未改善標記。44 Python＋20 Node＋6 frozen契約＋1280／390（含既有商品每尺寸22下載）本機PASS，Save/Publish與商品payload契約不放寬。af4已push、Preview成功，但CI frozen檔案檢查FAIL；必要修正將原HTML／JS／parser恢復exact bytes，能力移至service-result獨立候選入口與薄API adapter，本機重驗通過，待修正HEAD的完整CI／Preview與原Reviewer重核。父已確認原免費CI／Preview批准；指定健檢站來源存取受阻，未再嘗試、真站適配未驗。[範圍／證據／checkpoint](docs/Service_Source_Preview_2026-10-08.md)。CoreMilestoneProgress=1僅指新增窄頁型的本機能力；不代表內容品質、真站驗收或搜尋成效。舊窗口不沿用，全面英文修正仍延後。
 
 **2026-10-07 AR2-CLOUD-01：工程可靠性／自主執行驗證，CoreMilestoneProgress=0。** 最新派工在 `feat/private-host-bootstrap`，起點 `263e6f4d63cd18164284d6e56f67c93f2098cd5c`；窗口12:04–16:04 UTC，不是8小時試跑。source tar改同目錄完整暫存、fsync、原子不覆蓋發布，新增SIGKILL與並行builder synthetic驗證；舊HEAD的tar／manifest hash保持相同。17個bootstrap測試PASS。contract已接受；PR授權仍 `BLOCKED / AUTHORIZATION_PROPAGATION_FAILURE`，不重試、不繞route，Stage2不能報整體PASS。commit／push／exact CI／Preview及既有Reviewer、父controlled continuation按 [單一action／證據紀錄](docs/Autonomy_Readiness_Stage2_2026-10-07.md) 接續。無新產品能力、主機操作、登入或live URL／模型呼叫。
 
