@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
 import {createResultReview} from '../../apps/web/first-result-review.mjs';
-import {sourceFromReport,candidateArtifact,MODEL} from '../../apps/web/intro-candidate.mjs';
+import {sourceFromReport,candidateArtifact,MODEL,TRIAL_R1} from '../../apps/web/intro-candidate.mjs';
 import {validateReport} from '../../apps/web/first-result-payload.mjs';
 const temp=await mkdtemp(join(tmpdir(),'growth-source-ui-'));
 const server=spawn('python3',['-B','prototype/public-audit/product_ui_fixture.py',join(temp,'sources.sqlite3')],{stdio:['ignore','pipe','pipe']});
@@ -196,7 +196,7 @@ try{
  page.off('request',requestListener);page.off('download',downloadListener);
  const boundSource=sourceFromReport(subpage),originalIntro=boundSource.fields.intro_description;
  const proposed='List your workshop goals and the materials you plan to bring.';
- const makeCandidate=async candidate=>candidateArtifact(boundSource,{candidate,reason:'Put the preparation action first.',citations:[{field:'intro_description',quote:originalIntro}]},{mode:'synthetic',model:MODEL,response_id:'resp_fixture',request_id:'req_fixture',input_tokens:500,output_tokens:100});
+ const makeCandidate=async candidate=>candidateArtifact(boundSource,{candidate,reason:'Put the preparation action first.',citations:[{field:'intro_description',quote:originalIntro}]},{mode:'synthetic',model:MODEL,response_id:'resp_fixture',request_id:'req_fixture',input_tokens:5001,output_tokens:100},TRIAL_R1);
  async function loadCandidate(value){await page.locator('#intro-file').setInputFiles({name:'candidate.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))});await page.waitForFunction(()=>!document.getElementById('intro-status').textContent.startsWith('尚未'));}
  await loadCandidate(await makeCandidate(proposed));assert.match(await page.locator('#intro-output').innerText(),/離線測試候選（未呼叫模型）/);assert.match(await page.locator('#intro-output').innerText(),/修改理由/);assert.ok((await page.locator('#intro-output ins').innerText()).length>0);
  await page.locator('#intro-apply').click();assert.equal(await page.locator('#review-description').inputValue(),proposed);await page.locator('#copy-result').click();assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/List your workshop goals/);
@@ -206,7 +206,7 @@ try{
  const staleCandidate=await makeCandidate(proposed);staleCandidate.source_hash='0'.repeat(64);await loadCandidate(staleCandidate);assert.match(await page.locator('#intro-status').innerText(),/無法核對/);
  await page.evaluate(()=>{const original=File.prototype.text;File.prototype.text=function(){const read=original.call(this);File.prototype.text=original;return new Promise(resolve=>{window.releaseIntroRead=async()=>resolve(await read);});};});
  await page.locator('#intro-file').setInputFiles({name:'late.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(await makeCandidate(proposed)))});await page.waitForFunction(()=>typeof window.releaseIntroRead==='function');await input.fill('https://example.com/changed');await page.evaluate(async()=>{await window.releaseIntroRead();await new Promise(resolve=>setTimeout(resolve,50));});assert.equal(await page.locator('#intro-panel').isVisible(),false);assert.equal(await page.locator('#review-description').inputValue(),originalIntro);
- console.log('PASS '+width+'px INTRO-TRIAL-01 synthetic candidate, quote/diff/reason, apply/edit/copy, unchanged, manual draft protection, stale/forged rejection and source invalidation; no model call');
+ console.log('PASS '+width+'px INTRO-TRIAL-01-R1 synthetic candidate, quote/diff/reason, apply/edit/copy, unchanged, manual draft protection, stale/forged rejection and source invalidation; no model call');
  await editText('description','A user supplied introduction.');assert.match(await page.locator('#review-origin-description').innerText(),/使用者修改；未核實/);
  await page.locator('#review-cancel').click();assert.match(await page.locator('#review-origin-description').innerText(),/保留原文；未產生改善/);
  await submit('/subpage-conflict');assert.match(await page.locator('#source-fallback').innerText(),/無法可靠綁定靜態子頁介紹/);

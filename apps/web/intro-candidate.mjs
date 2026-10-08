@@ -1,5 +1,6 @@
 // Public-source candidate contract. No network, credentials or persistence.
 export const TRIAL='INTRO-TRIAL-01';
+export const TRIAL_R1='INTRO-TRIAL-01-R1';
 export const MODEL='gpt-5.4-mini-2026-03-17';
 const fail=code=>{throw Error(code);};
 const exact=(v,keys)=>{if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).sort().join('|')!==[...keys].sort().join('|'))fail('INVALID_CANDIDATE');};
@@ -39,18 +40,20 @@ export function validateOutput(output,source){
  // Quotation membership is verifiable; semantic entailment remains human review.
  return structuredClone(output);
 }
-export async function candidateArtifact(source,output,receipt){
+export async function candidateArtifact(source,output,receipt,trial=TRIAL){
  const s=validateSource(source),o=validateOutput(output,s);
- return {schema_version:1,trial:TRIAL,source:s,source_hash:await digest(s),output:o,receipt};
+ if(![TRIAL,TRIAL_R1].includes(trial))fail('INVALID_CANDIDATE');
+ return {schema_version:trial===TRIAL_R1?2:1,trial,source:s,source_hash:await digest(s),output:o,receipt};
 }
 export async function validateArtifact(value,source){
  exact(value,['schema_version','trial','source','source_hash','output','receipt']);
- if(value.schema_version!==1||value.trial!==TRIAL)fail('INVALID_CANDIDATE');
+ const r1=value.trial===TRIAL_R1&&value.schema_version===2;
+ if(!r1&&(value.schema_version!==1||value.trial!==TRIAL))fail('INVALID_CANDIDATE');
  const bound=validateSource(source);
  if(value.source_hash!==await digest(bound)||await digest(validateSource(value.source))!==value.source_hash)fail('STALE_CANDIDATE');
  const output=validateOutput(value.output,bound),r=value.receipt;
  exact(r,['mode','model','response_id','request_id','input_tokens','output_tokens']);
- if(!['live','synthetic'].includes(r.mode)||r.model!==MODEL||!Number.isInteger(r.input_tokens)||r.input_tokens<1||r.input_tokens>4000||!Number.isInteger(r.output_tokens)||r.output_tokens<0||r.output_tokens>1500)fail('INVALID_RECEIPT');
+ if(!['live','synthetic'].includes(r.mode)||r.model!==MODEL||!Number.isInteger(r.input_tokens)||r.input_tokens<1||r.input_tokens>(r1?400000:4000)||!Number.isInteger(r.output_tokens)||r.output_tokens<0||r.output_tokens>1500)fail('INVALID_RECEIPT');
  for(const key of ['response_id','request_id'])if(typeof r[key]!=='string'||!r[key]||r[key].length>200||!/^[a-zA-Z0-9_.:-]+$/.test(r[key]))fail('INVALID_RECEIPT');
  return {output,mode:r.mode,changed:output.candidate!==bound.fields.intro_description};
 }

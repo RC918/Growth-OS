@@ -4,6 +4,8 @@
 
 ## 當前授權與基準
 
+**2026-10-08 INTRO-TRIAL-01-R1（17:47:39UTC批准）。** 起點913214d，原branch／PR28；R1取代三count三generate，僅既有public intro的一次generation，固定snapshot／global standard，payload≤4096 UTF-8 bytes（不是tokens），output1500，發送前預占整US$1與唯一slot，UNKNOWN永停，原deadline不延。原task讀回正式state不存在、key名稱不存在；此處只做offline，live NOT_RUN。R1回條明確新版，不動UI功能／frozen／Review／DB。父另安排唯一API測試task及network-secret；不冒熱繼承，不新建task或搬key。[命令、非秘密activation、固定journal與交接限制](prototype/intro-trial/README.md)。
+
 **2026-10-08 INTRO-TRIAL-01（16:16:40UTC批准）。** 起點 `3609252bc1425459f47e294214d5ec761edd672b`，原branch／PR28。新增受控單批runner、固定三source候選JSON及靜態子頁預覽載入→引用／原文差異／理由→套用編輯複製；凍結商品與Review核心、DB/Save/Publish不變。live **NOT_RUN**：count計費與稅上限未知，有效runtime binding未確認；Owner截圖餘額US$5、auto-reload OFF不再列未知，不沿用過期keys。本包不讀secret、不建正式journal、不重抓目標。離線驗證與安全邊界見[本包說明](prototype/intro-trial/README.md)；exact CI／Preview與既有Reviewer另附，Primary不自行驗收。CoreMilestoneProgress=1僅候選載入審閱能力，不代表模型改善或live成功。
 
 **2026-10-08 子頁來源適配（14:00 UTC批准後續包）。** 起點 `7d5111156b96d6c8fa02311bada279926b50bdc3`，原branch／PR28。依既有只讀task最小真頁DOM分析，在service候選入口新增精確URL WebPage／canonical／metadata＋唯一header介紹綁定，輸出static_subpage、分離頁名／H1／intro／meta，三欄保留原文未改善；隔離全站產品／form／補充段落，歧義拒絕。47 Python＋26 frozen/Review契約＋1280/390 synthetic UI本機PASS；frozen bytes/hash/assert、Save/Publish未變。Primary未GET目標或取得完整raw；固定候選交父做保留真頁離線重驗與原Reviewer，exact CI／Preview尚待本包交審回條。[本包證據與限制](docs/Service_Source_Preview_2026-10-08.md)。CoreMilestoneProgress=1僅本機窄子頁來源草稿能力，真頁與商業改善不冒PASS，不新增功能包。
