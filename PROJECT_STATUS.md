@@ -4,6 +4,36 @@
 
 ## 當前授權與基準
 
+### 2026-10-09 R6 交付接續 checkpoint（Owner 16:22 UTC 上傳後更新；BLOCKED 品質，不採用、不發布）
+
+本段是既有狀態檔中的恢復書籤，不是排程或自動執行器。最新 Owner 16:15 UTC 指示的第一個證明包限「既有 R6 結果 → 原 Reviewer → 父端通知 → 原 Primary 恢復」。不新增產品功能、生成、費用、secret、權限、merge 或部署；舊 scheduled controller 保持停用。不修改已消耗 workflow、不 dispatch/rerun/API、不繞拒絕、不要求 Owner 搬檔或貼 SHA。
+
+- 父 thread：`01a0f25c-a8c0-7271-bf72-18411d628009`；原 Reviewer 本輪 turn：`01a12171-ee20-7010-ab80-ada0b775eb91`。只沿用原 Primary／Reviewer。
+- 本地 Primary：`/workspace/Growth-OS`，branch `feat/private-host-bootstrap`，HEAD `b901e3474989bd4204c418ce90eafeb4e067d5f3`；本包開始 clean；目前此檔與 prototype/intro-trial/policy.mjs、prototype/intro-trial/intro-trial.test.mjs 為可歸屬未提交修改。base PR28 `feat/private-site-recovery`／`eec7a640c26878a33139179522d495463b7c382c`；不切分支、不提交或推送。
+- 保留 worktrees：`/workspace/Growth-OS-actions-intro`，`feat/actions-intro-once`／`cfe365d5b1f40821cae64b3e7591e10e57f17e43`，目前 scripts/intro-once.mjs、scripts/intro-once.test.mjs 未提交；`/workspace/Growth-OS-rc-evidence`，`feat/passwordless-workspace`／`5591bd68798def96c898ea4382239acf02819651`，clean。歷史初始化 checkout 不重播。
+- R6 執行版本：main `00c145ab063e2e87fb577e7044ee4713dcb8edbb`（PR29 merge）；既有程式三檔與已審 cfe365d5 完全一致。
+- 父轉達原 Reviewer 真讀回：run [37956562518](https://github.com/RC918/Growth-OS/actions/runs/37956562518)，attempt 1；offline/reservation/generation 三 jobs SUCCESS；generation log HTTP200、`COMPLETE_HELD_REVIEW_REQUIRED`、error_code null。Primary 本轮未另取遠端證據。
+- artifact ID `11627744854`，名稱 `intro-gha-01-r6-37956562518`，1539 bytes；父轉達 GitHub/log ZIP SHA256 `cfe09c38e9cddc20f3a40f3e8adc67cd52ab90af02d2fc86b19ba121dbb6da40`；result SHA256 `610cdf00d10e91ffc55bacc655769718203cfa6ee38558e8ff53271b59544403`。這些是 metadata/log 身份，尚非下載 bytes 的獨立 hash 驗證。
+- 原 GitHub ZIP 讀取曾遭 `Tunnel connection failed: 403 Forbidden`，沒有重試／換路；此為傳輸 403，不再追為 GitHub 授權故障。Owner 16:22 UTC 主動上傳 Library `libfile_a8b7297ee794819190670c374c9d7658`；父端正式 materialize 後實算 ZIP/result SHA256，與上述 GitHub/log hashes 相符。Primary 未下載或自行驗 bytes。
+- 原 Reviewer 自身 Library 兩次 generic download failed，未取得 bytes；父透過正式任務訊息提供實際全文後，Reviewer turn `01a1217b-a078-7770-be72-bc8eef1fe869` 完成獨立文字 review，verdict **BLOCKED 品質**。原檔 hash 是父端驗證，不能寫成 Reviewer 完整獨立原檔 hash 驗收。
+- 父轉交實際回條：HTTP200；request `req_0bd75021666b41d3a9114e9963f53a13`；live model `gpt-5.4-mini-2026-03-17`；input 261 / output 140 / total 401；含稅估算 US$0.000867038，實際帳單 unknown。
+- 真候選原文（保留不替寫）：`Enter your website and brand name to check whether AI engines recognize your brand identity, ask three real buyer questions, and identify what to fix first.` Reviewer 必要缺陷：刪除 We 後 ask 三問題的主體含糊；將「我們檢查品牌身分」改成「AI 引擎辨識品牌身分」，來源不支持且混淆功能。free/no-account 未加入及英文不是本次技術阻塞；Owner 期望中文可用稿，先前中文批准保留。內 R1／外 R6 沿用 schema 不是缺陷。父已告知不採用、不發布。
+- 預占 ref 固定 `refs/tags/intro-trial/2026-10-09-r6`，保留不動。舊 US$5 held＋R6 US$1 的預占界線不因 success 解除；實際費用未知。原期限 `2026-10-09T16:16:40Z` 已到，不能延展或重發。
+
+**已實測接續與人工步驟。** 父端完成事件→讀結果→同一 Primary 新 turn 只讀恢復 checkpoint 已真實發生；本輪又收到原 Reviewer 裁決並接續保存。前次讀回 HEAD/branch/dirty 相符，checkpoint 檔 hash `c0945571f3e4e2892602429c433b3f4ad7e004d5270df1e28a2faad1118d5e8d` 為更新前歷史證據。Owner 啟動 workflow、批准 environment、主動搬檔仍存在；完整少介入／無人值守工作包不 PASS。沒有新增排程或執行器，文件只是恢復書籤。持久性限現有 workspace，未 commit/push，未驗 workspace 銷毀後恢復。
+
+**16:27 UTC Owner 指示後已完成的最小離線修正（待原 Reviewer）。** 普通必要 code/tests 已獲本次派工，不再要求 Owner 確認兩檔。`prototype/intro-trial/policy.mjs` 提示明列使用者輸入、服務檢查品牌身分、服務向 AI 問三個買家問題、服務指出優先修正；禁止將品牌身分檢查改成 AI 識別能力或讓使用者成為提問主體。候選／理由要求繁中，引用仍逐字原語；無可支持改善時忠實翻譯並說明限制。未硬編碼已批准中文為模型輸出。新 payload 2334 bytes／SHA256 `35357f8011a8a8c08278c5ef2f592eadeb73822e6441e41f58bd58b2589a2b26`；原 4096 bytes／1500 output／無工具／無保存界線不變。validateOutput 僅核引用 membership 的界線保留；失敗候選回歸明示此檢查無法證明語義品質，仍交 Reviewer。
+
+**交付接線。** 既有 Actions worktree 的 `scripts/intro-once.mjs` 在 result.json 保存成功、artifact-ready 與摘要之後增加 `INTRO_PUBLIC_RESULT` 單行 JSON job-log 出口；不新增服務、API、權限或 secret。白名單投影只有來源綁定候選、receipt、usage、run/版本及原結果 hash，獨立審查狀態固定 PENDING；不展開 raw response、headers 或 errors，literal/base64/URI 已知 secret 均拒絕。單行 JSON 轉義阻止候選注入 workflow command，多於32KiB拒絕；原 artifact 出口保留。readPublicDelivery 用既有正式 job-log 工具回傳文字，核 public frame hash、exact run/workflow/result hash、source/candidate 契約與 usage；截斷、重複、混 run、未知欄位拒絕，不自動套用／發布。父／Reviewer 可直接從工具讀全文，不需 Owner 搬 ZIP。此為新程式的離線已驗接線，不是對歷史 R6 補造 log；正式遠端新出口未執行。
+
+**離線驗證證據。** 原分支執行 `node --test prototype/intro-trial/intro-trial.test.mjs prototype/intro-trial/follow-on.test.mjs`：59/59 PASS，含繁中 synthetic 回覆穿過 runner→保存→source-bound readback，不替寫候選、不重送；提示及安全界線契約、舊unknown/期限/預占拒絕保持。Actions 分支執行 `INTRO_TEST_SOURCE=/tmp/growth-r6-pinned-source node --test scripts/intro-once.test.mjs`：35/35 PASS；測試 source 是由既有本地 repo clone 的乾淨 immutable b901e347，無遠端 fetch。真 loopback 假服務一次模型 POST→fsync 結果→SIGKILL→全新程序禁止 network 讀回→log frame 傳遞同一候選／hash／不改 bytes；fake remote reservation 仍拒 replay。截斷／重複／改 bytes／錯身分／未知欄位／秘密／命令字串案例通過，保留原31項固定R6 guards。兩 worktree diff-check 通過，workflow YAML bytes 未改；沒有真模型、GitHub mutation、CI/Preview、部署或登入。純 Node／內容提示與 log 變更，瀏覽器/DB/Auth 測試不適用，並非產品 UI 整體驗收。
+
+**交審檔案 SHA256。** policy.mjs `3c8e7cadc327f6358cae37c6d35f080708b78ecb43a4cfc42b36d3ea515c7021`；intro-trial.test.mjs `a7e635094dfa96251e049e28db3bc88b3a323b768752d307e848f2ca8162c9d4`；Actions intro-once.mjs `874e40e9e1addbf8ecd62a7054cb9262e16c49abbf7d64a97f5213116027b0b9`；intro-once.test.mjs `82329d2385cc98c966a9d2e942ea3a2608f3e64749773d26f4b4688221946c01`。共五個 dirty 檔（含本狀態檔），沒有 commit/push。exact HEAD 仍為上列 b901e347／cfe365d5；Reviewer 必須看這些 dirty bytes，不能只審 HEAD 舊檔。
+
+**Pending／下一個安全動作。** 父透過本次完成事件直接交原 Reviewer 審上述五檔 patch、測試與限制；Primary 待原 thread 裁決後只修必要缺陷。原 R6 run/artifact/hash/期限/預占完整保留，輸出仍品質 BLOCKED，不採用、不發布。Actions SOURCE_SHA/PAYLOAD_HASH 仍固定舊已消耗版本；新提示是離線候選，刻意未綁入任何可執行新批准，不會使 R6 重跑。新 log 出口無法追回歷史 R6 的內容，不偽造已有遠端交付。
+
+**必要 gate／剩餘限制。** 當前離線修正和獨立 review 無需 Owner 操作、新費用或權限。若要驗真模型繁中品質及正式 log 交付，只集中一次提出新有界生成包：reviewed source/code 版本、新提示 hash、一次呼叫、預算與截止、已核可的執行入口；原已過期限批准不可復用，不自行開 R7。job-log 出口不需額外 GitHub 權限；若正式工具傳輸再受阻，仍不得繞過。既有 UI 人工選檔及 exact source report 的限制沒有被此次 task-level 交付接線解除，不宣稱商家 UI 自動交付；Owner 啟動／批准 gate 及整包無人值守尚未消除。59+35 項離線 PASS 不是新真模型品質、正式遠端 log 或整體無人值守 PASS。
+
 **2026-10-09 INTRO-TRIAL 固定 R2 proxy／累計預占修復（04:25:05 UTC批准）。** 基準e7808b0，原branch／PR28。真Node子程序＋loopback fake proxy證明opt-in、marker經代理、拒絕不退直連與guard拒絕；正式R2只用單程序 `--use-env-proxy` 接既有平台proxy，不改代理／TLS／CA／網路設定。原executor `01a11e97-7708-75cc-be21-0e58b54c30a9` 舊UNKNOWN與US$1永久保留；新固定R2須驗原journal bytes hash／task／reservation，另預占US$1、累計capUS$2；5%稅已由Owner確認，原deadline不延。58本機tests PASS，原UI/frozen/source/DB不變；Primary未prepare/live、key或真API请求。[固定activation、一次命令、ledger及代理限制](prototype/intro-trial/README.md)。待exact CI／Preview與原Reviewer，父才將綁定HEAD的activation交同一原executor；不新建task、不自行activate。CoreMilestoneProgress=0，限必要Blocking修復；舊失敗根因與真network-secret相容仍UNKNOWN。
 
 **2026-10-09 INTRO-TRIAL-01-R1 offline診斷修復（03:37:35UTC批准）。** 起點c272bdd，原Primary／branch／PR28；唯一API executor `01a11e97-7708-75cc-be21-0e58b54c30a9` 已UNKNOWN，calls1僅reservation，完整US$1仍held，不重送不歸零。舊錯誤／HTTP／usage遺失不可重建，不歸咎proxy或key。本包只補allowlisted phase/type/code/status/provider ID、timestamp/correlation與安全runtime能力、離線redaction／storage測試；無proxy/config啟用、key操作、模型請求或executor journal修改。[新診斷及歷史界線](prototype/intro-trial/README.md)。既有UI/frozen/Review/DB不變；待exact CI／Preview與原Reviewer，不自行activate。

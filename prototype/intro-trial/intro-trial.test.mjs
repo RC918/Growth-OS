@@ -45,3 +45,26 @@ test('cleanup failure does not replace original post-dispatch diagnostic',async 
 test('reservation write failure is not dispatch and cannot trigger transport',async t=>{const {renameSync,mkdirSync}=await import('node:fs');const args=await fixture(t);let ticks=0,requests=0;const clockFailure=()=>{if(++ticks===3){renameSync(join(args.root,'journal.jsonl'),join(args.root,'before-reservation.jsonl'));mkdirSync(join(args.root,'journal.jsonl'));}return clock();};const e=await caught(runBatch({...args,clock:clockFailure,transport:async()=>requests++}));assert.equal(diagnosticOf(e).stage,'reservation');assert.equal(diagnosticOf(e).dispatch,'not_invoked');assert.equal(requests,0);await assert.rejects(runBatch({...args,transport:async()=>requests++}));assert.equal(requests,0);});
 
 test('request serialization failure is before fetch, not credential or network failure',async t=>{const prior=globalThis.fetch;t.after(()=>globalThis.fetch=prior);let calls=0;globalThis.fetch=async()=>calls++;const e=await caught(liveTransport(()=>'PLACEHOLDER_PRIVATE')('generate',{toJSON(){throw Error(secret);}},TRIAL+'-1'));assert.equal(diagnosticOf(e).stage,'request_build');assert.equal(diagnosticOf(e).dispatch,'not_invoked');assert.equal(calls,0);assertRedacted(diagnosticOf(e));});
+
+// Prompt contract only: these assertions do not establish model quality.
+test('revision prompt preserves service actors and requests usable Traditional Chinese without changing evidence',()=>{
+ const source=manifest.cases[0].source,before=JSON.stringify(source),body=payload(source);
+ assert.equal(body.input,JSON.stringify(source.fields));assert.equal(JSON.stringify(source),before);
+ for(const rule of ['service checks brand identity','service asks AI engines three real buyer questions','service shows what to fix first','Never turn the identity check','visitor must ask','Traditional Chinese (zh-Hant)','quotations in their original language','do not invent an improvement'])assert.ok(body.instructions.includes(rule));
+ assert.ok(Buffer.byteLength(JSON.stringify(body))<=4096);assert.equal(body.max_output_tokens,1500);assert.deepEqual(body.tools,[]);assert.equal(body.store,false);
+});
+test('R6 bad semantics can pass citation membership: review remains mandatory',()=>{
+ const source=manifest.cases[0].source;
+ const bad={candidate:'Enter your website and brand name to check whether AI engines recognize your brand identity, ask three real buyer questions, and identify what to fix first.',reason:'Synthetic reproduction of rejected R6, not approved content.',citations:[{field:'intro_description',quote:source.fields.intro_description}]};
+ assert.doesNotThrow(()=>validateOutput(bad,source)); // Do not claim lexical citation checks prove semantic support.
+});
+
+test('synthetic Traditional Chinese result traverses runner and exact source-bound readback without substituting copy',async t=>{
+ const args=await fixture(t),source=manifest.cases[0].source;let calls=0;
+ const synthetic={candidate:'【合成測試】輸入網站與品牌名稱；我們檢查品牌身分、向 AI 引擎提出三個真實買家問題，並指出優先修正項目。',reason:'【合成測試】保留服務執行各項檢查的主體；不代表實際模型品質。',citations:[{field:'intro_description',quote:source.fields.intro_description}]};
+ const base=transport([]);
+ await runBatch({...args,transport:async(kind,body,id)=>{calls++;assert.match(body.instructions,/Traditional Chinese/);assert.equal(body.input,JSON.stringify(source.fields));const reply=await base(kind,body,id);reply.body.output[0].content[0].text=JSON.stringify(synthetic);return reply;}});
+ const file=JSON.parse(await readFile(join(args.root,'public-intro.candidate.json'),'utf8')),checked=await validateArtifact(file,source);
+ assert.deepEqual(checked.output,synthetic);assert.equal(checked.mode,'synthetic');assert.equal(calls,1);assert.equal((await readback(args.root)).state,'complete');
+ assert.equal((await runBatch({...args,transport:async()=>assert.fail('must not regenerate')})).state,'complete');
+});
