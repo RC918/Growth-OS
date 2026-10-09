@@ -139,6 +139,36 @@ export async function saveEvidence(dir,evidence,secrets){
  try{await f.writeFile(text);await f.sync();}finally{await f.close();}
  return hash(text);
 }
+// Public-source delivery through already readable job logs. No network or replay.
+// One escaped JSON line prevents candidate text from becoming workflow commands.
+const DELIVERY_PREFIX='INTRO_PUBLIC_RESULT ';
+export async function publicDeliveryLine(evidence,source,secrets=[]){
+ if(evidence.state!=='COMPLETE_HELD_REVIEW_REQUIRED'||evidence.http_status!==200||evidence.error_code!==null)stop('RESULT_UNKNOWN');
+ await source.contract.validateArtifact(evidence.candidate,source.source);
+ if(!/^\d{1,20}$/.test(evidence.record?.run_id||'')||!SHA.test(evidence.record?.workflow_sha||''))stop('CONTEXT_REQUIRED');
+ const receipt=evidence.candidate.receipt;
+ if(evidence.usage?.input_tokens!==receipt.input_tokens||evidence.usage?.output_tokens!==receipt.output_tokens||evidence.usage?.total_tokens!==receipt.input_tokens+receipt.output_tokens)stop('RESULT_UNKNOWN');
+ // Explicit projection: never spread evidence, raw response, headers, or errors.
+ const payload={schema_version:1,trial:TRIAL,run_id:evidence.record.run_id,workflow_sha:evidence.record.workflow_sha,source_sha:SOURCE_SHA,result_sha256:hash(JSON.stringify(evidence,null,2)+'\n'),review_status:'PENDING_INDEPENDENT_REVIEW',candidate:evidence.candidate,usage:{input_tokens:receipt.input_tokens,output_tokens:receipt.output_tokens,total_tokens:receipt.input_tokens+receipt.output_tokens},billed_nusd:null};
+ if(containsSecret(payload,secrets))stop('SECRET_IN_RESULT');
+ const line=DELIVERY_PREFIX+JSON.stringify({sha256:hash(payload),payload});
+ if(Buffer.byteLength(line)>32768)stop('RESPONSE_TOO_LARGE');
+ return line;
+}
+export async function readPublicDelivery(log,expected,source){
+ if(typeof log!=='string'||Buffer.byteLength(log)>1048576)stop('RESULT_UNKNOWN');
+ // The official job-log reader may retain GitHub's UTC timestamp prefix.
+ const frames=log.split(/\r?\n/).map(l=>l.replace(/^\d{4}-\d\d-\d\dT[0-9:.]+Z /,'')).filter(l=>l.startsWith(DELIVERY_PREFIX));
+ if(frames.length!==1||Buffer.byteLength(frames[0])>32768)stop('RESULT_UNKNOWN');
+ let frame;try{frame=JSON.parse(frames[0].slice(DELIVERY_PREFIX.length));}catch{stop('RESULT_UNKNOWN');}
+ const p=frame.payload;
+ const keys=(v,list)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join('|')===list.sort().join('|');
+ if(!keys(frame,['sha256','payload'])||!keys(p,['schema_version','trial','run_id','workflow_sha','source_sha','result_sha256','review_status','candidate','usage','billed_nusd'])||!keys(p.usage,['input_tokens','output_tokens','total_tokens']))stop('RESULT_UNKNOWN');
+ if(!p||frame.sha256!==hash(p)||p.schema_version!==1||p.trial!==TRIAL||p.source_sha!==SOURCE_SHA||p.review_status!=='PENDING_INDEPENDENT_REVIEW'||p.billed_nusd!==null||!/^\d{1,20}$/.test(expected?.run_id||'')||!SHA.test(expected?.workflow_sha||'')||!/^[a-f0-9]{64}$/.test(expected?.result_sha256||'')||p.run_id!==expected.run_id||p.workflow_sha!==expected.workflow_sha||p.result_sha256!==expected.result_sha256)stop('RESULT_UNKNOWN');
+ await source.contract.validateArtifact(p.candidate,source.source);
+ const r=p.candidate.receipt;if(p.usage?.input_tokens!==r.input_tokens||p.usage?.output_tokens!==r.output_tokens||p.usage?.total_tokens!==r.input_tokens+r.output_tokens)stop('RESULT_UNKNOWN');
+ return p; // Still unreviewed content. Never auto-apply or publish.
+}
 async function cli(){
  const command=process.argv[2];if(process.argv.length!==3||!['preflight','reserve','generate'].includes(command))stop('COMMAND_REQUIRED');
  const ctx=contextFromEnvironment(process.env);
@@ -156,6 +186,10 @@ async function cli(){
  const digest=await saveEvidence(join(ROOT,'evidence'),evidence,[process.env.OPENAI_API_KEY,process.env.GH_TOKEN]);
  await appendFile(process.env.GITHUB_OUTPUT,'evidence_ready=true\n');
  console.log(JSON.stringify({state:evidence.state,dispatch:evidence.dispatch,http_status:evidence.http_status,error_code:evidence.error_code,evidence_sha256:digest}));
+ if(evidence.state==='COMPLETE_HELD_REVIEW_REQUIRED'){
+  const line=await publicDeliveryLine(evidence,source,[process.env.OPENAI_API_KEY,process.env.GH_TOKEN]);
+  await new Promise((done,fail)=>process.stdout.write(line+'\n',error=>error?fail(error):done()));
+ }
  if(evidence.state!=='COMPLETE_HELD_REVIEW_REQUIRED')process.exitCode=1;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){

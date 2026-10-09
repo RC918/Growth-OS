@@ -9,7 +9,7 @@ import {createHash} from 'node:crypto';
 import http from 'node:http';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {REPO,SOURCE_SHA,TRIAL,TAG,REF,MODEL,DEADLINE,APPROVAL,CONFIRM,MANIFEST_HASH,PAYLOAD_HASH,hash,contextFromEnvironment,loadSource,reservationRecord,reserve,verifyReservation,generate,githubAPI,containsSecret,saveEvidence} from './intro-once.mjs';
+import {REPO,SOURCE_SHA,TRIAL,TAG,REF,MODEL,DEADLINE,APPROVAL,CONFIRM,MANIFEST_HASH,PAYLOAD_HASH,hash,contextFromEnvironment,loadSource,reservationRecord,reserve,verifyReservation,generate,githubAPI,containsSecret,saveEvidence,publicDeliveryLine,readPublicDelivery} from './intro-once.mjs';
 
 const now=Date.parse(APPROVAL)+1000,clock=()=>now;
 const sourceDir=process.env.INTRO_TEST_SOURCE||fileURLToPath(new URL('../source/',import.meta.url));
@@ -170,4 +170,45 @@ test('SIGKILL after model POST leaves durable remote reservation and fresh child
  const g=await loopback(t,{hang:true}),ctx=context();let process;
  const running=child(g.origin,ctx,p=>process=p);await g.modelEntered;process.kill('SIGKILL');assert.equal((await running).signal,'SIGKILL');assert.equal(g.counts.model,1);assert.ok(g.state.ref);
  assert.equal((await child(g.origin,ctx)).code,1);assert.equal(g.counts.model,1);
+});
+
+const deliveryExpected=(e)=>({run_id:e.record.run_id,workflow_sha:e.record.workflow_sha,result_sha256:hash(JSON.stringify(e,null,2)+'\n')});
+test('public log delivery binds same candidate and result hash without ZIP, raw response or credentials',async()=>{
+ const p=await prepared(),e=await generate(args(p,async()=>new Response(JSON.stringify(responseBody()))));
+ e.raw_response={private:'RAW_PRIVATE_SENTINEL'};e.headers={authorization:fakeToken};
+ const line=await publicDeliveryLine(e,source,[fakeKey,fakeToken]);
+ assert.ok(!line.includes('RAW_PRIVATE_SENTINEL'));assert.ok(!line.includes(fakeToken));assert.ok(!line.includes('raw_response'));assert.equal(line.split('\n').length,1);
+ const recovered=await readPublicDelivery('2026-10-09T16:00:00.123Z '+line+'\n',deliveryExpected(e),source);
+ assert.deepEqual(recovered.candidate,e.candidate);assert.equal(recovered.review_status,'PENDING_INDEPENDENT_REVIEW');assert.equal(recovered.billed_nusd,null);
+});
+test('public delivery rejects truncation, duplicate/mixed runs, changed bytes and wrong authoritative identity',async()=>{
+ const p=await prepared(),e=await generate(args(p,async()=>new Response(JSON.stringify(responseBody())))),line=await publicDeliveryLine(e,source),expected=deliveryExpected(e);
+ for(const log of [line.slice(0,-1),line+'\n'+line,line.replace('Preserve source meaning.','Changed'),line.slice(0,40)])await assert.rejects(readPublicDelivery(log,expected,source));
+ const extended=JSON.parse(line.slice('INTRO_PUBLIC_RESULT '.length));extended.payload.raw_response='UNEXPECTED';extended.sha256=hash(extended.payload);await assert.rejects(readPublicDelivery('INTRO_PUBLIC_RESULT '+JSON.stringify(extended),expected,source));
+ for(const patch of [{run_id:'999999'},{workflow_sha:'b'.repeat(40)},{result_sha256:'0'.repeat(64)}])await assert.rejects(readPublicDelivery(line,{...expected,...patch},source));
+});
+test('public delivery never emits known secrets or command-bearing multiline output, and never marks content approved',async()=>{
+ const p=await prepared(),e=await generate(args(p,async()=>new Response(JSON.stringify(responseBody()))));
+ for(const secret of [fakeKey,Buffer.from(fakeKey).toString('base64'),encodeURIComponent(fakeKey)]){const copy=structuredClone(e);copy.candidate.output.candidate=secret;await assert.rejects(publicDeliveryLine(copy,source,[fakeKey]),/SECRET_IN_RESULT/);}
+ e.candidate.output.candidate='合成測試：我們向 AI 提問。\n::error::UNTRUSTED_COMMAND';
+ e.candidate.output.reason='純合成，非模型品質證據。';
+ const line=await publicDeliveryLine(e,source);assert.equal(line.split('\n').length,1);assert.ok(line.startsWith('INTRO_PUBLIC_RESULT {'));
+ const r=await readPublicDelivery(line,deliveryExpected(e),source);assert.equal(r.candidate.output.candidate,e.candidate.output.candidate);assert.equal(r.review_status,'PENDING_INDEPENDENT_REVIEW');
+});
+test('fake HTTP generation then SIGKILL after persisted result: fresh process delivers identical bytes with zero new requests',async t=>{
+ const g=await loopback(t),ctx=context(),dir=await mkdtemp(join(tmpdir(),'intro-delivery-restart-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const moduleURL=new URL('./intro-once.mjs',import.meta.url).href;
+ const script=`import {loadSource,githubAPI,reserve,generate,saveEvidence} from ${JSON.stringify(moduleURL)};
+ const local=(url,options)=>fetch(${JSON.stringify(g.origin)}+new URL(url).pathname,options);
+ const source=await loadSource(${JSON.stringify(sourceDir)}),ctx=${JSON.stringify(ctx)},clock=()=>${now},api=githubAPI(()=>${JSON.stringify(fakeToken)},local);
+ const tagSha=await reserve(ctx,api,clock);const e=await generate({ctx,source,api,tagSha,getKey:()=>${JSON.stringify(fakeKey)},otherSecrets:[${JSON.stringify(fakeToken)}],fetchImpl:local,clock});
+ await saveEvidence(${JSON.stringify(dir)},e,[${JSON.stringify(fakeKey)},${JSON.stringify(fakeToken)}]);setInterval(()=>{},1000);process.stdout.write('PERSISTED\\n');`;
+ const killed=await new Promise((resolve,reject)=>{const p=spawn(process.execPath,['--input-type=module','-e',script],{env:{PATH:process.env.PATH},stdio:['ignore','pipe','pipe']});let out='';const timer=setTimeout(()=>{p.kill('SIGKILL');reject(Error('persist timeout'));},10000);p.stdout.on('data',b=>{out+=b;if(out.includes('PERSISTED'))p.kill('SIGKILL');});p.stderr.resume();p.on('error',reject);p.on('exit',(code,signal)=>{clearTimeout(timer);resolve({code,signal});});});
+ assert.equal(killed.signal,'SIGKILL');assert.equal(g.counts.model,1);
+ const before=await readFile(join(dir,'result.json'),'utf8'),e=JSON.parse(before),requests=g.state.requests.length;
+ const restore=`import {readFile} from 'node:fs/promises';import {loadSource,publicDeliveryLine} from ${JSON.stringify(moduleURL)};globalThis.fetch=()=>{throw Error('NO_NETWORK_IN_READBACK');};const s=await loadSource(${JSON.stringify(sourceDir)});const e=JSON.parse(await readFile(${JSON.stringify(join(dir,'result.json'))},'utf8'));console.log(await publicDeliveryLine(e,s,[${JSON.stringify(fakeKey)},${JSON.stringify(fakeToken)}]));`;
+ const returned=await new Promise((resolve,reject)=>{const p=spawn(process.execPath,['--input-type=module','-e',restore],{env:{PATH:process.env.PATH},stdio:['ignore','pipe','pipe']});let out='';p.stdout.on('data',b=>out+=b);p.stderr.resume();p.on('error',reject);p.on('exit',code=>resolve({code,out}));});
+ assert.equal(returned.code,0);const recovered=await readPublicDelivery(returned.out,deliveryExpected(e),source);assert.deepEqual(recovered.candidate,e.candidate);assert.equal(recovered.result_sha256,hash(before));assert.equal(await readFile(join(dir,'result.json'),'utf8'),before);assert.equal(g.counts.model,1);assert.equal(g.state.requests.length,requests);
+ await assert.rejects(reserve(ctx,g.api,clock),/ALREADY_RESERVED/);assert.equal(g.counts.model,1);
+ t.diagnostic('Synthetic loopback only: one fake model POST; process killed after fsync; new reader recovered candidate via log frame, no network, unchanged saved bytes; consumed reservation still rejects replay.');
 });
