@@ -1,0 +1,111 @@
+# Candidate only: DO NOT merge/dispatch until Owner separately approves main's
+# production side effects and the exact reviewed main SHA. No environment exists
+# by implication. Owner must configure intro-trial-once: main only, RC918 required
+# reviewer, admin bypass disabled, and manually enter the existing Responses-only
+# OPENAI_API_KEY. Approve this exact run before its generation job can use it.
+# Reservation is permanent, including approval denial/cancellation/timeout.
+# Never rerun, delete the consumption ref, or replace failed evidence by a new call.
+name: One public introduction generation
+on:
+  workflow_dispatch:
+    inputs:
+      reviewed_sha:
+        description: Exact reviewed main commit (must equal this workflow SHA)
+        required: true
+        type: string
+      confirm:
+        description: Enter ONE_GENERATION_USD1_TOTAL_HELD6
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: intro-gha-01-r6
+  cancel-in-progress: false
+env:
+  INTRO_REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+  INTRO_CONFIRM: ${{ inputs.confirm }}
+jobs:
+  offline:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor == 'RC918' && inputs.reviewed_sha == github.sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: b901e3474989bd4204c418ce90eafeb4e067d5f3
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - run: node scripts/intro-once.mjs preflight
+      - run: node --test scripts/intro-once.test.mjs
+  reservation:
+    needs: offline
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      tag_sha: ${{ steps.reserve.outputs.tag_sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: b901e3474989bd4204c418ce90eafeb4e067d5f3
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - id: reserve
+        run: node scripts/intro-once.mjs reserve
+        env:
+          GH_TOKEN: ${{ github.token }}
+  generation:
+    needs: reservation
+    if: github.run_attempt == 1 && needs.reservation.outputs.tag_sha != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    environment: intro-trial-once
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: b901e3474989bd4204c418ce90eafeb4e067d5f3
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - run: node scripts/intro-once.mjs preflight
+      - id: generate
+        run: node scripts/intro-once.mjs generate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTRO_RESERVATION_TAG: ${{ needs.reservation.outputs.tag_sha }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && steps.generate.outputs.evidence_ready == 'true'
+        with:
+          name: intro-gha-01-r6-${{ github.run_id }}
+          path: evidence/result.json
+          retention-days: 7
+          if-no-files-found: error
+          overwrite: false
+          include-hidden-files: false
