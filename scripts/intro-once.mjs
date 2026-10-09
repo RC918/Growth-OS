@@ -151,7 +151,8 @@ export async function publicDeliveryLine(evidence,source,secrets=[]){
  // Explicit projection: never spread evidence, raw response, headers, or errors.
  const payload={schema_version:1,trial:TRIAL,run_id:evidence.record.run_id,workflow_sha:evidence.record.workflow_sha,source_sha:SOURCE_SHA,result_sha256:hash(JSON.stringify(evidence,null,2)+'\n'),review_status:'PENDING_INDEPENDENT_REVIEW',candidate:evidence.candidate,usage:{input_tokens:receipt.input_tokens,output_tokens:receipt.output_tokens,total_tokens:receipt.input_tokens+receipt.output_tokens},billed_nusd:null};
  if(containsSecret(payload,secrets))stop('SECRET_IN_RESULT');
- const line=DELIVERY_PREFIX+JSON.stringify({sha256:hash(payload),payload});
+ // Legacy runner commands can start at an inline ##[; escape at wire level only.
+ const line=DELIVERY_PREFIX+JSON.stringify({sha256:hash(payload),payload}).replaceAll('#','\\u0023');
  if(Buffer.byteLength(line)>32768)stop('RESPONSE_TOO_LARGE');
  return line;
 }

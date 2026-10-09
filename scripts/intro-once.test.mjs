@@ -212,3 +212,19 @@ test('fake HTTP generation then SIGKILL after persisted result: fresh process de
  await assert.rejects(reserve(ctx,g.api,clock),/ALREADY_RESERVED/);assert.equal(g.counts.model,1);
  t.diagnostic('Synthetic loopback only: one fake model POST; process killed after fsync; new reader recovered candidate via log frame, no network, unchanged saved bytes; consumed reservation still rejects replay.');
 });
+
+test('legacy inline runner commands are escaped on the wire with unchanged candidate and hashes',async()=>{
+ const p=await prepared(),e=await generate(args(p,async()=>new Response(JSON.stringify(responseBody()))));
+ e.candidate.output.candidate='合成測試 ##[error]UNTRUSTED #一般標籤\n::error::UNTRUSTED';
+ e.candidate.output.reason='前綴 ##[warning]UNTRUSTED 與 literal \\u0023 不得改寫。';
+ const before=JSON.stringify(e),expected=deliveryExpected(e),line=await publicDeliveryLine(e,source);
+ // ActionCommand.TryParse uses IndexOf("##["), not a start-of-line match.
+ const legacyStart=line.indexOf('##[');assert.equal(legacyStart,-1);assert.ok(line.includes('\\u0023\\u0023[error]'));
+ assert.equal(line.split('\n').length,1);assert.equal(JSON.stringify(e),before);
+ const frame=JSON.parse(line.slice('INTRO_PUBLIC_RESULT '.length));assert.equal(frame.sha256,hash(frame.payload));
+ const roundtrip=await readPublicDelivery(line,expected,source);
+ assert.deepEqual(roundtrip.candidate,e.candidate);assert.equal(roundtrip.result_sha256,expected.result_sha256);
+ // Prove the former serializer exposes the exact legacy command prefix.
+ const oldLine='INTRO_PUBLIC_RESULT '+JSON.stringify(frame);assert.ok(oldLine.indexOf('##[error]UNTRUSTED')>0);
+ assert.deepEqual(JSON.parse(oldLine.slice('INTRO_PUBLIC_RESULT '.length)),frame);
+});
