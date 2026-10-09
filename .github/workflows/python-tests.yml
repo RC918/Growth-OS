@@ -51,6 +51,8 @@ jobs:
         run: node --test prototype/owner-workspace/workspace-api.test.mjs prototype/owner-workspace/saved-result-review.test.mjs prototype/owner-workspace/revision-marker.test.mjs
       - name: First result page review contract checks
         run: node --test prototype/public-audit/first-result-review.test.mjs
+      - name: R7 source-bound page confirmation contracts (no network)
+        run: node --test prototype/intro-trial/r7-review.test.mjs
       - name: Introduction trial offline contract and budget
         run: node --test prototype/intro-trial/intro-trial.test.mjs prototype/intro-trial/follow-on.test.mjs prototype/intro-trial/proxy-loopback.test.mjs
       - name: Unwired first result save-intent contract checks
@@ -274,5 +276,7 @@ jobs:
         run: node prototype/owner-workspace/offline-draft-ui.e2e.mjs
       - name: Offline growth plan desktop and mobile acceptance (memory only)
         run: node prototype/owner-workspace/growth-plan-ui.e2e.mjs
+      - name: R7 approved candidate desktop/mobile page review (no remote calls)
+        run: node prototype/intro-trial/r7-review.e2e.mjs
       - name: URL source and first useful result desktop/mobile acceptance
         run: node prototype/public-audit/product-source-ui.e2e.mjs

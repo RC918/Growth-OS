@@ -1,8 +1,10 @@
+import {mountR7Review} from './intro-r7-review.mjs';
 import {createIntroPanel} from './intro-candidate-panel.mjs';
 import {createResultHandoff} from './first-result-handoff.mjs';
 import {createResultReview,reviewFields} from './first-result-review.mjs';
 const $=id=>document.getElementById(id),node=(tag,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 let current=null,review=null,epoch=0,controller=null,activeExport=null;
+void mountR7Review($('r7-review'),$('source-url'));
 const introPanel=createIntroPanel({root:$('intro-panel'),getReport:()=>current,getReview:()=>review});
 $('intro-panel').addEventListener('intro-applied',()=>{refreshReview(true);$('review-origin-description').textContent='已套用改寫候選；引用僅供對照，仍需人工核實。';});
 const previewOnly=()=>['service','software_application','static_subpage'].includes(current?.page_type);

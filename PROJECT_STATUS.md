@@ -4,6 +4,21 @@
 
 ## 當前授權與基準
 
+### 2026-10-09 R7 商家頁內 Review 切片（離線通過，待原 Reviewer）
+
+Owner 17:38:54 UTC「繼續推進」後，父明確選定既有介紹入口的最小離線 Review 包；起點 `9481d87c4200ee487dc9fcf354ed528fea84daba`、原 `feat/private-host-bootstrap`，開始 clean。已完成的 R7 生成／獨立內容驗收不重做；本包無新模型、secret、DB、Auth、merge、Vercel 重連或 production 部署。
+
+**可見成果。** 原 `/service-result.html` 首屏直接讀同源固定 `intro-r7.json`，展示真 R7 原文／繁中候選／模型理由／原文引用／來源 URL，以及可展開的 source version、run、回條、Reviewer APPROVE；不用使用者選檔，不偽造完整來源 report，也不放寬原 static_subpage 的 workspace Save／handoff／發布限制。生成時間 `2026-10-09T17:35:33Z` 與「既有 R7，非本頁新生成」明示。已驗候選唯讀、可複製；頁內確認與獨立 Reviewer 裁決分開，醒目標「不跨 session 保存、未發布、未量測」。
+
+**真資料與確認契約。** JSON 是正式 job `113944733675` 的 public frame，原 payload 和 frame SHA256 `d14cf60a8c34cd648d95e8ed3f34bd3254e8a8def098cfebca9c67fcd60258cd` 保持；候選版本 SHA256 `3913033f19d0b9ccc1f1dac01693363aec56ee29d897d96c66fc7ac9b8c74c04`。新 `intro-r7-review.mjs` 只核固定 frame／run／main／source commit／source URL+version／result hash 與既有 artifact 契約，不重新生成或改寫候選。確認只在本頁記憶體綁定候選 hash 與來源；來源輸入／重新讀取候選／離頁／bfcache 返回即取消，刷新及新頁不恢復；來源或內容被竄改即拒絕展示／確認。DOM 使用 textContent，不執行資料內 HTML；GET 同源靜態資料、不帶 credentials、不跟 redirect。既有三欄來源 report／DB Review 仍維持原權威界線。
+
+**本機真驗證。** `node --test prototype/intro-trial/r7-review.test.mjs prototype/public-audit/first-result-review.test.mjs prototype/internal-rc/contract.test.mjs`：18/18 PASS（R7 六項＋原 Review 六項＋frozen/RC 六項）。`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node prototype/intro-trial/r7-review.e2e.mjs`：1280／390 真 Chromium、loopback HTTP、真 R7 檔案、DOM 全文／引用／版本、鍵盤勾選確認、clipboard 成功及拒絕 fallback、44px 按鈕、來源改變失效／返回需重勾、刷新與離頁返回、bfcache event、錯來源 failclosed 全通過；無外連、POST 或 browser storage 寫入。截圖 `/tmp/r7-review-1280.png`、`/tmp/r7-review-390.png`，已目視手機無橫向溢出。
+
+原 `product-source-ui.e2e.mjs` 1280／390 全回歸 PASS：舊商品每尺寸22次下載、service/software/static_subpage、手動候選匯入／套用／修改／複製與舊稿保護維持；無新 remote/storage/error/overflow。沒有拿 unit PASS 代替 UI；本包不涉及登入或 DB 變更，未跑／未宣稱 hosted Save、跨 session 權威 Review 或真站發布。既有 CI 增兩個相同 R7 contract/UI checks；exact 新 HEAD 的 CI 與原 Reviewer 結果另隨交審回條，不預先標 PASS。
+
+**交接。** 只修改必要 UI／靜態非秘密結果／fixture／tests／既有 CI 與本 status，原 R6/R7 已消耗 workflow/ref 不動。最終 commit/non-force push HEAD 與 clean/readback 以完成回條為準。下一步僅原 Reviewer 審同 HEAD；本切片完成即停，不擴 DB 保存或正式商家網址。要對外部署這個入口、跨 session 保存確認或把文案套用網站，仍需父集中精確範圍與相應發布批准；離線可用不是已部署。
+
+
 ### 2026-10-09 R7 完成交付 checkpoint（有界生成 → Review → 交付 PASS）
 
 本節是當前交付狀態；以下 R6 與修補階段段落保留為歷史快照，不再作目前 pending 指令。R6 原品質 BLOCKED 不改寫為成功。本包已完成，不自選下一包、不新增模型請求／功能／部署；零人工與 8 小時無人值守 **未通過、未宣稱**。

@@ -4,7 +4,22 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'">
 <title>Growth OS｜從網址取得第一份成果</title><link rel="stylesheet" href="./first-result.css"><script type="module" src="./service-result.mjs"></script></head>
 <body><header><a href="/">Growth OS</a><span>公開產品／服務工具頁 · 成果預覽</span></header>
-<main><section><p class="eyebrow">URL → FIRST USEFUL RESULT</p><h1>貼上公開頁網址，先查看有來源的文本。</h1>
+<main><section id="r7-review" aria-labelledby="r7-heading">
+<p class="eyebrow">已完成的 R7 · 直接核稿，不需選檔</p><h2 id="r7-heading">確認這份繁中介紹候選</h2>
+<p class="badge">僅頁內確認 · 不跨 session 保存 · 未發布 · 未量測</p>
+<p>這是 2026-10-09 17:35:33 UTC 真實 R7 模型回條的固定成果，不是本頁新生成；不會再次呼叫模型。</p>
+<p id="r7-status" role="status" aria-live="polite">正在讀取並核對已驗收 R7…</p>
+<div id="r7-content" hidden>
+<p>來源：<a id="r7-url" rel="noopener noreferrer"></a></p>
+<div class="comparison"><div><h3>介紹原文</h3><p id="r7-original" class="copy-text"></p></div><div><h3>R7 繁中候選（唯讀）</h3><p id="r7-candidate" class="copy-text"></p></div></div>
+<h3>模型修改理由</h3><p id="r7-reason"></p><h3>原文引用</h3><div id="r7-citations"></div>
+<p>獨立 Reviewer：APPROVE。忠實繁中、保留原流程與主語；未驗證流量、排名或其他效果提升。您的頁內確認不等於網站發布授權。</p>
+<details><summary>來源版本、候選版本與真實回條</summary><div id="r7-evidence"></div></details>
+</div>
+<label class="review-check"><input id="r7-check" type="checkbox" disabled>我已核對這份 R7 候選、原文與來源；確認只留在本頁。</label>
+<div class="actions"><button id="r7-confirm" type="button" disabled>僅在本頁確認這份候選</button><button id="r7-copy" type="button" disabled>複製 R7 繁中候選</button></div>
+<textarea id="r7-copy-fallback" readonly hidden aria-label="手動複製 R7 繁中候選"></textarea>
+</section><section><p class="eyebrow">URL → FIRST USEFUL RESULT</p><h1>貼上公開頁網址，先查看有來源的文本。</h1>
 <p>系統讀取公開頁，整理已有名稱、描述與特性，產出 title、meta 與產品描述。使用來源摘錄規則，不呼叫模型；請確認原站事實與內容適用性。</p>
 <form id="source-form"><label for="source-url">產品頁網址</label><div class="entry"><input id="source-url" name="url" type="url" required maxlength="2048" placeholder="https://example.com/products/item" autocomplete="url" aria-describedby="source-hint source-feedback"><button id="source-submit">取得第一份成果</button><button id="source-cancel" type="button" hidden>取消讀取</button></div></form>
 <p id="source-hint" class="hint">僅公開 HTTPS、無登入內容及 query 參數。若網址含參數，請改用公開頁的 canonical 路徑。亦支援具明確來源綁定的服務／工具或靜態子頁介紹，僅提供草稿預覽。</p>
