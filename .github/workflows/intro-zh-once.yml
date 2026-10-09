@@ -1,0 +1,108 @@
+# Owner approval 2026-10-09T17:16:10Z; deadline 2026-10-10T04:00:00Z.
+# R7 only: prior US$6 held, one new all-in US$1, cumulative US$7.
+# No retries, no R6 changes, no new secrets or production deployment.
+# Source is the approved Traditional Chinese policy; code is pinned below.
+# Only RC918 on main may dispatch; intro-trial-once still requires Owner review.
+name: One Traditional Chinese introduction
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [feat/actions-intro-zh-once]
+    paths: ['.github/workflows/intro-zh-once.yml', 'scripts/intro-zh-once.mjs', 'scripts/intro-zh-once.test.mjs']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/intro-zh-once.yml', 'scripts/intro-zh-once.mjs', 'scripts/intro-zh-once.test.mjs']
+permissions: {}
+concurrency:
+  group: intro-gha-01-r7
+  cancel-in-progress: false
+env:
+  INTRO_APPROVED_CODE_SHA256: '032e5114c4783cb1113f2f31609c2e4cdb74b071a718111f6a9b811a7c6d6962'
+jobs:
+  offline:
+    if: github.event_name != 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor == 'RC918')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: a20776cdfdb399a5e0b9c4d5a48021155f7b657d
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - if: github.event_name == 'workflow_dispatch'
+        run: node scripts/intro-zh-once.mjs preflight
+      - name: Verify approved script bytes
+        run: echo "$INTRO_APPROVED_CODE_SHA256  scripts/intro-zh-once.mjs" | sha256sum --check --strict
+      - run: node --test scripts/intro-zh-once.test.mjs
+  reservation:
+    needs: offline
+    if: github.event_name == 'workflow_dispatch' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      tag_sha: ${{ steps.reserve.outputs.tag_sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: a20776cdfdb399a5e0b9c4d5a48021155f7b657d
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - id: reserve
+        run: node scripts/intro-zh-once.mjs reserve
+        env:
+          GH_TOKEN: ${{ github.token }}
+  generation:
+    needs: reservation
+    if: github.event_name == 'workflow_dispatch' && github.run_attempt == 1 && needs.reservation.outputs.tag_sha != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    environment: intro-trial-once
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: a20776cdfdb399a5e0b9c4d5a48021155f7b657d
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+      - run: node scripts/intro-zh-once.mjs preflight
+      - id: generate
+        run: node scripts/intro-zh-once.mjs generate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTRO_RESERVATION_TAG: ${{ needs.reservation.outputs.tag_sha }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && steps.generate.outputs.evidence_ready == 'true'
+        with:
+          name: intro-gha-01-r7-${{ github.run_id }}
+          path: evidence/result.json
+          retention-days: 7
+          if-no-files-found: error
+          overwrite: false
+          include-hidden-files: false
