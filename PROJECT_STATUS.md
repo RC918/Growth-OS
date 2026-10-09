@@ -4,6 +4,8 @@
 
 ## 當前授權與基準
 
+**2026-10-09 INTRO-TRIAL-01-R1 offline診斷修復（03:37:35UTC批准）。** 起點c272bdd，原Primary／branch／PR28；唯一API executor `01a11e97-7708-75cc-be21-0e58b54c30a9` 已UNKNOWN，calls1僅reservation，完整US$1仍held，不重送不歸零。舊錯誤／HTTP／usage遺失不可重建，不歸咎proxy或key。本包只補allowlisted phase/type/code/status/provider ID、timestamp/correlation與安全runtime能力、離線redaction／storage測試；無proxy/config啟用、key操作、模型請求或executor journal修改。[新診斷及歷史界線](prototype/intro-trial/README.md)。既有UI/frozen/Review/DB不變；待exact CI／Preview與原Reviewer，不自行activate。
+
 **2026-10-08 INTRO-TRIAL-01-R1（17:47:39UTC批准）。** 起點913214d，原branch／PR28；R1取代三count三generate，僅既有public intro的一次generation，固定snapshot／global standard，payload≤4096 UTF-8 bytes（不是tokens），output1500，發送前預占整US$1與唯一slot，UNKNOWN永停，原deadline不延。原task讀回正式state不存在、key名稱不存在；此處只做offline，live NOT_RUN。R1回條明確新版，不動UI功能／frozen／Review／DB。父另安排唯一API測試task及network-secret；不冒熱繼承，不新建task或搬key。[命令、非秘密activation、固定journal與交接限制](prototype/intro-trial/README.md)。
 
 **2026-10-08 INTRO-TRIAL-01（16:16:40UTC批准）。** 起點 `3609252bc1425459f47e294214d5ec761edd672b`，原branch／PR28。新增受控單批runner、固定三source候選JSON及靜態子頁預覽載入→引用／原文差異／理由→套用編輯複製；凍結商品與Review核心、DB/Save/Publish不變。live **NOT_RUN**：count計費與稅上限未知，有效runtime binding未確認；Owner截圖餘額US$5、auto-reload OFF不再列未知，不沿用過期keys。本包不讀secret、不建正式journal、不重抓目標。離線驗證與安全邊界見[本包說明](prototype/intro-trial/README.md)；exact CI／Preview與既有Reviewer另附，Primary不自行驗收。CoreMilestoneProgress=1僅候選載入審閱能力，不代表模型改善或live成功。

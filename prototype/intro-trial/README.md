@@ -1,4 +1,38 @@
-# INTRO-TRIAL-01-R1：單次生成修訂（live NOT_RUN）
+# INTRO-TRIAL-01-R1：離線診斷修復（唯一實測 UNKNOWN／禁止重送）
+
+## 2026-10-09 最新狀態與本次範圍
+
+Owner 03:37:35UTC批准最小offline診斷修復，起點 `c272bdd9ddd58cf28b017cf6b40bb45bc71f0f07`／原branch／PR28，開始dirty空。父提供唯一API executor `01a11e97-7708-75cc-be21-0e58b54c30a9` 的結果：initialized→reserved→UNKNOWN_STOP；reserved at `2026-10-09T03:14:56.418Z`，檔案mtime `03:14:56.465414Z`，舊UNKNOWN事件没有timestamp。**calls=1是reservation數，不是已證實上游收到一次請求；完整US$1與唯一slot仍held。** 沒有candidate／HTTP status／provider ID／usage／底層exception可讀回。不能由mtime或短耗時重建錯誤、推定已送達，亦不能歸咎credential或proxy；根因仍UNKNOWN。
+
+本Primary本機state／journal／lock不存在，這不撤銷唯一executor的held額度。本包沒有存取或修改executor journal、prepare、live、模型／auth／count／network probe、key／網路／安全配置、付費服務、新task或新dependency。此次**不授權第二次live**。下方10/8的prepare/live命令與activation說明僅為歷史契約，**現在不得執行或重新授權舊slot**；需保留原executor帳本，不能換task歸零。
+
+### 新診斷（只作用於未來另有批准的執行，不修補舊UNKNOWN）
+
+- 原失敗仍丟出STOP、保留預占，不重試不退額；future UNKNOWN_STOP附事件timestamp、固定client correlation `INTRO-TRIAL-01-R1-1`、每次run的隨機operation UUID、allowlisted stage／error type／code、HTTP整數status與安全provider request ID。CLI失敗只輸出安全JSON與runtime capabilities；不輸出error.message／stack／cause物件、raw body、headers、key、placeholder、proxy URL或帶query URL。
+- 只接受provider ID格式 `req_`＋32小寫hex，且排除與當次credential／placeholder重疊者；其他格式留null。缺provider ID不以client ID冒充。任意異常型別／code回UnknownError／UNCLASSIFIED；cause最多檢查3層，只取固定enum，不序列化、不觸發getter。HTTP錯誤body不讀入diagnostics。
+- dispatch明確區分 `not_invoked`、`invoked_delivery_unknown`、`http_response_observed`。呼叫fetch不證明網路／上游送達；HTTP可能來自proxy，status／request ID也不單獨證明模型成功或計費。
+- 階段包含preflight／lock／state_read／payload／reservation／credential／request_build／dispatch／http_status／response_read／response_parse／response_validation／output_parse／output_validation／artifact_write／receipt_write／complete_write／cleanup。尚未dispatch的失敗不寫虛假UNKNOWN送達事件。已預占後任何失敗仍禁止重送。
+- diagnostic journal append本身失敗時，CLI仍保留原安全診斷並標記journal_write_failed及allowlisted儲存error code；cleanup失敗不覆蓋原始錯誤。部分／缺失journal仍fail closed，不自動修復。讀stream失敗不被後續cancel錯誤取代。
+- 固定model／HEAD binding／4096bytes／expiry／source／單slot全US$1／no retry／no reset、輸出候選與UI保持不變。修復不延長原deadline。
+
+### Runtime／proxy只讀核對
+
+本Primary安全能力快照（不是原executor歷史狀態）：Node `v24.19.0`、Undici `7.29.0`、global fetch可用、`--use-env-proxy`支援=true；可觀察的env/啟動flag proxy opt-in=false，HTTP_PROXY／HTTPS_PROXY／NO_PROXY**名稱存在**=true；explicit dispatcher=false，network_compatibility_verified=false。只記版本及布林，不讀出或記錄代理值；外部preload／平台路由未證實，不能因這些布林斷言走直連或根因。
+
+[Node官方企業網路說明](https://nodejs.org/learn/http/enterprise-network-configuration)支持 `NODE_USE_ENV_PROXY=1` 或 `--use-env-proxy` 讓相應版本的fetch使用配置proxy；[官方fetch文件](https://github.com/nodejs/node/blob/main/doc/api/globals.md#fetch)也支持Undici-compatible dispatcher。**本次未啟用任何一種方式**，沒有改HTTP(S)_PROXY／NO_PROXY／TLS／allowlist或額外依賴，也沒有網路探測。
+
+若後續Owner另批連線修復，最小候選是讓經平台核可的Node啟動方式明確使用既有proxy opt-in，保留目的地限制與TLS驗證，先在隔離local mock核對；此提案未施工，更不構成第二次模型請求授權。不要把普通HTTPS proxy可用直接等同network-secret替換成功。
+
+### 離線驗證及交審
+
+`node --test prototype/intro-trial/intro-trial.test.mjs`：40 PASS（24既有＋16diagnostic），全部synthetic state／stub fetch，零socket。涵蓋thrown secrets、循環cause／getter、HTTP非2xx、JSON解析、output/usage/quote驗證、artifact／journal儲存、cleanup、reservation前失敗、timestamp／correlation、proxy值不外洩與UNKNOWN再進入零send。測試用代理字串只在獨立test process暫存並還原，非環境配置變更。
+
+PLAN/CODE／UNIT／Node RUN適用。Browser/desktop/mobile／DB／Auth／Save／logout／fresh login／tenant不變，本機不重跑；既有CI仍執行全回歸。git diff驗frozen與UI、policy、source manifest零變更。exact CI／Preview另附，交**原Reviewer**；Primary不自行APPROVE／activate。既有失敗根因與真proxy／network-secret相容仍UNKNOWN，本次live NOT_RUN。
+
+---
+
+以下為10/8歷史交付記錄，當時live NOT_RUN；不取代上述10/9唯一實測UNKNOWN及禁止重送狀態。
+
 
 Owner 2026-10-08T17:47:39Z批准R1；取代913214d上的3count＋3generate契約，不追加另一次批次。原截止 **2026-10-09T16:16:40Z不延長**。本Primary只完成離線工程／CI／Preview，沒有key、正式prepare或live。唯一後續API測試task由父另行安排，不替換Primary，不新增工程task。
 
