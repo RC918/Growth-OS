@@ -4,6 +4,8 @@
 
 ## 當前授權與基準
 
+**2026-10-09 INTRO-TRIAL 固定 R2 proxy／累計預占修復（04:25:05 UTC批准）。** 基準e7808b0，原branch／PR28。真Node子程序＋loopback fake proxy證明opt-in、marker經代理、拒絕不退直連與guard拒絕；正式R2只用單程序 `--use-env-proxy` 接既有平台proxy，不改代理／TLS／CA／網路設定。原executor `01a11e97-7708-75cc-be21-0e58b54c30a9` 舊UNKNOWN與US$1永久保留；新固定R2須驗原journal bytes hash／task／reservation，另預占US$1、累計capUS$2；5%稅已由Owner確認，原deadline不延。58本機tests PASS，原UI/frozen/source/DB不變；Primary未prepare/live、key或真API请求。[固定activation、一次命令、ledger及代理限制](prototype/intro-trial/README.md)。待exact CI／Preview與原Reviewer，父才將綁定HEAD的activation交同一原executor；不新建task、不自行activate。CoreMilestoneProgress=0，限必要Blocking修復；舊失敗根因與真network-secret相容仍UNKNOWN。
+
 **2026-10-09 INTRO-TRIAL-01-R1 offline診斷修復（03:37:35UTC批准）。** 起點c272bdd，原Primary／branch／PR28；唯一API executor `01a11e97-7708-75cc-be21-0e58b54c30a9` 已UNKNOWN，calls1僅reservation，完整US$1仍held，不重送不歸零。舊錯誤／HTTP／usage遺失不可重建，不歸咎proxy或key。本包只補allowlisted phase/type/code/status/provider ID、timestamp/correlation與安全runtime能力、離線redaction／storage測試；無proxy/config啟用、key操作、模型請求或executor journal修改。[新診斷及歷史界線](prototype/intro-trial/README.md)。既有UI/frozen/Review/DB不變；待exact CI／Preview與原Reviewer，不自行activate。
 
 **2026-10-08 INTRO-TRIAL-01-R1（17:47:39UTC批准）。** 起點913214d，原branch／PR28；R1取代三count三generate，僅既有public intro的一次generation，固定snapshot／global standard，payload≤4096 UTF-8 bytes（不是tokens），output1500，發送前預占整US$1與唯一slot，UNKNOWN永停，原deadline不延。原task讀回正式state不存在、key名稱不存在；此處只做offline，live NOT_RUN。R1回條明確新版，不動UI功能／frozen／Review／DB。父另安排唯一API測試task及network-secret；不冒熱繼承，不新建task或搬key。[命令、非秘密activation、固定journal與交接限制](prototype/intro-trial/README.md)。

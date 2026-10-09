@@ -1,3 +1,63 @@
+# INTRO-TRIAL：固定 R2 proxy／帳本修復候選（未執行 API）
+
+## 2026-10-09 04:25:05 UTC Owner 批准範圍
+
+本包從 `e7808b0f869b187cb9f0ecc16413cac4c63b6516`／`feat/private-host-bootstrap`／Draft PR28 做離線修復，交原 Reviewer。Owner 新批准 **一個 R2 generation**；不是恢復或重送 R1。Primary 不做正式 prepare/live，不讀 key、修改平台 proxy／allowlist／TLS／CA、不建 task／service。下方 R1「不授權第二次」是 03:37 時點歷史；本節是最新範圍，**舊 R1 仍永久 UNKNOWN、US$1 held**，不得改寫、刪除、重設、重新 prepare。
+
+### 固定兩次契約與累計上限
+
+- 原 executor 固定 `01a11e97-7708-75cc-be21-0e58b54c30a9`；父審核後只將 activation 交回此同一 task。程式核 activation、舊 journal 的 execution_task_id；這不是平台 task 身分驗證，父仍須確保沒有其他 executor／副本執行。
+- 舊 root `/workspace/intro-trial-state/INTRO-TRIAL-01` 只讀；驗三事件 initialized→reserved→UNKNOWN_STOP、R1 request ID、2026-10-09T03:14:56.418Z reservation、calls1、heldUS$1、source/payload hash 與父提供的 **原始 journal bytes SHA-256**。初始化 R2、執行前及預占前均核對；缺失／漂移／換 task 就停，不自行修復。舊 reservation 數不是上游收件證明，失敗根因仍 UNKNOWN。
+- 新固定 root `/workspace/intro-trial-state/INTRO-TRIAL-01-R2`、trial `INTRO-TRIAL-01-R2`、client ID `INTRO-TRIAL-01-R2-1`；沒有 CLI path／attempt override。新 root 不存在只表示 R2 尚未建立，**不表示總帳為零**。新 initialized 及 reserved 均保存舊 reservation 引用；發送前 fsync 新 US$1，累計上限固定 **US$2**。新 UNKNOWN／SIGKILL／部分 journal／crash lock 永久禁止再發，沒有 retry/reset 命令。
+- R1 `prepare`／`live` CLI 永久回 `OLD_TRIAL_READBACK_ONLY`。R1 exported fixture helpers 保留供既有離線 regression，正式執行僅使用本節 R2 CLI。
+- 仍是既有四欄 public source、固定 `gpt-5.4-mini-2026-03-17`／global `/v1/responses`／standard、完整 JSON ≤4096 UTF-8 bytes（固定 payload 1733 bytes，不是 token 計數）、output1500／無tools／0 count／0 auth probe／0 retry。未稅保守 US$0.30675；Owner 確認台灣5%稅，稅上界 US$0.0153375，合計 US$0.3220875，小於新 all-in US$1，仍全額預占不退額。沒有延長原 **2026-10-09T16:16:40Z**；最後40秒拒絕啟動。
+- 候選內容仍用 R1 schema_version2 以相容既有 UI；這是內容格式版本，**不是帳本 attempt**。receipt 的 client fallback 是 R2 ID；新 journal 以 R2 trial 與 artifact hash 綁定。UI、source manifest、frozen artifact、DB/Review/Publish 均不變。
+
+### 單程序既有代理與 fail-closed
+
+[Node 官方企業網路文件](https://nodejs.org/learn/http/enterprise-network-configuration)支持 `node --use-env-proxy` 讓 fetch 使用既有環境代理。R2 CLI 明確要求此啟動 flag，讓 Node 自行使用既有平台 HTTPS proxy／credentials；不設定、印出、解析或替換代理 URL／秘密。guard 只判 effective HTTPS proxy 非空、TLS未停用，並保守拒絕可能讓 api.openai.com 繞過代理的 NO_PROXY 項目；不改寫 NO_PROXY。未知語法亦停，不能刪項通過。為固定啟動方式，非空 NODE_OPTIONS、關閉 proxy 的 flag／env 都停；遇既有設定衝突回報，不自行清除。沒有 direct fallback、redirect、額外 dispatcher 或新依賴。
+
+真 Node24 子程序＋127.0.0.1 fake HTTP target／CONNECT proxy（假 marker）實測：opt-in 的 proxy 收到 marker；無 guard 的 opt-out 確實直連；正式 guard 擋 opt-out／NO_PROXY；proxy 403 不退直連；HTTPS 亦進 proxy，刻意非TLS target 導致 TLS失敗，未安裝CA或停用TLS。所有子程序只帶合成環境，fake proxy 只轉發精確 loopback authority。**這不證明平台 network-secret 替換、真 API 成功或舊失敗根因**，那些本包 NOT_RUN。
+
+### 審核後交原 executor 的非秘密 activation 與命令（本 Primary 未執行）
+
+父在 exact HEAD 的原 Reviewer 通過後填好 `INTRO_TRIAL_R2_ACTIVATION`，不將 key 或 proxy 值放入 activation／repo／命令。`priorJournalSha256` 由原 executor 唯讀原 journal 得到，不能複製或重建舊帳本；reviewedHead 是本包最終40位 HEAD，必須 clean。
+
+```json
+{
+  "trial": "INTRO-TRIAL-01-R2",
+  "ownerApproval": "2026-10-09T04:25:05Z",
+  "executionTaskId": "01a11e97-7708-75cc-be21-0e58b54c30a9",
+  "soleExecutionTask": true,
+  "credentialBindingVerified": true,
+  "globalStandardVerified": true,
+  "platformProxyAuthorized": true,
+  "priorTrial": "INTRO-TRIAL-01-R1",
+  "priorHeldNusd": 1000000000,
+  "cumulativeCapNusd": 2000000000,
+  "taxRatePercent": 5,
+  "taxFeeCeilingNusd": 15337500,
+  "priorJournalSha256": "PARENT_VERIFIED_64_HEX_RAW_JOURNAL_HASH",
+  "reviewedHead": "REVIEWED_40_HEX_HEAD",
+  "evidence": "Parent verified same sole executor, original UNKNOWN reservation, existing authorized proxy/credential binding and global standard; Owner confirmed Taiwan 5% tax."
+}
+```
+
+下列是分開的步驟，不能串接自動重試。先核原帳本及新 root 未用、activation／HEAD／期限；prepare-r2 本身零网络但驗相同 proxy 啟動條件。prepared 成功後由父批准交接的原 executor **只執行 live-r2 一次**，任意失敗只讀回，不重送；不在此 Primary 執行。
+
+```sh
+node prototype/intro-trial/runner.mjs readback
+node --use-env-proxy prototype/intro-trial/runner.mjs prepare-r2
+node --use-env-proxy prototype/intro-trial/runner.mjs live-r2
+node prototype/intro-trial/runner.mjs readback-r2
+```
+
+58 個本機 tests PASS：40 既有＋16 R2帳本／並行／SIGKILL／授權＋2 真 loopback／guard。原測試一次 fixture typo 已修正，最終全套通過。PLAN/CODE/UNIT/CONTRACT/Node RUN 適用；無獨立build。Browser/DOM、desktop/mobile、DB/Auth、Save/logout/fresh login/readback、tenant 不在本次變更範圍，既有CI全回歸另核；不能把 Preview ready 當 live API 通過。CI新增兩個測試檔到原 step，無服務／dependency。CoreMilestoneProgress=0（必要 Blocking 接線修復，未聲稱新產品成果）；不選開後續工程。exact CI／Preview 回條另附父交審，未自行 APPROVE／activate。
+
+---
+
+## 以下為 03:37:35 UTC 診斷修復歷史（保留原證據）
+
 # INTRO-TRIAL-01-R1：離線診斷修復（唯一實測 UNKNOWN／禁止重送）
 
 ## 2026-10-09 最新狀態與本次範圍
