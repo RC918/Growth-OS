@@ -4,6 +4,33 @@
 
 ## 當前授權與基準
 
+### 2026-10-09 R7 完成交付 checkpoint（有界生成 → Review → 交付 PASS）
+
+本節是當前交付狀態；以下 R6 與修補階段段落保留為歷史快照，不再作目前 pending 指令。R6 原品質 BLOCKED 不改寫為成功。本包已完成，不自選下一包、不新增模型請求／功能／部署；零人工與 8 小時無人值守 **未通過、未宣稱**。
+
+**正式執行及版本。** Owner 於 `2026-10-09T17:16:10Z` 批准窄整合與一次實測；原 Reviewer 核准 PR30 exact head `6ed7d0d201d7c4210db886221c8252292102ca6a` 後，17:27:50 UTC 合併至 main `0d6a4d231f823ba8602cecdac8018153324eaa43`。只新增三檔、未 merge PR28，Vercel Git 維持斷開、無 production 操作。R7 run [37967220375](https://github.com/RC918/Growth-OS/actions/runs/37967220375)，RC918／workflow_dispatch／attempt 1，offline、reservation、generation 三 jobs SUCCESS；generation job [113944733675](https://github.com/RC918/Growth-OS/actions/runs/37967220375/job/113944733675)，17:35:33 UTC HTTP200。本節執行／內容證據由父正式轉交原 Reviewer 結果，Primary 本次只歸檔，沒有重跑或另下 ZIP。
+
+**獨立驗收與 log 交付證據。** 原 Reviewer turn `01a121bc-499a-74d4-a4c2-c72fb192201f` 已由正式 job log 取得實際全文，真內容＋log 交付 verdict **APPROVE**。Reviewer 獨立計算 public frame SHA256 `d14cf60a8c34cd648d95e8ed3f34bd3254e8a8def098cfebca9c67fcd60258cd`；依核准序列化、log payload 及 immutable reservation 重建 result，SHA256 `fb92927b097885479f2e1c711f17de287753a6f90a33cd55a284e6a17b1b72ff` 匹配。這是正式 log 全文與重建 result 的核對，**不是下載 ZIP 後的原檔 hash 驗證**；本輪未下 ZIP、未要求 Owner 搬檔。artifact 仍是備援出口，不能將未下載 ZIP 寫成已下載。
+
+- source commit：`a20776cdfdb399a5e0b9c4d5a48021155f7b657d`。
+- payload SHA256：`35357f8011a8a8c08278c5ef2f592eadeb73822e6441e41f58bd58b2589a2b26`；manifest SHA256：`828fc570ef42cb5e1fea280b935d4605f66b949875df6fe9b1ee20049bcfb366`。
+- source HTML SHA256：`7061a900b6aad2703ff9f7ce46a44cfa95f6be3ed0370bd686f1d32f32a6713d`（父轉交 Reviewer 證據）。
+- request：`req_d9279209436948a787e1dd39633064bd`；response：`resp_05a51269b6ac8a20016ac925e3832087d280312eab89f714ea`。
+- usage：input 369／output 185／total 554；含稅估算 US$0.001164713，`billed=null`，實際帳單未知。新 US$1／累計 held US$7 是預占上限，不是實際扣款，不因成功自行釋放先前預占。
+
+**已交付、尚未套用／發布的真候選。**
+
+> 輸入您的網站與品牌名稱。我們會檢查您的品牌識別，向 AI 引擎提出三個真實買家問題，並顯示應先修正的項目。
+
+引用為原介紹全文：`Enter your website and brand name. We check your brand identity, ask AI engines three real buyer questions and show what to fix first.` Reviewer 核准為忠實繁中、保留原流程與主語，不宣稱搜尋／推薦／流量或其他效果提升。父端已將全文及 verdict 交付 Owner。程式輸出的 PENDING review 標記／原 artifact 不回寫，獨立 APPROVE 由此 checkpoint 引用原 Reviewer 裁決。
+
+**已消耗與恢復邊界。** R7 固定 `refs/tags/intro-trial/2026-10-09-r7` 已消耗，禁止 rerun、再次 dispatch／API、刪除或移動 ref、補造或覆蓋結果；授權原截止 `2026-10-10T04:00:00Z` 與 40 秒餘裕不變，剩餘時間不是重跑權限。R6 全部文件／ref／歷史保持不變。只有既有成果的唯讀核對／checkpoint 保存可接續。
+
+**實際 orchestration 與人工 gate。** 父端完成事件與 read/send_message → 原 Reviewer 正式 log 全文與獨立驗收 → 父端通知 Owner → 同一 Primary 新 turn 恢復原 checkpoint 並保存本節，已實際發生。Owner 仍親自啟動 workflow 並批准既有 environment，不能稱零人工；本輪不用 Owner 貼 SHA 或搬 ZIP。沒有重啟 scheduled controller、另造排程／新 task 或以文件冒執行器。
+
+**持久 checkpoint／交接。** 本節保存於原 `feat/private-host-bootstrap`，本次起點 `a20776cdfdb399a5e0b9c4d5a48021155f7b657d`，只提交 PROJECT_STATUS.md 並 non-force push；最終文件 commit HEAD／remote readback 隨本 turn 完成回條提供，不混同模型執行 main SHA。整合 branch `feat/actions-intro-zh-once`／`6ed7d0d201d7c4210db886221c8252292102ca6a` 及交付修補 branch `feat/actions-intro-once`／`b7aaf67f1e6f725d014ced60f8bb58940410d863` 保留。本輪 diff 檢查與檔案／遠端讀回足夠，無功能變更、不重跑不變測試。Pending action：**本包無待施工項目**；收到父完成事件後結束。若要把文案套用網站，須另定目標頁／版本／操作範圍並取得發布批准，不自行發布，也不將本包 PASS 擴稱 URL→Publish→Measure 或整體產品完成。
+
+
 ### 2026-10-09 R6 交付接續 checkpoint（Owner 16:22 UTC 上傳後更新；BLOCKED 品質，不採用、不發布）
 
 本段是既有狀態檔中的恢復書籤，不是排程或自動執行器。最新 Owner 16:15 UTC 指示的第一個證明包限「既有 R6 結果 → 原 Reviewer → 父端通知 → 原 Primary 恢復」。不新增產品功能、生成、費用、secret、權限、merge 或部署；舊 scheduled controller 保持停用。不修改已消耗 workflow、不 dispatch/rerun/API、不繞拒絕、不要求 Owner 搬檔或貼 SHA。
