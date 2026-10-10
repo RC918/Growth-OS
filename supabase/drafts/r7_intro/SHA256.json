@@ -1,5 +1,6 @@
 {
   "proposal.sql": "4b6b37cdeee4d591efa54707470fc3150b44cd2155b1351e71258cb8cd6cd49d",
   "enable.sql": "cb1eb35a6f36ce928a230e4c0240001e14f0f7f1c5381ffdc54609e9dc468969",
-  "disable.sql": "b9a6ad155cf958055250ea9b35bbf07ca68ed3b898e1d7d03e93bd3717520546"
+  "disable.sql": "b9a6ad155cf958055250ea9b35bbf07ca68ed3b898e1d7d03e93bd3717520546",
+  "enroll-readonly.sql": "c5d6eb52407e45a4fd20c9063e53236f13118ca6c99edee9cf07d0adc4bee920"
 }

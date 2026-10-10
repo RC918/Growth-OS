@@ -46,3 +46,13 @@ Reviewer 已核准 6502b3 的兩個 P2 修正；本次只補嚴格期限啟用�
 Disable 序列語意：其 UPDATE 與 writer 的 SHARE 衝突。尚未取得 gate 的 writer 若遇到已提交 disable，必須拒絕；若 disable 尚未提交，writer 等待 gate，取得後核新列；若 writer 已先獲准並持有 SHARE，disable 等其交易結束後才完成，**不回溯取消已進入交易**。disable 返回成功代表之前持有 gate 的交易已結束、後續 writer 不能進入。enable 使用同一行 UPDATE，因此也遵守此鎖序。期限檢查點是鎖後與函式返回前，不宣稱可控制 PostgreSQL 的 WAL/commit 實際落盤時刻；正式 Data API 採單 RPC autocommit，不能另包長期開啟的 client SQL transaction。
 
 `node supabase/drafts/r7_intro/native-deadline.mjs`：使用既有 digest-pinned postgres:17.6，network none、無 host port、無外部凭證、不 pull；7 個 native 多連線案例 PASS。以 pg_blocking_pids 及三個不同 backend PID 證明 writer 確實在另一連線持鎖時等待；Save/Confirm 各測到期、disable；另測 gate 行鎖 disable-first、writer-first disable 等待、audit 等待到期整筆回滾。被拒絕案例 versions/confirmations/audit 三者零增量。測試 UUID 僅合成 fixture，未填入真 Owner/org 到 enable.sql。
+
+## 首次登入前唯讀 enrollment 候選（待獨立 Reviewer，未執行遠端）
+
+`enroll-readonly.sql` 只接受父端正式 invitation/authoritative Auth 查得的 actor UUID 與父明確提供的新專用 org；值以私有 session settings `r7.actor_id`、`r7.organization_id` 提供，檔案無 email/UUID/私人URL。檢查 Auth user 已存在即可（此時尚待本人點驗證信），不代驗 email、不建立 Auth user。
+
+單筆 transaction：FOR UPDATE 鎖 gate，要求 untouched gate=false、actor/org null、期限已過；拒絕重派會員或共用他人 org；insert owner membership；僅授 authenticated 私有 schema USAGE、members/versions/confirmations 與兩 views SELECT，仍受 RLS；明確撤除所有 API writer EXECUTE。無 gate UPDATE、無 deadline、無 audit/gate讀權、無版本/確認寫入。相同身分重覆 enrollment 無副作用，但不授權盲目重送未知結果。若 gate 曾啟用，即使後來 disable 也拒絕這份首次 enrollment。
+
+順序：proposal closed → 原 Reviewer 審 enrollment hash → 父提供 verified actor/org 並明確派執行 → readonly enrollment → accessEnabled=true / writer=false 登入頁 → Owner本人點信並正式 Auth驗證、membership讀回 → 才以既有 enable.sql 設最多一小時 deadline → 一次保存、一次確認及新登入讀回 → disable。不可用先enable再disable替代enrollment，也不可從invite時開始消耗一小時。所有額外遠端動作由父單一協調。
+
+`node --test supabase/drafts/r7_intro/enroll-readonly.test.mjs supabase/drafts/r7_intro/offline.test.mjs`：16 PASS（enrollment主測＋6子測；既有SQL主測＋8子測）。涵蓋缺設定／無Auth／錯org、membership及tenant衝突、active或已用gate拒絕、相同enrollment重放不變、owner讀回、other零列、anon/directDML/RPC拒絕、audit/version/confirmation零增量、後續獨立enable/disable仍可讀。僅PGlite synthetic UUID，不是真Auth或遠端enrollment證據。CI接入既有R7 step；原proposal/enable/disable hash與dist bytes不變。

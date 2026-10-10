@@ -4,6 +4,11 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 首次登入前唯讀 enrollment 候選
+
+父選定必要順序修正：先 verified invite identity 的 read-only membership setup，待本人登入成功才開始既有最多1h writer window。新增 enroll-readonly.sql 與隔離負測，未執行此候選於遠端；不含真actor/org。新＋既有PGlite 16 PASS，dist與三份原審SQL bytes不變，交原Reviewer。正式migration回條僅由父私下保存，本repo不記私人部署／身份資訊。
+
+
 ### 2026-10-10 R7 私有登入／保存 artifact
 
 沿 a84a90e 準備獨立13檔靜態包，保留旧六檔核稿bytes。登入／讀回與writer flag分離，預設key=null/accessEnabled=false/writer=false。無真Owner/org猜值、無遠端schema/Auth寄信/部署；SQL三hash不變。父端處理SMTP/recipient/DataAPI/正式身分與私人callback，公開repo不含私人部署資訊。詳見 [artifact及非秘密配置清單](delivery/r7-private/README.md)。12 JS contract、13檔packaged mock E2E 1280/390涵蓋新context停用writer後exact readback；VERIFY交原Reviewer，不擴下一Core。
