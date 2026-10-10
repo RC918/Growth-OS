@@ -1,4 +1,4 @@
-import {hostedFetch,boot} from './w1-workspace-boot.mjs';
+import {hostedFetch,boot,workspace} from './w1-workspace-boot.mjs';
 let token=null,rows=[],current=null,pending=null,busy=false,epoch=0;
 const $=id=>document.getElementById(id),copy=x=>JSON.parse(JSON.stringify(x));
 async function api(path,{method='GET',body}={}){
@@ -7,7 +7,7 @@ async function api(path,{method='GET',body}={}){
  return r.json();
 }
 const feedback=text=>{$('feedback').textContent=text;};
-function lock(){$('skip').hidden=current?.answer!=='unknown';for(const id of ['save','skip','review','correct','refresh','product','answer','review-check'])$(id).disabled=busy||!!pending||($('actor').value==='viewer'&&['save','skip','review','correct'].includes(id));$('reconcile').hidden=!pending;$('reconcile').disabled=busy;for(const id of ['save','skip','review'])$(id).setAttribute('aria-busy',String(busy));}
+function lock(){$('skip').hidden=current?.answer!=='unknown';for(const id of ['save','skip','review','correct','refresh','product','answer','review-check'])$(id).disabled=busy||!!pending||(['save','skip','correct'].includes(id)&&!workspace.canWrite('answer')||id==='review'&&!workspace.canWrite('review'));$('reconcile').hidden=!pending;$('reconcile').disabled=busy;for(const id of ['save','skip','review'])$(id).setAttribute('aria-busy',String(busy));}
 function render(){
  current=rows.find(x=>x.id===$('product').value);if(!current)return;
  $('product-name').textContent=current.name;$('scope').textContent=`市場：${current.market} · 渠道：${current.channel} · 僅此產品`;
@@ -15,8 +15,8 @@ function render(){
  $('state').textContent=`答案第 ${current.fact_version} 版 · 草稿第 ${current.draft_version||0} 版 · ${current.review_valid?'此確切版已確認':'待確認（舊確認不適用）'} · 未發布`+(current.is_conflict?' · 網站觀察與商家答案衝突，禁止確認；已保留商家答案。':current.source_changed?' · 來源已變更，須重新核對。':'');
  $('evidence').textContent=JSON.stringify({source:{url:current.source_url,quote:current.source_quote,version:current.source_version,observed_outdoor:current.observed_outdoor},answer:{value:current.answer,version:current.fact_version,kind:current.source_kind,confirmed_at:current.confirmed_at,source_version:current.fact_source_version,source_quote:current.fact_source_quote,source_url:current.fact_source_url,market:current.fact_market,channel:current.fact_channel},scope:{organization:current.organization_id,product:current.id,market:current.market,channel:current.channel},draft:current.draft_id},null,2);
  $('answer').value=current.answer==='unknown'?'':current.answer;$('answer').removeAttribute('aria-invalid');
- $('answer-form').hidden=current.answer!=='unknown';$('correct').hidden=current.answer==='unknown'||$('actor').value==='viewer';
- $('review-check').checked=false;$('review-panel').hidden=!current.draft_id||current.review_valid||current.is_conflict||current.source_changed||$('actor').value==='viewer';lock();
+ $('answer-form').hidden=current.answer!=='unknown';$('correct').hidden=current.answer==='unknown'||!workspace.canWrite('answer');
+ $('review-check').checked=false;$('review-panel').hidden=!current.draft_id||current.review_valid||current.is_conflict||current.source_changed||!workspace.canWrite('review');lock();
 }
 async function read(){const own=epoch;const next=await api('state');if(own!==epoch)return;rows=next;const selected=pending?.body.p_product||$('product').value;$('product').replaceChildren(...rows.map(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name+' / '+x.market;return o;}));if(rows.some(x=>x.id===selected))$('product').value=selected;render();await history();}
 async function history(){if(!current)return;const id=current.id,own=epoch;const versions=await api('history?product='+encodeURIComponent(id));if(own!==epoch||current?.id!==id)return;$('history').replaceChildren(...versions.map(x=>{const p=document.createElement('p');p.textContent=`保留草稿第 ${x.version} 版：${x.body}`;return p;}));}
@@ -45,4 +45,5 @@ $('skip').onclick=()=>mutate('answer','unknown');
 $('review').onclick=()=>{if(!$('review-check').checked){feedback('請先核對並勾選目前確切版本。');$('review-check').focus();return;}mutate('review');};
 $('reconcile').onclick=async()=>{busy=true;lock();try{await finish();}catch(e){feedback(e.message);}finally{busy=false;lock();}};
 
-await boot();
+function repaintWritePolicy(){if(!current)return;$('correct').hidden=current.answer==='unknown'||!workspace.canWrite('answer');$('review-panel').hidden=!current.draft_id||current.review_valid||current.is_conflict||current.source_changed||!workspace.canWrite('review');lock();}
+await boot({repaint:repaintWritePolicy});

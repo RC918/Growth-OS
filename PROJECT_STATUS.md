@@ -4,6 +4,17 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 W1 同 session 開窗接續必要 P2（只準備，待原 Reviewer）
+
+父在交Owner登入前識別 f403e50 的 immutable writer flag／boot Viewer fallback 迫使重載，可能消耗第三封信。原hosted install/enrollment已完成、writerclosed；本輪不重跑SQL、不動hosted資料／Site／Auth。新Core只修最多兩次Owner登入的接續缺口，不擴原P3。
+
+新增独立 `supabase/drafts/product_fact/pilot/status-read.sql` 與hash：依native Auth、既有membership、單actor/product/source限縮的只讀STABLE helper/public invoker GET；不改已審原install/enroll/enable/disable bytes，無表SELECT擴權、Auth權限或mutation grant。W1 adapter/UI將固定UI capability與DB讀回分開，Owner不再假作Viewer；同頁明確GET狀態後可操作、關窗回唯讀，每次mutation先GET再由原gate最終裁決。GET失敗或closed不送POST，未知POST仍走原pending讀回；token記憶體、R7不變。
+
+PLAN/CODE、contract/build/import closure、實際native PG17/GoTrue/PostgREST、DOM與1280/390適用：10項adapter及12組native/UI PASS，兩次Owner session完成readonly→同document/session開窗讀回→Save/Review→close→fresh-login readonly，無中間登入/OTP/storage；狀態讀取前後business/gate snapshot不變，viewer/foreign/anonymous隔離，失效/錯配/舊response拒絕；receipt401後狀態核對不能解除pending。原R7 catalog/functions/ACL/policies/member/gate/history全數不變。真SMTP/Site/hosted新SQL未執行、不是PASS。完整步驟/首session有效性前提/停損見delivery README；父審後在首封信前更新composite及單獨reader，兩封額度和16:00UTC上限不延展。
+
+已實作＝本候選；已測試＝隔離；已部署＝本修正未部署；目前可用＝executor驗證，原入口維持父的closed/read-only部署。exact HEAD/同HEAD CI另交回條；Primary不自行APPROVE，交既有Reviewer，後續remote reader需action-time審核。
+
+
 ### 2026-10-10 W1 CLOSED pilot 啟用候選（未部署，交原 Reviewer）
 
 本 Core 接續 `004afe78e553a6eaa908b5a96ff0ff4c7054d986`。父確認原 Reviewer 已獨立核兩份同 HEAD CI logs，24 個讀回回歸與 9 組 native DB/Auth/UI PASS，APPROVE_WITH_DEFERRED_DEBT，原 P3 保留。當前 branch `feat/private-host-bootstrap`；不重播歷史 PR19 checkout，不開其他 task、不開 W2/W3。此次只準備封閉部署／授權候選，沒有遠端 DDL/grant/Auth/callback、部署、寄信、真登入或原站修改。
