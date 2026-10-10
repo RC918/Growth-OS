@@ -304,3 +304,18 @@ jobs:
             /tmp/w1-product-fact-*.png
           retention-days: 7
           if-no-files-found: warn
+      - name: W1 closed pilot native Auth adapter gate and recovery
+        timeout-minutes: 5
+        run: |
+          node --test delivery/w1-private/adapter.test.mjs
+          node delivery/w1-private/verify.mjs
+      - name: Preserve W1 closed pilot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w1-pilot-evidence
+          path: |
+            /tmp/w1-pilot-evidence.json
+            /tmp/w1-pilot-*.png
+          retention-days: 7
+          if-no-files-found: warn

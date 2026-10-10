@@ -1,0 +1,13 @@
+{
+  "first-result.css": "cd2b15427ae619341b8302e0d187fed78c52fa04ef07fc4332d1056c54a98f3a",
+  "index.html": "ffb73262aac8d8a0560ccd61337491e208b566bca8cbbc63e678ec0794e45eba",
+  "intro-candidate.mjs": "8d751be13ca3551513c0629c23e55f075efd2e70543676c8afe930638a61d4cb",
+  "intro-r7-review.mjs": "8bca9a098973326b79c717db8b3f1e1227038315757481369ed8b6a1a3c19772",
+  "intro-save.mjs": "f5e51bc02bab97c3781da0ea167b591520a6f5dcd290614fa67c683bedc5bf84",
+  "product-fact.css": "223491dc29694f72bbbd30611a35a720efa2a93d0b2aadaa8f6192b62eb39f6e",
+  "product-fact.mjs": "3d606331612c9aebfc2e2adfed21b3847bc3ccf0ad1293797014ff95e86f9d09",
+  "r7-workspace-api.mjs": "e42a8c74762e3b5749719cc55aa62f3f05b8b223cd708586a9ffd922e778190b",
+  "w1-workspace-api.mjs": "3d7eaa4b38496892ff8c03555703f2143e7eadf4b2a2e409783a6a3934af2798",
+  "w1-workspace-boot.mjs": "f85ca99bdacd948c39275e2e4f87754ba99e26d14bb4ae15efd85367c9fc5169",
+  "w1-workspace-config.mjs": "ecf346d0ac196f01abc8ac56fd707ac2b97c5664f508a81a121df8617a256775"
+}

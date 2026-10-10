@@ -4,6 +4,21 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 W1 CLOSED pilot 啟用候選（未部署，交原 Reviewer）
+
+本 Core 接續 `004afe78e553a6eaa908b5a96ff0ff4c7054d986`。父確認原 Reviewer 已獨立核兩份同 HEAD CI logs，24 個讀回回歸與 9 組 native DB/Auth/UI PASS，APPROVE_WITH_DEFERRED_DEBT，原 P3 保留。當前 branch `feat/private-host-bootstrap`；不重播歷史 PR19 checkout，不開其他 task、不開 W2/W3。此次只準備封閉部署／授權候選，沒有遠端 DDL/grant/Auth/callback、部署、寄信、真登入或原站修改。
+
+**PLAN／CODE。** [完整候選與後续授權封套](delivery/w1-private/README.md)。正式 adapter 復用既有 R7 native Auth＋DB membership 驗證，無 synthetic actor selector；既有 R7 完全不改。新增 `/w1-workspace` 候選與獨立 `/w1-assets/` additive route map、default CLOSED config及 allowlisted/hash 靜態包；此新 exact callback 尚未批准／設定。pilot SQL 從已接受 W1 派生，僅新增 W1 五表、invoker view／wrappers、private gate/helpers，讀取既有 R7 membership，不另建 general org 系統。安裝、唯讀 enrollment、單一actor/org/product／source／最多1h／2 answers＋2 reviews啟用、撤寫权恢復分檔；原 isolated runner/enable 不進部署包。
+
+**只讀目標證據。** 2026-10-10 約12:52 UTC 原Supabase connector確認既有 growth-os-pilot／wqepyttadrcnphtyjpjy健康、Free plan、PG17.11、DB 11,515,571 bytes；W1 schema/relations/functions不存在；R7 membership invoker/RLS/readonly ACL如預期；R7寫函式ACL僅postgres、gate=false/expired、history=1/1/2；unsafe future table defaults=0。完整 preflight SELECT在候選內，可重跑比對。剩餘storage/egress/Auth/hosting quota未知，不能宣稱Free證明零費用；不創付費資源。US$0新增費用、model0仍是限制。
+
+**UNIT／BUILD／RUN／DB/Auth／DOM／desktop+mobile。** 新adapter 6項contract：closed零網路、wrong config/link/user/membership拒絕、verified user過濾membership、scope/readonly、過期/logout/舊Auth回覆隔離、exact callback/一次OTP不重寄。封裝核hash、固定allowlist及transitive import closure。原生PG17/GoTrue/PostgREST 11組含native Owner/viewer/foreign與直接寫表零delta、固定配額、exact replay、最後DML等待逾期全筆rollback、關窗併發與撤權後新JWT讀回；實際Chromium1280/390正式頁save/review/logout→fresh context→native login→exact readback、readonly/viewer、無storage/overflow；R7 catalog/函式/ACL/policies/membership/gate/history前後不變。證據 `/tmp/w1-pilot-evidence.json`、`/tmp/w1-pilot-{1280,390}.png`，已目視兩尺寸。CI新增同樣檢查與 `w1-pilot-evidence` artifact。最終exactHEAD/run/job/log另隨交審回條，尚未沿用旧CI宣稱新包成功。
+
+封裝驗證初次暴露既有Auth import closure缺件，根因是只列直接依賴；已補完整closure並加靜態依賴檢查，未改Auth/R7模組。環境沿用 `/usr/bin/chromium`，沒有安裝／登入新服務。保持先CLASSIFY必要封裝阻塞、修根因再重跑受影響的驗證迴圈。
+
+**VERIFY／限制。** 上述各點均適用且以隔離native及真DOM驗；hosted save／Auth callback／真人終驗未執行，不是PASS。已實作＝closed candidate；已測試＝隔離；已部署＝否；目前可用＝executor可重現。尚缺具體private site/additive route證據、quota、私下已驗actor/org/product/config綁定與正式callback/action-time批准；不得把候選模板當可自行選參數的部署許可。恢復包能關W1 gate、撤新寫權、保留資料讀回，R7不動。原P3仍為document內pending，reload不保存，不擴修；已知technical debt沿舊記錄。本包CoreProgress是從隔離切片推進到可獨審的正式adapter＋封閉有限gate，非商家已可用／成效。交既有Reviewer，Primary不自行APPROVE。
+
+
 ### 2026-10-10 W1 Review 必要 P2：POST 與讀回錯誤分階段
 
 原 Reviewer `01a125b7` 對 `94e0c5cb997d7d4b6941d11255474b4de00a0ff0` 判 BLOCKED：POST 200 後 receipt GET 401 被共同 catch 誤當寫入拒絕，清掉 pending 並重新開放 Save。根因是 mutation 與後續權威讀回共用拒絕分類；不是後端交易失敗。此包只修此必要 P2，不更改 SQL、runner、R7、frozen、remote 或產品範圍。
