@@ -8,6 +8,10 @@ Owner 回報按寄信無反應；正式資源 HTTP/MIME/import closure 與 CSP h
 
 `login-route.test.mjs` 以實際 `/w1-workspace` 和 `/w1-assets/` 路徑，在1280／390驗證 mock OTP 200／429／network error、blocked entry script、missing transitive module、boot exception、disabled JS，共14案；全部攔截網路，無真 OTP。相依 native 同 session／fresh-login 回歸仍由原 verify 執行。新版 exact HEAD／CI／Reviewer 回條完成前不可更新入口或要求 Owner 再點寄信。
 
+依 Owner 本輪截圖回饋，僅在 W1 生成的 `product-fact.css` 加登入表單局部排版：input 到 CTA 垂直16px、按鈕至少44px高、390px CTA滿欄；原共用CSS與R7不動。寄送中呈現動作文字與aria-busy，結束仍停用，不重送；測試攔住mock回應實際核loading，再核DOM間距／兩尺寸截圖。
+
+本輪既有CI測試債：`prototype/public-audit/test_service_source.py:70` 把禁字搜尋套到含隨機UUID的完整preview；1768092的PR run 38061471794初次因UUID含`999`誤判，實際內容未混入。屬P3測試可靠性、非W1功能缺陷，不阻塞已通過的相依隔離證據；已保留logs並有因重跑一次，不在登入修補中擴修。若持續阻擋CI由Dot選修；追蹤負責人待Dot指派。
+
 本包讓已驗證的既有 Auth／R7 membership 在獨立 W1 入口讀取單一合成產品，另以一個有限寫入窗口驗證「答案→相依草稿→確切版確認→新登入讀回」。**本次同session修正尚未部署／未套用遠端SQL；原f403 install/enroll已在前一批准階段完成，server writer仍CLOSED。** 原 P3（pending tuple 僅頁內記憶體）保留，不開 W2/W3。
 
 起點：`004afe78e553a6eaa908b5a96ff0ff4c7054d986`，分支 `feat/private-host-bootstrap`。父轉達原 Reviewer 對此前隔離 slice 為 APPROVE_WITH_DEFERRED_DEBT；本候選另審，不沿用舊 CI 充當本包證據。

@@ -12,7 +12,7 @@ export async function verifyLoginRoute(){
  try{for(const width of [1280,390])for(const response of [200,429,'network-error','blocked-script','missing-module','init-failure','js-disabled']){
   const unavailable=['blocked-script','missing-module','init-failure','js-disabled'].includes(response);
   const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block',javaScriptEnabled:response!=='js-disabled'});
-  let otp=0;const errors=[],unexpected=[],modules=new Set();
+  let otp=0,releaseOtp;const otpBarrier=new Promise(resolve=>{releaseOtp=resolve;}),errors=[],unexpected=[],modules=new Set();
   if(response==='init-failure')await context.addInitScript(()=>{history.replaceState=()=>{throw Error('isolated initialization failure');};});
   await context.route('**/*',async route=>{
    const req=route.request(),u=new URL(req.url());
@@ -28,6 +28,7 @@ export async function verifyLoginRoute(){
    if(u.origin===api&&u.pathname==='/auth/v1/otp'&&req.method()==='POST'){
     otp++;assert.equal(u.searchParams.get('redirect_to'),origin+'/w1-workspace');
     assert.deepEqual(req.postDataJSON(),{email:'owner@example.invalid',create_user:false});
+    await otpBarrier;
     if(response==='network-error')return route.abort('failed');
     return route.fulfill({status:response,contentType:'application/json',headers:{'access-control-allow-origin':origin},body:'{}'});
    }
@@ -35,6 +36,8 @@ export async function verifyLoginRoute(){
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(origin+'/w1-workspace');
+  const layout=await page.evaluate(()=>{const input=document.getElementById('email').getBoundingClientRect(),button=document.getElementById('send-link').getBoundingClientRect();return {gap:button.top-input.bottom,height:button.height};});
+  assert.equal(layout.gap,16);assert.ok(layout.height>=44);
   if(unavailable){
    assert.equal(await page.locator('#send-link').isDisabled(),true);
    const hint=response==='missing-module'?'登入元件載入失敗':response==='init-failure'?'登入介面初始化失敗':'登入介面初始化中';
@@ -49,9 +52,14 @@ export async function verifyLoginRoute(){
   }
   await page.locator('#auth-status').filter({hasText:'登入介面已就緒'}).waitFor();await page.locator('#email').fill('owner@example.invalid');
   await page.locator('#send-link').click();
+  assert.equal(await page.locator('#send-link').getAttribute('aria-busy'),'true');
+  assert.equal(await page.locator('#send-link').textContent(),'正在寄送…');
+  if(response===200)await page.screenshot({path:`/tmp/w1-login-loading-${width}.png`,fullPage:true});
+  releaseOtp();
   const expected=response===200?'若此信箱已有工作區資格':'寄送未完成或結果待核對';
   await page.locator('#auth-status').filter({hasText:expected}).waitFor();
   assert.equal(await page.locator('#send-link').isDisabled(),true);assert.equal(otp,1);
+  assert.equal(await page.locator('#send-link').getAttribute('aria-busy'),'false');
   await page.locator('#email-form').evaluate(el=>el.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
   assert.equal(otp,1,'Repeated submit must never send another OTP');
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);

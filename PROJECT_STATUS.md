@@ -8,6 +8,8 @@
 
 接續已審 b8984ef2，Owner 回報寄信無反應。正式資源 HTTP/MIME/import closure 已由父核對，Owner runtime 根因仍未知；隔離 module 失敗／停用 JS 可重現舊版按鈕仍可按且沒有回饋。新候選只補 HTML 預設 disabled、初始化／失敗／noscript 提示與同來源獨立 entry catch；boot 成功才解鎖，移除不必要 top-level await 作相容性防護。CSP/R7/Auth/DB不改，不真寄信；原郵件額度 unknown、兩封上限及16:00UTC截止不重置。實際路由1280/390含mock OTP與四種初始化失敗共14案，相依同 session native回歸及同HEAD CI證據另交原Reviewer；不得把failsafe改善當成Owner原runtime根因已解。新增entry檔須納入完整composite，見delivery README。
 
+Owner同輪明確要求改善輸入框／寄信按鈕緊貼：W1專屬生成CSS保持16px間距／至少44px觸控高度，390px滿欄CTA；含loading文字與aria-busy、DOM距離及截圖驗證，R7共用CSS不變。1768092初次PR CI的隨機UUID含`999`既有測試誤判，已依logs分類P3並有因重跑；完整債與限制記delivery README，不擴產品修復。
+
 ### 2026-10-10 W1 同 session 開窗接續必要 P2（只準備，待原 Reviewer）
 
 父在交Owner登入前識別 f403e50 的 immutable writer flag／boot Viewer fallback 迫使重載，可能消耗第三封信。原hosted install/enrollment已完成、writerclosed；本輪不重跑SQL、不動hosted資料／Site／Auth。新Core只修最多兩次Owner登入的接續缺口，不擴原P3。
