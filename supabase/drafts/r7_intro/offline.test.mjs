@@ -5,7 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {readFile,mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createWorkspaceApi} from '../../../apps/web/workspace-api.mjs';
+import {createR7WorkspaceApi as createWorkspaceApi} from '../../../apps/web/r7-workspace-api.mjs';
 import {validateIntroVersion,candidateHash} from '../../../apps/web/intro-save.mjs';
 import {R7} from '../../../apps/web/intro-r7-review.mjs';
 const frame=JSON.parse(await readFile('apps/web/intro-r7.json','utf8'));

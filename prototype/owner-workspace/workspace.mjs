@@ -1,5 +1,3 @@
-import {introSaveEnabled} from './intro-save-config.mjs';
-import {createIntroSavePanel} from './intro-save-panel.mjs';
 import {workspaceRuntime,workspaceFetch} from './workspace-runtime.mjs';
 import {wordpressPublication} from './wordpress-publication.mjs';
 import * as publicationConfig from './wordpress-publication-config.mjs';
@@ -20,7 +18,7 @@ import { createObservationPanel } from './workspace-observations.mjs';
 import { createGoalPanel } from './workspace-goals.mjs';
 
 const api = createWorkspaceApi({
-  ...workspaceRuntime, fetchImpl:workspaceFetch, introSaveEnabled,
+  ...workspaceRuntime, fetchImpl:workspaceFetch,
   redirectOrigin: location.origin, wordpressPublicationEnabled, urlReviewEnabled, urlReviewSchemaEnabled, urlReviewTrial, urlSaveEnabled, urlResultSchemaEnabled, urlSaveTrial,
 });
 const $ = id => document.getElementById(id);
@@ -29,7 +27,6 @@ let epoch = 0;
 let renderGeneration = 0;
 const recovery=createRevisionRecovery({api,root:$('revision-recovery-panel')});
 window.addEventListener('url-revision-pending',()=>recovery.open({probe:false}));
-const introSave=createIntroSavePanel({root:$('intro-save-panel'),api:api.intro});
 const observations=createObservationPanel(api);
 const goals=createGoalPanel(api);
 const urlSave=createUrlSavePanel({api,root:$('url-result-panel'),render:typedDraft,refresh:()=>refresh({urlSaved:true}),enabled:urlSaveEnabled&&urlResultSchemaEnabled,trial:urlSaveTrial});
@@ -487,7 +484,6 @@ $('verify-owner-tenant').addEventListener('click',async()=>{
 );
 
 async function refresh({urlSaved=false}={}) {
-  introSave.close();
   recovery.close();
   clearTenantDiagnostic();
   if(!urlSaved)urlSave.refreshing();
@@ -543,7 +539,7 @@ async function acceptRedirect() {
     $('login-form').reset();
     $('sign-in').hidden = true;
     $('workspace').hidden = false;
-    urlSave.open(state);introSave.open();
+    urlSave.open(state);
     void observations.open(state.role);
     void goals.open(state.role);
     message('');
@@ -556,9 +552,9 @@ async function acceptRedirect() {
 void acceptRedirect();
 
 // A restored page must refresh before any retained card can mutate.
-window.addEventListener('pagehide', () => { epoch++; recovery.close(); clearTenantDiagnostic(); urlSave.close();introSave.close(); });
+window.addEventListener('pagehide', () => { epoch++; recovery.close(); clearTenantDiagnostic(); urlSave.close(); });
 window.addEventListener('pageshow', event => {
-  if (event.persisted && state) void refresh().then(ok=>{if(ok){urlSave.open(state);introSave.open();}}).catch(error => message(error.message, true));
+  if (event.persisted && state) void refresh().then(ok=>{if(ok)urlSave.open(state);}).catch(error => message(error.message, true));
 });
 
 $('sign-out').addEventListener('click', () => {
@@ -566,7 +562,7 @@ $('sign-out').addEventListener('click', () => {
   api.signOut();
   recovery.close();
   clearTenantDiagnostic();
-  urlSave.close();introSave.close();
+  urlSave.close();
   state = null;
   observations.close();
   goals.close();

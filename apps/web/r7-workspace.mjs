@@ -1,4 +1,4 @@
-import {createWorkspaceApi} from './workspace-api.mjs';
+import {createR7WorkspaceApi as createWorkspaceApi} from './r7-workspace-api.mjs';
 import {createIntroSavePanel} from './intro-save-panel.mjs';
 import {introSaveEnabled} from './intro-save-config.mjs';
 import {r7Runtime} from './r7-workspace-runtime.mjs';

@@ -1,6 +1,6 @@
 # R7 介紹保存接線 — 離線／隔離交審
 
-更新：d3c8cb1 曾被原 Reviewer BLOCKED：CI 38020573815/38020576699 因 workspace mirror assertion 失敗，且未知保存讀回 version=99 可被接受。本修訂保留 assertion、同步所有必要依賴並補精確 expected state 負測；新增 [真 SQL 候選與隔離驗收](../../supabase/drafts/r7_intro/README.md)。下列「尚無 SQL」描述屬 d3c8cb1 歷史基準，現由此更新取代；沒有远端 SQL 套用。
+更新：d3c8cb1 曾被原 Reviewer BLOCKED：CI 38020573815/38020576699 因 workspace mirror assertion 失敗，且未知保存讀回 version=99 可被接受。本修訂保留 assertion、同步所有必要依賴並補精確 expected state 負測；新增 [真 SQL 候選與隔離驗收](../../supabase/drafts/r7_intro/README.md)。另保留 ee92009 CI 38021395960/38021398920 frozen RC hash 失敗：原 workspace 三檔已恢復已審 bytes，R7 接線改為專用 adapter/入口，manifest 不變。下列「尚無 SQL」與「修改原 workspace」描述屬 d3c8cb1 歷史基準，現由此更新取代；沒有远端 SQL 套用。
 
 基準 b83b1fbba4019b5736ff5448876d90c0463b728e。2026-10-10 Owner 批准新增費用 US$0、無新模型或原站修改的保存接線／隔離驗收。父回報 pilot 已 ACTIVE_HEALTHY、public tables 為空，僅有收回未來 table API defaults 的 migration；這不是工作區 schema 已存在的證據。本輪無 remote probe、schema/ACL/Data API/Auth 改動、真寫入、部署或新 credential。
 

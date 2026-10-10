@@ -6,7 +6,7 @@
 
 ### 2026-10-10 R7 Review BLOCKED 必要修正與最小 SQL 候選
 
-d3c8cb1 的 push/PR CI 38020573815／38020576699 terminal failure：workspace source/mirror 不一致；Reviewer 另證明 unknown save version=99 可被誤接受。保留失敗紀錄，修正鏡像與完整 expected state 核對，新增負測；未降級 assertion。最小 proposal/enable/disable SQL 在 PGlite 真 PostgreSQL/RLS 隔離驗證，預設讀寫 ACL 和 writer 關閉。新增 introOnly 獨立工作區入口，避免 empty pilot 需整套 dashboard；key=null、client flag=false。未動遠端 schema/ACL/Auth/secret/原站。[精確 SQL/hash、驗證、preflight 與啟用/停用](supabase/drafts/r7_intro/README.md)。最終 exact HEAD CI 終態另交審。
+d3c8cb1 的 push/PR CI 38020573815／38020576699 terminal failure：workspace source/mirror 不一致；Reviewer 另證明 unknown save version=99 可被誤接受。保留失敗紀錄，修正鏡像與完整 expected state 核對，新增負測；未降級 assertion。最小 proposal/enable/disable SQL 在 PGlite 真 PostgreSQL/RLS 隔離驗證，預設讀寫 ACL 和 writer 關閉。新增 introOnly 獨立工作區入口，避免 empty pilot 需整套 dashboard；key=null、client flag=false。未動遠端 schema/ACL/Auth/secret/原站。[精確 SQL/hash、驗證、preflight 與啟用/停用](supabase/drafts/r7_intro/README.md)。ee92009 CI 38021395960/38021398920 又揭露 frozen RC hash 保護；已保留 manifest/assertion、恢復原 workspace 三檔及鏡像，R7 使用專用 adapter/入口。最終 exact HEAD CI 終態另交審。
 
 ### 2026-10-10 R7 介紹保存接線（僅離線／隔離，待原 Reviewer）
 

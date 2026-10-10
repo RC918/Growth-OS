@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createWorkspaceApi} from '../../apps/web/workspace-api.mjs';
+import {createR7WorkspaceApi as createWorkspaceApi} from '../../apps/web/r7-workspace-api.mjs';
 import {fixture,ids} from './r7-save-fixture.mjs';
 const frame=JSON.parse(await readFile('apps/web/intro-r7.json','utf8'));
 const fragment=t=>'#access_token='+t+'&token_type=bearer&expires_in=3600';
@@ -45,4 +45,13 @@ test('unknown confirmation binds full saved version and original confirmation ac
  for(const patch of [r=>{r.version=99;r.confirmation.version=99;},r=>{r.id=crypto.randomUUID();r.confirmation.version_id=r.id;},r=>r.created_at='2027-01-01T00:00:00Z',r=>r.confirmation.actor_id=ids.other,r=>r.confirmation.request_id=crypto.randomUUID()]){
  const f=fixture(),a=client(f);await a.completeMagicLink(fragment('a'));const row=await a.intro.save(frame,null);f.loseNext();await assert.rejects(a.intro.confirm(row));patch(f.versions[0]);await assert.rejects(a.intro.reconcile());await assert.rejects(a.intro.confirm(row),/只可/);assert.equal(f.audit.length,2);
  }
+});
+test('R7 auth callback is exact and never requests account creation',async()=>{
+ const f=fixture(),calls=[];const a=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:'https://example.test',fetchImpl:async(url,o)=>{calls.push({url,o});return {ok:true,json:async()=>({})};}});
+ for(const url of ['https://foreign.test/r7-workspace.html','https://example.test/workspace.html','https://example.test/r7-workspace.html?x=1'])await assert.rejects(a.requestMagicLink('fixture@example.test',url));assert.equal(calls.length,0);
+ await a.requestMagicLink('fixture@example.test','https://example.test/r7-workspace.html');assert.equal(JSON.parse(calls[0].o.body).create_user,false);
+ await assert.rejects(a.completeMagicLink('#access_token=x&token_type=bearer&expires_in=0'));assert.equal(a.context(),null);
+});
+test('signout during R7 Auth validation cannot restore the session',async()=>{
+ const f=fixture(),a=client(f);let release;f.hold(new Promise(r=>release=r));const pending=a.completeMagicLink(fragment('a'));a.signOut();release();await assert.rejects(pending,/工作階段/);assert.equal(a.context(),null);
 });

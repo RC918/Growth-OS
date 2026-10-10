@@ -20,7 +20,7 @@ auth.users/auth.uid 為隔離 fixture 身分注入；不是 GoTrue/JWT 真登入
 
 ## 最小入口
 
-apps/web/r7-workspace.html → r7-workspace.mjs → 原 createWorkspaceApi 的 introOnly 模式，只查 public.r7_members，從不呼叫 dashboard 或舊 staging。共用既有 verified Auth session、專用 intro-save-panel。回呼路徑限定 /r7-workspace.html；不自動建立使用者。intro-save-config=false，r7-workspace-runtime 的 key=null，因此目前不會送任何登入或保存請求。原完整 workspace 功能與 runtime 保留，不把舊 key 搬到新 pilot。1280/390 瀏覽器已驗預設入口零請求，以及僅攔截到 synthetic transport 的啟用入口回呼、r7_members、保存與確認；無真 Auth 請求。
+apps/web/r7-workspace.html → r7-workspace.mjs → R7 專用 createR7WorkspaceApi adapter，只查 public.r7_members，從不呼叫 dashboard 或舊 staging。沿用既有 verified Auth session 驗證模式、專用 intro-save-panel。回呼路徑限定 /r7-workspace.html；不自動建立使用者。intro-save-config=false，r7-workspace-runtime 的 key=null，因此目前不會送任何登入或保存請求。原完整 workspace 功能與 runtime 保留，不把舊 key 搬到新 pilot。1280/390 瀏覽器已驗預設入口零請求，以及僅攔截到 synthetic transport 的啟用入口回呼、r7_members、保存與確認；無真 Auth 請求。
 
 ## 精確遠端 preflight（唯讀，另待授權執行）
 
@@ -36,3 +36,5 @@ apps/web/r7-workspace.html → r7-workspace.mjs → 原 createWorkspaceApi 的 i
 - 僅發布 R7 專用入口的必要靜態依賴，配置正式 publishable key、精確 callback/CSP，才開 client flag；不部署整套 dashboard、不改既有私有核稿站或原產品網站。發布另需該輪明確批准。
 - 執行一次指定 R7 保存→確認→登出→新登入精確版本讀回；核來源/hash/audit及未授權tenant否定案例。預期以外結果停用，不重試未知 mutation。
 - 驗收完成或異常立即 disable.sql，client flag=false；保留不可改版本/audit及受限讀回。取消 client flag 不能代替 server revoke。完整撤銷讀取可另撤 SELECT/USAGE，不刪資料或 Auth user。沒有 live PASS 前不稱跨帳號session／跨裝置已完成。
+
+修正紀錄：ee92009 的 CI 38021395960/38021398920 另暴露 frozen RC 三檔不可修改。已將原 workspace-api/html/mjs 與鏡像恢復 b83b1fb 的已審 bytes，manifest/assertion 不變；專用 R7 adapter 與入口不依賴 frozen dashboard。不是放寬或更新 frozen hash。

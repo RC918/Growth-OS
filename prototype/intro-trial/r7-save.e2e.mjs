@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {fixture} from './r7-save-fixture.mjs';
 const html=`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/apps/web/first-result.css"><main><h1>隔離工作區 fixture</h1><button id="login">模擬登入</button><button id="logout">模擬登出</button><section id="panel"></section></main><script type="module">
-import {createWorkspaceApi} from '/apps/web/workspace-api.mjs';
+import {createR7WorkspaceApi as createWorkspaceApi} from '/apps/web/r7-workspace-api.mjs';
 import {createIntroSavePanel} from '/apps/web/intro-save-panel.mjs';
 import {fixture} from '/prototype/intro-trial/r7-save-fixture.mjs';
 const f=fixture();let api,panel;window.f=f;
