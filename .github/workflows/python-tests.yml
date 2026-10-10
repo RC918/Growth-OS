@@ -291,7 +291,9 @@ jobs:
 
       - name: W1 scoped product answer and dependent draft native Auth desktop mobile
         timeout-minutes: 5
-        run: node prototype/product-fact/verify.mjs
+        run: |
+          node prototype/product-fact/readback-regression.mjs
+          node prototype/product-fact/verify.mjs
       - name: Preserve W1 synthetic UI and verification evidence
         if: always()
         uses: actions/upload-artifact@v4

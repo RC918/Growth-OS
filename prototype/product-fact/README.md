@@ -25,11 +25,12 @@ runner 使用既有 `prototype/private-site/recovery/native-fixture.mjs`，真 G
 - 答案保留產品／市場／渠道、來源 URL／quote／version、建立者、確認者／時間與來源類型。skip 保持 unknown、無確認者／確認時間，不能清掉已確認答案。新版取代關係由同產品遞增版本表達，不覆寫舊列。
 - `w1_state.review_valid` 才是目前有效性：latest fact → dependent draft → exact review，且 source version 未變、沒有來源衝突。舊 review row 是歷史紀錄，不是當前批准，更不是發布授權。W2 若接入必須重核同樣的權威依賴，不能只查 review row 存在。
 - 來源漂移／矛盾由讀回呈現；不覆寫商家答案。W1 沒有自動 scanner／網站變更 ingestion；測試只在 fixture 中模擬觀察變化，真來源 ingestion 屬後續工作。
-- 成功以 request receipt 與權威 state 讀回為準。模擬「DB 已提交但 upstream 回覆遺失」以 502 呈現，UI 僅 GET 原 request，沒有自動或手動重送。已知拒絕 400／401／403／409 保留輸入，可讀最新版本恢復；未知保持阻擋原操作。
+- 成功以 request receipt 與權威 state 讀回為準。模擬「DB 已提交但 upstream 回覆遺失」以 502 呈現，UI 僅 GET 原 request，沒有自動或手動重送。只有 POST 本身的明確拒絕 400／401／403／409 才保留輸入並解除待核對。POST 成功後的任何 receipt／state／history 讀取錯誤均保持原 request 並禁止重送；回條須與 POST 回覆一致。同一頁登出／重新登入保留待核對 tuple 與原身分限制，只允許 GET 核對。此 tuple 仍為頁內記憶體，不承諾跨頁面重新載入；新頁先權威讀回，沒有自動重播。
 
 ## 驗證
 
 ```sh
+node prototype/product-fact/readback-regression.mjs
 node prototype/product-fact/verify.mjs
 node --test --test-name-pattern='frozen RC candidate bytes' prototype/internal-rc/contract.test.mjs
 ```

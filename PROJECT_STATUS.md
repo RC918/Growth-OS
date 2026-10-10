@@ -4,6 +4,14 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 W1 Review 必要 P2：POST 與讀回錯誤分階段
+
+原 Reviewer `01a125b7` 對 `94e0c5cb997d7d4b6941d11255474b4de00a0ff0` 判 BLOCKED：POST 200 後 receipt GET 401 被共同 catch 誤當寫入拒絕，清掉 pending 並重新開放 Save。根因是 mutation 與後續權威讀回共用拒絕分類；不是後端交易失敗。此包只修此必要 P2，不更改 SQL、runner、R7、frozen、remote 或產品範圍。
+
+修正 `product-fact.mjs` 以 POST／readback 階段分類；只有 POST 本身明確 400/401/403/409 拒絕才能解除 pending。讀取錯誤保留原 kind/body/request 及 POST acknowledgement；精確 request/org/input/result 核對後才恢復，錯配回條仍保持鎖定。頁內 logout／login 保留 pending 並固定原測試身分，登入後只允 GET 原 request，無自動重送。tuple 仍為頁內記憶體，不宣稱跨頁面 reload 保存。
+
+新增 `prototype/product-fact/readback-regression.mjs`：實際 Chromium UI、synthetic transport，1280/390 × answer/review × receipt401/403/409/500、state401、history500 共 24 例。每例核 POST200 後 pending／恢復入口保留、未顯示「操作已拒絕」、Save 不重啟、登出重新登入不 replay、錯配 receipt 不能解鎖、精確 receipt 成功且全程僅一個 POST。既有 W1 原生 PG17／GoTrue／PostgREST／桌面手機 9 組回歸亦 PASS。CI W1 step 加入此直接回歸；其餘既有 assertions 不降級。新 exact HEAD／CI 另附交審回條，舊 W1 CI 不冒用為新版本 PASS。交原 Reviewer，未自行 APPROVE，仍僅隔離可用、未部署／未開遠端。
+
 ### 2026-10-10 W1 產品事實→相依成果（隔離實作，交原 Reviewer）
 
 父轉達原 Reviewer turn `01a125a9` APPROVE W0 exact `99d6e0e1fe9c9b99e08433970c83ec3f28c2260e`，並明確派工系統設計第 6 節 W1。該 HEAD 的 push CI `38049180064`／PR CI `38049181802` 現已同為 SUCCESS，已取實際 jobs `114204684598`／`114204689415` logs，末段 desktop/mobile PASS。以下 W0 與 R7 紀錄保留為原階段證據，不能當作 W1 的 CI 或驗收。
