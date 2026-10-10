@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
+import {fixture} from './r7-save-fixture.mjs';
 const html=`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/apps/web/first-result.css"><main><h1>隔離工作區 fixture</h1><button id="login">模擬登入</button><button id="logout">模擬登出</button><section id="panel"></section></main><script type="module">
 import {createWorkspaceApi} from '/apps/web/workspace-api.mjs';
 import {createIntroSavePanel} from '/apps/web/intro-save-panel.mjs';
@@ -10,7 +11,7 @@ const f=fixture();let api,panel;window.f=f;
 function login(){api=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:location.origin,introSaveEnabled:true,fetchImpl:f.fetchImpl});return api.completeMagicLink('#access_token=a&token_type=bearer&expires_in=3600').then(()=>{document.querySelector('#panel').replaceChildren();panel=createIntroSavePanel({root:document.querySelector('#panel'),api:api.intro,loadFrame:()=>fetch('/apps/web/intro-r7.json').then(r=>r.json())});});}
 document.querySelector('#login').onclick=login;document.querySelector('#logout').onclick=()=>{api.signOut();panel.close();};await login();window.ready=true;
 </script>`;
-const server=createServer(async(req,res)=>{try{if(req.url==='/'){res.setHeader('Content-Type','text/html');return res.end(html);}const p=new URL(req.url,'http://localhost').pathname;if(!/^\/(apps\/web\/|prototype\/intro-trial\/r7-save-fixture.mjs)/.test(p)||p.includes('..')){res.writeHead(404).end();return;}res.setHeader('Content-Type',p.endsWith('.mjs')?'text/javascript':p.endsWith('.css')?'text/css':'application/json');res.end(await readFile('.'+p));}catch{res.writeHead(404).end();}});
+const server=createServer(async(req,res)=>{try{if(req.url==='/'){res.setHeader('Content-Type','text/html');return res.end(html);}const p=new URL(req.url,'http://localhost').pathname;if(!/^\/(apps\/web\/|prototype\/intro-trial\/r7-save-fixture.mjs)/.test(p)||p.includes('..')){res.writeHead(404).end();return;}res.setHeader('Content-Type',p.endsWith('.mjs')?'text/javascript':p.endsWith('.css')?'text/css':p.endsWith('.html')?'text/html':'application/json');res.end(await readFile('.'+p));}catch{res.writeHead(404).end();}});
 let browser;
 try{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
@@ -26,6 +27,13 @@ try{
  await page.locator('#login').click();await read();await page.getByRole('button',{name:'已確認此保存版本',exact:true}).waitFor();assert.match(await status.innerText(),/已確認並讀回第 1 版/);
  assert.equal(await page.evaluate(()=>window.f.audit.length),2);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  assert.deepEqual(await page.evaluate(()=>[localStorage.length,sessionStorage.length]),[0,0]);assert.ok(requests.every(r=>r.method()==='GET'&&new URL(r.url()).origin===origin));assert.deepEqual(errors,[]);
- await page.screenshot({path:'/tmp/r7-save-'+width+'.png',fullPage:true});console.log(JSON.stringify({viewport:width,result:'PASS',backend:'in-memory simulator',login_readback:'independent client',real_remote_calls:0}));await context.close();
+ await page.screenshot({path:'/tmp/r7-save-'+width+'.png',fullPage:true});await page.goto(origin+'/apps/web/r7-workspace.html');assert.match(await page.locator('#auth-status').innerText(),/尚未啟用/);assert.equal(await page.locator('#r7-login').isVisible(),false);assert.ok(requests.every(r=>r.method()==='GET'&&new URL(r.url()).origin===origin));const backend=fixture(),apiPaths=[];
+ await page.route('**/intro-save-config.mjs',r=>r.fulfill({contentType:'text/javascript',body:'export const introSaveEnabled=true;'}));
+ await page.route('**/r7-workspace-runtime.mjs',r=>r.fulfill({contentType:'text/javascript',body:"export const r7Runtime={origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture'};"}));
+ await page.route('https://wqepyttadrcnphtyjpjy.supabase.co/**',async r=>{const req=r.request();apiPaths.push(new URL(req.url()).pathname);const headers=req.headers();const response=await backend.fetchImpl(req.url(),{method:req.method(),headers:{Authorization:headers.authorization},body:req.postData()});return r.fulfill({status:response.ok?200:response.status,contentType:'application/json',body:JSON.stringify(response.ok?await response.json():{})});});
+ await page.goto('about:blank');await page.goto(origin+'/apps/web/r7-workspace.html#access_token=a&token_type=bearer&expires_in=3600');await page.locator('#intro-save-panel:not([hidden])').waitFor({timeout:5000}).catch(async e=>{console.error({status:await page.locator('#auth-status').innerText(),errors,apiPaths});throw e;});assert.equal(new URL(page.url()).hash,'');
+ await read();await page.waitForFunction(()=>document.querySelector('#intro-save-status').textContent.includes('尚未保存'));await page.getByRole('checkbox').check();await page.getByRole('button',{name:'保存此候選',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#intro-save-status').textContent.includes('已保存並讀回'));await page.getByRole('checkbox').check();await page.getByRole('button',{name:'確認已保存版本',exact:true}).click();await page.getByRole('button',{name:'已確認此保存版本',exact:true}).waitFor();
+ assert.ok(apiPaths.includes('/rest/v1/r7_members'));assert.ok(apiPaths.every(p=>['/auth/v1/user','/rest/v1/r7_members','/rest/v1/intro_versions','/rest/v1/rpc/save_r7_intro','/rest/v1/rpc/confirm_r7_intro'].includes(p)));assert.equal(backend.audit.length,2);assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({viewport:width,result:'PASS',backend:'in-memory simulator',login_readback:'independent client',real_remote_calls:0}));await context.close();
  }
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

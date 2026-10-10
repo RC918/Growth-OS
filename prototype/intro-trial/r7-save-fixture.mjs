@@ -9,7 +9,7 @@ export function fixture(){
  const u=new URL(url),actor=users[options.headers.Authorization?.replace('Bearer ','')];calls.push({path:u.pathname,method:options.method,body:options.body});if(!actor)return {ok:false,status:401};
  let value;
  if(u.pathname==='/auth/v1/user')value={id:actor.id};
- else if(u.pathname==='/rest/v1/organization_members')value=[{organization_id:actor.org,role:actor.role}];
+ else if(['/rest/v1/organization_members','/rest/v1/r7_members'].includes(u.pathname))value=[{organization_id:actor.org,role:actor.role}];
  else if(u.pathname==='/rest/v1/intro_versions'){
  if(u.searchParams.get('organization_id')!=='eq.'+actor.org)return {ok:false,status:403};
  value=versions.filter(r=>r.organization_id===actor.org).slice(-1);if(corrupt&&value.length)value=[{...value[0],candidate_hash:'bad'}];

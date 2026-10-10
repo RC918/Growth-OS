@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 R7 Review BLOCKED 必要修正與最小 SQL 候選
+
+d3c8cb1 的 push/PR CI 38020573815／38020576699 terminal failure：workspace source/mirror 不一致；Reviewer 另證明 unknown save version=99 可被誤接受。保留失敗紀錄，修正鏡像與完整 expected state 核對，新增負測；未降級 assertion。最小 proposal/enable/disable SQL 在 PGlite 真 PostgreSQL/RLS 隔離驗證，預設讀寫 ACL 和 writer 關閉。新增 introOnly 獨立工作區入口，避免 empty pilot 需整套 dashboard；key=null、client flag=false。未動遠端 schema/ACL/Auth/secret/原站。[精確 SQL/hash、驗證、preflight 與啟用/停用](supabase/drafts/r7_intro/README.md)。最終 exact HEAD CI 終態另交審。
+
 ### 2026-10-10 R7 介紹保存接線（僅離線／隔離，待原 Reviewer）
 
 從 b83b1fb 完成專用 R7 contract、既有 workspace API/UI 接線與近端確認 UX。真保存開關 false，拒絕舊 staging；新 pilot 空 schema 不當成已可用工作區。7 項新 contract、1280/390 模擬再登入讀回、原核稿副本與 typed workspace 回歸通過。無真 DB/Auth/RLS 或跨裝置驗收；本輪無 remote migration、權限、secret、部署、模型或費用變更。[範圍、證據及最小啟用依賴](prototype/intro-trial/R7-SAVE-CONTRACT.md)。私有站網址與存取 metadata 不入庫。

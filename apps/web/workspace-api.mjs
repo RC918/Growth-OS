@@ -19,7 +19,7 @@ export function contentVersionKind(version) {
 const versionColumns = 'id,opportunity_id,version_number,title,draft_body,status,created_at,' + versionMetadata.join(',');
 
 // Isolated Staging client. An access token exists only in this page's memory.
-export function createWorkspaceApi({introSaveEnabled=false, origin, key, redirectOrigin, fetchImpl = fetch, wordpressPublicationEnabled = false, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker(), urlReviewEnabled = false, urlReviewSchemaEnabled = urlReviewEnabled, urlReviewTrial = null, reviewMarker = createRevisionMarker(()=>globalThis.sessionStorage,'growth-os:url-review-attempt:v1') }) {
+export function createWorkspaceApi({introSaveEnabled=false,introOnly=false, origin, key, redirectOrigin, fetchImpl = fetch, wordpressPublicationEnabled = false, urlSaveEnabled = false, urlResultSchemaEnabled = false, urlSaveTrial = null, revisionMarker = createRevisionMarker(), urlReviewEnabled = false, urlReviewSchemaEnabled = urlReviewEnabled, urlReviewTrial = null, reviewMarker = createRevisionMarker(()=>globalThis.sessionStorage,'growth-os:url-review-attempt:v1') }) {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin) || !key.startsWith('sb_publishable_')) {
     throw new Error('Staging 設定不正確');
   }
@@ -95,7 +95,7 @@ export function createWorkspaceApi({introSaveEnabled=false, origin, key, redirec
       if (!user?.id) throw new Error('登入未取得有效使用者');
       // Workspace members can see colleagues under RLS; authenticate using only the
       // current user's membership, not the number of rows visible in the org.
-      const memberships = await select('organization_members', 'organization_id,role', {
+      const memberships = await select(introOnly?'r7_members':'organization_members', 'organization_id,role', {
         user_id: `eq.${user.id}`, limit: '2',
       });
       if (memberships.length !== 1 || !['owner', 'editor', 'viewer'].includes(memberships[0].role)) {
@@ -120,7 +120,7 @@ export function createWorkspaceApi({introSaveEnabled=false, origin, key, redirec
     async requestMagicLink(email, redirectTo) {
       const redirect = new URL(redirectTo);
       if (redirect.protocol !== 'https:' || redirect.origin !== redirectOrigin ||
-          !redirect.pathname.endsWith('/workspace.html') || redirect.search || redirect.hash) {
+          redirect.pathname!==(introOnly?'/r7-workspace.html':'/workspace.html') || redirect.search || redirect.hash) {
         throw new Error('登入返回網址不正確');
       }
       await request(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirect.href)}`, {

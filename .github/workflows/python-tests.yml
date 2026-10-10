@@ -278,7 +278,7 @@ jobs:
         run: node prototype/owner-workspace/growth-plan-ui.e2e.mjs
       - name: R7 introduction save contract and isolated browser acceptance
         run: |
-          node --test prototype/intro-trial/r7-save.test.mjs
+          node --test prototype/intro-trial/r7-save.test.mjs supabase/drafts/r7_intro/offline.test.mjs
           node prototype/intro-trial/r7-save.e2e.mjs
           node delivery/r7-private/verify.mjs
       - name: R7 approved candidate desktop/mobile page review (no remote calls)

@@ -36,3 +36,13 @@ test('invalidated UI intent never dispatches after asynchronous validation',asyn
  const f=fixture(),a=client(f);await a.completeMagicLink(fragment('a'));
  await assert.rejects(a.intro.save(frame,null,{isCurrent:()=>false}),/意圖已失效/);assert.equal(f.audit.length,0);
 });
+test('unknown save rejects changed version/frame/identity and remains blocked',async()=>{
+ for(const patch of [r=>r.version=99,r=>r.created_by=ids.other,r=>r.request_id=crypto.randomUUID(),r=>r.frame.payload.candidate.output.candidate+=' altered',r=>r.source_version='0'.repeat(64)]){
+ const f=fixture(),a=client(f);await a.completeMagicLink(fragment('a'));f.loseNext();await assert.rejects(a.intro.save(frame,null));patch(f.versions[0]);await assert.rejects(a.intro.reconcile());await assert.rejects(a.intro.save(frame,null),/只可/);assert.equal(f.audit.length,1);
+ }
+});
+test('unknown confirmation binds full saved version and original confirmation actor/request',async()=>{
+ for(const patch of [r=>{r.version=99;r.confirmation.version=99;},r=>{r.id=crypto.randomUUID();r.confirmation.version_id=r.id;},r=>r.created_at='2027-01-01T00:00:00Z',r=>r.confirmation.actor_id=ids.other,r=>r.confirmation.request_id=crypto.randomUUID()]){
+ const f=fixture(),a=client(f);await a.completeMagicLink(fragment('a'));const row=await a.intro.save(frame,null);f.loseNext();await assert.rejects(a.intro.confirm(row));patch(f.versions[0]);await assert.rejects(a.intro.reconcile());await assert.rejects(a.intro.confirm(row),/只可/);assert.equal(f.audit.length,2);
+ }
+});
