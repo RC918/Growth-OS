@@ -4,6 +4,17 @@
 
 ## 當前授權與基準
 
+
+### 2026-10-10 W2 準備：W1 相依版本接既有發布預覽（交原 Reviewer）
+
+最新父派工接續 Owner 16:37:52 UTC「先繼續推進吧，登入的事情等恢復再說」。本包起點 `feat/private-host-bootstrap`／`0ab9a7b49f42e61d3b11b6642f8490e8277a6f37`／Draft PR28，保留並接續本輪未提交接線，不重播PR19初始化。前包W1真人兩版保存／確認與關窗已完成；此為父轉交及先前讀回證據，本輪不重查遠端。真實fresh-login仍延後／未驗證，不能稱全PASS。下方W1候選／待部署段落為歷史階段紀錄。
+
+**Core可見增量。** 從W1的fact→draft→確切Review接入既有publication preview，顯示本版描述、來源快照與上一草稿差異、版本依據和分項阻擋。提供免登入、六情境synthetic本機入口，桌機／手機可操作。上一草稿不是現網原文、Review不是發布授權、未知擷取與發布時間明示；不造title/meta，不調publisher，不發布。細節與Reviewer獨立命令見 [W2準備交付](prototype/w1-publication/README.md)。
+
+**驗證迴圈。** PLAN/CODE、20項contract／既有預覽及adapter必要回歸、既有build產物14檔hash、實際RUN／DOM／1280與390共4組、登入transitive module graph 14案適用；弱斷言已改以正式路由DOM驗唯讀、Save/Review disabled、新版及阻擋，並驗失效清空／refresh恢復／logout late response。scope、membership、wrong org/product/market/channel、舊Review及來源衝突均隔離測試。DB/SAVE/真實Auth fresh-login不適用此readonly增量，未重跑；同HEAD CI與logs另隨交審回條，未先宣稱通過。既有自動CI不降級，僅新增本slice局部驗證及artifact。
+
+**四層與邊界。** 已實作＝唯讀接線／復用UI／隔離示範；已測試＝局部synthetic與實際DOM；已部署＝本包否；目前可用＝executor本機入口。runtime config／Auth／R7／SQL不變，無遠端DB或Live Sites改動、不開W1/R7 gate、不寄信、不呼叫模型／新增費用。既有P3 debt沿delivery README保留。本次是Core preparation進度，不等於真W2單頁發布或Measure完成；交原Reviewer，Primary不自行APPROVE或開下一包。
+
 ### 2026-10-10 W1 登入 bootstrap failsafe 必要 P2（待原 Reviewer）
 
 接續已審 b8984ef2，Owner 回報寄信無反應。正式資源 HTTP/MIME/import closure 已由父核對，Owner runtime 根因仍未知；隔離 module 失敗／停用 JS 可重現舊版按鈕仍可按且沒有回饋。新候選只補 HTML 預設 disabled、初始化／失敗／noscript 提示與同來源獨立 entry catch；boot 成功才解鎖，移除不必要 top-level await 作相容性防護。CSP/R7/Auth/DB不改，不真寄信；原郵件額度 unknown、兩封上限及16:00UTC截止不重置。實際路由1280/390含mock OTP與四種初始化失敗共14案，相依同 session native回歸及同HEAD CI證據另交原Reviewer；不得把failsafe改善當成Owner原runtime根因已解。新增entry檔須納入完整composite，見delivery README。

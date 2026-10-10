@@ -1,4 +1,5 @@
 import {createR7WorkspaceApi} from './r7-workspace-api.mjs';
+import {prepareW1Publication} from './w1-publication-preview.mjs';
 const PILOT='https://wqepyttadrcnphtyjpjy.supabase.co';
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
 const failure=(status,message)=>Object.assign(Error(message),{status});
@@ -30,7 +31,11 @@ export function createW1Api(config={}, {fetchImpl=fetch,now=Date.now}={}){
    return {answerAllowed:canWrite('answer'),reviewAllowed:canWrite('review')};
   }catch(e){if(ticket===statusEpoch)windowState=null;throw e;}
  }
- return {available:()=>valid,context:()=>member,canWrite,refreshWriteStatus,clear,
+ const api={available:()=>valid,context:()=>member,canWrite,refreshWriteStatus,clear,
+  previewUrlPublication(version,{isCurrent}={}){return prepareW1Publication({version,isCurrent,context:()=>member,
+   validate:async()=>{requireSession();if(member.role!=='owner')throw failure(403,'僅 Owner 可準備發布預覽');const user=await remote('/auth/v1/user');if(!uuid(user?.id))throw failure(403,'身份未核實');const members=await remote('/rest/v1/r7_members?'+new URLSearchParams({select:'organization_id,role',user_id:'eq.'+user.id,limit:'2'}));if(!Array.isArray(members)||members.length!==1||members[0].organization_id!==member?.organization_id||members[0].role!=='owner')throw failure(403,'工作區資格已變更');},
+   readState:async()=>(await api.request('state'))[0],readHistory:()=>api.request('history?product='+config.productId),
+   readReviews:s=>remote('/rest/v1/w1_reviews?'+new URLSearchParams({select:'id,organization_id,draft_id,actor',organization_id:'eq.'+member.organization_id,draft_id:'eq.'+s.draft_id,id:'eq.'+s.review_id,limit:'2'}))});},
   async authenticate(fragment){
    clear();if(!valid)throw failure(403,'工作區尚未開放');const ticket=generation,p=new URLSearchParams(fragment.replace(/^#/,''));
    const ttl=Number(p.get('expires_in'));if(!Number.isFinite(ttl)||ttl<=0||ttl>86400)throw failure(401,'登入連結無效');
@@ -63,5 +68,5 @@ export function createW1Api(config={}, {fetchImpl=fetch,now=Date.now}={}){
    }
    throw failure(403,'未開放的工作區操作');
   }
- };
+ };return api;
 }

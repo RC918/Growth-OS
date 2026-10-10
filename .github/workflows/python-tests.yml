@@ -319,3 +319,18 @@ jobs:
             /tmp/w1-pilot-*.png
           retention-days: 7
           if-no-files-found: warn
+      - name: W2 read-only W1 publication preparation
+        timeout-minutes: 3
+        run: |
+          node --test prototype/w1-publication/preview.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs
+          node prototype/w1-publication/verify.mjs
+      - name: Preserve W2 preparation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w2-preparation-evidence
+          path: |
+            /tmp/w2-preparation-evidence.json
+            /tmp/w2-preparation-*.png
+          retention-days: 7
+          if-no-files-found: warn

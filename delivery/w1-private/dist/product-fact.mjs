@@ -1,3 +1,5 @@
+import {urlPublishPreview} from './url-publish-preview.mjs';
+let publication=null;
 import {hostedFetch,boot,workspace} from './w1-workspace-boot.mjs';
 let token=null,rows=[],current=null,pending=null,busy=false,epoch=0;
 const $=id=>document.getElementById(id),copy=x=>JSON.parse(JSON.stringify(x));
@@ -7,8 +9,8 @@ async function api(path,{method='GET',body}={}){
  return r.json();
 }
 const feedback=text=>{$('feedback').textContent=text;};
-function lock(){$('skip').hidden=current?.answer!=='unknown';for(const id of ['save','skip','review','correct','refresh','product','answer','review-check'])$(id).disabled=busy||!!pending||(['save','skip','correct'].includes(id)&&!workspace.canWrite('answer')||id==='review'&&!workspace.canWrite('review'));$('reconcile').hidden=!pending;$('reconcile').disabled=busy;for(const id of ['save','skip','review'])$(id).setAttribute('aria-busy',String(busy));}
-function render(){
+function lock(){if(publication&&(busy||pending))publication.setEditing(true);$('skip').hidden=current?.answer!=='unknown';for(const id of ['save','skip','review','correct','refresh','product','answer','review-check'])$(id).disabled=busy||!!pending||(['save','skip','correct'].includes(id)&&!workspace.canWrite('answer')||id==='review'&&!workspace.canWrite('review'));$('reconcile').hidden=!pending;$('reconcile').disabled=busy;for(const id of ['save','skip','review'])$(id).setAttribute('aria-busy',String(busy));}
+function render(){publication?.root.remove();publication=null;
  current=rows.find(x=>x.id===$('product').value);if(!current)return;
  $('product-name').textContent=current.name;$('scope').textContent=`市場：${current.market} · 渠道：${current.channel} · 僅此產品`;
  $('draft').textContent=current.body||`${current.name}：戶外適用性未知，初步候選未加入戶外使用宣稱。`;
@@ -16,17 +18,17 @@ function render(){
  $('evidence').textContent=JSON.stringify({source:{url:current.source_url,quote:current.source_quote,version:current.source_version,observed_outdoor:current.observed_outdoor},answer:{value:current.answer,version:current.fact_version,kind:current.source_kind,confirmed_at:current.confirmed_at,source_version:current.fact_source_version,source_quote:current.fact_source_quote,source_url:current.fact_source_url,market:current.fact_market,channel:current.fact_channel},scope:{organization:current.organization_id,product:current.id,market:current.market,channel:current.channel},draft:current.draft_id},null,2);
  $('answer').value=current.answer==='unknown'?'':current.answer;$('answer').removeAttribute('aria-invalid');
  $('answer-form').hidden=current.answer!=='unknown';$('correct').hidden=current.answer==='unknown'||!workspace.canWrite('answer');
- $('review-check').checked=false;$('review-panel').hidden=!current.draft_id||current.review_valid||current.is_conflict||current.source_changed||!workspace.canWrite('review');lock();
+ $('review-check').checked=false;$('review-panel').hidden=!current.draft_id||current.review_valid||current.is_conflict||current.source_changed||!workspace.canWrite('review');lock();if(current.draft_id){const own=epoch,version=current;publication=urlPublishPreview({api:workspace,version,latest:true,isCurrent:()=>epoch===own&&current===version&&!pending&&!busy});$('result').append(publication.root);publication.setEditing(busy||!!pending);}
 }
 async function read(){const own=epoch;const next=await api('state');if(own!==epoch)return;rows=next;const selected=pending?.body.p_product||$('product').value;$('product').replaceChildren(...rows.map(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name+' / '+x.market;return o;}));if(rows.some(x=>x.id===selected))$('product').value=selected;render();await history();}
 async function history(){if(!current)return;const id=current.id,own=epoch;const versions=await api('history?product='+encodeURIComponent(id));if(own!==epoch||current?.id!==id)return;$('history').replaceChildren(...versions.map(x=>{const p=document.createElement('p');p.textContent=`保留草稿第 ${x.version} 版：${x.body}`;return p;}));}
-function clear(){epoch++;token=null;rows=[];current=null;busy=false;$('result').hidden=true;$('logout').hidden=true;$('login').hidden=true;$('email-form').hidden=false;$('actor').disabled=!!pending;$('auth-status').textContent=pending?'已登出；原操作待核對。請以原身分重新登入，只核對原 request，不會重送。':'已登出，請以全新登入讀回保存結果。';$('evidence').textContent='';$('history').replaceChildren();feedback('');}
+function clear(){publication?.root.remove();publication=null;epoch++;token=null;rows=[];current=null;busy=false;$('result').hidden=true;$('logout').hidden=true;$('login').hidden=true;$('email-form').hidden=false;$('actor').disabled=!!pending;$('auth-status').textContent=pending?'已登出；原操作待核對。請以原身分重新登入，只核對原 request，不會重送。':'已登出，請以全新登入讀回保存結果。';$('evidence').textContent='';$('history').replaceChildren();feedback('');}
 $('login').onclick=async()=>{const own=++epoch;$('login').disabled=true;try{const s=await api('login',{method:'POST',body:{actor:$('actor').value}});if(own!==epoch)return;token=s.access_token;await api('user');await read();$('result').hidden=false;$('logout').hidden=false;$('email-form').hidden=true;$('login').hidden=true;$('actor').disabled=true;$('auth-status').textContent='已驗證既有 Auth 與工作區資格；寫入仍受伺服器窗口限制。';if(pending){feedback('原操作仍待核對；請只核對原操作結果，不會重送。');lock();}}catch(e){clear();$('auth-status').textContent=e.message;}finally{$('login').disabled=false;}};
 $('logout').onclick=async()=>{try{await api('logout',{method:'POST',body:{}});}finally{clear();}};
 window.addEventListener('pagehide',clear);
 $('product').onchange=()=>{feedback('');render();history().catch(e=>feedback(e.message));};
-$('correct').onclick=()=>{$('answer-form').hidden=false;$('answer').focus();};
-$('refresh').onclick=()=>read().catch(e=>feedback(e.message));
+$('correct').onclick=()=>{publication?.setEditing(true);$('answer-form').hidden=false;$('answer').focus();};
+$('refresh').onclick=()=>{publication?.setEditing(true);return read().catch(e=>feedback(e.message));};
 async function finish(){
  const op=pending,own=epoch;if(!op)return;
  const receipt=await api('receipt?request='+op.body.p_request);if(own!==epoch||pending!==op)return;
