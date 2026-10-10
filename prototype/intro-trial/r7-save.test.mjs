@@ -55,3 +55,9 @@ test('R7 auth callback is exact and never requests account creation',async()=>{
 test('signout during R7 Auth validation cannot restore the session',async()=>{
  const f=fixture(),a=client(f);let release;f.hold(new Promise(r=>release=r));const pending=a.completeMagicLink(fragment('a'));a.signOut();release();await assert.rejects(pending,/工作階段/);assert.equal(a.context(),null);
 });
+test('read-only pilot fresh login retains exact confirmation while writer stays closed',async()=>{
+ const f=fixture(),a=client(f);await a.completeMagicLink(fragment('a'));const row=await a.intro.confirm(await a.intro.save(frame,null));a.signOut();
+ const fresh=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:'https://example.test',introReadEnabled:true,introSaveEnabled:false,fetchImpl:f.fetchImpl});
+ await fresh.completeMagicLink(fragment('a'));assert.equal(fresh.intro.readable(),true);assert.equal(fresh.intro.available(),false);assert.deepEqual(await fresh.intro.reconcile(),row);const count=f.calls.length;
+ await assert.rejects(fresh.intro.save(frame,row),/尚未啟用/);await assert.rejects(fresh.intro.confirm(row),/尚未啟用/);assert.equal(f.calls.length,count);fresh.signOut();assert.equal(fresh.intro.readable(),false);await assert.rejects(fresh.intro.read());
+});

@@ -1,13 +1,13 @@
 import {createIntroSave} from './intro-save.mjs';
 // Narrow adapter follows existing workspace verified-user/membership flow; no dashboard.
-export function createR7WorkspaceApi({origin,key,redirectOrigin,fetchImpl=fetch,introSaveEnabled=false}){
+export function createR7WorkspaceApi({origin,key,redirectOrigin,fetchImpl=fetch,introSaveEnabled=false,introReadEnabled=introSaveEnabled}){
  let token=null,membership=null,actor=null,generation=0;
  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(origin)||!key?.startsWith('sb_publishable_'))throw Error('工作區設定不正確');
  async function request(path,{method='GET',body,authenticated=true}={}){
  if(authenticated&&!token)throw Error('請先登入');const headers={apikey:key};if(authenticated)headers.Authorization='Bearer '+token;if(body!==undefined)headers['Content-Type']='application/json';
  const r=await fetchImpl(origin+path,{method,headers,cache:'no-store',...body===undefined?{}:{body:JSON.stringify(body)}});if(!r.ok)throw Error('工作區操作失敗（HTTP '+r.status+'）');return r.json();
  }
- const intro=createIntroSave({enabled:introSaveEnabled===true&&origin==='https://wqepyttadrcnphtyjpjy.supabase.co',context:()=>membership,actor:()=>actor,request});
+ const intro=createIntroSave({enabled:introSaveEnabled===true&&origin==='https://wqepyttadrcnphtyjpjy.supabase.co',readEnabled:introReadEnabled===true&&origin==='https://wqepyttadrcnphtyjpjy.supabase.co',context:()=>membership,actor:()=>actor,request});
  const clear=()=>{generation++;token=null;membership=null;actor=null;intro.reset();};
  return {intro,context:()=>membership,signOut:clear,
  async requestMagicLink(email,redirectTo){const u=new URL(redirectTo);if(u.protocol!=='https:'||u.origin!==redirectOrigin||u.pathname!=='/r7-workspace.html'||u.search||u.hash)throw Error('登入返回網址不正確');return request('/auth/v1/otp?redirect_to='+encodeURIComponent(u.href),{method:'POST',authenticated:false,body:{email,create_user:false}});},

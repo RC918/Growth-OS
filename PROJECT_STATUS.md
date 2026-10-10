@@ -4,6 +4,11 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 R7 私有登入／保存 artifact
+
+沿 a84a90e 準備獨立13檔靜態包，保留旧六檔核稿bytes。登入／讀回與writer flag分離，預設key=null/accessEnabled=false/writer=false。無真Owner/org猜值、無遠端schema/Auth寄信/部署；SQL三hash不變。父端處理SMTP/recipient/DataAPI/正式身分與私人callback，公開repo不含私人部署資訊。詳見 [artifact及非秘密配置清單](delivery/r7-private/README.md)。12 JS contract、13檔packaged mock E2E 1280/390涵蓋新context停用writer後exact readback；VERIFY交原Reviewer，不擴下一Core。
+
+
 ### 2026-10-10 R7 期限鎖後複查（離線必要修正）
 
 6502b3 已獲原 Reviewer APPROVE_WITH_DEFERRED_DEBT，兩 P2 解除。本包只補 advisory lock 等待後 gate/expiry 重驗、gate SHARE 與 disable UPDATE 序列化、返回前到期回滾。既有 PGlite 8 子測試及原生 PG17 7 個多連線負測通過；proposal/disable hash 更新、enable bytes 不變。無 remote schema/ACL/Auth/secret/部署；未知 Owner/org 未寫入 enable。[證據與併發語意](supabase/drafts/r7_intro/README.md)。
