@@ -1,0 +1,7 @@
+-- READ ONLY: save privately after each phase; reconcile uncertain results before any retry.
+select (select jsonb_build_object('enabled',enabled,'enrolled',actor_id is not null and organization_id is not null and product_id is not null,'expires_at',expires_at,'answers',answers,'reviews',reviews) from w1_private.gate) gate,
+ (select jsonb_agg(jsonb_build_object('name',c.relname,'rls',c.relrowsecurity,'options',c.reloptions,'acl',c.relacl::text) order by c.relname) from pg_class c where (c.relnamespace='public'::regnamespace and c.relname like 'w1_%') or (c.relnamespace='w1_private'::regnamespace and c.relname='gate')) relations,
+ (select jsonb_agg(jsonb_build_object('name',p.oid::regprocedure::text,'definer',p.prosecdef,'config',p.proconfig,'acl',p.proacl::text) order by p.oid::regprocedure::text) from pg_proc p where p.pronamespace='w1_private'::regnamespace or (p.pronamespace='public'::regnamespace and p.proname in ('w1_change','w1_review'))) functions,
+ (select jsonb_build_object('products',(select count(*) from w1_products),'facts',(select count(*) from w1_facts),'drafts',(select count(*) from w1_drafts),'reviews',(select count(*) from w1_reviews),'requests',(select count(*) from w1_requests))) counts,
+ (select jsonb_build_object('enabled',enabled,'expired',expires_at<=clock_timestamp()) from r7_private.write_gate) r7_gate,
+ (select count(*) from r7_private.versions) r7_versions,(select count(*) from r7_private.confirmations) r7_confirmations,(select count(*) from r7_private.audit) r7_audit;

@@ -215,7 +215,7 @@ test('invalid callback and rejected Auth response clear the in-memory session', 
 });
 
 test('preview publishes the exact reviewed workspace files', async () => {
-  for (const name of ['page-observation.mjs','measurement-preparation.mjs','saved-result-delivery.mjs','url-publish-preview.mjs','url-result-review.mjs','saved-result-review.mjs','url-result-trial-marker.mjs','typed-draft.mjs','url-result-save.mjs','url-result-config.mjs','first-result-payload.mjs','first-result-review.mjs','workspace.html', 'workspace.mjs', 'workspace-api.mjs', 'workspace.css', 'opportunity-order.mjs','workspace-observations.mjs','baseline-snapshot.mjs','baseline-report.mjs','baseline-actions.mjs','search-baseline.mjs','goal-intake.mjs','workspace-goals.mjs']) {
+  for (const name of ['r7-workspace-api.mjs','intro-save.mjs', 'intro-save-config.mjs', 'intro-save-panel.mjs', 'intro-r7-review.mjs', 'intro-candidate.mjs', 'intro-r7.json','page-observation.mjs','measurement-preparation.mjs','saved-result-delivery.mjs','url-publish-preview.mjs','url-result-review.mjs','saved-result-review.mjs','url-result-trial-marker.mjs','typed-draft.mjs','url-result-save.mjs','url-result-config.mjs','first-result-payload.mjs','first-result-review.mjs','workspace.html', 'workspace.mjs', 'workspace-api.mjs', 'workspace.css', 'opportunity-order.mjs','workspace-observations.mjs','baseline-snapshot.mjs','baseline-report.mjs','baseline-actions.mjs','search-baseline.mjs','goal-intake.mjs','workspace-goals.mjs']) {
     const source = await readFile(new URL(name, import.meta.url), 'utf8');
     const preview = await readFile(new URL(`../../apps/web/${name}`, import.meta.url), 'utf8');
     assert.equal(preview, source, `${name} differs from the reviewed source`);

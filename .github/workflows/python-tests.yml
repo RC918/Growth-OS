@@ -12,9 +12,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Private host bootstrap synthetic gates (no devices or hosted calls)
+        run: python3 -B -m unittest discover -s prototype/private-site/bootstrap -p 'test_*.py' -v
+      - name: Build and verify exact-commit bootstrap source bundle
+        run: |
+          mkdir /tmp/growth-bootstrap-source
+          python3 -B prototype/private-site/bootstrap/bundle.py build --head "$(git rev-parse HEAD)" --file /tmp/growth-bootstrap-source/source.tar > /tmp/growth-bootstrap-source/receipt.json
+          python3 -B - <<'PYVERIFY'
+          import json, subprocess
+          receipt = json.load(open('/tmp/growth-bootstrap-source/receipt.json'))
+          subprocess.run(['python3', '-B', 'prototype/private-site/bootstrap/bundle.py', 'verify', '--head', receipt['head'], '--file', '/tmp/growth-bootstrap-source/source.tar', '--sha256', receipt['bundle_sha256']], check=True)
+          PYVERIFY
+      - name: Preserve deployable closed-bootstrap source (separate from evidence)
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-host-bootstrap-source
+          path: /tmp/growth-bootstrap-source/
+          retention-days: 7
+          if-no-files-found: error
       - name: Public audit tests
         working-directory: prototype/public-audit
-        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py
+        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py test_service_source.py
       - name: Offline proof example
         working-directory: prototype/offline-proof
         run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json
@@ -33,6 +51,10 @@ jobs:
         run: node --test prototype/owner-workspace/workspace-api.test.mjs prototype/owner-workspace/saved-result-review.test.mjs prototype/owner-workspace/revision-marker.test.mjs
       - name: First result page review contract checks
         run: node --test prototype/public-audit/first-result-review.test.mjs
+      - name: R7 source-bound page confirmation contracts (no network)
+        run: node --test prototype/intro-trial/r7-review.test.mjs
+      - name: Introduction trial offline contract and budget
+        run: node --test prototype/intro-trial/intro-trial.test.mjs prototype/intro-trial/follow-on.test.mjs prototype/intro-trial/proxy-loopback.test.mjs
       - name: Unwired first result save-intent contract checks
         run: node --test prototype/public-audit/first-result-save-intent.test.mjs
       - name: Browser baseline data contract checks
@@ -254,5 +276,61 @@ jobs:
         run: node prototype/owner-workspace/offline-draft-ui.e2e.mjs
       - name: Offline growth plan desktop and mobile acceptance (memory only)
         run: node prototype/owner-workspace/growth-plan-ui.e2e.mjs
+      - name: R7 introduction save contract and isolated browser acceptance
+        run: |
+          node --test prototype/intro-trial/r7-save.test.mjs supabase/drafts/r7_intro/offline.test.mjs supabase/drafts/r7_intro/enroll-readonly.test.mjs
+          node supabase/drafts/r7_intro/native-deadline.mjs
+          node prototype/intro-trial/r7-save.e2e.mjs
+          node delivery/r7-private/verify.mjs
+          node delivery/r7-private/workspace.e2e.mjs
+          node delivery/r7-private/callback.e2e.mjs
+      - name: R7 approved candidate desktop/mobile page review (no remote calls)
+        run: node prototype/intro-trial/r7-review.e2e.mjs
       - name: URL source and first useful result desktop/mobile acceptance
         run: node prototype/public-audit/product-source-ui.e2e.mjs
+
+      - name: W1 scoped product answer and dependent draft native Auth desktop mobile
+        timeout-minutes: 5
+        run: |
+          node prototype/product-fact/readback-regression.mjs
+          node prototype/product-fact/verify.mjs
+      - name: Preserve W1 synthetic UI and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w1-product-fact-evidence
+          path: |
+            /tmp/w1-product-fact-evidence.json
+            /tmp/w1-product-fact-*.png
+          retention-days: 7
+          if-no-files-found: warn
+      - name: W1 closed pilot native Auth adapter gate and recovery
+        timeout-minutes: 5
+        run: |
+          node --test delivery/w1-private/adapter.test.mjs
+          node delivery/w1-private/verify.mjs
+      - name: Preserve W1 closed pilot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w1-pilot-evidence
+          path: |
+            /tmp/w1-pilot-evidence.json
+            /tmp/w1-pilot-*.png
+          retention-days: 7
+          if-no-files-found: warn
+      - name: W2 read-only W1 publication preparation
+        timeout-minutes: 3
+        run: |
+          node --test prototype/w1-publication/preview.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs
+          node prototype/w1-publication/verify.mjs
+      - name: Preserve W2 preparation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w2-preparation-evidence
+          path: |
+            /tmp/w2-preparation-evidence.json
+            /tmp/w2-preparation-*.png
+          retention-days: 7
+          if-no-files-found: warn

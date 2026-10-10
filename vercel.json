@@ -6,6 +6,10 @@
     "api/product-source.py": {
       "includeFiles": "prototype/public-audit/{scanner,product_source,product_api}.py",
       "maxDuration": 60
+    },
+    "api/service-source.py": {
+      "includeFiles": "prototype/public-audit/{scanner,product_source,product_api,service_source,service_api}.py",
+      "maxDuration": 60
     }
   }
 }

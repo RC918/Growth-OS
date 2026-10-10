@@ -1,0 +1,18 @@
+{
+  "trial": "INTRO-TRIAL-01-R1",
+  "cases": [
+    {
+      "id": "public-intro",
+      "source": {
+        "url": "https://growthos.genman.work/ai-citation-check",
+        "version": "7061a900b6aad2703ff9f7ce46a44cfa95f6be3ed0370bd686f1d32f32a6713d",
+        "fields": {
+          "page_name": "Free AI citation check · GrowthOS",
+          "heading": "Is AI recommending your brand?",
+          "intro_description": "Enter your website and brand name. We check your brand identity, ask AI engines three real buyer questions and show what to fix first.",
+          "meta_description": "Free AI citation check: see whether AI engines cite your brand for three real buyer questions, which brand identity issues to fix and your simplified readiness score. No account needed."
+        }
+      }
+    }
+  ]
+}
