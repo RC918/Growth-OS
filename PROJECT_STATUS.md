@@ -1,8 +1,34 @@
 # Growth OS｜專案進度
 
-更新：2026-10-04（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
+更新：2026-10-10（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
 
 ## 當前授權與基準
+
+### 2026-10-10 W0 持續服務文件對齊（交原 Reviewer）
+
+依 Owner 11:31:22 UTC 附件任務與父後續派工，只做 W0 與 W1 提案。輸入為父透過既有任務訊息轉交已核讀的 `Growth_OS_Optimization_Report_Dot_2026-10-10.md` 完整第 1–15 節；父稱正式 Library version 0、26,651 bytes。Primary 本機正式 materialize 首次及一次有界重試皆 generic download failed，未取得檔案，不聲稱本機下載／hash 驗證；全文訊息未截斷，無須再搬運或換下載 route。
+
+起點／PR 核對：`feat/private-host-bootstrap`、`d62805a15cdafb1976b420dad1cec42e4d150bf2`，PR28 open/draft 同 HEAD，base `feat/private-site-recovery`。開始僅本檔 R7 結案 checkpoint 未提交，原文保留納入本次文件提交。沿用原 Primary／Reviewer，不新建 task，不重播 PR19，不整批合併候選。
+
+沿用藍圖 v2.0／設計 v0.2，更新日期與章節；同一 URL→First Useful Result→Review→Publish→Measure 主線，補必要商家校正、答案範圍／版本／來源／依賴、草稿新版／舊批准失效、觀察→處理→驗證及 A–D／W0–W5 正式路線。具體 W1 復用映射與必要驗收見[設計第 6 節](docs/Commerce_Growth_系統設計_v0.1.md#w1-proposal)。這是提案，不是 W1 實作；W0 結束交原 Reviewer，父再派工。
+
+原站為 Owner 自有伺服器，等待正式後台／部署路徑，只阻塞原站發布，獨立 docs／隔離普通工程不阻塞。歷史英文 R7 與目前中文頁有差異，既有 v1 確認不授權現頁發布。R7 已接受成果不重做，server/client writer 維持關閉，不動固定 validator、frozen 證據或 remote。
+
+四層狀態：**已實作**＝本包只有三份文件增量；W1 答案依賴未實作。**已測試**＝文件 diff／範圍、版本與相對連結核對，無產品測試要求；自動 CI 若觸發則按本次 exact HEAD 另附終態與 logs，不移用 d628 的成功。**已部署**＝本包未部署。**目前可用**＝現行文件與 W1 可審提案；沒有新增商家可用功能，R7 只沿用下節接受範圍，原站未發布、商家成效 unknown。
+
+驗證迴圈適用：PLAN／CODE 對應文件範圍與編輯，VERIFY 為一致性／連結／非秘密 scope。UNIT、BUILD、DOM、桌面手機 E2E、DB/Auth、SAVE/logout/fresh login/readback/tenant 均本次不適用（無 runtime 變更），不是 PASS。W1 才依其變更跑必要真路徑。沒有新費用、模型、secret、遠端 SQL/grants、Auth flags、merge、部署或原站修改。最後 commit／non-force push／PR 同 HEAD／CI 由交審回條提供；原 Reviewer verdict 待定，Primary 不自行 APPROVE。
+
+本包為 Owner 明確授權的一次文件 Maintenance，Core 新功能進度 0；R7 結案為已接受的前包成果，不拿重驗當新進度。下一候選 Core 僅 W1 的一項必要事實保存→相依新版→舊批准失效→隔離新 session 讀回→用途可見；不開 W2–W5，不另造治理框架。
+
+### 2026-10-10 R7 保存包結案安全 checkpoint
+
+本包已完成，停止施工，不自動啟動下一包。程式基準 d62805a15cdafb1976b420dad1cec42e4d150bf2；同 HEAD push CI 38029483072、PR CI 38029486369 均 SUCCESS，實際 logs 已讀：30 contract/SQL、7 native PG17、封裝及callback 1280/390 PASS。
+
+依父轉達最終原 Reviewer APPROVE：真實 R7 一次保存、確切第1版確認、關窗後 fresh-login readonly readback 已驗收。Reviewer 2026-10-10 09:46:08 UTC 獨立遠端核對仍為 exact v1、versions/confirmations/audit=1/1/2、gate=false、expiry=-infinity；writer維持關閉，不重新enable、不延長。本人受RLS限制的讀權與原紀錄保留；本次更新未另查遠端或執行SQL。
+
+證據界線：真人新登入採父目視三張圖、發出流程後收到回傳、memory-only程式行為及獨立DB讀回的綜合證據；不宣稱連續錄影、零人工、自動代登入或已發布原網站。SMTP/私人Sites登入仍有人員必要環節。私人Site identity/URL、Owner email/UUID、token及完整私有操作回條不記入本repo。
+
+下一包僅建議、尚未實作：以近端文案澄清「保存後checkbox清空，需再次核對並勾選才確認」；日常synthetic回歸沿既有fixtures，真人僅保留正式Auth與必要終驗；關窗平台批准前先給中文動作/target/完整SQL/hash/影響，再等action-time授權。此類改善限US$0、無新secret/權限/model call；不得改tool/route繞批准或代Owner勾選/確認。父另選定下一工作，本checkpoint不授權新工程。
 
 ### 2026-10-10 Callback canonical／狀態／期限必要修補
 
