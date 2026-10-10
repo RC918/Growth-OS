@@ -13,6 +13,8 @@
 
 **驗證迴圈。** PLAN/CODE、20項contract／既有預覽及adapter必要回歸、既有build產物14檔hash、實際RUN／DOM／1280與390共4組、登入transitive module graph 14案適用；弱斷言已改以正式路由DOM驗唯讀、Save/Review disabled、新版及阻擋，並驗失效清空／refresh恢復／logout late response。scope、membership、wrong org/product/market/channel、舊Review及來源衝突均隔離測試。DB/SAVE/真實Auth fresh-login不適用此readonly增量，未重跑；同HEAD CI與logs另隨交審回條，未先宣稱通過。既有自動CI不降級，僅新增本slice局部驗證及artifact。
 
+**必要P2修正。** 首次221c149兩份CI同於frozen預覽模組hash失敗；已讀實際logs，恢復共用原檔bytes，改由既有W1 build派生專用呈現，未動frozen manifest或降低測試。frozen單項與20項contract重新通過；再驗受影響browser路由與新HEAD CI。
+
 **四層與邊界。** 已實作＝唯讀接線／復用UI／隔離示範；已測試＝局部synthetic與實際DOM；已部署＝本包否；目前可用＝executor本機入口。runtime config／Auth／R7／SQL不變，無遠端DB或Live Sites改動、不開W1/R7 gate、不寄信、不呼叫模型／新增費用。既有P3 debt沿delivery README保留。本次是Core preparation進度，不等於真W2單頁發布或Measure完成；交原Reviewer，Primary不自行APPROVE或開下一包。
 
 ### 2026-10-10 W1 登入 bootstrap failsafe 必要 P2（待原 Reviewer）

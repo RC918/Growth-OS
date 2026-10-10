@@ -23,7 +23,7 @@ CI 使用已安裝的 Playwright Chromium，省略 executable path。證據：`/
 ## 接線與失效規則
 
 - `apps/web/w1-publication-preview.mjs` 只協調讀取；adapter 重驗 native user／單一 Owner membership，scope 限同 org／product，核對 fact、draft、來源版本、market／channel 和確切 Review，再重讀身份及 state，避免中途變動或 late response 被採用。
-- 重用 `url-publish-preview.mjs`，W1 只有 description，不虛構 title／meta。來源快照、上一草稿、網站現況分開；擷取時間未知。更改答案／來源／Review、錯配身份／歷史依賴、讀取失敗、編輯、refresh 或 logout 使預覽失效。穩定的來源漂移／衝突以無有效Review及對應阻擋呈現。
+- 由既有W1 build從 frozen `url-publish-preview.mjs` 派生呈現，保持原檔及RC manifest不變；本機示範也讀同一產物。W1 只有 description，不虛構 title／meta。來源快照、上一草稿、網站現況分開；擷取時間未知。更改答案／來源／Review、錯配身份／歷史依賴、讀取失敗、編輯、refresh 或 logout 使預覽失效。穩定的來源漂移／衝突以無有效Review及對應阻擋呈現。
 - 在現有 W1 build 加入兩個讀取模組及當前結果頁掛接。部署候選由12檔變14檔；`SHA256.json` 覆蓋完整包。示範 fixture 不包含於部署包；runtime config、CSP、R7、Auth流程、SQL與寫入窗口不改。
 - 缺少真內容、目標頁、平台、站點授權、本版發布意圖、現網基線與可信發布時間分別可見；發布按鈕永遠停用。沒有 dispatcher、POST 或自動發布路徑。
 
@@ -34,3 +34,5 @@ PLAN/CODE、contract、實際RUN、DOM、桌機／手機、讀取身份／tenant
 DB變更、SAVE、真實fresh-session登入及真正發布不屬此切片，未執行，不列PASS；既有 W1 寫入驗收不重跑。Owner 已延後 fresh-login，仍未驗證。本候選未部署，不能宣稱Live Sites已可用或商家成效已成立。沒有遠端SQL/grant、重新開窗、寄信、真登入、模型或新增付費資源。R7/W1 gate不操作。既有delivery README所記P3 debt維持，不擴修。
 
 Primary 完成局部 VERIFY 後交原 Reviewer，未自行最終驗收。後續真內容／平台／授權／發布／量測需獨立派工與所需批准。
+
+首次 `221c149` 的push／PR CI因直接更改frozen預覽模組而失敗（internal-rc/contract.test.mjs的manifest hash檢查）。必要P2修正為W1 build限定派生呈現，恢復原檔bytes，不改hash基準或測試；重新核frozen檢查1項、20項契約及兩尺寸實際路由。無blind rerun。

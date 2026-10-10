@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=new URL('../../',import.meta.url);
 const allowed=new Set(['index.html','preview.css','preview.mjs','fixture.mjs'].map(f=>'/prototype/w1-publication/'+f).concat(['first-result.css','url-publish-preview.mjs','w1-workspace-api.mjs','w1-publication-preview.mjs','r7-workspace-api.mjs','intro-save.mjs','intro-r7-review.mjs','intro-candidate.mjs'].map(f=>'/apps/web/'+f)));
+allowed.add('/delivery/w1-private/dist/url-publish-preview.mjs');
 export async function startPreviewServer(port=0){
  const server=createServer(async(req,res)=>{const path=new URL(req.url,'http://localhost').pathname;
   if(req.method!=='GET'){res.writeHead(405);return res.end();}
