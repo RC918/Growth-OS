@@ -4,6 +4,22 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 W1 產品事實→相依成果（隔離實作，交原 Reviewer）
+
+父轉達原 Reviewer turn `01a125a9` APPROVE W0 exact `99d6e0e1fe9c9b99e08433970c83ec3f28c2260e`，並明確派工系統設計第 6 節 W1。該 HEAD 的 push CI `38049180064`／PR CI `38049181802` 現已同為 SUCCESS，已取實際 jobs `114204684598`／`114204689415` logs，末段 desktop/mobile PASS。以下 W0 與 R7 紀錄保留為原階段證據，不能當作 W1 的 CI 或驗收。
+
+**PLAN／CODE。** 原分支 `feat/private-host-bootstrap`，起點 clean／PR28 同 W0 HEAD；不切分支、不新建 task。新增獨立 `product-fact.html`／ES module／小型樣式、五表與兩 RPC 的 closed SQL 候選、沿用既有 native fixture 的 loopback runner／驗證器，以及必要 CI step。沿用 org membership／RLS helper、原生 GoTrue／PostgREST／PG17、既有 UI 樣式；一般答案不能塞入固定 R7 或 frozen workspace，故使用必要獨立介面，未放寬原契約。可操作入口與命令見 [W1 交付說明](prototype/product-fact/README.md)。
+
+**商家可見結果。** 同成果頁選產品／市場，戶外使用未知可略過，保留 unknown 且無確認者；回答後保存不可變 scoped fact 及依賴該版的草稿，舊確認即不再有效。已回答不重問，可主動修正。來源 quote／URL／version、產品／市場／渠道及確認者／時間保存，merchant confirmation 不冒充外部驗證。來源矛盾保留答案、禁止確認；不改其他產品。UI 就近說明答案用途，確切版確認與發布分開。所有產品、引用及規則候選明示 synthetic／非真 AI 理解。
+
+**必要驗證（本機 PASS）。** `node prototype/product-fact/verify.mjs` 在 owned disposable 原生 PG17／GoTrue／PostgREST 上完成 9 組 SQL/Auth/UI 檢查：答案＋草稿＋request 同交易；最後一步強制失敗零部分寫入；不可變歷史、exact replay／changed replay 拒絕；owner/viewer/其他 tenant、anonymous／forged JWT 與直接寫表拒絕；併發 Save 一勝一拒／Save-Review 序列化，舊批准不能變成當前有效；來源漂移／衝突與產品／市場隔離；native logout、refresh 撤銷、新 JWT exact readback；1280／390 真 Chromium 的鍵盤略過／回答／保存／確認、lost upstream reply 後 GET-only reconcile、logout→全新 context→原生登入→精確取回、不重問、修正失效、409 保留輸入及讀回恢復、viewer readonly、無 storage／水平溢出。不是 mock DB、不是 hosted 驗收。最終 scoped frozen RC hash check 1/1 PASS，未跑無關手動全套。
+
+**可核查輸出。** `/tmp/w1-product-fact-evidence.json` 與 `/tmp/w1-product-fact-1280.png`、`/tmp/w1-product-fact-390.png`；已目視桌面／手機。CI 追加相同 W1 native/UI step 與 artifact；最終 commit／remote／same-HEAD CI 隨交審回條，未先宣稱 PASS。既有 workflow 其餘步驟不降級。
+
+**VERIFY 適用性。** PLAN/CODE、contract、實際 loopback RUN、DOM、桌面手機鍵盤、DB/Auth、SAVE→logout→fresh session→login→readback、tenant/permission 均適用並有上述證據；原生静態 ES modules 無獨立 build，不用 echo 假替代。SQL catalog 核 RLS／invoker view／private definer＋public invoker wrapper／閉合 anonymous與service ACL，未對遠端跑 advisors。原子失效由 `w1_state.review_valid` 的 current fact/draft/source 依賴判定，歷史 review row 仍保留；W2 尚未實作，不能把歷史 row 存在當發布批准。
+
+**四層與限制。** 已實作＝W1 可操作隔離垂直流程；已測試＝上述原生隔離與 synthetic UI；已部署＝未部署；目前可用＝有既有 pinned images 的 executor 可依 README 啟動本機 runner 操作。DB 跨 session 保存，但 runner 停止會清除 owned 容器／資料，不承諾跨 runner 重啟或正式長期服務。沒有真模型品質驗收、live grant/migration/Auth 修改、遠端 writer、原站發布、W2 量測或 W3 排程。新增成本 US$0／remote model call 0，無新 secret、持久權限、merge、force push；R7 writer 仍 closed。目標環境開放由父另整理精確範圍，Primary 此包到此交原 Reviewer，不自行 APPROVE、不擴下一包。
+
 ### 2026-10-10 W0 持續服務文件對齊（交原 Reviewer）
 
 依 Owner 11:31:22 UTC 附件任務與父後續派工，只做 W0 與 W1 提案。輸入為父透過既有任務訊息轉交已核讀的 `Growth_OS_Optimization_Report_Dot_2026-10-10.md` 完整第 1–15 節；父稱正式 Library version 0、26,651 bytes。Primary 本機正式 materialize 首次及一次有界重試皆 generic download failed，未取得檔案，不聲稱本機下載／hash 驗證；全文訊息未截斷，無須再搬運或換下載 route。

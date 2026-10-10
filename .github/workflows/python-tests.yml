@@ -288,3 +288,17 @@ jobs:
         run: node prototype/intro-trial/r7-review.e2e.mjs
       - name: URL source and first useful result desktop/mobile acceptance
         run: node prototype/public-audit/product-source-ui.e2e.mjs
+
+      - name: W1 scoped product answer and dependent draft native Auth desktop mobile
+        timeout-minutes: 5
+        run: node prototype/product-fact/verify.mjs
+      - name: Preserve W1 synthetic UI and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w1-product-fact-evidence
+          path: |
+            /tmp/w1-product-fact-evidence.json
+            /tmp/w1-product-fact-*.png
+          retention-days: 7
+          if-no-files-found: warn
