@@ -48,8 +48,8 @@ test('unknown confirmation binds full saved version and original confirmation ac
 });
 test('R7 auth callback is exact and never requests account creation',async()=>{
  const f=fixture(),calls=[];const a=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:'https://example.test',fetchImpl:async(url,o)=>{calls.push({url,o});return {ok:true,json:async()=>({})};}});
- for(const url of ['https://foreign.test/r7-workspace.html','https://example.test/workspace.html','https://example.test/r7-workspace.html?x=1'])await assert.rejects(a.requestMagicLink('fixture@example.test',url));assert.equal(calls.length,0);
- await a.requestMagicLink('fixture@example.test','https://example.test/r7-workspace.html');assert.equal(JSON.parse(calls[0].o.body).create_user,false);
+ for(const url of ['https://foreign.test/r7-workspace.html','https://example.test/workspace.html','https://example.test/r7-workspace.html','https://example.test/r7-workspace?x=1','https://example.test/r7-workspace#x'])await assert.rejects(a.requestMagicLink('fixture@example.test',url));assert.equal(calls.length,0);
+ await a.requestMagicLink('fixture@example.test','https://example.test/r7-workspace');assert.equal(JSON.parse(calls[0].o.body).create_user,false);
  await assert.rejects(a.completeMagicLink('#access_token=x&token_type=bearer&expires_in=0'));assert.equal(a.context(),null);
 });
 test('signout during R7 Auth validation cannot restore the session',async()=>{
@@ -60,4 +60,18 @@ test('read-only pilot fresh login retains exact confirmation while writer stays 
  const fresh=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:'https://example.test',introReadEnabled:true,introSaveEnabled:false,fetchImpl:f.fetchImpl});
  await fresh.completeMagicLink(fragment('a'));assert.equal(fresh.intro.readable(),true);assert.equal(fresh.intro.available(),false);assert.deepEqual(await fresh.intro.reconcile(),row);const count=f.calls.length;
  await assert.rejects(fresh.intro.save(frame,row),/尚未啟用/);await assert.rejects(fresh.intro.confirm(row),/尚未啟用/);assert.equal(f.calls.length,count);fresh.signOut();assert.equal(fresh.intro.readable(),false);await assert.rejects(fresh.intro.read());
+});
+test('Auth and membership GET deadlines reject late replies and never restore a session',async()=>{
+ for(const endpoint of ['/auth/v1/user','/rest/v1/r7_members']){
+ const f=fixture();let release,aborted=false;
+ const a=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:'https://example.test',introReadEnabled:true,authTimeoutMs:15,fetchImpl:async(u,o)=>{
+ const result=await f.fetchImpl(u,o);if(new URL(u).pathname===endpoint){o.signal.addEventListener('abort',()=>aborted=true);await new Promise(r=>release=r);}return result;
+ }});
+ await assert.rejects(a.completeMagicLink(fragment('a')),/逾時/);assert.equal(aborted,true);assert.equal(a.context(),null);release();await new Promise(r=>setTimeout(r,0));assert.equal(a.context(),null);assert.equal(f.calls.some(c=>c.method==='POST'),false);
+ }
+});
+test('newer verification wins when an old GET ignores cancellation',async()=>{
+ const f=fixture();let release,started;const waiting=new Promise(r=>started=r);let first=true;
+ const a=createWorkspaceApi({origin:'https://wqepyttadrcnphtyjpjy.supabase.co',key:'sb_publishable_fixture',redirectOrigin:'https://example.test',introReadEnabled:true,fetchImpl:async(u,o)=>{const result=await f.fetchImpl(u,o);if(first){first=false;started();await new Promise(r=>release=r);}return result;}});
+ const old=a.completeMagicLink(fragment('a'));const rejected=assert.rejects(old,/工作階段/);await waiting;await a.completeMagicLink(fragment('b'));release();await rejected;assert.equal(a.context().organization_id,ids.otherOrg);assert.equal(f.calls.some(c=>c.method==='POST'),false);
 });

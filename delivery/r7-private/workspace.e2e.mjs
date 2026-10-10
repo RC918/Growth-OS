@@ -21,7 +21,7 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',async route=>{
    const req=route.request(),u=new URL(req.url());
-   if(u.origin===site){const name=u.pathname.slice(1)||'index.html';let body=files[name];if(body===undefined)return route.fulfill({status:404,body:''});
+   if(u.origin===site){const name=u.pathname==='/r7-workspace'?'r7-workspace.html':u.pathname.slice(1)||'index.html';let body=files[name];if(body===undefined)return route.fulfill({status:404,body:''});
     if(configured&&name==='r7-workspace-runtime.mjs')body=`export const r7Runtime={origin:'${pilot}',key:'sb_publishable_fixture',accessEnabled:true};`;
     if(writer&&name==='intro-save-config.mjs')body='export const introSaveEnabled=true;';
     return route.fulfill({contentType:name.endsWith('.mjs')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html',body});
@@ -33,13 +33,14 @@ try{
    const result=await backend.fetchImpl(req.url(),{method:req.method(),headers:{Authorization:req.headers().authorization},body:req.postData()});
    return route.fulfill({status:result.ok?200:result.status,contentType:'application/json',body:JSON.stringify(result.ok?await result.json():{})});
   });
-  await page.goto(site+'/r7-workspace.html'+fragment);return {context,page};
+  await page.goto(site+'/r7-workspace'+fragment);return {context,page};
  }
  const fragment='#access_token=a&token_type=bearer&expires_in=3600';
  let x=await open({fragment});await x.page.waitForFunction(()=>location.hash==='');assert.equal(await x.page.locator('#r7-login').isVisible(),false);assert.equal(apiCalls.length,0);await x.context.close();
  x=await open({configured:true,membership:false,fragment});await x.page.waitForFunction(()=>document.querySelector('#auth-status').textContent.includes('資格'));assert.equal(await x.page.locator('#intro-save-panel').isVisible(),false);assert.equal(backend.audit.length,0);await x.context.close();
  x=await open({configured:true,writer:true});await x.page.locator('#email').fill('fixture@example.test');await x.page.getByRole('button',{name:'取得登入連結'}).click();await x.page.waitForFunction(()=>document.querySelector('#auth-status').textContent.includes('已請求'));
- const otp=apiCalls.find(c=>c.path==='/auth/v1/otp');assert.equal(JSON.parse(otp.body).create_user,false);assert.equal(new URL(otp.url).searchParams.get('redirect_to'),site+'/r7-workspace.html');await x.context.close();
+ assert.equal(await x.page.locator('#r7-login button').isDisabled(),true);await x.page.locator('#r7-login').evaluate(f=>f.dispatchEvent(new Event('submit',{cancelable:true})));assert.equal(apiCalls.filter(c=>c.path==='/auth/v1/otp').length,1);
+ const otp=apiCalls.find(c=>c.path==='/auth/v1/otp');assert.equal(JSON.parse(otp.body).create_user,false);assert.equal(new URL(otp.url).searchParams.get('redirect_to'),site+'/r7-workspace');await x.context.close();
  x=await open({configured:true,writer:true,fragment});const p=x.page;await p.locator('#intro-save-panel:not([hidden])').waitFor();assert.equal(new URL(p.url()).hash,'');
  await p.getByRole('button',{name:'讀取候選與已保存版本'}).click();await p.waitForFunction(()=>document.querySelector('#intro-save-status').textContent.includes('尚未保存'));assert.ok((await p.locator('#intro-save-panel').innerText()).includes(original.payload.candidate.output.candidate));
  await p.getByRole('checkbox').check();await p.getByRole('button',{name:'保存此候選',exact:true}).click();await p.waitForFunction(()=>document.querySelector('#intro-save-status').textContent.includes('已保存並讀回'));await p.getByRole('checkbox').check();await p.getByRole('button',{name:'確認已保存版本',exact:true}).click();await p.getByRole('button',{name:'已確認此保存版本'}).waitFor();assert.equal(backend.audit.length,2);

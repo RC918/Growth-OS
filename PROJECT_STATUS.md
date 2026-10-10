@@ -4,6 +4,11 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 Callback canonical／狀態／期限必要修補
+
+同一私有workspace改用canonical `/r7-workspace` callback，加入驗證中／缺callback／timeout／success、有界Auth與membership GET、一次hasharrival消費與舊請求隔離。保持token僅記憶體、writer=false；不發真信、不改SQL/權限。父sentinel只證signin return_to不含fragment，未證postlogin遺失的完整因果；本修補不宣稱跨Sites Auth恢復session，需先同一收信瀏覽器private登入。14 JS tests與callback mock1280/390 PASS；交原Reviewer，正式信件仍由父控額度與操作。
+
+
 ### 2026-10-10 首次登入前唯讀 enrollment 候選
 
 父選定必要順序修正：先 verified invite identity 的 read-only membership setup，待本人登入成功才開始既有最多1h writer window。新增 enroll-readonly.sql 與隔離負測，未執行此候選於遠端；不含真actor/org。新＋既有PGlite 16 PASS，dist與三份原審SQL bytes不變，交原Reviewer。正式migration回條僅由父私下保存，本repo不記私人部署／身份資訊。

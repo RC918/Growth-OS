@@ -283,6 +283,7 @@ jobs:
           node prototype/intro-trial/r7-save.e2e.mjs
           node delivery/r7-private/verify.mjs
           node delivery/r7-private/workspace.e2e.mjs
+          node delivery/r7-private/callback.e2e.mjs
       - name: R7 approved candidate desktop/mobile page review (no remote calls)
         run: node prototype/intro-trial/r7-review.e2e.mjs
       - name: URL source and first useful result desktop/mobile acceptance

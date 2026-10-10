@@ -29,7 +29,7 @@ PLAN/CODE/CONTRACT/RUN/DOM/DESKTOP/MOBILE 已完成；buildless 不需 build；D
 
 ## 本輪可發布 artifact（原 a84a90e 之上）
 
-僅發布 `dist/` 的 13 個 allowlisted files；完整清單與逐檔 SHA256 在 `SHA256.json`。原六檔 bytes 完全保留；另加 r7-workspace.html、r7-workspace.mjs、r7-workspace-api.mjs、r7-workspace-runtime.mjs、intro-save.mjs、intro-save-panel.mjs、intro-save-config.mjs。新入口 `/r7-workspace.html` 有返回舊核稿連結。父端直接給新路徑，不改舊 index 的已審內容。`node delivery/r7-private/package.mjs` 重建新增七檔，不包含其他 repo 檔案，亦不自動啟用。
+僅發布 `dist/` 的 13 個 allowlisted files；完整清單與逐檔 SHA256 在 `SHA256.json`。原六檔 bytes 完全保留；另加 r7-workspace.html、r7-workspace.mjs、r7-workspace-api.mjs、r7-workspace-runtime.mjs、intro-save.mjs、intro-save-panel.mjs、intro-save-config.mjs。新入口 `/r7-workspace`（資產檔 r7-workspace.html） 有返回舊核稿連結。父端直接給新路徑，不改舊 index 的已審內容。`node delivery/r7-private/package.mjs` 重建新增七檔，不包含其他 repo 檔案，亦不自動啟用。
 
 ### 需由父端在私有部署副本配置的非秘密值
 
@@ -39,7 +39,7 @@ PLAN/CODE/CONTRACT/RUN/DOM/DESKTOP/MOBILE 已完成；buildless 不需 build；D
 | 同檔 `key` | null | 父正式 connector 取回、確認此 pilot 的 `sb_publishable_` 公開用 key；不接受 service-role／DB secret |
 | 同檔 `accessEnabled` | false | 身分建立／SMTP資格／Data API／受限 RLS讀權及callback完成核對後才 true |
 | intro-save-config.mjs `introSaveEnabled` | false | 僅實際 verified Owner/org 的伺服器 gate 已在批准一小時內啟用時 true；完成／異常關閉 |
-| Auth redirect allowlist | 未設定 | 部署時精確 `location.origin + '/r7-workspace.html'`，無 wildcard/query/hash；只在父私有封裝／平台設定中配置 |
+| Auth redirect allowlist | 未設定 | 部署時精確 `location.origin + '/r7-workspace'`，無 wildcard/query/hash；只在父私有封裝／平台設定中配置 |
 
 配置副本需重算實際部署 manifest，記錄與本包兩個 config 檔差異；不得把公開 repo 的原始 manifest冒充已配置包 hash。只替換非秘密設定，不把私人 Site URL/ID、email、Auth UUID/org 寫入 repo。私有站存取由既有 Sites 控制，需父端驗證正式登入郵件回來仍保留 fragment 至工作區頁；本 mock 不证明 Sites/Auth live callback。
 
@@ -54,3 +54,11 @@ writer false 時，accessEnabled true 的本人仍可新登入並讀回既有版
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node delivery/r7-private/workspace.e2e.mjs`：直接服務dist exact bytes並檢查13檔hash／dependency closure。1280與390 PASS：預設零API、無會員拒絕、精確HTTPScallback與create_user:false、模擬本人驗證callback、一次save/confirm、登出、完全新browsercontext在writer=false讀回exact version/confirmation、零storage、無overflow/JS errors。所有API攔截為in-memory fixture，real remote calls=0；不是正式寄信或GoTrue/Sites驗收。
 
 PLAN/CODE/CONTRACT/RUN/DOM/DESKTOP/MOBILE/SAVE/LOGOUT/FRESH SESSION/READBACK與tenant負測適用，以上為synthetic證據。buildless無build；SQL/RLS bytes未變且沿用a84a90e已通過原生PG17證據，PGlite回歸核新adapter。真Auth／DataAPI／私人callback／Owner信件驗證仍待父正式流程，不宣稱live PASS。交原Reviewer同HEAD；不自行APPROVE、merge或部署。
+
+## Canonical callback 必要修正（c973 之上）
+
+只接受本 origin 精確 `/r7-workspace` 的回呼與寄信 redirect；父必須先把正式 Auth allowlist 同步為此 canonical path（同一私有頁，不加 wildcard 或改域）。靜態檔仍為 r7-workspace.html。驗證中的 auth-status 具有可測 state；無fragment＝missing-callback，成功＝authenticated，逾時＝timeout，錯路徑／格式另顯失敗，不把普通登入form當已驗session。初始及晚到hashchange皆先清除hash，同一document只消費一次；epoch＋abort阻擋舊回覆／重複事件污染。Auth user及membership兩個GET各10秒，逾時清除記憶體，不自動retry/OTP。退出或失敗後明示重新開啟登入頁；此動作只載入頁面、不寄信。
+
+本次不能修復或恢復在上游Sites signin遺失的fragment：父的非秘密sentinel觀察只證明unsigned頁的signin return_to包含pathname而不含fragment，尚未實測登入後保留；不宣稱Sites為唯一根因。普通307無fragment的redirect可保留原fragment，已用loopback redirect＋合成callback驗證，並非真Sites Auth驗收。Owner必須先在實際收信開啟的同一瀏覽器完成私人站登入，再由本人有界索取一封。真信須父核對寄信額度／窗口、修補Reviewer與CI通過後才發；程式不自動重寄，不把token放入Sites return_to／URLquery／cookie／storage／log。
+
+`node delivery/r7-private/callback.e2e.mjs`：1280/390 PASS；canonical redirect、缺fragment/refresh不登入、晚到hash重複事件、延遲成功、取消後late response、Auth及membership GET timeout、錯route/query/過期callback負測。全部API以fixture攔截、OTP POST=0、remote calls=0。`r7-save.test.mjs` 增加兩類timeout及舊/新驗證競態，14 PASS。初版HTTPS route.fulfill 307的測試redirect未被後續route攔截而遭代理連線失敗，改為loopback真HTTP307＋API攔截測試；無產品route繞過。既有package hash／保存／核稿E2E仍須通過。SQL三件與readonly enrollment、writer=false不變。
