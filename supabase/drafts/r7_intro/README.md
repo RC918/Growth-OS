@@ -16,7 +16,7 @@
 
 `node --test supabase/drafts/r7_intro/offline.test.mjs` 使用既有 PGlite 0.5.8，不新裝套件、不連遠端。執行 exact proposal/enable/disable SQL。8 子測試＋主測試 PASS：預設 ACL、gate、request replay／mismatch、完整frame、audit、跨 tenant RLS、viewer/anon/直接 DML 拒絕、版本失效、錯來源、audit失敗回滾、持久目錄關閉重開讀回、实际 workspace API→SQL→丟回應→精確 reconcile、停用後可讀不可寫。
 
-auth.users/auth.uid 為隔離 fixture 身分注入；不是 GoTrue/JWT 真登入測試。PGlite 執行 PostgreSQL SQL/RLS，並非 JS mock；不宣稱多後端 PostgreSQL 連線競態或 hosted Data API 已驗。advisory transaction lock＋unique(org,version)保障版號序列；JS client競態另有測試。
+auth.users/auth.uid 為隔離 fixture 身分注入；不是 GoTrue/JWT 真登入測試。PGlite 執行 PostgreSQL SQL/RLS，並非 JS mock；hosted Data API 仍未驗；新增的原生 PG17 多連線期限／停用驗證見下節。advisory transaction lock＋unique(org,version)保障版號序列；JS client競態另有測試。
 
 ## 最小入口
 
@@ -38,3 +38,11 @@ apps/web/r7-workspace.html → r7-workspace.mjs → R7 專用 createR7WorkspaceA
 - 驗收完成或異常立即 disable.sql，client flag=false；保留不可改版本/audit及受限讀回。取消 client flag 不能代替 server revoke。完整撤銷讀取可另撤 SELECT/USAGE，不刪資料或 Auth user。沒有 live PASS 前不稱跨帳號session／跨裝置已完成。
 
 修正紀錄：ee92009 的 CI 38021395960/38021398920 另暴露 frozen RC 三檔不可修改。已將原 workspace-api/html/mjs 與鏡像恢復 b83b1fb 的已審 bytes，manifest/assertion 不變；專用 R7 adapter 與入口不依賴 frozen dashboard。不是放寬或更新 frozen hash。
+
+## 2026-10-10 必要期限修正（離線）
+
+Reviewer 已核准 6502b3 的兩個 P2 修正；本次只補嚴格期限啟用前必要缺口：初始 gate 檢查不能授權等待中的 writer。組織 advisory lock 取得後，再 SELECT singleton gate FOR SHARE，核 enabled／actor／org／clock_timestamp 截止；鎖持有至交易結束。函式結束前再核 clock_timestamp，若版本/audit 的後續鎖等待跨過期限，exception 回滾所有變更。
+
+Disable 序列語意：其 UPDATE 與 writer 的 SHARE 衝突。尚未取得 gate 的 writer 若遇到已提交 disable，必須拒絕；若 disable 尚未提交，writer 等待 gate，取得後核新列；若 writer 已先獲准並持有 SHARE，disable 等其交易結束後才完成，**不回溯取消已進入交易**。disable 返回成功代表之前持有 gate 的交易已結束、後續 writer 不能進入。enable 使用同一行 UPDATE，因此也遵守此鎖序。期限檢查點是鎖後與函式返回前，不宣稱可控制 PostgreSQL 的 WAL/commit 實際落盤時刻；正式 Data API 採單 RPC autocommit，不能另包長期開啟的 client SQL transaction。
+
+`node supabase/drafts/r7_intro/native-deadline.mjs`：使用既有 digest-pinned postgres:17.6，network none、無 host port、無外部凭證、不 pull；7 個 native 多連線案例 PASS。以 pg_blocking_pids 及三個不同 backend PID 證明 writer 確實在另一連線持鎖時等待；Save/Confirm 各測到期、disable；另測 gate 行鎖 disable-first、writer-first disable 等待、audit 等待到期整筆回滾。被拒絕案例 versions/confirmations/audit 三者零增量。測試 UUID 僅合成 fixture，未填入真 Owner/org 到 enable.sql。

@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 R7 期限鎖後複查（離線必要修正）
+
+6502b3 已獲原 Reviewer APPROVE_WITH_DEFERRED_DEBT，兩 P2 解除。本包只補 advisory lock 等待後 gate/expiry 重驗、gate SHARE 與 disable UPDATE 序列化、返回前到期回滾。既有 PGlite 8 子測試及原生 PG17 7 個多連線負測通過；proposal/disable hash 更新、enable bytes 不變。無 remote schema/ACL/Auth/secret/部署；未知 Owner/org 未寫入 enable。[證據與併發語意](supabase/drafts/r7_intro/README.md)。
+
 CI 補正紀錄：50f9c31 的 push run 38021576444，R7 contract/SQL 20 PASS、保存 UI 1280/390 PASS，最後副本驗證因 shallow checkout 無歷史基準物件而失敗。改為由 exact 141b114 原 bytes 計算的固定 SHA256，仍驗原 CSS/contract/JSON 與僅允許指定兩處差異的 review module，不略過 bytes assertion；產品與 SQL bytes 不變。
 
 ### 2026-10-10 R7 Review BLOCKED 必要修正與最小 SQL 候選

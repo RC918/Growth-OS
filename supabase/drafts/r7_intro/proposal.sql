@@ -114,7 +114,7 @@ revoke all on public.r7_members,public.intro_versions from public,anon,authentic
 create function r7_private.mutate(p_action text,p_org uuid,p_request uuid,p_expected integer,p_hash text,p_source text,p_frame json,p_version uuid)
 returns json language plpgsql security definer set search_path='' as $fn$
 declare who uuid:=auth.uid(); last_version r7_private.versions%rowtype; prior r7_private.audit%rowtype;
- intent jsonb; outrow json; vid uuid;
+ intent jsonb; outrow json; vid uuid; gate r7_private.write_gate%rowtype;
 begin
  if who is null or p_org is null or p_request is null or p_expected is null or p_expected<0 or p_action is null or p_action not in ('save','confirm') then raise exception 'invalid identity/intent' using errcode='22023';end if;
  if not exists(select 1 from r7_private.members where user_id=who and organization_id=p_org and role='owner') then raise exception 'owner required' using errcode='42501';end if;
@@ -124,6 +124,11 @@ begin
  if p_action='confirm' and (p_frame is not null or p_version is null) then raise exception 'confirmation target required' using errcode='22023';end if;
  intent:=jsonb_build_object('action',p_action,'org',p_org,'request',p_request,'expected',p_expected,'hash',p_hash,'source',p_source,'frame',p_frame,'version',p_version);
  perform pg_advisory_xact_lock(hashtextextended(p_org::text,0));
+ -- A queued writer has not been admitted. Read the CURRENT gate after the org
+ -- lock, then hold SHARE through transaction completion. disable's UPDATE
+ -- either precedes admission (writer rejects), or waits for that writer.
+ select * into gate from r7_private.write_gate where singleton for share;
+ if not found or not gate.enabled or gate.actor_id is distinct from who or gate.organization_id is distinct from p_org or gate.expires_at<=clock_timestamp() then raise exception 'writer closed after lock' using errcode='42501';end if;
  select * into prior from r7_private.audit where organization_id=p_org and request_id=p_request;
  if found then
   if prior.actor_id<>who or prior.intent<>intent then raise exception 'request reuse mismatch' using errcode='23505';end if;
@@ -140,6 +145,8 @@ begin
  end if;
  select row_to_json(v) into outrow from public.intro_versions v where id=vid;
  insert into r7_private.audit(organization_id,request_id,actor_id,action,version_id,intent,response) values(p_org,p_request,who,p_action,vid,intent,outrow);
+ -- A later lock/trigger delay inside this statement must also roll back on expiry.
+ if gate.expires_at<=clock_timestamp() then raise exception 'writer expired before return' using errcode='42501';end if;
  return outrow;
 end $fn$;
 create function public.save_r7_intro(p_organization_id uuid,p_request_id uuid,p_expected_version integer,p_candidate_hash text,p_source_version text,p_frame json)
