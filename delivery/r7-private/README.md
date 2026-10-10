@@ -10,7 +10,7 @@
 
 ## 差異與限制
 
-CSS、candidate contract、R7 JSON 與基準 bytes 相同。index.html 保留原 R7 section 與原 UI，刪除分析、舊結果及工作區介面，修改入口標題/header/footer；review.mjs 僅 mount R7，傳入未插入 DOM 的空 input 以沿用原離頁失效契約。intro-r7-review.mjs 唯一差異是 credentials omit → same-origin；redirect:error、固定 frame/run/source/hash 驗證原封不動。只有同源靜態 JSON GET，無 API、模型、storage 或工作區入口。來源引用連結保留，使用者主動點擊才會離站，不自動請求外站。
+CSS、candidate contract、R7 JSON 與基準 bytes 相同。index.html 保留原 R7 section 與原 UI，刪除分析、舊結果及工作區介面，修改入口標題/header/footer；review.mjs 僅 mount R7，傳入未插入 DOM 的空 input 以沿用原離頁失效契約。intro-r7-review.mjs 差異是 credentials omit → same-origin，以及確認後按鈕顯示「已在本頁確認」；成功狀態移到按鈕旁；redirect:error、固定 frame/run/source/hash 驗證原封不動。只有同源靜態 JSON GET，無 API、模型、storage 或工作區入口。來源引用連結保留，使用者主動點擊才會離站，不自動請求外站。
 
 私有性由父端 Sites 正式 owner-private 設定保證，不由本 HTML 實作。沒有修改原產品 Auth；未宣稱驗證 hosted 權限。頁內確認不保存、不代表原站文案發布或成效；刷新/離頁失效。
 

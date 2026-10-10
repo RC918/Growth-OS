@@ -4,6 +4,10 @@
 
 ## 當前授權與基準
 
+### 2026-10-10 R7 介紹保存接線（僅離線／隔離，待原 Reviewer）
+
+從 b83b1fb 完成專用 R7 contract、既有 workspace API/UI 接線與近端確認 UX。真保存開關 false，拒絕舊 staging；新 pilot 空 schema 不當成已可用工作區。7 項新 contract、1280/390 模擬再登入讀回、原核稿副本與 typed workspace 回歸通過。無真 DB/Auth/RLS 或跨裝置驗收；本輪無 remote migration、權限、secret、部署、模型或費用變更。[範圍、證據及最小啟用依賴](prototype/intro-trial/R7-SAVE-CONTRACT.md)。私有站網址與存取 metadata 不入庫。
+
 ### 2026-10-09 R7 商家頁內 Review 切片（離線通過，待原 Reviewer）
 
 Owner 17:38:54 UTC「繼續推進」後，父明確選定既有介紹入口的最小離線 Review 包；起點 `9481d87c4200ee487dc9fcf354ed528fea84daba`、原 `feat/private-host-bootstrap`，開始 clean。已完成的 R7 生成／獨立內容驗收不重做；本包無新模型、secret、DB、Auth、merge、Vercel 重連或 production 部署。

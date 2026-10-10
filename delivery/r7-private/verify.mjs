@@ -12,7 +12,7 @@ const {validateR7}=await import('./dist/intro-r7-review.mjs');
 assert.equal((await validateR7(data)).candidateHash,'3913033f19d0b9ccc1f1dac01693363aec56ee29d897d96c66fc7ac9b8c74c04');
 const base='141b114d593566b6c38038000f040c5924322a3a';
 for(const name of ['first-result.css','intro-candidate.mjs','intro-r7.json'])assert.deepEqual(await readFile(root+name),execFileSync('git',['show',base+':apps/web/'+name]));
-assert.equal(await readFile(root+'intro-r7-review.mjs','utf8'),execFileSync('git',['show',base+':apps/web/intro-r7-review.mjs'],{encoding:'utf8'}).replace("credentials:'omit'","credentials:'same-origin'"));
+assert.equal(await readFile(root+'intro-r7-review.mjs','utf8'),execFileSync('git',['show',base+':apps/web/intro-r7-review.mjs'],{encoding:'utf8'}).replace("credentials:'omit'","credentials:'same-origin'").replace("root.dataset.confirmed=String(!!v.receipt);","root.dataset.confirmed=String(!!v.receipt);\n  confirm.textContent=v.receipt?'已在本頁確認':'僅在本頁確認這份候選';"));
 const accesses=[];
 const server=createServer(async(req,res)=>{
  const name=req.url==='/'?'index.html':req.url.slice(1);
@@ -34,7 +34,7 @@ try{
   assert.match(await page.locator('#r7-review').innerText(),/真實 R7/);assert.match(await page.locator('#r7-review').innerText(),/APPROVE/);assert.match(await page.locator('#r7-review').innerText(),/不跨 session 保存/);assert.equal(await page.locator('form,#source-url,#intro-file,#handoff-result').count(),0);
   await page.locator('#r7-evidence').evaluate(el=>el.parentElement.open=true);assert.match(await page.locator('#r7-evidence').innerText(),/37967220375/);assert.match(await page.locator('#r7-evidence').innerText(),new RegExp(data.payload.candidate.source.version));
   await page.locator('#r7-copy').focus();await page.keyboard.press('Enter');await page.locator('#r7-copy[aria-busy="false"]').waitFor();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);assert.match(await page.locator('#r7-status').innerText(),/已複製/);
-  await page.locator('#r7-check').focus();await page.keyboard.press('Space');await page.locator('#r7-confirm').focus();await page.keyboard.press('Enter');assert.equal(await page.locator('#r7-review').getAttribute('data-confirmed'),'true');assert.match(await page.locator('#r7-status').innerText(),/重新整理或離開即失效/);
+  await page.locator('#r7-check').focus();await page.keyboard.press('Space');await page.locator('#r7-confirm').focus();await page.keyboard.press('Enter');assert.equal(await page.locator('#r7-review').getAttribute('data-confirmed'),'true');assert.match(await page.locator('#r7-status').innerText(),/重新整理或離開即失效/);assert.equal(await page.locator('#r7-confirm').innerText(),'已在本頁確認');assert.equal(await page.locator('#r7-status').evaluate(n=>n.previousElementSibling.className),'actions');
   for(const id of ['r7-confirm','r7-copy'])assert.ok((await page.locator('#'+id).boundingBox()).height>=44);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.locator('#r7-review').screenshot({path:'/tmp/r7-private-'+width+'.png'});

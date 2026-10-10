@@ -276,6 +276,11 @@ jobs:
         run: node prototype/owner-workspace/offline-draft-ui.e2e.mjs
       - name: Offline growth plan desktop and mobile acceptance (memory only)
         run: node prototype/owner-workspace/growth-plan-ui.e2e.mjs
+      - name: R7 introduction save contract and isolated browser acceptance
+        run: |
+          node --test prototype/intro-trial/r7-save.test.mjs
+          node prototype/intro-trial/r7-save.e2e.mjs
+          node delivery/r7-private/verify.mjs
       - name: R7 approved candidate desktop/mobile page review (no remote calls)
         run: node prototype/intro-trial/r7-review.e2e.mjs
       - name: URL source and first useful result desktop/mobile acceptance

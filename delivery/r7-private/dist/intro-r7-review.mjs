@@ -30,6 +30,7 @@ export async function mountR7Review(root,sourceInput){
  function paint(){
   const v=state.view();check.disabled=!v.item||!v.sourceMatches;check.checked=v.checked;confirm.disabled=!v.canConfirm;copy.disabled=!v.item||!v.sourceMatches||copying;
   root.dataset.confirmed=String(!!v.receipt);
+  confirm.textContent=v.receipt?'已在本頁確認':'僅在本頁確認這份候選';
   if(!v.item)return;
   status.textContent=!v.sourceMatches?'網址已變更，R7 頁內確認已失效。這份候選只適用上方固定來源；清空網址或填回原來源後需重新核對。':v.receipt?'本頁已確認這份 R7 候選；重新整理或離開即失效。未跨 session 保存、未發布、未量測。':'待您核對這份 R7 候選；頁內確認不會保存或發布。';
  }

@@ -3,10 +3,11 @@
   "candidate_sha256": "3913033f19d0b9ccc1f1dac01693363aec56ee29d897d96c66fc7ac9b8c74c04",
   "files": {
     "dist/first-result.css": "cd2b15427ae619341b8302e0d187fed78c52fa04ef07fc4332d1056c54a98f3a",
-    "dist/index.html": "b53cb083ccac8ea6a226d4500d179800b4a3fa2148a0bd0894f86e3bfa3ac0c7",
+    "dist/index.html": "2a87783a1edcd8af170b29071b5f44e7d1d17a08a64474f613addb1602655be0",
     "dist/intro-candidate.mjs": "8d751be13ca3551513c0629c23e55f075efd2e70543676c8afe930638a61d4cb",
-    "dist/intro-r7-review.mjs": "12ec0e486bf10cc1059d4c25aa39b84e6053972300fdfb79cb9d8eecf0bb4864",
+    "dist/intro-r7-review.mjs": "5427e79862219d204cc42e757788b016359f91e323d4cd50cf6de60643e433fb",
     "dist/intro-r7.json": "b6562fd9a833b61ab0b38aeb9512da734c786cae4a918944ebd10e341e3c7900",
     "dist/review.mjs": "9ef0b9490e2aa8de5a8b373b6f0bc7414dcfacff518edb3dea679342d23bd7e3"
-  }
+  },
+  "feedback_change": "Owner-authorized adjacent confirmation status and completed button label; R7 payload unchanged"
 }
