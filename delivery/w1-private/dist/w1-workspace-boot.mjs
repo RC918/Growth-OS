@@ -13,4 +13,6 @@ export async function boot({repaint=()=>{}}={}){
  if(fragment){try{const member=await workspace.authenticate(fragment);$('actor').value=member.role;await $('login').onclick();if(workspace.context())await check();}catch{$('auth-status').textContent='登入驗證未完成；未開放資料，也未自動寄信。';}}
  paint();timer=setInterval(paint,500); // Local expiry/UI update only; no polling, refresh, or OTP traffic.
  window.addEventListener('pagehide',()=>{clearInterval(timer);workspace.clear();});
+ $('send-link').disabled=false;
+ if(!fragment)$('auth-status').textContent='登入介面已就緒；請輸入電子郵件，並只按一次寄送。';
 }

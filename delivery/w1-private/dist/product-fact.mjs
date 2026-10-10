@@ -46,4 +46,4 @@ $('review').onclick=()=>{if(!$('review-check').checked){feedback('請先核對�
 $('reconcile').onclick=async()=>{busy=true;lock();try{await finish();}catch(e){feedback(e.message);}finally{busy=false;lock();}};
 
 function repaintWritePolicy(){if(!current)return;$('correct').hidden=current.answer==='unknown'||!workspace.canWrite('answer');$('review-panel').hidden=!current.draft_id||current.review_valid||current.is_conflict||current.source_changed||!workspace.canWrite('review');lock();}
-await boot({repaint:repaintWritePolicy});
+export function startWorkspace(){return boot({repaint:repaintWritePolicy}).catch(error=>{workspace.clear();throw error;});}

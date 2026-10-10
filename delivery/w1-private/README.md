@@ -1,5 +1,13 @@
 # W1 封閉啟用候選（待原 Reviewer 獨審）
 
+## 2026-10-10 登入 bootstrap failsafe 必要 P2（待獨審／未部署）
+
+Owner 回報按寄信無反應；正式資源 HTTP/MIME/import closure 與 CSP header 核對未發現阻擋，Owner runtime 根因仍未知。隔離可重現任一 module 載入失敗或 JavaScript 停用時，舊 HTML 留下可按的寄信按鈕與無回饋初始文字。Auth logs／audit 無紀錄不足以證明未送出，原郵件額度維持 unknown，不自動重寄或重置兩封上限。
+
+本修補讓 HTML 預設停用寄信，顯示初始化中／持續未就緒的停止提示及 noscript 說明；新增同來源 `/w1-assets/w1-workspace-entry.js`，分別呈現 module 載入失敗與 boot 初始化失敗。成功 boot 才解鎖。入口 top-level await 改由 Promise 啟動及 catch，失敗清除記憶體 session，屬相容性防護，不宣稱 Safari 根因已解。CSP、R7 bytes、Auth／DB／SQL／期限均不變；完整 composite 必須多包含此一 `.js` 檔並使用 JavaScript MIME，不能只覆蓋舊 24-file 清單。
+
+`login-route.test.mjs` 以實際 `/w1-workspace` 和 `/w1-assets/` 路徑，在1280／390驗證 mock OTP 200／429／network error、blocked entry script、missing transitive module、boot exception、disabled JS，共14案；全部攔截網路，無真 OTP。相依 native 同 session／fresh-login 回歸仍由原 verify 執行。新版 exact HEAD／CI／Reviewer 回條完成前不可更新入口或要求 Owner 再點寄信。
+
 本包讓已驗證的既有 Auth／R7 membership 在獨立 W1 入口讀取單一合成產品，另以一個有限寫入窗口驗證「答案→相依草稿→確切版確認→新登入讀回」。**本次同session修正尚未部署／未套用遠端SQL；原f403 install/enroll已在前一批准階段完成，server writer仍CLOSED。** 原 P3（pending tuple 僅頁內記憶體）保留，不開 W2/W3。
 
 起點：`004afe78e553a6eaa908b5a96ff0ff4c7054d986`，分支 `feat/private-host-bootstrap`。父轉達原 Reviewer 對此前隔離 slice 為 APPROVE_WITH_DEFERRED_DEBT；本候選另審，不沿用舊 CI 充當本包證據。
