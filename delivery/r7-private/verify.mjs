@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -10,9 +10,12 @@ const root='delivery/r7-private/dist/';
 const names=['index.html','review.mjs','first-result.css','intro-r7-review.mjs','intro-candidate.mjs','intro-r7.json'];
 const {validateR7}=await import('./dist/intro-r7-review.mjs');
 assert.equal((await validateR7(data)).candidateHash,'3913033f19d0b9ccc1f1dac01693363aec56ee29d897d96c66fc7ac9b8c74c04');
-const base='141b114d593566b6c38038000f040c5924322a3a';
-for(const name of ['first-result.css','intro-candidate.mjs','intro-r7.json'])assert.deepEqual(await readFile(root+name),execFileSync('git',['show',base+':apps/web/'+name]));
-assert.equal(await readFile(root+'intro-r7-review.mjs','utf8'),execFileSync('git',['show',base+':apps/web/intro-r7-review.mjs'],{encoding:'utf8'}).replace("credentials:'omit'","credentials:'same-origin'").replace("root.dataset.confirmed=String(!!v.receipt);","root.dataset.confirmed=String(!!v.receipt);\n  confirm.textContent=v.receipt?'已在本頁確認':'僅在本頁確認這份候選';"));
+// Immutable original bytes from 141b114d593566b6c38038000f040c5924322a3a; works in shallow CI checkouts.
+const baseline={"first-result.css": "cd2b15427ae619341b8302e0d187fed78c52fa04ef07fc4332d1056c54a98f3a", "intro-candidate.mjs": "8d751be13ca3551513c0629c23e55f075efd2e70543676c8afe930638a61d4cb", "intro-r7.json": "b6562fd9a833b61ab0b38aeb9512da734c786cae4a918944ebd10e341e3c7900", "intro-r7-review.mjs": "21bb9c63ec3cad45411d1725819d0ea5070dccdd59f391d20f46b98725a125c7"};
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+for(const name of ['first-result.css','intro-candidate.mjs','intro-r7.json'])assert.equal(sha(await readFile(root+name)),baseline[name]);
+const originalReview=(await readFile(root+'intro-r7-review.mjs','utf8')).replace("credentials:'same-origin'","credentials:'omit'").replace("\n  confirm.textContent=v.receipt?'已在本頁確認':'僅在本頁確認這份候選';",'');
+assert.equal(sha(originalReview),baseline['intro-r7-review.mjs']);
 const accesses=[];
 const server=createServer(async(req,res)=>{
  const name=req.url==='/'?'index.html':req.url.slice(1);

@@ -4,6 +4,8 @@
 
 ## 當前授權與基準
 
+CI 補正紀錄：50f9c31 的 push run 38021576444，R7 contract/SQL 20 PASS、保存 UI 1280/390 PASS，最後副本驗證因 shallow checkout 無歷史基準物件而失敗。改為由 exact 141b114 原 bytes 計算的固定 SHA256，仍驗原 CSS/contract/JSON 與僅允許指定兩處差異的 review module，不略過 bytes assertion；產品與 SQL bytes 不變。
+
 ### 2026-10-10 R7 Review BLOCKED 必要修正與最小 SQL 候選
 
 d3c8cb1 的 push/PR CI 38020573815／38020576699 terminal failure：workspace source/mirror 不一致；Reviewer 另證明 unknown save version=99 可被誤接受。保留失敗紀錄，修正鏡像與完整 expected state 核對，新增負測；未降級 assertion。最小 proposal/enable/disable SQL 在 PGlite 真 PostgreSQL/RLS 隔離驗證，預設讀寫 ACL 和 writer 關閉。新增 introOnly 獨立工作區入口，避免 empty pilot 需整套 dashboard；key=null、client flag=false。未動遠端 schema/ACL/Auth/secret/原站。[精確 SQL/hash、驗證、preflight 與啟用/停用](supabase/drafts/r7_intro/README.md)。ee92009 CI 38021395960/38021398920 又揭露 frozen RC hash 保護；已保留 manifest/assertion、恢復原 workspace 三檔及鏡像，R7 使用專用 adapter/入口。最終 exact HEAD CI 終態另交審。
