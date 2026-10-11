@@ -2,18 +2,6 @@
 import {createResultReview,reviewFields} from './first-result-review.mjs';
 import {validateReport} from './first-result-payload.mjs';
 export const failureText={invalid_url:'請使用公開 HTTPS 產品頁網址。',private_target:'此網址不符合公開來源安全規則。',unsupported_query:'請改用沒有參數的公開產品網址。',restricted_content:'來源需要登入，請選不需登入的公開產品頁。',robots_disallowed:'來源不允許此讀取，請選其他公開產品頁。',robots_unavailable:'無法核對來源的讀取規則，已停止。',timeout:'來源讀取逾時，網址與先前成果仍保留。',not_html:'目前僅支援公開 HTML 產品頁。',too_large:'來源超過讀取上限，請選較小的產品頁。',rate_limit:'目前讀取次數已達上限，請稍後再試。',unsupported:'尚無可可靠歸屬的單一產品描述；請改用明確的產品頁。',backend_unavailable:'這個入口尚未連接可用的來源服務；網址與先前成果仍保留。',invalid_report:'來源與成果版本未通過核對，沒有採用這份回應。',network:'連線中斷或未收到完整結果；目前結果未知，未自動重送。'};
-const robotsReasons={timeout:'核對讀取規則時逾時，未讀取產品頁；是否為暫時問題仍待核對。',dns_failed:'無法解析來源網域，未讀取產品頁。',dns_busy:'來源網域查詢容量已滿，未讀取產品頁。',tls_failed:'來源安全連線驗證或建立失敗，未讀取產品頁。',connection_failed:'來源連線未完成，原因仍待核對；未讀取產品頁。',http_protocol:'讀取規則的 HTTP 回應不完整或無效，未讀取產品頁。',http_denied:'來源拒絕讀取規則的請求，已停止；不自動重試。',http_status:'讀取規則未回傳成功狀態，未讀取產品頁；不等同來源拒絕。',unknown:'讀取規則失敗，底層原因未知；未讀取產品頁，不自動重試。'};
-for(const [reason,text] of Object.entries(robotsReasons))failureText['robots_'+reason]=text;
-failureText.robots_safety='來源讀取未通過安全檢查，已停止；不自動重試。';
-Object.assign(failureText,{tls_failed:'來源安全連線驗證或建立失敗，已停止。',connection_failed:'來源連線未完成，原因仍待核對。',dns_failed:'無法解析來源網域。',http_protocol:'來源 HTTP 回應不完整或無效。'});
-export function sourceFailureCode(data){
- if(data?.code!=='robots_unavailable')return Object.hasOwn(failureText,data?.code)?data.code:'network';
- const d=data.diagnostic;
- if(d?.stage!=='robots')return 'robots_unknown';
- if([401,403].includes(d.http_status))return 'robots_http_denied';
- if(['peer_mismatch','cross_domain_redirect','redirect_failed','too_many_redirects','too_large','invalid_url'].includes(d.reason))return 'robots_safety';
- return Object.hasOwn(robotsReasons,d.reason)?'robots_'+d.reason:'robots_unknown';
-}
 export function createConsoleTask({load,now=()=>new Date().toISOString(),id=()=>crypto.randomUUID(),changed=()=>{}}){
  let generation=0,controller=null,review=null,report=null;
  let state={phase:'start',taskId:null,url:'',updated:null,error:null,synthetic:false,returned:false,sourceCurrent:false};

@@ -37,18 +37,3 @@ test('Sites package exact hashes; no W1/R7 config or frozen changes required',as
  for(const [f,h] of Object.entries(manifest.files))assert.equal(createHash('sha256').update(await readFile('delivery/growth-console/dist/'+f)).digest('hex'),h);
  assert.equal(manifest.api_included,false);assert.equal(manifest.route,'/growth-console');
 });
-test('safe robots reasons preserve input and edits, unknown never becomes denial or success',async()=>{
- const {sourceFailureCode,failureText}=await import('../../apps/web/growth-console-task.mjs');
- for(const reason of ['timeout','dns_failed','tls_failed','http_denied','http_status','unknown','SECRET']){
-  let fail=false,calls=0;
-  const code=sourceFailureCode({code:'robots_unavailable',diagnostic:{stage:'robots',reason},detail:'SECRET'});
-  const task=createConsoleTask({load:async()=>{calls++;if(fail)throw Error(code);return report;}});
-  task.setURL(url);await task.start();task.edit('title','Keep edit');fail=true;await task.start();
-  assert.equal(task.view().phase,'failed');assert.equal(task.view().url,url);assert.equal(task.view().review.fields.title,'Keep edit');
-  assert.equal(task.view().sourceCurrent,false);assert.equal(calls,2);assert.ok(!failureText[code].includes('SECRET'));
-  if(reason==='SECRET'||reason==='unknown')assert.equal(code,'robots_unknown');
- }
- assert.equal(sourceFailureCode({code:'robots_unavailable',diagnostic:{stage:'robots',reason:'timeout',http_status:403}}),'robots_http_denied');
- assert.equal(sourceFailureCode({code:'robots_unavailable'}),'robots_unknown');
- assert.equal(sourceFailureCode({code:'robots_unavailable',diagnostic:{stage:'robots',reason:'peer_mismatch'}}),'robots_safety');
-});

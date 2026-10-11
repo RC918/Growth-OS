@@ -31,14 +31,6 @@ try{
   async function overview(){if(width<1024)await page.locator('#nav-toggle').click();await page.locator('[data-view=overview]').click();}
   await overview();await url.fill('https://example.com/timeout');await page.locator('#source-submit').click();await page.locator('#source-feedback').filter({hasText:'逾時'}).waitFor();assert.equal(await url.inputValue(),'https://example.com/timeout');assert.match(await page.locator('#task-phase').innerText(),/未完成/);
   if(width<1024)await page.locator('#nav-toggle').click();await page.locator('[data-view=result]').click();assert.equal(await page.locator('#field-description').inputValue(),mainText);assert.equal(await page.locator('#review-confirm').isDisabled(),true);
-  // Synthetic error responses exercise the actual loader and visible failure copy, never a public fetch.
-  for(const [reason,label] of [['timeout','逾時'],['dns_failed','解析'],['tls_failed','安全連線'],['http_denied','拒絕'],['http_status','成功狀態'],['unknown','未知']]){
-   await page.route('**/api/product-source',route=>route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({code:'robots_unavailable',detail:'SECRET',diagnostic:{stage:'robots',reason,http_status:reason==='http_denied'?403:null}})}));
-   await overview();await url.fill('https://example.com/product');await page.locator('#source-submit').click();
-   await page.locator('#source-feedback').filter({hasText:label}).waitFor();assert.equal(await url.inputValue(),'https://example.com/product');assert.ok(!(await page.locator('body').innerText()).includes('SECRET'));
-   if(width<1024)await page.locator('#nav-toggle').click();await page.locator('[data-view=result]').click();assert.equal(await page.locator('#field-description').inputValue(),mainText);assert.equal(await page.locator('#review-confirm').isDisabled(),true);
-   await page.unroute('**/api/product-source');
-  }
   // Hold a real HTTP response locally, then cancel; no synthetic completion timers.
   await overview();let release;const barrier=new Promise(r=>release=r);
   await page.route('**/api/product-source',async route=>{const response=await route.fetch();await barrier;try{await route.fulfill({response});}catch{}});

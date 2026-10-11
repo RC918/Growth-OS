@@ -1,4 +1,4 @@
-import {createConsoleTask,failureText,sourceFailureCode} from './growth-console-task.mjs';
+import {createConsoleTask,failureText} from './growth-console-task.mjs';
 import {reviewFields} from './first-result-review.mjs';
 const $=id=>document.getElementById(id),make=(tag,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
 const names={title:'頁面標題',meta_description:'搜尋摘要',description:'產品描述'};
@@ -6,7 +6,7 @@ let viewName='overview',rendered=null,guideTarget=null,demo=null,sceneTicket=0;
 const task=createConsoleTask({load:async(url,signal)=>{
  const response=await fetch('/api/product-source',{method:'POST',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),signal});
  let data;try{data=await response.json();}catch{throw Error('backend_unavailable');}
- if(!response.ok)throw Error([404,405].includes(response.status)?'backend_unavailable':sourceFailureCode(data));return data;
+ if(!response.ok)throw Error([404,405].includes(response.status)?'backend_unavailable':data.code||'backend_unavailable');return data;
 },changed:render});
 const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 function selected(){const s=task.view();

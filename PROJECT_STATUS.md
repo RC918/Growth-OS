@@ -4,7 +4,15 @@
 
 ## 當前授權與基準
 
-### 2026-10-11 真 URL 必要診斷（12:27 Owner 推進包，未部署）
+### 2026-10-11 真 URL 診斷撤回與 frozen 修復（待原 Reviewer）
+
+`a45875ed3d0ad1c85be8cc81b244087eaad89d31` 兩筆 CI 38139605516／38139601174 均 failure；job 114470549750／114470536551 的實際 logs 顯示 step29 frozen RC identity 在 product_api.py 首先失敗，scanner.py 也在同一 frozen manifest。先前「frozen 未改」聲明錯誤，本節更正；局部測試通過不代表整體CI或本包可接受，Console CI 被前置失敗跳過。
+
+父代要求保留 frozen 身分，不修改 manifest/hash。已核 clean/a458 歸屬，以 ccfc46c→a458 的精確反向 patch 還原本包11個程式／測試／產物檔；不 reset、不 forcepush、不改他人內容。原 api/product-source.py adapter 只呼叫 frozen handle_product，例外已在 handler 內轉成HTTP回應；沒有可直接傳遞 scanner cause 的既有非frozen hook。本輪不新增替代 handler／monkeypatch 或重構，診斷增量撤回、保留原通用 robots_unavailable；底層原因仍unknown，不冒充拒絕或零。
+
+最新派工已明確涵蓋旧 cause 未知的一次同 scanner 路徑 bounded 診斷讀取；不需 Owner 重複批准，待原 Reviewer 通過才執行。本輪沒有真URL請求，attempt1/retry0；若後續401/403／安全拒絕或仍未知即停止，不換route/IP/tool。部署維持runtime4b3／Sitev11，真URL鏈／登入P2未過。frozen identity 先PASS；完整RC契約6項、Python scanner/product/API/service 46項、Console契約5項、build及1280/390/320瀏覽器／精確package路由均PASS；原失敗CI不rerun，不更新PR正文。以下為撤回包的歷史紀錄，不代表現行能力或授權限制。
+
+### 2026-10-11 真 URL 必要診斷（a458歷史，已撤回，未部署）
 
 起點 `ccfc46c09596bd4cdd26f479126880b12d27b5a5`／feat/private-host-bootstrap／PR28 clean。補原 scanner 的固定 timeout／DNS／TLS／connection／HTTP protocol 分類；保留 robots_unavailable 相容碼，加 robots 階段、白名單原因與已觀察 HTTP status（null＝未知，非零／非未收到）回條。401／403 與其他非200、未知及安全檢查失敗分開；body 讀取失敗仍保留已取得的 status。API 不送 exception cause／headers／stack／URL，Console 固定繁中失敗文案保留網址及編輯、不自動重送。不改 DNS／IP pinning／peer／TLS／robots 規則、部署、gate 或 hosting。
 

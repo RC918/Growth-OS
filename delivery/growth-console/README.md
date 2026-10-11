@@ -65,7 +65,13 @@ Repo SHA與Site source SHA分開；本包不部署、不merge。圖片 `/tmp/gro
 
 最小可行接線方向是保留原Python來源服務及安全契約，在**已存在、已核實零新增費用且可用的執行環境**提供同一 `/api/product-source`，Console保持同源相對路由；同私有Sites若做前置入口，需正式同站服務路由轉交該已核准端點，而不是瀏覽器跨來源／CORS繞路。相依包含：既有可用Python host、原scanner必要網路能力、來源快照有界暫存、同站路由、正式packaging及同版本端到端驗證。本輪未找到已核實且可直接套用的host/路由，因此**沒有已證實零新增費用的Sites線上接線**，不實作新的hosting／security設定／付費資源。可立即使用且無新增資源的是既有本機Python server原路測試；這也不等於production。將scanner改寫Worker須重新證明DNS/redirect/peer/robots等安全等價，超出本原型包，不能當小UI補線。
 
-## 2026-10-11 原 scanner 失敗診斷增量
+## 2026-10-11 frozen identity 修復／診斷撤回
+
+a458 的 CI 38139605516／38139601174 均在 step29 frozen RC identity 失敗（jobs 114470549750／114470536551，實際logs已讀）。product_api.py 與 scanner.py 均屬 frozen manifest；前包聲稱不改frozen有誤。修正版用本包精確反向patch將11個程式／測試／產物檔恢復ccfc46c bytes，manifest/hash不動，frozen契約先PASS；不是改hash解鎖，也未reset/forcepush。原adapter無直接提供handler內部cause的hook，故不重構／monkeypatch，診斷與相依Console分類撤回，通用robots_unavailable的底層原因仍unknown。
+
+父代已釐清：舊唯讀cause未知也涵蓋於原路徑一次bounded診斷授權，待原Reviewer通過再讀robots；允許後才讀原產品頁。401/403／安全錯誤／仍未知皆停，不換route/IP/tool、不再重試。本輪未發真URL請求，attempt1/retry0；未部署，runtime4b3／Sitev11不變。以下保留a458歷史測試與失敗前記錄，非目前功能或授權判定。
+
+## 2026-10-11 原 scanner 失敗診斷增量（a458歷史，已撤回）
 
 12:27 Owner 推進包起點 ccfc46c。`robots_unavailable` 保留相容 code；`diagnostic` 只帶 `stage=robots`、固定 `reason`、已知整數 `http_status` 或 null（未知）。transport 將 timeout、DNS、TLS、connection、HTTP protocol 分開，保留已收到 status，即使 body 後續逾時。401/403 不能被後續 timeout 掩蓋；其他非200不冒拒絕，未知不填零。產品 API 只送固定 detail 與診斷欄位，不序列化原 exception cause／headers／stack；Console 忽略遠端 detail，僅映射固定繁中文案，保留輸入／成果且失效舊確認，無自動重試。
 

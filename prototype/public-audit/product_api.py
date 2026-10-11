@@ -71,8 +71,7 @@ def handle_product(handler, path):
                            'message':'Export to retain this source; hosted cache may disappear.'}
         respond(handler,200,stored)
     except ScanError as e:
-        respond(handler,422,{'code':e.code,'detail':str(e),
-                             **({'diagnostic':e.diagnostic} if e.diagnostic is not None else {})})
+        respond(handler,422,{'code':e.code,'detail':str(e)})
     except Exception:
         respond(handler,500,{'code':'processing_failed','detail':'The source could not be processed; retry or choose another public page.'})
     finally:
