@@ -138,6 +138,21 @@ jobs:
           node supabase/tests/goal_lock_probe/test_acl_operator.mjs
       - name: Install Chromium for UI acceptance
         run: npx playwright install --with-deps chromium
+      - name: Derived first-result review navigation and frozen identity
+        run: |
+          node --test delivery/web-preview/build.test.mjs
+          node delivery/web-preview/navigation.e2e.mjs
+      - name: Preserve review navigation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-navigation-evidence
+          path: |
+            /tmp/review-navigation-evidence.json
+            /tmp/review-navigation-*.png
+            delivery/web-preview/manifest.json
+          retention-days: 7
+          if-no-files-found: warn
       - name: Pull pinned official disposable WordPress and MariaDB images
         run: |
           docker pull wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4

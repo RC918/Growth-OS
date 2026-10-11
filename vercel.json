@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "echo Web preview ready",
-  "outputDirectory": "apps/web",
+  "buildCommand": "node delivery/web-preview/build.mjs",
+  "outputDirectory": "delivery/web-preview/dist",
   "functions": {
     "api/product-source.py": {
       "includeFiles": "prototype/public-audit/{scanner,product_source,product_api}.py",

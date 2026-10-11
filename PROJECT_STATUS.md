@@ -5,6 +5,17 @@
 ## 當前授權與基準
 
 
+### 2026-10-11 第一成果核稿導航（工程候選，未部署）
+
+父選定最窄導航，原Reviewer核定必要build派生方式；起點 `dfcd61b1c0d798b3883429d84d16a9f1c799ba43`／`feat/private-host-bootstrap`／PR28 clean。只把既有Review state接到「現在先處理哪裡」：無效欄位→已修改未核→其他未核→確認目前版→複製／匯出。CTA只聚焦，不自動改字／勾選／確認；不是語意查核或SEO評分。無JSON匯入、範例入口、新backend或原站操作。
+
+原first-result四檔位於frozen RC manifest，故保留bytes、manifest與operator不動；由限定build複製web來源，只在輸出HTML／JS插入導航及refresh掛接，缺失／重複掛接即失敗。獨立manifest記source/output hash，其他檔byte-identical；Vercel build設定只改command/outputDirectory，原functions與同路由/API保留。詳見 [派生包與獨立驗證](delivery/web-preview/README.md)。
+
+PLAN/CODE、8項contract/build身份與frozen驗證、實際派生路由1280/390 DOM／鍵盤／aria live-region屬性、確認中／來源取消／late response、編輯保留及copy/export均適用並局部通過；未以真screen reader人工驗收或宣稱完整WCAG。SAVE／DB／Auth／logout／真fresh-login不適用此頁內只讀導航增量，未執行；同HEAD CI實際logs與原Reviewer裁決另附。首次build擴展名allowlist漏既有README/robots，已核完整現有檔案類型、保留全目錄身份，未修改來源資產。
+
+已實作＝同路由可build的導航；已測試＝隔離派生UI；已部署＝本包否；目前可用＝工程驗證入口，線上Vercel API與HEAD仍未知。前包W2已由父轉交私有Sitesv9部署/source693ac0829bfdc8ed4628f145ee83cc28673f4eba及限定APPROVE_WITH_DEFERRED_DEBT；本輪未改該部署、W1/R7/config。原站發布接點hold，fresh-login延期，不冒稱W1完整PASS或真W2發布。沒有remoteDB/grant/model/email/secret/付費或手動部署；Vercel403不換route重試。既有debt維持，不擴修。
+
+
 ### 2026-10-10 W2 準備：W1 相依版本接既有發布預覽（交原 Reviewer）
 
 最新父派工接續 Owner 16:37:52 UTC「先繼續推進吧，登入的事情等恢復再說」。本包起點 `feat/private-host-bootstrap`／`0ab9a7b49f42e61d3b11b6642f8490e8277a6f37`／Draft PR28，保留並接續本輪未提交接線，不重播PR19初始化。前包W1真人兩版保存／確認與關窗已完成；此為父轉交及先前讀回證據，本輪不重查遠端。真實fresh-login仍延後／未驗證，不能稱全PASS。下方W1候選／待部署段落為歷史階段紀錄。

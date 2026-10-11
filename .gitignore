@@ -9,3 +9,6 @@ __pycache__/
 !*.env.example
 node_modules/
 supabase/.temp/
+
+/delivery/web-preview/dist/
+/delivery/web-preview/manifest.json
