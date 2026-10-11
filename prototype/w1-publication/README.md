@@ -59,3 +59,10 @@ DB變更、SAVE、真實fresh-session登入及真正發布不屬此切片，未�
 Primary 完成局部 VERIFY 後交原 Reviewer，未自行最終驗收。後續真內容／平台／授權／發布／量測需獨立派工與所需批准。
 
 首次 `221c149` 的push／PR CI因直接更改frozen預覽模組而失敗（internal-rc/contract.test.mjs的manifest hash檢查）。必要P2修正為W1 build限定派生呈現，恢復原檔bytes，不改hash基準或測試；重新核frozen檢查1項、20項契約及兩尺寸實際路由。無blind rerun。
+
+
+### v10 入口失敗診斷增量（2026-10-11）
+
+原 Mac 已讀回完整已部署 graph 的 200／JS MIME／來源身份；Cloud live Chromium 被環境 tunnel 阻擋，未取得 HTTP 回應。Owner 錯誤根因仍未知，需原 Mac 提供精確 deployed HTML（含平台插入）以隔離重現。此次只補 `w1-workspace-entry.js` 固定非秘密錯誤分類，不能稱入口已修好；不改任何 routing／CSP／config／Auth API，無自動重試／寄信。
+
+獨立回歸：`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node delivery/w1-private/login-route.test.mjs`，1280/390共24案。分類不印 raw exception／URL／stack，包含secret sentinel不外洩斷言。原Reviewer後，原Mac若部署此診斷包，只更新既有composite `/w1-assets/w1-workspace-entry.js`，依 `delivery/w1-private/SHA256.json` 核hash，保留其他v10資產與設定；不要求Owner console／終端機搬檔。正式部署／Owner端再次觀察仍由父安排。

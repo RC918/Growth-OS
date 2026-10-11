@@ -9,8 +9,8 @@ export async function verifyLoginRoute(){
  const origin='https://w1.example.invalid',api='https://wqepyttadrcnphtyjpjy.supabase.co';
  const config={origin:api,key:'sb_publishable_isolated',redirectOrigin:origin,productId:'00000000-0000-0000-0000-000000000001',accessEnabled:true,writerEnabled:true};
  const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});
- try{for(const width of [1280,390])for(const response of [200,429,'network-error','blocked-script','missing-module','init-failure','js-disabled']){
-  const unavailable=['blocked-script','missing-module','init-failure','js-disabled'].includes(response);
+ try{for(const width of [1280,390])for(const response of [200,429,'network-error','blocked-script','missing-module','init-failure','js-disabled','wrong-mime','syntax-error','missing-export','reference-error','execution-error']){
+  const unavailable=['blocked-script','missing-module','init-failure','js-disabled','wrong-mime','syntax-error','missing-export','reference-error','execution-error'].includes(response);
   const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block',javaScriptEnabled:response!=='js-disabled'});
   let otp=0,releaseOtp;const otpBarrier=new Promise(resolve=>{releaseOtp=resolve;}),errors=[],unexpected=[],modules=new Set();
   if(response==='init-failure')await context.addInitScript(()=>{history.replaceState=()=>{throw Error('isolated initialization failure');};});
@@ -21,6 +21,10 @@ export async function verifyLoginRoute(){
     if(!file||!Object.hasOwn(manifest,file)){unexpected.push(u.pathname);return route.abort();}
     if(response==='blocked-script'&&file==='w1-workspace-entry.js')return route.abort('blockedbyclient');
     if(response==='missing-module'&&file==='intro-candidate.mjs')return route.fulfill({status:404,contentType:'text/plain',body:'missing dependency'});
+    if(file==='w1-review-navigation.mjs'){
+     const fault={'wrong-mime':['text/html','<!doctype html><title>fallback</title>'],'syntax-error':['text/javascript','export const = ;'],'missing-export':['text/javascript','export const unrelated=true;'],'reference-error':['text/javascript','throw new ReferenceError("secret-sentinel https://example.invalid/?access_token=private"); export function createW1ReviewNavigation(){}'],'execution-error':['text/javascript','throw new Error("secret-sentinel https://example.invalid/?access_token=private"); export function createW1ReviewNavigation(){}']}[response];
+     if(fault)return route.fulfill({status:200,contentType:fault[0],body:fault[1]});
+    }
     if(file.endsWith('.mjs'))modules.add(file);
     const body=file==='w1-workspace-config.mjs'?'export default '+JSON.stringify(config):await readFile('delivery/w1-private/dist/'+file);
     return route.fulfill({status:200,contentType:(/\.m?js$/).test(file)?'text/javascript':file.endsWith('.css')?'text/css':'text/html',body});
@@ -40,8 +44,12 @@ export async function verifyLoginRoute(){
   assert.equal(layout.gap,16);assert.ok(layout.height>=44);
   if(unavailable){
    assert.equal(await page.locator('#send-link').isDisabled(),true);
-   const hint=response==='missing-module'?'登入元件載入失敗':response==='init-failure'?'登入介面初始化失敗':'登入介面初始化中';
+   const hint=['missing-module','wrong-mime','syntax-error','missing-export','reference-error','execution-error'].includes(response)?'登入元件載入失敗':response==='init-failure'?'登入介面初始化失敗':'登入介面初始化中';
    await page.locator('#auth-status').filter({hasText:hint}).waitFor();
+   const diagnostic={'missing-module':'MODULE_LOAD','wrong-mime':'MODULE_LOAD','syntax-error':'MODULE_SYNTAX','missing-export':'MODULE_SYNTAX','reference-error':'MODULE_REFERENCE','execution-error':'MODULE_EXECUTION','init-failure':'INIT'}[response];
+   const status=await page.locator('#auth-status').textContent();
+   if(diagnostic)assert.ok(status.includes('錯誤分類：'+diagnostic));
+   assert.doesNotMatch(status,/secret-sentinel|access_token|example.invalid/);
    if(response==='js-disabled')assert.equal(await page.locator('noscript').isVisible(),true);
    await page.locator('#email').fill('owner@example.invalid');await page.locator('#email').press('Enter',{noWaitAfter:true});
    assert.equal(await page.locator('#send-link').isDisabled(),true);assert.equal(otp,0);

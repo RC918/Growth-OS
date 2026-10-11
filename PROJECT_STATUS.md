@@ -5,6 +5,18 @@
 ## 當前授權與基準
 
 
+### 2026-10-11 v10 登入元件失敗：診斷補強，根因仍未知
+
+父轉交 Owner 10:27 UTC 真實 `/w1-workspace` 畫面，既有入口在動態 import reject 時只顯示 generic 載入失敗。起點 b1646c4／PR28 clean；分類為本包必要 P2。原 Mac 的 v10 服務 GET 回報 HTML 與完整 graph 200、正確 MIME／來源 bytes，無外部 SDK／base；因此不能再以缺檔假說修路由。此回報不是 Owner 瀏覽器載入成功證據。
+
+Cloud 用官方 Sites get_site 同站 service credential（只在記憶體／隱藏 stdin，同 origin GET header）嘗試 Chromium，只到 `net::ERR_TUNNEL_CONNECTION_FAILED`，尚未取得 HTTP 回應或 live HTML；未換 proxy／route，未取得 Owner token／寄信／API／DB。精確 deployed HTML（含平台插入）仍需原 Mac 提供才能做隔離重現；本輪不宣稱已重現線上根因。
+
+最小候選只在獨立 entry catch 顯示固定錯誤分類：MODULE_LOAD（讀取／MIME／限制，不能再细判）、MODULE_SYNTAX（語法／匯出）、MODULE_REFERENCE（缺少定義）、MODULE_EXECUTION（其他）、INIT（啟動）。不輸出原始 message、stack、URL、token，不自動重試或發送；fallback 分類不是確證根因。build 僅 entry 與manifest hash改變，config／CSP／frozen／R7／writer=false／gate／audience不動。
+
+PLAN／CODE／BUILD、桌機1280與手機390共24個隔離入口案例PASS，新增 wrong MIME、語法、missing export、ReferenceError與一般執行失敗；驗固定分類、secret sentinel不外洩、停用提交／零OTP／無溢出。既有成功寄送是mock，不是live；DB／SAVE／logout／fresh-login／Owner Auth不適用這次純錯誤呈現。原Reviewer及原Mac部署仍必要；未解除真入口 blocker，不重跑未改Auth業務測試，不聲稱完整登入已修復。
+
+
+
 ### 2026-10-11 現用 W1 唯讀核稿引導（候選，待原Reviewer／Mac部署）
 
 父依Owner既有工程授權選定現用W1最小接線；起點／remote同為 `d19bc041e2d8d0fd46abc149d81fceb8cc73651a`、feat/private-host-bootstrap、PR28 clean。Core結果為同 `/w1-workspace` 讀取已保存草稿後，看懂唯一可操作下一步與原因；只聚焦既有預覽／來源／描述／refresh／原request核對，不恢復修改、保存、確認或發布。這與先前d19三欄first-result是不同使用入口；不再把目前Sites成果混同Vercel hosting。
