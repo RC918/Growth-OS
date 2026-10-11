@@ -64,3 +64,11 @@ Repo SHA與Site source SHA分開；本包不部署、不merge。圖片 `/tmp/gro
 能力核對：Sites技能runtime是Cloudflare Workers／HTTP外連，不提供原Python入口與raw TCP peer pinning的直接執行能力；靜態來源包也不含Python函數。既有 `vercel.json` 已声明兩個Python API，但Vercel存取問題仍hold，未新probe，不能假設該後端已部署／可用或保證零費用。
 
 最小可行接線方向是保留原Python來源服務及安全契約，在**已存在、已核實零新增費用且可用的執行環境**提供同一 `/api/product-source`，Console保持同源相對路由；同私有Sites若做前置入口，需正式同站服務路由轉交該已核准端點，而不是瀏覽器跨來源／CORS繞路。相依包含：既有可用Python host、原scanner必要網路能力、來源快照有界暫存、同站路由、正式packaging及同版本端到端驗證。本輪未找到已核實且可直接套用的host/路由，因此**沒有已證實零新增費用的Sites線上接線**，不實作新的hosting／security設定／付費資源。可立即使用且無新增資源的是既有本機Python server原路測試；這也不等於production。將scanner改寫Worker須重新證明DNS/redirect/peer/robots等安全等價，超出本原型包，不能當小UI補線。
+
+## 2026-10-11 原 scanner 失敗診斷增量
+
+12:27 Owner 推進包起點 ccfc46c。`robots_unavailable` 保留相容 code；`diagnostic` 只帶 `stage=robots`、固定 `reason`、已知整數 `http_status` 或 null（未知）。transport 將 timeout、DNS、TLS、connection、HTTP protocol 分開，保留已收到 status，即使 body 後續逾時。401/403 不能被後續 timeout 掩蓋；其他非200不冒拒絕，未知不填零。產品 API 只送固定 detail 與診斷欄位，不序列化原 exception cause／headers／stack；Console 忽略遠端 detail，僅映射固定繁中文案，保留輸入／成果且失效舊確認，無自動重試。
+
+驗證：51 項 Python（scanner/product source/API/service source）、6 項 Console 契約、build／manifest，1280/390/320 瀏覽器及精確 Sites package 路由通過。新增 DNS/TLS/timeout/HTTP拒絕/不可讀/未知、取得403後body逾時、非秘密回應與失敗不存snapshot案例；瀏覽器六類回應為顯式本機 fixture，沒有 public fetch。原安全規則及原 frozen/W1/gate/部署均不改。
+
+真 URL 歷史 attempt1/retry0 保持。本輪無 live 重試：既有記錄不能確證一般暫時錯誤，故條件未成立；不是已證實安全拒絕。新增分類不能回溯舊因，需可靠原路徑原因／恢復證據，或明確涵蓋未知狀態的一次同路診斷讀取授權才接續。未執行真來源→三欄→本頁確認的 local integration，不以本機fixture成功代替。runtime4b3／Sitev11 不含本增量，待原 Reviewer；不部署。

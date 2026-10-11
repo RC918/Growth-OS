@@ -91,3 +91,23 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(response.call_args.args[1],429)
             self.assertEqual(response.call_args.args[2]['code'],'rate_limit')
         product_api.RECENT.clear()
+
+    def test_robots_diagnostic_response_does_not_save_or_expose_cause(self):
+        import io
+        from scanner import ScanError, fetch_public_html
+        class Handler:
+            headers={'Content-Type':'application/json','Host':'localhost'}
+            client_address=('127.0.0.1',1)
+        h=Handler(); body=json.dumps({'url':'https://example.com/product'}).encode()
+        h.headers['Content-Length']=str(len(body)); h.rfile=io.BytesIO(body)
+        def fail(url):
+            def fetch(_): raise ScanError('tls_failed', 'SECRET token header stack')
+            return fetch_public_html(url,fetch)
+        product_api.RECENT.clear()
+        with patch.object(product_api,'build_snapshot',side_effect=fail), patch.object(product_api,'save_report') as save, patch.object(product_api,'respond') as response:
+            product_api.handle_product(h,'unused')
+            self.assertEqual(response.call_args.args[1],422)
+            payload=response.call_args.args[2]
+            self.assertEqual(payload['diagnostic']['reason'],'tls_failed')
+            self.assertNotIn('SECRET',json.dumps(payload)); save.assert_not_called()
+        product_api.RECENT.clear()

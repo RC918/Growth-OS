@@ -24,9 +24,10 @@ DNS_SLOTS = threading.BoundedSemaphore(2)
 
 
 class ScanError(Exception):
-    def __init__(self, code: str, detail: str):
+    def __init__(self, code: str, detail: str, *, diagnostic=None):
         super().__init__(detail)
         self.code = code
+        self.diagnostic = diagnostic
 
 
 def normalize_url(raw: str) -> str:
@@ -180,10 +181,21 @@ def fetch_once(url: str) -> tuple[int, dict[str, str], bytes]:
             chunks.append(chunk)
         body = b"".join(chunks)
         return response.status, headers, body
+    except ScanError as exc:
+        exc.diagnostic = {"http_status": response.status if response is not None else None}
+        raise
     except (socket.timeout, TimeoutError) as exc:
-        raise ScanError("timeout", "The public request exceeded its deadline.") from exc
-    except (OSError, ssl.SSLError, http.client.HTTPException) as exc:
-        raise ScanError("fetch_failed", "The public page could not be retrieved.") from exc
+        raise ScanError("timeout", "The public request exceeded its deadline.",
+                        diagnostic={"http_status": response.status if response is not None else None}) from exc
+    except ssl.SSLError as exc:
+        raise ScanError("tls_failed", "The secure connection could not be verified or established.",
+                        diagnostic={"http_status": response.status if response is not None else None}) from exc
+    except http.client.HTTPException as exc:
+        raise ScanError("http_protocol", "The source returned an incomplete or invalid HTTP response.",
+                        diagnostic={"http_status": response.status if response is not None else None}) from exc
+    except OSError as exc:
+        raise ScanError("connection_failed", "The public connection could not be completed.",
+                        diagnostic={"http_status": response.status if response is not None else None}) from exc
     finally:
         if response is not None:
             response.close()
@@ -251,9 +263,19 @@ def fetch_public_html(url: str, fetch=fetch_once) -> tuple[str, str, bytes]:
     except ScanError as exc:
         if exc.code == "private_target":
             raise
-        raise ScanError("robots_unavailable", "Robots rules could not be checked; scan stopped.") from exc
+        # Only fixed categories escape this boundary; never serialize exception text.
+        reasons = {"timeout", "dns_failed", "dns_busy", "tls_failed", "connection_failed",
+                   "http_protocol", "peer_mismatch", "cross_domain_redirect",
+                   "redirect_failed", "too_many_redirects", "too_large", "invalid_url"}
+        reason = exc.code if exc.code in reasons else "unknown"
+        raise ScanError("robots_unavailable", "Robots rules could not be checked; scan stopped.",
+                        diagnostic={"stage": "robots", "reason": reason,
+                                    "http_status": (exc.diagnostic or {}).get("http_status")}) from exc
     if robots_status != 200:
-        raise ScanError("robots_unavailable", "Robots rules are not available for a safe scan.")
+        raise ScanError("robots_unavailable", "Robots rules are not available for a safe scan.",
+                        diagnostic={"stage": "robots",
+                                    "reason": "http_denied" if robots_status in (401, 403) else "http_status",
+                                    "http_status": robots_status})
     robots = RobotFileParser()
     robots.parse(robots_body.decode("utf-8", errors="replace").splitlines())
     if not robots.can_fetch(USER_AGENT, initial):

@@ -4,6 +4,15 @@
 
 ## 當前授權與基準
 
+### 2026-10-11 真 URL 必要診斷（12:27 Owner 推進包，未部署）
+
+起點 `ccfc46c09596bd4cdd26f479126880b12d27b5a5`／feat/private-host-bootstrap／PR28 clean。補原 scanner 的固定 timeout／DNS／TLS／connection／HTTP protocol 分類；保留 robots_unavailable 相容碼，加 robots 階段、白名單原因與已觀察 HTTP status（null＝未知，非零／非未收到）回條。401／403 與其他非200、未知及安全檢查失敗分開；body 讀取失敗仍保留已取得的 status。API 不送 exception cause／headers／stack／URL，Console 固定繁中失敗文案保留網址及編輯、不自動重送。不改 DNS／IP pinning／peer／TLS／robots 規則、部署、gate 或 hosting。
+
+PLAN／CODE／51項 Python scanner/product/API/service 回歸、6項 Console契約、原package build及1280／390／320瀏覽器失敗狀態與既有流程通過；新增真 loader 的六種合成錯誤回應、SECRET不顯示、保留編輯及禁止舊確認。來源 network／錯誤回應均隔離合成；不是 public source 成功。DB/Auth/SAVE/logout/fresh-login/tenant mutation 不適用，本包不改其能力；測試沿既有隔離暫存，無 hosted 寫入。
+
+真 URL 仍僅歷史 attempt=1、retry=0。本輪未發新實請求：原 robots_unavailable 未保留底層原因，不能確證為本次條件授權所需「一般暫時讀取錯誤」；沒有403證據也不代表可重試。可恢復條件是原執行環境／原路徑的可靠原因或恢復證據，或明確針對目前未知狀態的一次同路診斷讀取授權；不另查Vercel、不換站／代理／工具。真來源 local integration 未執行，線上真 URL 與登入P2仍未通過。交原 Reviewer，部署仍 runtime4b3／Sitev11；本包不重試PR正文、不開下一Core。
+
+
 
 ### 2026-10-11 Console六狀態與既有URL接線（原型已審／v11已部署，真URL/live相依未解）
 
