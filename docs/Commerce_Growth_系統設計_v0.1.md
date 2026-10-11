@@ -86,3 +86,10 @@ W1 工程起點先核實 general schema、可復用 Auth adapter 與 frozen 範�
 scanner／observation 先驗資料可比較與品質，再標變化；故障不報零、資料不足不報重大異常。Plan/Work 接有根據的修正、唯一工作、有效授權、retry 上限與原操作讀回；publisher 核事實／來源／成果版並讀回；Measure 分開發布正確與效果，策略改變記比較限制。摘要提供已完成、未知、待決定、下一步與成本，無需修改時可安靜持續觀察。
 
 W3／W4 必須使用真實支持的觸發／排程／持久任務能力，保存觸發時間、任務身分、接收／執行／完成回條與恢復／下一步；缺能力明示，不以文件當服務。產品自主服務與 Dot/Codex controller 分別驗。撤銷／到期／成本超限由服務端拒絕相依操作，不靠隱藏 UI；不同外部副作用有各自授權。具體階段與放行條件只依藍圖，不在此另立路線。
+
+
+## 2026-10-11 Console呈現接線（不改v0.2架構）
+
+`growth-console`只編排原URL API、來源證據與page-only Review。單一browser-owned request state驅動中央／下一步／作業卡；id、階段及最後事件來自實際事件，無新scheduler／持久任務層。合成場景顯式分流並禁用API提交。原來源hash／引用／request URL綁定核對，修改／來源漂移／取消／晚回覆依原版本界線失效；不改Auth、DB grant或frozen artifact。
+
+7檔Sites靜態交付沿既有私有Site additive包裝；原Python來源API是獨立、尚未接到Sites的執行依賴。page-only receipt不轉成工作區保存或發布權限，回訪也不假裝fresh-session讀回。後端保存、發布、量測依原順序与授權接續；本包限制與驗證見 [交接](../delivery/growth-console/README.md)。

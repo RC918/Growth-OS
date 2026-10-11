@@ -5,6 +5,16 @@
 ## 當前授權與基準
 
 
+### 2026-10-11 Console六狀態與既有URL接線（候選，真URL/live相依未解）
+
+Owner 10:52:28 UTC新包，起點2dfc699／PR28 clean。兩份Library UI規格與優化報告全文已讀，整合為左導覽／中央成果／右側下一步／右下本頁作業；原生架構、六狀態合成原型和實際API接線分列。復用原安全URL API與三欄page-only Review，不改R7／frozen、Auth／writer／gate／audience，不以UI改字冒保存。
+
+五個局部契約與1280／390／320隔離HTTP→原parser／SQLite→有來源成果→exact本頁確認，涵蓋版本失效、失敗保留、取消／late、同頁回訪、200%字／鍵盤／reduced motion／收合回焦點／task不遮CTA。原型沒有真背景任務，不用假百分比；回訪不冒充fresh-login保存。公開URL一次安全讀取停在robots_unavailable；Sites静態包未帶PythonAPI，真URL成功與live接線仍未驗，不能稱整包live完成。詳見 [能力映射、驗證與原Mac交接](delivery/growth-console/README.md)。
+
+2dfc699入口診斷：原PR/Push run38132459974／38132455522均success，實際logs核新增24案和W1回歸PASS。原Mac精確HTMLsource／938byte插入／回應三SHA匹配；1280/390×原始/插入HTML×v10/diagnostic入口8組未重現，CSP只阻inline而允模組，零challenge/API。Owner根因仍未知；診斷補強不是修復。工程證據暫存/tmp，無改live平台script／CSP。
+
+
+
 ### 2026-10-11 v10 登入元件失敗：診斷補強，根因仍未知
 
 父轉交 Owner 10:27 UTC 真實 `/w1-workspace` 畫面，既有入口在動態 import reject 時只顯示 generic 載入失敗。起點 b1646c4／PR28 clean；分類為本包必要 P2。原 Mac 的 v10 服務 GET 回報 HTML 與完整 graph 200、正確 MIME／來源 bytes，無外部 SDK／base；因此不能再以缺檔假說修路由。此回報不是 Owner 瀏覽器載入成功證據。

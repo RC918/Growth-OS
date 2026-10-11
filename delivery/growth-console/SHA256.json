@@ -1,0 +1,14 @@
+{
+  "route": "/growth-console",
+  "api": "/api/product-source",
+  "api_included": false,
+  "files": {
+    "growth-console.html": "697316a6a8d08ea461bb7e43dcbdc94939986e21cadf85f0dc56a0615ec00b71",
+    "growth-console.css": "b4171fe7eedc8e8c8a423648ba485c9feddc53ca5fa9b07644fcbb29aee5ae77",
+    "growth-console.mjs": "4cdb90de82ae18441cc3f96d630c5e02ccb600bb8f26b82f370e4b32d21975f6",
+    "growth-console-task.mjs": "16710eeb7e27d56eeb40c8c0c2fbd0144f6b000a9b78f92090502763b9964726",
+    "growth-console-demo.json": "29c680ec0ac1f373590d287c6b7f40543e551cabef5934c302d7a30ff89b463d",
+    "first-result-review.mjs": "ce65f2c321b2eda65d3a9bc2d9687579ceaf63c9bf7b4a45b1274518498c5e72",
+    "first-result-payload.mjs": "3c3ee22192c3ae11b51f5ebf86afef0b46a8d4db514f295500a5387352d9750b"
+  }
+}
