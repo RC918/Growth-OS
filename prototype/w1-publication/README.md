@@ -2,6 +2,29 @@
 
 已保存的 W1 fact／draft／確切 Review 可接到既有發布預覽：顯示本版內容、來源快照與上一草稿差異、來源／版本依據，以及各項發布阻擋。只提供 preparation；synthetic 示範不等於真 W2 發布，Review 不等於發布授權。
 
+## 2026-10-11 現用 W1 唯讀核稿引導
+
+本輪由 `d19bc041e2d8d0fd46abc149d81fceb8cc73651a` 接續，只在現有 `/w1-workspace` 加入「現在可以先看哪裡」。導航讀既有草稿／Review／preview狀態，優先顯示讀取中、原操作待核對、無保存草稿、讀回失敗，再引導讀取預覽或聚焦描述比較／來源版本。來源變更、衝突、待確認與已有確切確認分別說明；導航不自動GET、POST、勾選、修改或確認，不把停用保存／確認／發布列為下一步。沒有新API、模型、storage或通用框架；W1僅有description，不沿用d19三欄DOM驗收。
+
+`apps/web/w1-review-navigation.mjs` 是W1專用呈現；既有build只派生HTML定位、UI刷新與preview呈現狀態，missing/ambiguous新增hook拒絕。讀取數量／失敗旗標只供呈現，不是資料／權限狀態。原adapter、Auth、runtime config、SQL/gate及frozen共用preview皆未改；新增模組使W1包由14檔變15檔。
+
+獨立驗證（repo根目錄）：
+
+```sh
+node delivery/w1-private/build.mjs
+node --test prototype/w1-publication/navigation.test.mjs prototype/w1-publication/preview.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs delivery/w1-private/adapter.test.mjs
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node prototype/w1-publication/verify.mjs
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node delivery/w1-private/login-route.test.mjs
+```
+
+新增2項契約驗證含原操作pending／busy／disabled target／Viewer、manifest全檔與frozen RC/R7 hash。原20項契約保留；兩尺寸實際W1路由驗確認／未確認／來源漂移／衝突／無草稿／refresh失敗保留文字、GET待回應、logout late response、鍵盤焦點與不搶焦點、無autoGET/POST、aria live屬性、44px與無溢出。原操作pending導航由注入狀態的DOM契約驗證；writer=false真W1路由不製造寫入pending。既有示範回歸照跑，但未新增示範，也不用它替代實際路由驗證。截圖 `/tmp/w2-preparation-w1-guidance-{1280,390}.png` 與既有JSON一起進CI `w2-preparation-evidence`。14組登入入口驗證是mock，沒有寄真信；未真人screen-reader驗收。
+
+### 原Mac同Site部署交接（本輪不部署）
+
+原Reviewer核定exact新HEAD後，原Mac用已存在正式Sites source helper開啟同一private Site的當前來源。以完整既有composite為基底，只替換 `/w1-workspace` 的HTML（`dist/index.html`）、`/w1-assets/product-fact.mjs`、`/w1-assets/url-publish-preview.mjs`，新增 `/w1-assets/w1-review-navigation.mjs`；以 [完整15檔hash](../../delivery/w1-private/SHA256.json) 核對這四個來源產物。保留其他既有W1/R7資產、已配置runtime、writer=false、gate與access audience；**不可整包覆蓋現用config為repo的null預設，也不把W1單包當整站部署**。更新composite manifest，核其餘檔byte-identical，沿原helper完成source/package/native private部署並記錄新Site source SHA與version；repo SHA不冒充Sites source SHA。不需Vercel/Git整合、Python API或新平台。
+
+已實作／局部測試＝唯讀引導；未部署、待同HEAD CI及原Reviewer。實際查看私人草稿仍需有效既有W1 session；fresh-login仍是先前延期項，導航不補做登入、不重開寫入，既有synthetic產品與未發布限制保留。本包不是完整商家閉環。父依原部署權限安排Mac步驟，本Primary不自行發佈或開下一包。
+
 ## Reviewer 獨立入口
 
 在 repository 根目錄使用現有 Node／Playwright／Chromium：

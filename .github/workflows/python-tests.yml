@@ -337,7 +337,7 @@ jobs:
       - name: W2 read-only W1 publication preparation
         timeout-minutes: 3
         run: |
-          node --test prototype/w1-publication/preview.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs
+          node --test prototype/w1-publication/preview.test.mjs prototype/w1-publication/navigation.test.mjs prototype/owner-workspace/url-publish-preview.test.mjs
           node prototype/w1-publication/verify.mjs
       - name: Preserve W2 preparation evidence
         if: always()

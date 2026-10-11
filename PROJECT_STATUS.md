@@ -5,6 +5,14 @@
 ## 當前授權與基準
 
 
+### 2026-10-11 現用 W1 唯讀核稿引導（候選，待原Reviewer／Mac部署）
+
+父依Owner既有工程授權選定現用W1最小接線；起點／remote同為 `d19bc041e2d8d0fd46abc149d81fceb8cc73651a`、feat/private-host-bootstrap、PR28 clean。Core結果為同 `/w1-workspace` 讀取已保存草稿後，看懂唯一可操作下一步與原因；只聚焦既有預覽／來源／描述／refresh／原request核對，不恢復修改、保存、確認或發布。這與先前d19三欄first-result是不同使用入口；不再把目前Sites成果混同Vercel hosting。
+
+W1專用呈現模組＋既有派生build刷新掛接，原API/Auth/config/SQL/gate/frozen/R7不動；4個新增或更新呈現資產、15檔manifest。PLAN/CODE/BUILD、22項局部契約、1280/390實際W1路由及既有預覽共4組、14組mock登入模組圖均適用並通過；來源漂移/衝突/待確認/無草稿/失敗/pending讀取/logout late均拒絕舊導航，沒有autoGET/POST或搶焦點。新增manifest測試初次誤把R7 metadata当filename，依原files結構修正，原R7 bytes不變。原操作寫入pending只用注入DOM契約，不在writer=false路由製造寫入。SAVE/remoteDB/真fresh-login不適用本唯讀增量，未重做；不稱live已驗收。
+
+已實作＝W1唯讀引導；已測試＝局部隔離；已部署＝本包否；目前可用＝executor驗證產物。現用Sites v9另有完整來源與configured assets，父/原Mac須在原Reviewer後以正式helper做同privateSite additive四資產composite更新，保留audience、R7/W1已驗證內容與writer=false。完整交付及hash見 [W1交接](prototype/w1-publication/README.md)。同HEAD CI實際logs與Reviewer另交，不用d19三欄PASS替代。本輪無Vercel probe/手動部署/merge/model/email/secret/DB/securitywrite/費用；原站、Git整合hold，舊debt與fresh-login延期保留。
+
 ### 2026-10-11 第一成果核稿導航（工程候選，未部署）
 
 父選定最窄導航，原Reviewer核定必要build派生方式；起點 `dfcd61b1c0d798b3883429d84d16a9f1c799ba43`／`feat/private-host-bootstrap`／PR28 clean。只把既有Review state接到「現在先處理哪裡」：無效欄位→已修改未核→其他未核→確認目前版→複製／匯出。CTA只聚焦，不自動改字／勾選／確認；不是語意查核或SEO評分。無JSON匯入、範例入口、新backend或原站操作。
