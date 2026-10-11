@@ -1,11 +1,15 @@
 # Growth OS｜專案進度
 
-更新：2026-10-10（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
+更新：2026-10-11（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
 
 ## 當前授權與基準
 
 
-### 2026-10-11 Console六狀態與既有URL接線（候選，真URL/live相依未解）
+### 2026-10-11 Console六狀態與既有URL接線（原型已審／v11已部署，真URL/live相依未解）
+
+父代最新回報：原 Reviewer 已核准 `4b3e04168f16dafa85c16c17ef47fcaba51d4a8f`，範圍僅互動原型；原 Mac 已將增量部署至原私有 Site v11。本輪文件同步依此回報記錄，未另發部署或線上驗證請求；repo commit 與 Site 版本是不同身分。真 URL→來源成果→確認鏈與 W1 live 登入 P2 仍未通過，writer 維持關閉，未新增保存／發布／量測能力。
+
+文件核對：`4b3e041` 已同時更新正式 v2.0 藍圖末段、系統設計末段與本頁，並非僅 delivery README。本次只在正式藍圖補列六狀態名稱、兩份報告名稱及原型／真 URL／保存權限／發布量測各階段完成條件，更新本頁部署快照；不改產品程式。驗證限文件 diff、範圍及格式；BUILD／瀏覽器／DB／Auth／SAVE／fresh-session 等因純文件變更不適用，未重跑既有測試。交原 Reviewer 核文件，不由 Primary 開下一 Core。
 
 Owner 10:52:28 UTC新包，起點2dfc699／PR28 clean。兩份Library UI規格與優化報告全文已讀，整合為左導覽／中央成果／右側下一步／右下本頁作業；原生架構、六狀態合成原型和實際API接線分列。復用原安全URL API與三欄page-only Review，不改R7／frozen、Auth／writer／gate／audience，不以UI改字冒保存。
 
