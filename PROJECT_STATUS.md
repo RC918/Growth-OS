@@ -15,6 +15,8 @@ PLAN/CODE、8項contract/build身份與frozen驗證、實際派生路由1280/390
 
 已實作＝同路由可build的導航；已測試＝隔離派生UI；已部署＝本包否；目前可用＝工程驗證入口，線上Vercel API與HEAD仍未知。前包W2已由父轉交私有Sitesv9部署/source693ac0829bfdc8ed4628f145ee83cc28673f4eba及限定APPROVE_WITH_DEFERRED_DEBT；本輪未改該部署、W1/R7/config。原站發布接點hold，fresh-login延期，不冒稱W1完整PASS或真W2發布。沒有remoteDB/grant/model/email/secret/付費或手動部署；Vercel403不換route重試。既有debt維持，不擴修。
 
+必要P2：`6dce8f9` push/PR CI（38107060556／38107063417）導航與凍結身份步驟均PASS，但既有auth-session-fixture部署閉包測試寫死apps/web，與新派生outputDirectory不符而FAIL。實際logs核根因後，僅讓該測試先build並掃實際派生輸出，原fixture/bypass排除與import閉包斷言全部保留；重新局部驗證與新HEAD CI，不盲重跑原失敗。
+
 
 ### 2026-10-10 W2 準備：W1 相依版本接既有發布預覽（交原 Reviewer）
 
