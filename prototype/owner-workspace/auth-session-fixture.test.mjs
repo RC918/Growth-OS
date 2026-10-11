@@ -5,6 +5,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {PGlite} from '@electric-sql/pglite';
 import {createWorkspaceApi} from '../../apps/web/workspace-api.mjs';
+import {build} from '../../delivery/web-preview/build.mjs';
 import {createSessionRig,createAuthTransport,mode,target,backend,redact} from './auth-session-fixture.mjs';
 const options={mode,target};
 test('independent negative gates: non-test, unapproved target, missing/forged isolation reject before listen/network/DB',async()=>{
@@ -41,7 +42,7 @@ test('unmodified product client without fixture rejects fake callback when Auth 
  await assert.rejects(api.completeMagicLink('#access_token=not-a-real-token&token_type=bearer&expires_in=60'),/401/);assert.equal(api.context(),null);assert.deepEqual(calls,[{path:'/auth/v1/user',method:'GET'}]);await assert.rejects(api.dashboard());assert.equal(calls.length,1);
 });
 test('deployment output/import closure excludes test-only fixture and bypass entry',async()=>{
- const config=JSON.parse(await readFile('vercel.json','utf8'));assert.equal(config.outputDirectory,'apps/web');
+ const config=JSON.parse(await readFile('vercel.json','utf8'));assert.equal(config.outputDirectory,'delivery/web-preview/dist');assert.equal(config.buildCommand,'node delivery/web-preview/build.mjs');await build();
  const paths=[];async function walk(dir){for(const item of await readdir(dir,{withFileTypes:true})){const p=dir+'/'+item.name;if(item.isDirectory())await walk(p);else paths.push(p);}}
  await walk(config.outputDirectory);await walk('api');
  for(const path of paths){

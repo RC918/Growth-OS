@@ -87,11 +87,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result-handoff.mjs", "/first-result.css"):
+        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result-handoff.mjs", "/first-result.css", "/first-result-payload.mjs", "/growth-console.html", "/growth-console.mjs", "/growth-console-task.mjs", "/growth-console.css", "/growth-console-demo.json"):
             static = Path(__file__).resolve().parents[2] / "apps" / "web" / path.lstrip("/")
             body = static.read_bytes()
             self.send_response(200)
-            self.send_header("Content-Type", "text/javascript" if path.endswith(".mjs") else "text/css" if path.endswith(".css") else "text/html; charset=utf-8")
+            self.send_header("Content-Type", "text/javascript" if path.endswith(".mjs") else "text/css" if path.endswith(".css") else "application/json" if path.endswith(".json") else "text/html; charset=utf-8")
             self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers();self.wfile.write(body);return

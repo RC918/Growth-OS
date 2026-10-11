@@ -1,0 +1,51 @@
+{
+  "sha256": "d14cf60a8c34cd648d95e8ed3f34bd3254e8a8def098cfebca9c67fcd60258cd",
+  "payload": {
+    "schema_version": 1,
+    "trial": "INTRO-GHA-01-R7",
+    "run_id": "37967220375",
+    "workflow_sha": "0d6a4d231f823ba8602cecdac8018153324eaa43",
+    "source_sha": "a20776cdfdb399a5e0b9c4d5a48021155f7b657d",
+    "result_sha256": "fb92927b097885479f2e1c711f17de287753a6f90a33cd55a284e6a17b1b72ff",
+    "review_status": "PENDING_INDEPENDENT_REVIEW",
+    "candidate": {
+      "schema_version": 2,
+      "trial": "INTRO-TRIAL-01-R1",
+      "source": {
+        "url": "https://growthos.genman.work/ai-citation-check",
+        "version": "7061a900b6aad2703ff9f7ce46a44cfa95f6be3ed0370bd686f1d32f32a6713d",
+        "fields": {
+          "page_name": "Free AI citation check · GrowthOS",
+          "heading": "Is AI recommending your brand?",
+          "intro_description": "Enter your website and brand name. We check your brand identity, ask AI engines three real buyer questions and show what to fix first.",
+          "meta_description": "Free AI citation check: see whether AI engines cite your brand for three real buyer questions, which brand identity issues to fix and your simplified readiness score. No account needed."
+        }
+      },
+      "source_hash": "ee76a0a8b06ca185974d22b6de8100910bc4945674302c81ec475ec81910ba08",
+      "output": {
+        "candidate": "輸入您的網站與品牌名稱。我們會檢查您的品牌識別，向 AI 引擎提出三個真實買家問題，並顯示應先修正的項目。",
+        "reason": "此改寫保留了原文的動作關係與順序，並依要求將「ask AI engines three real buyer questions」表述為由服務向 AI 引擎提問，而不是由訪客提問；同時避免把品牌識別檢查改寫成 AI 引擎已辨識品牌的主張，也未新增任何效能、結果或保證。",
+        "citations": [
+          {
+            "field": "intro_description",
+            "quote": "Enter your website and brand name. We check your brand identity, ask AI engines three real buyer questions and show what to fix first."
+          }
+        ]
+      },
+      "receipt": {
+        "mode": "live",
+        "model": "gpt-5.4-mini-2026-03-17",
+        "response_id": "resp_05a51269b6ac8a20016ac925e3832087d280312eab89f714ea",
+        "request_id": "req_d9279209436948a787e1dd39633064bd",
+        "input_tokens": 369,
+        "output_tokens": 185
+      }
+    },
+    "usage": {
+      "input_tokens": 369,
+      "output_tokens": 185,
+      "total_tokens": 554
+    },
+    "billed_nusd": null
+  }
+}

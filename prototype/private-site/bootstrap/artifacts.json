@@ -1,0 +1,17 @@
+{
+  "platform": "Ubuntu 24.04 x86_64",
+  "node": {
+    "version": "v24.19.0",
+    "url": "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz",
+    "sha256": "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647",
+    "checksum_source": "https://nodejs.org/dist/v24.19.0/SHASUMS256.txt",
+    "verification": "SHA256 pinned from official HTTPS endpoint on 2026-10-06; not an independently verified release signature",
+    "executable": "/opt/growth-node/node-v24.19.0-linux-x64/bin/node"
+  },
+  "ubuntu_packages": ["ca-certificates", "curl", "xz-utils", "python3", "util-linux", "e2fsprogs"],
+  "docker_packages": ["docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"],
+  "apt_version_policy": "Capture signed Ubuntu noble and Docker noble amd64 candidate versions plus apt simulation into approved receipt, then install those exact versions. No latest fallback or conflicting package removal.",
+  "npm": "Existing root package-lock.json, npm ci --ignore-scripts --no-audit --no-fund; jsdom is a publisher runtime import. Do not omit devDependencies: root currently classifies it as development-only. No playwright browser download, fixture execution or lifecycle scripts.",
+  "images": "Existing templates/wordpress.compose.yml exact digests; image pull and application initialization deferred. No compose up in this slice.",
+  "secrets": "none generated; all secret creation and application activation deferred"
+}

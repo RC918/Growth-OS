@@ -1,0 +1,29 @@
+{
+  "base_commit": "141b114d593566b6c38038000f040c5924322a3a",
+  "candidate_sha256": "3913033f19d0b9ccc1f1dac01693363aec56ee29d897d96c66fc7ac9b8c74c04",
+  "files": {
+    "dist/first-result.css": "cd2b15427ae619341b8302e0d187fed78c52fa04ef07fc4332d1056c54a98f3a",
+    "dist/index.html": "2a87783a1edcd8af170b29071b5f44e7d1d17a08a64474f613addb1602655be0",
+    "dist/intro-candidate.mjs": "8d751be13ca3551513c0629c23e55f075efd2e70543676c8afe930638a61d4cb",
+    "dist/intro-r7-review.mjs": "5427e79862219d204cc42e757788b016359f91e323d4cd50cf6de60643e433fb",
+    "dist/intro-r7.json": "b6562fd9a833b61ab0b38aeb9512da734c786cae4a918944ebd10e341e3c7900",
+    "dist/review.mjs": "9ef0b9490e2aa8de5a8b373b6f0bc7414dcfacff518edb3dea679342d23bd7e3",
+    "dist/r7-workspace.html": "26f25fcb0103c35afc4aa12cd59bc6f79e384b92db6e2fbe16becf547ae2bf42",
+    "dist/r7-workspace.mjs": "552cd69a1676d58a73bdc24797c03ffde2402e395f286020214cc618117b24e3",
+    "dist/r7-workspace-api.mjs": "e42a8c74762e3b5749719cc55aa62f3f05b8b223cd708586a9ffd922e778190b",
+    "dist/r7-workspace-runtime.mjs": "a83d5acf126b69fee96545155fd498e05cd8b54edaf5b76bc186fc39b77e7eae",
+    "dist/intro-save.mjs": "f5e51bc02bab97c3781da0ea167b591520a6f5dcd290614fa67c683bedc5bf84",
+    "dist/intro-save-panel.mjs": "b8eecd3f466165eb4f8e71b55e297417b78bfb573f35835864c5c357d9aca23e",
+    "dist/intro-save-config.mjs": "715d27d26009f3e6b1a728b48a94930d2c28b397d1d2c64f32b72883053e9a7f"
+  },
+  "feedback_change": "Owner-authorized adjacent confirmation status and completed button label; R7 payload unchanged",
+  "runtime_configuration": {
+    "file": "dist/r7-workspace-runtime.mjs",
+    "origin": "https://wqepyttadrcnphtyjpjy.supabase.co",
+    "key": null,
+    "accessEnabled": false,
+    "writer_file": "dist/intro-save-config.mjs",
+    "introSaveEnabled": false,
+    "callback": "location.origin + /r7-workspace"
+  }
+}

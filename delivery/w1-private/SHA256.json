@@ -1,0 +1,17 @@
+{
+  "first-result.css": "cd2b15427ae619341b8302e0d187fed78c52fa04ef07fc4332d1056c54a98f3a",
+  "index.html": "8118862057f8ea0100db7e8e1a5034509824c66ea6db105951dd35beb9c28f87",
+  "intro-candidate.mjs": "8d751be13ca3551513c0629c23e55f075efd2e70543676c8afe930638a61d4cb",
+  "intro-r7-review.mjs": "8bca9a098973326b79c717db8b3f1e1227038315757481369ed8b6a1a3c19772",
+  "intro-save.mjs": "f5e51bc02bab97c3781da0ea167b591520a6f5dcd290614fa67c683bedc5bf84",
+  "product-fact.css": "eefa868af3e8a0015adb5fc16eb25e0eb91f49b86d2db268e2a4cf109da4e333",
+  "product-fact.mjs": "5a5c8ec4fc24558d88e1f73de9f15e954570809187fab16813306f5b3124fd09",
+  "r7-workspace-api.mjs": "e42a8c74762e3b5749719cc55aa62f3f05b8b223cd708586a9ffd922e778190b",
+  "url-publish-preview.mjs": "d7811952cd6f9e8a582db1c75cde6fcc78e6a1cb5650bdf0b83d3085898863f6",
+  "w1-publication-preview.mjs": "dd44ce19271ec010bb9b638301ff1f94a20e031e1dff0edb9017e74cac91c00d",
+  "w1-review-navigation.mjs": "f8346516ea13e8e6b4016d092ef41450b35519413e0a8b670e1991dca68b905e",
+  "w1-workspace-api.mjs": "650a69fa4360a9979d79f47ab406f5c728f80e83763cf418680ac2b3e5d00c5c",
+  "w1-workspace-boot.mjs": "4a4ee6619ac7c581fc3fce674fa56834070d4c7350898ae0d2eb38af4524f0a1",
+  "w1-workspace-config.mjs": "ecf346d0ac196f01abc8ac56fd707ac2b97c5664f508a81a121df8617a256775",
+  "w1-workspace-entry.js": "d21fce1ae27d24c9396d49421e0c763a6c70fc4646ecadfdd525efbf57fb9f3d"
+}
