@@ -4,7 +4,20 @@
 
 ## 當前授權與基準
 
-### 2026-10-11 真 URL 診斷撤回與 frozen 修復（待原 Reviewer）
+### 2026-10-11 真來源 Console 本機回放 checkpoint（已獨審，非 live API）
+
+程式來源 `c7143d6299b3cd0d028a4d820c852d9337bd6b67`／feat/private-host-bootstrap／PR28。原 Reviewer 已 APPROVE frozen 修復；同 HEAD 的 PR CI 38139906817／Push CI 38139903602 均 SUCCESS，實際 logs 核 frozen 契約、public audit 與 Console。以下是最新讀取／驗收狀態，取代下方歷史段落的待審及 attempt1/retry0 快照。
+
+Cloud 唯一授權重試於13:00:10 UTC在原scanner得到 robots_unavailable←dns_failed←socket.gaierror，未進入TCP/TLS/HTTP；Cloud累計attempt2/retry1，已停止。Owner另批准原Mac既有環境同版原scanner；13:07:44–13:07:48 UTC同次pipeline一次，robots200（316 bytes）後產品頁200（64,499 bytes），URL為 https://scrapeme.live/shop/Bulbasaur/ 。未改DNS/IP/peer/TLS/robots安全規則、代理或程式；無模型或DB操作。Cloud驗收只回放這次已取得來源，沒有外網重抓。
+
+原Reviewer已獨立核查並裁決 **APPROVE_WITH_DEFERRED_DEBT**：1280／390同版Console三欄、5筆引用、來源版本、page_only exact-version確認及修改後失效通過。snapshot=`ba399f02-1a66-49d8-9f6d-d1fd75d5e98a`；source version=`32da0510b610b592725255a0fe5523f6e64d959b72db50bdb181f64ed1cd761b`；兩viewport revision0確認的content digest均為 `sha256:e25d34ca7d94e19b22406e5a5058217810f744ed96b2fe024c2ddbd149d7a62a`，獨立重算一致。修改標題後revision1、confirmation=null、該欄勾選失效且禁止確認。回條取自原module的實際render scope，只讀觀測，未替換產品程式。
+
+上游文字傳輸漏四個斜線，由原Mac對保存原bytes比對取得精確offset修復，非猜補；base6419,412字元、gzip14,557 bytes、raw64,499 bytes及三層SHA全部匹配後才使用，HTML僅資料未執行。詳細非秘密hash與證據索引見 [交付checkpoint](delivery/growth-console/README.md#2026-10-11-真來源回放完成checkpoint)。原始HTML/base64與私人日誌不提交Git。
+
+限定verdict＝真來源離線回放與本頁版本行為成立，不是live API接通、Owner事實批准、AI改寫、持久保存或發布。既有debt與登入P2仍未解；線上仍runtime4b3／Sitev11，Vercel部署scope與費用未核，不能由本驗收自啟服務或擴權。本輪僅保存已驗checkpoint，不新code、重跑測試、部署或重試PR正文；普通文件commit/push後停止。
+
+
+### 2026-10-11 真 URL 診斷撤回與 frozen 修復（歷史；c714已審）
 
 `a45875ed3d0ad1c85be8cc81b244087eaad89d31` 兩筆 CI 38139605516／38139601174 均 failure；job 114470549750／114470536551 的實際 logs 顯示 step29 frozen RC identity 在 product_api.py 首先失敗，scanner.py 也在同一 frozen manifest。先前「frozen 未改」聲明錯誤，本節更正；局部測試通過不代表整體CI或本包可接受，Console CI 被前置失敗跳過。
 

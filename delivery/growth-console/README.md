@@ -78,3 +78,27 @@ a458 的 CI 38139605516／38139601174 均在 step29 frozen RC identity 失敗（
 驗證：51 項 Python（scanner/product source/API/service source）、6 項 Console 契約、build／manifest，1280/390/320 瀏覽器及精確 Sites package 路由通過。新增 DNS/TLS/timeout/HTTP拒絕/不可讀/未知、取得403後body逾時、非秘密回應與失敗不存snapshot案例；瀏覽器六類回應為顯式本機 fixture，沒有 public fetch。原安全規則及原 frozen/W1/gate/部署均不改。
 
 真 URL 歷史 attempt1/retry0 保持。本輪無 live 重試：既有記錄不能確證一般暫時錯誤，故條件未成立；不是已證實安全拒絕。新增分類不能回溯舊因，需可靠原路徑原因／恢復證據，或明確涵蓋未知狀態的一次同路診斷讀取授權才接續。未執行真來源→三欄→本頁確認的 local integration，不以本機fixture成功代替。runtime4b3／Sitev11 不含本增量，待原 Reviewer；不部署。
+
+## 2026-10-11 真來源回放完成checkpoint
+
+程式與Console來源：`c7143d6299b3cd0d028a4d820c852d9337bd6b67`，frozen blobs已還原；原Reviewer APPROVE修復，PR/Push CI38139906817／38139903602 SUCCESS且實際logs已核。以下更新先前待審／尚無真來源的歷史紀錄，不改既有程式或Site部署。
+
+原Mac既有Python環境沿同版原scanner於13:07:44.799434–13:07:48.016752 UTC執行一次pipeline：`https://scrapeme.live/robots.txt` 200／316 bytes，規則允許後 `https://scrapeme.live/shop/Bulbasaur/` 200／64,499 bytes；model_calls=0、db_operations=0、call_count=2，沒有換代理或降低DNS/IP/peer/TLS/robots保護。Cloud先前授權重試已在DNS失敗停止（累計attempt2/retry1）；本機回放沒有再次外網抓取。
+
+文字交接sanitized JSON缺原始bytes，原Console先正確拒絕INVALID_SOURCE_BYTES；補傳gzip/base64上游抄漏四個斜線，原Mac對保存原字串作精確diff，在19408字串offset19319/19004/15101/14058由大到小補回後才核完整hash，不猜修。核對結果：
+
+| 證據 | 長度 | SHA-256 |
+|---|---:|---|
+| sanitized JSON（末尾一LF） | 6,235 bytes | `f57caab1327a7108f1ba3199bbaf50f68171d7492d987ff3a70b4bee353aadcf` |
+| Mac pipeline receipt（末尾一LF） | 694 bytes | `db02a03064152dc4e7967e2137a5f2ffb3dc32f7221d8ef3af6fcec448497990` |
+| 修復後base64（無末尾LF） | 19,412 ASCII字元 | `8a1bb00bc7bd42cdfe0078fedd5a50dd733ddd889055c791e9dcd77659937f2e` |
+| gzip | 14,557 bytes | `09534cc3f7d0d1dbc2f92c575577b501cafceb58e8fb001a941cd010d99d14df` |
+| 原始來源bytes／source version | 64,499 bytes | `32da0510b610b592725255a0fe5523f6e64d959b72db50bdb181f64ed1cd761b` |
+| Cloud補回兩欄的完整source JSON | 161,394 bytes | `636ceb8216a23acc2f70d6e8ccbd09cda5254170b4e81ff01bae916402808b7d` |
+| Cloud accepted-replay-evidence.json | — | `cf9ea7b2fb58dcf3fa307662c9f14c276b8019e998baaf716319ea2e1fa1703a` |
+
+全部匹配後，以base64(raw)和raw.decode(utf8,replace)補snapshot.content_base64/html；原HTML只作資料，未执行。來源snapshot ID=`ba399f02-1a66-49d8-9f6d-d1fd75d5e98a`。同版原Console 1280／390分別攔一次 `/api/product-source` 回完整真來源JSON，其餘外連block：三欄值符合來源extractive_rules、5筆引用可展開；實際module render scope只讀觀測取得revision0／scope=page_only回條，content digest均為 `sha256:e25d34ca7d94e19b22406e5a5058217810f744ed96b2fe024c2ddbd149d7a62a`，另行重算一致。修改標題後revision1／confirmation=null／title_checked=false／確認按鈕停用；page errors=0、成功驗收每viewport回放1次、外連0。最初驗收腳本未展開引用details造成讀取失敗，核明原控制後修正測試操作，沒有改產品或來源。
+
+原Reviewer已自行核三層hash、真來源版本、五引用、1280／390、本頁確認與修改失效，正式 **APPROVE_WITH_DEFERRED_DEBT**。限定真來源離線回放，不是live API接通、Owner事實批准、AI改寫、持久保存或發布；既有debt保留。Vercel部署scope與零新增費用仍未核，Sites Python API未接、登入P2未過；runtime4b3／Sitev11維持，不自啟服務或擴權。
+
+證據位置：原Mac任務的同次本地來源／傳輸暫存，按檔名 `growth-os-public-source-sanitized.json`、`pipeline-receipt-once.json` 及上述hash定位（不公開私人Mac絕對路徑）；Cloud本地 `/tmp/growth-c714-mac-replay/` 下的 `verified-transfer.json`、`source.full.json`、`accepted-replay-evidence.json`、`real-source-replay-{citations,confirmed,invalidated}-{1280,390}.png` 與 `accept.mjs`。此索引保留驗收摘要，暫存檔不保證持久；未將rawHTML/base64或私人logs提交Git。本輪僅更新本README及PROJECT_STATUS，未重跑測試／新抓／DB／模型／部署，PR正文拒絕不重試。
