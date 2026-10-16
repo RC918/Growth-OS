@@ -15,3 +15,9 @@
 - 子代理曾以 runtime_turn_task_lost 失敗（執行期遺失，非程式錯誤）；需小任務、短回覆、失敗即標 BLOCKED。
 - muse exec 在目前沙箱因無法讀 ~/.config/muse 與建立 session lock 而失敗，屬沙箱檔案權限，非訂閱認證結論；不在沙箱外重試、不切付費 API。
 - 排程（cron）與跨會話訊息工具存在但目前無已排工作/peer；啟用排程需 Owner 核准。
+
+## 可執行原型（2026-10-16 後續）
+- 原始碼：tools/controller/controller.mjs；合成測試：tools/controller/controller.test.mjs（node --test，8 項全 PASS，exit 0）。
+- 使用方式：以注入的 code/test/review 工具建立 Controller，狀態寫入指定目錄的 state.json（每步 checkpoint），lock 檔防止並行，id+commit 去重，重試上限 2。
+- 恢復證據：中斷恢復情境以新 Controller 實例讀回同一 state 目錄，已完成任務回 deduped 且不重跑（測試 PASS）。
+- PR #31 單次查詢（不輪詢）：HEAD b209d55，Vercel PASS、兩組 test PENDING，已記錄不阻塞。
