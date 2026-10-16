@@ -22,3 +22,4 @@
 - 恢復證據：中斷恢復情境以新 Controller 實例讀回同一 state 目錄，已完成任務回 deduped 且不重跑（測試 PASS）。
 - PR #31 單次查詢（不輪詢）：HEAD b209d55，Vercel PASS、兩組 test PENDING，已記錄不阻塞。
 - 後續：新增 adapters.mjs（CI 單次查詢、永不 watch；PENDING 不阻塞）與 adapters.test.mjs；Controller 測試合計 11 項 PASS。PR #31 單次查詢：Vercel PASS、test PENDING（記錄後繼續，不等待）。
+- 強化（P1/P2）：階段 code/test/ci/review 獨立恢復、Checkpoint 原子寫入（tmp+rename）、損毀停機不覆蓋、Lock 建目錄後取得且 60s 過期回收、Reviewer 裁決綁定 commit 且須異會話+completed、CI 改用 Check Runs 結構化結果對應 HEAD。失敗注入測試 10 項 PASS（429 上限、損毀、舊 Lock、混合 CI、過期裁決、去重、階段接續）。

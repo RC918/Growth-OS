@@ -1,22 +1,23 @@
-// Production-shaped adapters for the controller prototype. Each adapter does
-// exactly one bounded operation per call: CI status is a single query (never
-// --watch/polling), and an unfinished CI maps to PENDING so the controller
-// records it and moves on instead of blocking unrelated work.
-export function ciStatusOnce(exec) {
+// Structured GitHub Check Runs adapter: one bounded query per call, dynamic
+// repo/PR/SHA, and a verdict only when every required check for the exact
+// HEAD has completed successfully. Any failure fails, any pending pends.
+export function ciStatusOnce({exec, repo, pr, headSha, required = ['test']}) {
   return async () => {
-    const out = await exec('gh', ['pr', 'checks', '31']);
-    if (/pending|in_progress/i.test(out)) return 'PENDING';
-    if (/\bfail|failure\b/i.test(out)) return 'FAIL';
-    if (/\bpass\b/i.test(out)) return 'PASS';
-    return 'BLOCKED';
+    const out = await exec('gh', ['api', `repos/${repo}/commits/${headSha}/check-runs`, '--jq', '.check_runs']);
+    const runs = JSON.parse(out);
+    const latest = new Map();
+    for (const r of runs) if (!latest.has(r.name) || r.id > latest.get(r.name).id) latest.set(r.name, r);
+    let pending = false;
+    for (const name of required) {
+      const r = latest.get(name);
+      if (!r) return 'BLOCKED'; // required check missing for this HEAD
+      if (r.status !== 'completed') { pending = true; continue; }
+      if (r.conclusion !== 'success') return 'FAIL';
+    }
+    return pending ? 'PENDING' : 'PASS';
   };
 }
 
 export function reviewerGate(spawnReviewer) {
-  // REVIEW_PASS is granted by the controller only on an explicit APPROVE
-  // verdict from the separate read-only reviewer; any failure stays blocked.
-  return async (task) => {
-    const verdict = await spawnReviewer(task);
-    return verdict === 'APPROVE' ? 'APPROVE' : 'REVIEW_BLOCKED';
-  };
+  return async (task) => spawnReviewer(task); // verdict object validated by Controller
 }
