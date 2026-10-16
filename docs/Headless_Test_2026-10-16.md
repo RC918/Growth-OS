@@ -14,3 +14,8 @@
 
 ## Watchdog 條件
 本沙箱未符合受控 Watchdog 啟用條件；Owner 終端環境符合 headless 前提，仍須 Owner 核准排程邊界後才可啟用。
+
+## Owner 原生終端真實驗證（2026-10-16 後續，正式驗收）
+- 合成模式：PASS、exitCode 0、912ms、childGone true。
+- 真實 headless-real-001：PASS、exitCode 0、21039ms、childGone true、synthetic false；Checkpoint outputTail 為模型實際回覆 `HEADLESS_OK`（非僅退出碼判定），errorTail 僅工作區/trust 訊息，無憑證內容。
+- Controller 串接：新增 tools/headless/headless-adapter.mjs（Coder adapter，經已驗證入口呼叫，去重/群組終止/429 映射内建）；端到端合成測試（假 muse）驗 Controller→Headless→Test→Review→Checkpoint、重跑不重呼叫、逾時 TOOL_TIMEOUT，合計 21 項 PASS。真實模型循環仍以本節 Owner 終端證據為準，不以合成冒充。
