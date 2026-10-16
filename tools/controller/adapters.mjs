@@ -5,7 +5,9 @@ export function ciStatusOnce({exec, repo, headSha, required = ['test']}) {
   return async () => {
     const runs = [];
     for (let page = 1; page <= 10; page++) {
-      const out = await exec('gh', ['api', `repos/${repo}/commits/${headSha}/check-runs?per_page=100&page=${page}`, '--jq', '.check_runs']);
+      let out;
+      try { out = await exec('gh', ['api', `repos/${repo}/commits/${headSha}/check-runs?per_page=100&page=${page}`, '--jq', '.check_runs']); }
+      catch { return 'BLOCKED'; } // transport unknown is never green
       const batch = JSON.parse(out); runs.push(...batch);
       if (batch.length < 100) break;
     }
@@ -22,3 +24,12 @@ export function ciStatusOnce({exec, repo, headSha, required = ['test']}) {
   };
 }
 export function reviewerGate(spawnReviewer) { return async (task) => spawnReviewer(task); }
+
+// Real Git adapter (read-only): actual HEAD and clean-tree evidence for the
+// workspace the controller runs in. No writes, no push, no checkout.
+export function gitTools(exec, cwd) {
+  return {
+    gitHead: async () => (await exec('git', ['-C', cwd, 'rev-parse', 'HEAD'])).trim(),
+    gitClean: async () => (await exec('git', ['-C', cwd, 'status', '--porcelain'])).trim() === '',
+  };
+}

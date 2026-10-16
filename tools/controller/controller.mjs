@@ -74,6 +74,8 @@ export class Controller {
       const key = `${id}@${commit}`;
       const task = state.tasks[key] ?? {id, commit, status: 'PENDING', attempts: 0, reviewAttempts: 0, stages: {}, log: []};
       state.tasks[key] = task;
+      if (payload !== undefined) task.payload = payload; // persisted for resume
+      payload ??= task.payload; // recovered payload after interruption/restart
       this.#audit(state, task, 'run:start');
       if (task.waitUntil && task.waitUntil > this.now()) { task.status = 'WAITING'; this.#audit(state, task, 'wait:429-not-due'); await this.#save(state); return task; }
       if (task.stages.review?.verdictCommit !== commit) delete task.stages.review;

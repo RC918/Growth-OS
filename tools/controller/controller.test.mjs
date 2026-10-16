@@ -78,3 +78,38 @@ test('corrupt checkpoint stops; structured CI never greens on missing/pending', 
   const missing = async () => JSON.stringify([]);
   assert.equal(await ciStatusOnce({exec: missing, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'BLOCKED');
 });
+
+test('payload is persisted and recovered on resume without re-supply', async () => {
+  const d = await dir(); let seen = null;
+  const failing = {...ok, code: async (t, p) => { seen = p; throw Object.assign(new Error('x'), {code: 'FAILX'}); }};
+  await new Controller({dir: d, tools: failing}).run({id: 'p', commit: 'aaa', payload: {step: 'do-thing'}});
+  const resumed = {...ok, code: async (t, p) => { seen = p; }};
+  const t = await new Controller({dir: d, tools: resumed}).run({id: 'p', commit: 'aaa'}); // no payload supplied
+  assert.deepEqual(seen, {step: 'do-thing'}); assert.equal(t.status, 'REVIEW_PASS');
+  const s = JSON.parse(await readFile(join(d, 'state.json'), 'utf8'));
+  assert.deepEqual(s.tasks['p@aaa'].payload, {step: 'do-thing'});
+});
+
+test('heartbeat keeps lease alive during a long stage', async () => {
+  const d = await dir(); let leaseDuring = null;
+  const tools = {...ok, code: async () => { leaseDuring = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8')); }};
+  const c = new Controller({dir: d, tools, heartbeatMs: 10});
+  await c.run({id: 'h', commit: 'aaa'});
+  assert.equal(leaseDuring.runId, c.runId); assert.ok(leaseDuring.expiresAt > Date.now());
+});
+
+test('real git adapter reads actual HEAD and clean state', async () => {
+  const {execFile} = await import('node:child_process');
+  const {promisify} = await import('node:util');
+  const run = promisify(execFile);
+  const exec = async (cmd, args) => (await run(cmd, args)).stdout;
+  const {gitTools} = await import('./adapters.mjs');
+  const g = gitTools(exec, process.cwd());
+  assert.match(await g.gitHead(), /^[a-f0-9]{40}$/);
+  assert.equal(typeof await g.gitClean(), 'boolean');
+});
+
+test('CI adapter maps transport failure to BLOCKED, never green', async () => {
+  const down = async () => { throw new Error('context deadline exceeded'); };
+  assert.equal(await ciStatusOnce({exec: down, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'BLOCKED');
+});
