@@ -21,3 +21,4 @@
 - 使用方式：以注入的 code/test/review 工具建立 Controller，狀態寫入指定目錄的 state.json（每步 checkpoint），lock 檔防止並行，id+commit 去重，重試上限 2。
 - 恢復證據：中斷恢復情境以新 Controller 實例讀回同一 state 目錄，已完成任務回 deduped 且不重跑（測試 PASS）。
 - PR #31 單次查詢（不輪詢）：HEAD b209d55，Vercel PASS、兩組 test PENDING，已記錄不阻塞。
+- 後續：新增 adapters.mjs（CI 單次查詢、永不 watch；PENDING 不阻塞）與 adapters.test.mjs；Controller 測試合計 11 項 PASS。PR #31 單次查詢：Vercel PASS、test PENDING（記錄後繼續，不等待）。
