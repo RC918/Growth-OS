@@ -15,8 +15,18 @@ import {createHeadlessCoder} from './headless-adapter.mjs';
 const argv = process.argv.slice(2);
 const get = (k, d) => argv.includes(k) ? argv[argv.indexOf(k) + 1] : d;
 const synthetic = argv.includes('--synthetic');
-const intervalMs = Math.min(Number(get('--interval-ms', PATROL_INTERVAL_MS)), PATROL_INTERVAL_MS); // never faster than approved 10m in real mode
-const durationMs = Number(get('--duration-ms', 24 * 3600_000)); // trial hard expiry: 24h
+const MIN_INTERVAL_MS = PATROL_INTERVAL_MS; // 600000: formal patrol never faster than 10 minutes
+const MAX_DURATION_MS = 24 * 3600_000; // 86400000: trial never longer than 24 hours
+function timeArg(name, raw, {min, max}) {
+  const n = Number(raw);
+  if (raw === undefined || !Number.isFinite(n) || n <= 0 || n < min || n > max) {
+    console.log(JSON.stringify({event: 'patrol:blocked', reason: `invalid ${name}: ${raw}`}));
+    process.exit(2); // NaN, zero, negative, too short, and too long are all refused
+  }
+  return n;
+}
+const intervalMs = timeArg('--interval-ms', get('--interval-ms', MIN_INTERVAL_MS), {min: synthetic ? 1 : MIN_INTERVAL_MS, max: MIN_INTERVAL_MS});
+const durationMs = timeArg('--duration-ms', get('--duration-ms', MAX_DURATION_MS), {min: 1, max: MAX_DURATION_MS});
 const dir = get('--state-dir', join(dirname(fileURLToPath(import.meta.url)), '.watchdog-state'));
 const logPath = join(dir, 'patrol-log.jsonl');
 const lockPath = join(dir, 'patrol.lock');
@@ -40,8 +50,22 @@ const controller = new Controller({
     isAlive: async (h) => { try { process.kill(h.pid, 0); return true; } catch { return false; } },
   },
 });
-const watchdog = new Watchdog({controller, inspect: {}, notify: async (major) => log('patrol:notify-owner', {major})});
-const stopAt = Date.now() + durationMs;
+// Only this trial's read-only/synthetic tasks may advance; any other
+// checkpointed task is supervised only, never resumed into engineering writes.
+const authorized = (task) => ['real-readonly', 'synthetic'].includes(task.payload?.mode) || task.stages?.code?.status === 'PASS';
+const watchdog = new Watchdog({controller, inspect: {isRunning: async (task) => !authorized(task)}, notify: async (major) => log('patrol:notify-owner', {major})});
+// The 24h deadline is persisted at first start; restarts reuse it verbatim.
+const deadlinePath = join(dir, 'patrol-deadline.json');
+let stopAt;
+try {
+  const saved = JSON.parse(await readFile(deadlinePath, 'utf8'));
+  if (!Number.isFinite(saved.stopAt)) throw new Error('bad deadline');
+  stopAt = saved.stopAt;
+} catch {
+  stopAt = Date.now() + durationMs;
+  const {writeFile: wf} = await import('node:fs/promises');
+  await wf(deadlinePath, JSON.stringify({stopAt, firstStartAt: Date.now(), runId}) + '\n');
+}
 await log('patrol:start', {intervalMs, durationMs, synthetic});
 try {
   while (!stopping && Date.now() < stopAt) { // bounded loop: expiry or signal, never permanent
