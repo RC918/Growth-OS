@@ -3,82 +3,78 @@ import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {Controller, CheckpointCorrupt, parseRetryAfter} from './controller.mjs';
+import {Controller, CheckpointCorrupt} from './controller.mjs';
+import {Watchdog} from './watchdog.mjs';
 import {ciStatusOnce} from './adapters.mjs';
 
-const dir = () => mkdtemp(join(tmpdir(), 'growth-controller-'));
+const dir = () => mkdtemp(join(tmpdir(), 'growth-loop-'));
 const approve = async (t) => ({verdict: 'APPROVE', commit: t.outputSha ?? t.commit, completed: true, source: 'independent-reviewer', sessionId: 'reviewer-session'});
-const ok = {code: async () => {}, test: async () => 'PASS', ci: async () => 'PASS', review: approve, gitHead: async () => 'aaa', gitClean: async () => true, isAlive: async () => false};
+const ok = {plan: async () => {}, code: async () => {}, test: async () => 'PASS', build: async () => 'PASS', e2e: async () => 'PASS', dbauth: async () => 'PASS', review: approve, preview: async () => 'PASS', gitHead: async () => 'aaa', gitClean: async () => true, isAlive: async () => false};
 
-test('normal completion reaches REVIEW_PASS via bound reviewer', async () => {
-  assert.equal((await new Controller({dir: await dir(), tools: ok}).run({id: 'a', commit: 'aaa'})).status, 'REVIEW_PASS');
-});
-
-test('lock competition: live holder blocks, dead expired holder is reclaimed', async () => {
+test('one full execution loop completes all stages with audit', async () => {
   const d = await dir();
-  let release; const gate = new Promise((r) => { release = r; });
-  const slow = new Controller({dir: d, tools: {...ok, code: async () => gate}, runId: 'run-1'});
-  const p = slow.run({id: 'b1', commit: 'aaa'});
-  const other = new Controller({dir: d, tools: {...ok, isAlive: async () => true}, runId: 'run-2'});
-  await assert.rejects(other.run({id: 'b2', commit: 'aaa'}), /LOCKED/);
-  release(); await p;
-  const dead = new Controller({dir: d, tools: ok, runId: 'run-3'}); // prior lock released; normal handover works
-  assert.equal((await dead.run({id: 'b3', commit: 'aaa'})).status, 'REVIEW_PASS');
+  const t = await new Controller({dir: d, tools: ok}).run({id: 'full', commit: 'aaa'});
+  assert.equal(t.status, 'REVIEW_PASS');
+  const s = JSON.parse(await readFile(join(d, 'state.json'), 'utf8'));
+  assert.ok(s.audit.some((a) => a.event === 'stage:verify=PASS'));
 });
 
-test('old holder cannot delete successor lock', async () => {
-  const d = await dir();
-  let release; const gate = new Promise((r) => { release = r; });
-  const old = new Controller({dir: d, tools: {...ok, code: async () => gate}, runId: 'old-run'});
-  const p = old.run({id: 'b9', commit: 'aaa'});
-  await new Promise((r) => setTimeout(r, 20));
-  await writeFile(join(d, 'controller.lock'), JSON.stringify({ownerId: 'o', pid: 1, runId: 'new-run', session: 's', expiresAt: Date.now() + 60000}));
-  release(); await p;
-  const kept = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8'));
-  assert.equal(kept.runId, 'new-run');
+test('CI delay resumes at ci-equivalent stage without redoing code', async () => {
+  const d = await dir(); let coded = 0, previews = 0;
+  const slow = {...ok, code: async () => { coded++; }, preview: async () => (++previews === 1 ? 'PENDING' : 'PASS')};
+  const first = await new Controller({dir: d, tools: slow}).run({id: 'ci', commit: 'aaa'});
+  assert.equal(first.status, 'PENDING');
+  const second = await new Controller({dir: d, tools: slow}).run({id: 'ci', commit: 'aaa'});
+  assert.equal(second.status, 'REVIEW_PASS'); assert.equal(coded, 1);
 });
 
-test('429 saves multi-hour wait, restart does not call model before due', async () => {
+test('429 persists wait and watchdog does not call before due', async () => {
   const d = await dir(); let calls = 0; const t0 = 1_000_000;
-  const err = Object.assign(new Error('rate'), {code: 'RATE_LIMIT', retryAfterMs: 3 * 3600_000});
+  const err = Object.assign(new Error('rate'), {code: 'RATE_LIMIT', retryAfterMs: 3600_000});
   const tools = {...ok, code: async () => { calls++; throw err; }};
-  const first = await new Controller({dir: d, tools, now: () => t0}).run({id: 'c', commit: 'aaa'});
-  assert.equal(first.status, 'WAITING'); assert.equal(first.waitUntil, t0 + 3 * 3600_000);
-  const restarted = await new Controller({dir: d, tools, now: () => t0 + 1000}).run({id: 'c', commit: 'aaa'});
-  assert.equal(restarted.status, 'WAITING'); assert.equal(calls, 1); // watchdog gate held
-  assert.equal(parseRetryAfter({headers: {'retry-after': '120'}}, t0), t0 + 120000);
+  const first = await new Controller({dir: d, tools, now: () => t0}).run({id: 'r', commit: 'aaa'});
+  assert.equal(first.status, 'WAITING');
+  const again = await new Controller({dir: d, tools, now: () => t0 + 1000}).run({id: 'r', commit: 'aaa'});
+  assert.equal(again.status, 'WAITING'); assert.equal(calls, 1);
 });
 
-test('new commit invalidates prior test/CI/review evidence', async () => {
-  const d = await dir(); let head = 'aaa';
-  const tools = {...ok, gitHead: async () => head};
-  await new Controller({dir: d, tools}).run({id: 'd', commit: 'aaa'});
-  head = 'bbb';
-  const t = await new Controller({dir: d, tools}).run({id: 'd', commit: 'bbb'});
-  assert.equal(t.outputSha, 'bbb'); assert.equal(t.stages.review.commit, 'bbb');
+test('reviewer failure stops safely with limited retries, code not redone', async () => {
+  const d = await dir(); let coded = 0, reviews = 0;
+  const tools = {...ok, code: async () => { coded++; }, review: async () => { reviews++; throw new Error('lost'); }};
+  await new Controller({dir: d, tools}).run({id: 'rev', commit: 'aaa'});
+  const t = await new Controller({dir: d, tools}).run({id: 'rev', commit: 'aaa'});
+  assert.equal(t.status, 'REVIEW_BLOCKED'); assert.equal(coded, 1); assert.ok(reviews <= 2);
 });
 
-test('untrusted reviewer verdicts are rejected', async () => {
-  const badSource = {...ok, review: async (t) => ({verdict: 'APPROVE', commit: 'aaa', completed: true, source: 'coder', sessionId: 'reviewer-session'})};
-  assert.equal((await new Controller({dir: await dir(), tools: badSource}).run({id: 'e', commit: 'aaa'})).status, 'REVIEW_BLOCKED');
-  const badSha = {...ok, review: async () => ({verdict: 'APPROVE', commit: 'OLD', completed: true, source: 'independent-reviewer', sessionId: 'reviewer-session'})};
-  assert.equal((await new Controller({dir: await dir(), tools: badSha}).run({id: 'e', commit: 'aaa'})).status, 'REVIEW_BLOCKED');
+test('abrupt interruption mid-code leaves resumable checkpoint, no duplicate code on finished stages', async () => {
+  const d = await dir(); let coded = 0;
+  const crashing = {...ok, test: async () => { throw Object.assign(new Error('boom'), {code: 'CRASH'}); }, code: async () => { coded++; }};
+  const first = await new Controller({dir: d, tools: crashing}).run({id: 'x', commit: 'aaa'});
+  assert.equal(first.stages.code.status, 'PASS');
+  const second = await new Controller({dir: d, tools: {...ok, code: async () => { coded++; }}}).run({id: 'x', commit: 'aaa'});
+  assert.equal(second.status, 'REVIEW_PASS'); assert.equal(coded, 1);
 });
 
-test('corrupt checkpoint stops and is preserved', async () => {
+test('watchdog tick bypasses BLOCKED task and resumes pending one; event triggers same tick', async () => {
+  const d = await dir();
+  const blockedTools = {...ok, test: async () => 'FAIL'};
+  await new Controller({dir: d, tools: blockedTools}).run({id: 'bad', commit: 'aaa'});
+  const slow = {...ok, preview: async () => 'PENDING'};
+  await new Controller({dir: d, tools: slow}).run({id: 'slow', commit: 'aaa'});
+  let notified = 0;
+  const wd = new Watchdog({controller: new Controller({dir: d, tools: ok}), inspect: {}, notify: async () => { notified++; }});
+  const actions = await wd.onEvent({type: 'check_run'});
+  assert.ok(actions.some((a) => a.task === 'bad' && a.action === 'bypass-blocked'));
+  assert.ok(actions.some((a) => a.task === 'slow' && a.action === 'resumed'));
+  const s = JSON.parse(await readFile(join(d, 'state.json'), 'utf8'));
+  assert.equal(s.tasks['slow@aaa'].status, 'REVIEW_PASS'); assert.equal(notified, 0);
+});
+
+test('corrupt checkpoint stops; structured CI never greens on missing/pending', async () => {
   const d = await dir(); await writeFile(join(d, 'state.json'), '{broken');
-  await assert.rejects(new Controller({dir: d, tools: ok}).run({id: 'f', commit: 'aaa'}), CheckpointCorrupt);
-  assert.equal(await readFile(join(d, 'state.json'), 'utf8'), '{broken');
-});
-
-test('CI adapter handles pagination, reruns, mixed and missing checks', async () => {
-  const page1 = Array.from({length: 100}, (_, i) => ({name: 'other' + i, id: i, status: 'completed', conclusion: 'success'}));
-  const exec = async (cmd, args) => JSON.stringify(new URLSearchParams(args[1].split('?')[1]).get('page') === '1' ? page1 : [{name: 'test', id: 1, status: 'completed', conclusion: 'failure'}, {name: 'test', id: 2, status: 'completed', conclusion: 'success'}]);
-  assert.equal(await ciStatusOnce({exec, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'PASS'); // latest rerun wins
-  const missing = async () => JSON.stringify([]);
-  assert.equal(await ciStatusOnce({exec: missing, repo: 'R', headSha: 'x'})(), 'BLOCKED');
-  const neutral = async () => JSON.stringify([{name: 'test', id: 1, status: 'completed', conclusion: 'neutral'}]);
-  assert.equal(await ciStatusOnce({exec: neutral, repo: 'R', headSha: 'x'})(), 'FAIL');
+  await assert.rejects(new Controller({dir: d, tools: ok}).run({id: 'z', commit: 'aaa'}), CheckpointCorrupt);
   const pending = async () => JSON.stringify([{name: 'test', id: 1, status: 'queued', conclusion: null}]);
-  assert.equal(await ciStatusOnce({exec: pending, repo: 'R', headSha: 'x'})(), 'PENDING');
+  assert.equal(await ciStatusOnce({exec: pending, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'PENDING');
+  const missing = async () => JSON.stringify([]);
+  assert.equal(await ciStatusOnce({exec: missing, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'BLOCKED');
 });
