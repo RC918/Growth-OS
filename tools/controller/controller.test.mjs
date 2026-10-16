@@ -151,3 +151,19 @@ test('hung tool is bounded by per-tool timeout', async () => {
   const t = await new Controller({dir: await dir(), tools, toolTimeoutMs: 30}).run({id: 'hang', commit: 'aaa'});
   assert.equal(t.status, 'FAIL'); assert.ok(t.log.some((l) => l.includes('TOOL_TIMEOUT')));
 });
+
+test('10-minute patrol: synthetic clock, single dispatch, no overlap, running task supervised', async () => {
+  const {PATROL_INTERVAL_MS, Watchdog} = await import('./watchdog.mjs');
+  assert.equal(PATROL_INTERVAL_MS, 600_000);
+  const d = await dir(); let coded = 0;
+  const pending = {...ok, code: async () => { coded++; }, preview: async () => 'PENDING'};
+  await new Controller({dir: d, tools: pending}).run({id: 'p1', commit: 'aaa'});
+  await new Controller({dir: d, tools: pending}).run({id: 'p2', commit: 'aaa'});
+  const wd = new Watchdog({controller: new Controller({dir: d, tools: {...ok, code: async () => { coded++; }}}), inspect: {isRunning: async (t) => t.id === 'p2'}, notify: async () => {}});
+  const [a, b] = await Promise.all([wd.tick('patrol'), wd.tick('patrol')]); // overlapping patrols
+  const all = [...a, ...b];
+  assert.ok(all.some((x) => x.action === 'skip-overlap')); // second patrol never dispatches
+  assert.equal(all.filter((x) => x.action === 'resumed').length, 1); // at most one coder per tick
+  assert.ok(all.some((x) => x.task === 'p2' && x.action === 'supervise-only'));
+  assert.equal(coded, 2); // two setup runs only; patrol resumed without redoing code
+});

@@ -27,3 +27,4 @@
 - Loop v2：執行 Loop 擴為 plan/code/test/build/e2e/dbauth/review/preview/verify 九階段（證據綁 outputSha、審計紀錄），Watchdog 原型 tools/controller/watchdog.mjs（單次 tick、事件 onEvent 立即觸發、BLOCKED 繞行、僅重大事項通知；排程未啟用）。合成驗證 7 項 PASS：完整循環、CI 延遲接續（code 不重做）、429 等待、Reviewer 失敗有限重試、中止恢復、Watchdog 繞行+事件觸發、損毀停機與 CI 不誤綠。
 - 恢復與串接驗證：Payload 已持久化於 Checkpoint 並於重啟無參數接續時恢復（測試 PASS）；Heartbeat 於長階段保持租約（測試 PASS）；真實 Git Adapter 讀得實際 HEAD/乾淨狀態（測試 PASS）；真實 CI Adapter 經 Node 子程序呼叫 gh 時遭沙箱網路阻擋，回 BLOCKED（fail-closed，未判綠），同查詢經 shell 單次執行得 test in_progress（即 PENDING 語意）。合計測試 11 項 PASS。
 - 最終串接驗證：Watchdog 恢復保留原始 payload/任務參數（Checkpoint 恢復，測試 PASS）、Watchdog 與 Controller 共用同一時鐘確保 429 重置前不重試、心跳續租與舊持有者解鎖競態、每項真實工具呼叫加上限時（TOOL_TIMEOUT 落紀錄）。測試合計 15 項 PASS。本機 HEAD 與遠端相差一筆未推送提交，待授權後單一推送。
+- Watchdog 週期調整：每 10 分鐘輕量巡檢（PATROL_INTERVAL_MS=600000，巡檢不呼叫模型、僅單一可安全推進任務才觸發、重疊巡檢 skip-overlap、運行中任務 supervise-only 不重啟）+ GitHub 事件立即觸發。合成時鐘/重疊測試 PASS（合計 16 項）。常駐排程仍未啟用，待 Owner 最終核准。
