@@ -1,0 +1,17 @@
+# Growth OS｜Muse 工程控制器（原型）2026-10-16
+
+狀態：原型，未啟用無人值守排程。Owner 核准前僅手動觸發。
+
+## 迴圈（每輪上限：1 任務、重試 2 次、單項測試限時、總時限 60 分）
+1. READ：fetch 後讀鏈尖、AGENTS.md、mission/engineering skills、接管紀錄；已完成任務依 commit/PR 去重，不重建 branch/PR。
+2. SELECT：僅選已授權、非破壞性、可離線驗證的最小 Core/必要 P2；P0/P1 才自動修，P3/P4 只記 debt。
+3. CODE：Coder 在 takeover 分支實作（最小 diff）。
+4. TEST：拆小獨立限時執行，記錄 PASS/FAIL/BLOCKED 與 exit code；一項阻塞不取消其他項。
+5. REVIEW：交獨立唯讀 Reviewer（子代理，僅讀 diff/證據）；啟動失敗或逾時記 REVIEW_BLOCKED，不自批。
+6. PUBLISH：commit + push takeover 分支 + 更新 Draft PR；禁止 merge/force/deploy。
+7. CHECKPOINT：每步寫入本檔或接管紀錄（HEAD、測試、阻塞、下一步）；遇 429/斷線先落 checkpoint 再停，不無限重試。
+
+## 已實測限制
+- 子代理曾以 runtime_turn_task_lost 失敗（執行期遺失，非程式錯誤）；需小任務、短回覆、失敗即標 BLOCKED。
+- muse exec 在目前沙箱因無法讀 ~/.config/muse 與建立 session lock 而失敗，屬沙箱檔案權限，非訂閱認證結論；不在沙箱外重試、不切付費 API。
+- 排程（cron）與跨會話訊息工具存在但目前無已排工作/peer；啟用排程需 Owner 核准。
