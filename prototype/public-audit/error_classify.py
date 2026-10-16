@@ -39,6 +39,13 @@ def cause_category(exc) -> str | None:
     return None
 
 
+def classified_error(exc):
+    """Same public code, detail enriched with the bounded cause category."""
+    from scanner import ScanError
+
+    return ScanError(getattr(exc, "code", "processing_failed"), classified_detail(exc))
+
+
 def classified_detail(exc) -> str:
     """Public detail with a bounded cause category appended when known."""
     detail = str(exc)

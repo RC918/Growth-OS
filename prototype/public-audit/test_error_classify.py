@@ -43,3 +43,15 @@ class ErrorClassifyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class ServiceApiClassificationTests(unittest.TestCase):
+    def test_service_snapshot_surfaces_bounded_cause(self):
+        import service_api
+
+        def fake(url):
+            raise ScanError("dns_failed", "DNS resolution failed for the public host.")
+
+        with self.assertRaises(ScanError) as caught:
+            service_api.build_snapshot("https://example.com/products/x", fake)
+        self.assertEqual(caught.exception.code, "robots_unavailable")
+        self.assertIn("Cause category: dns.", str(caught.exception))
