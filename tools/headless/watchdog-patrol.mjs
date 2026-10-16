@@ -50,22 +50,50 @@ const controller = new Controller({
     isAlive: async (h) => { try { process.kill(h.pid, 0); return true; } catch { return false; } },
   },
 });
-// Only this trial's read-only/synthetic tasks may advance; any other
-// checkpointed task is supervised only, never resumed into engineering writes.
-const authorized = (task) => ['real-readonly', 'synthetic'].includes(task.payload?.mode) || task.stages?.code?.status === 'PASS';
-const watchdog = new Watchdog({controller, inspect: {isRunning: async (task) => !authorized(task)}, notify: async (major) => log('patrol:notify-owner', {major})});
-// The 24h deadline is persisted at first start; restarts reuse it verbatim.
+// Fail-closed deadline: only a truly missing file (ENOENT) may create the
+// first deadline, atomically. Corruption, permission errors, or illegal or
+// missing fields stop the patrol; the original deadline is never extended.
 const deadlinePath = join(dir, 'patrol-deadline.json');
-let stopAt;
-try {
-  const saved = JSON.parse(await readFile(deadlinePath, 'utf8'));
-  if (!Number.isFinite(saved.stopAt)) throw new Error('bad deadline');
-  stopAt = saved.stopAt;
-} catch {
-  stopAt = Date.now() + durationMs;
-  const {writeFile: wf} = await import('node:fs/promises');
-  await wf(deadlinePath, JSON.stringify({stopAt, firstStartAt: Date.now(), runId}) + '\n');
+let stopAt, trialId;
+{
+  let raw = null;
+  try { raw = await readFile(deadlinePath, 'utf8'); }
+  catch (e) {
+    if (e.code !== 'ENOENT') { console.log(JSON.stringify({event: 'patrol:blocked', reason: `deadline unreadable: ${e.code}`})); process.exit(2); }
+  }
+  if (raw === null) {
+    trialId = `trial-${randomUUID()}`;
+    stopAt = Date.now() + durationMs;
+    const tmp = `${deadlinePath}.${randomUUID()}.tmp`;
+    const {writeFile: wf, rename: rn} = await import('node:fs/promises');
+    await wf(tmp, JSON.stringify({stopAt, firstStartAt: Date.now(), trialId}) + '\n');
+    await rn(tmp, deadlinePath); // atomic, recoverable save
+  } else {
+    let saved = null;
+    try { saved = JSON.parse(raw); } catch {}
+    if (!saved || !Number.isFinite(saved.stopAt) || saved.stopAt <= 0 || typeof saved.trialId !== 'string' || !saved.trialId) {
+      console.log(JSON.stringify({event: 'patrol:blocked', reason: 'deadline corrupt or illegal'}));
+      await lockFh.close().catch(() => {}); await unlink(lockPath).catch(() => {});
+      process.exit(2);
+    }
+    stopAt = saved.stopAt; trialId = saved.trialId;
+  }
 }
+// Strict allowlist: only tasks explicitly registered for THIS trial, with a
+// matching read-only/synthetic mode and resume scope, may advance. Anything
+// missing, unknown, forged, or from another trial is supervised only.
+let allowlist = {trialId: null, tasks: []};
+try {
+  const parsed = JSON.parse(await readFile(join(dir, 'patrol-allowlist.json'), 'utf8'));
+  if (parsed && Array.isArray(parsed.tasks)) allowlist = parsed;
+} catch (e) { if (e.code !== 'ENOENT') { console.log(JSON.stringify({event: 'patrol:blocked', reason: 'allowlist corrupt'})); process.exit(2); } }
+const authorized = (task) => {
+  if (allowlist.trialId !== trialId) return false;
+  const entry = allowlist.tasks.find((t) => t.id === task.id);
+  return !!entry && entry.mode === task.payload?.mode && ['real-readonly', 'synthetic'].includes(entry.mode)
+    && Array.isArray(entry.scopes) && entry.scopes.includes('resume-readonly');
+};
+const watchdog = new Watchdog({controller, inspect: {isRunning: async (task) => !authorized(task)}, notify: async (major) => log('patrol:notify-owner', {major})});
 await log('patrol:start', {intervalMs, durationMs, synthetic});
 try {
   while (!stopping && Date.now() < stopAt) { // bounded loop: expiry or signal, never permanent

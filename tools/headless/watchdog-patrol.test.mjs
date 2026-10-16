@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFile, spawn} from 'node:child_process';
-import {mkdtemp, readFile, writeFile, chmod} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, chmod, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
@@ -63,4 +63,32 @@ test('restart reuses the persisted deadline instead of recalculating 24h', async
   assert.match(stdout, /expired-24h/);
   const again = JSON.parse(await readFile(join(state, 'patrol-deadline.json'), 'utf8'));
   assert.equal(again.stopAt, deadline.stopAt); // unchanged by restart
+});
+
+test('corrupt or illegal deadline stops fail-closed and is never extended', async () => {
+  const {bin, state} = await setup();
+  const {mkdir, writeFile: wf} = await import('node:fs/promises');
+  await mkdir(state, {recursive: true});
+  for (const bad of ['{broken', JSON.stringify({stopAt: 'soon'}), JSON.stringify({stopAt: 123})]) {
+    await wf(join(state, 'patrol-deadline.json'), bad);
+    const r = await run('node', [entry, '--synthetic', '--state-dir', state, '--interval-ms', '50', '--duration-ms', '200'], {env: {...process.env, MUSE_BIN: bin}}).catch((e) => ({stdout: e.stdout, code: e.code}));
+    assert.equal(r.code, 2); assert.match(r.stdout, /deadline corrupt or illegal/);
+    assert.equal(await readFile(join(state, 'patrol-deadline.json'), 'utf8'), bad); // untouched
+    await rm(join(state, 'patrol.lock'), {force: true});
+  }
+});
+
+test('unauthorized, forged-mode, and cross-trial tasks are supervised only', async () => {
+  const {bin, state} = await setup();
+  const {mkdir, writeFile: wf} = await import('node:fs/promises');
+  await mkdir(state, {recursive: true});
+  const task = (id, mode) => ({id, commit: 'c', status: 'PENDING', attempts: 0, reviewAttempts: 0, stages: {}, log: [], payload: {mode}});
+  await wf(join(state, 'state.json'), JSON.stringify({tasks: {'old@x': task('old', 'synthetic'), 'forged@x': task('forged', 'admin')}, audit: []}));
+  await wf(join(state, 'patrol-allowlist.json'), JSON.stringify({trialId: 'someone-elses-trial', tasks: [{id: 'forged', mode: 'admin', scopes: ['resume-readonly']}, {id: 'old', mode: 'synthetic', scopes: ['resume-readonly']}]}));
+  await run('node', [entry, '--synthetic', '--state-dir', state, '--interval-ms', '50', '--duration-ms', '180'], {env: {...process.env, MUSE_BIN: bin}, timeout: 10_000});
+  const saved = JSON.parse(await readFile(join(state, 'state.json'), 'utf8'));
+  assert.equal(saved.tasks['old@x'].attempts, 0); // cross-trial: never resumed
+  assert.equal(saved.tasks['forged@x'].attempts, 0); // forged mode: never resumed
+  const log = await readFile(join(state, 'patrol-log.jsonl'), 'utf8');
+  assert.match(log, /supervise-only/);
 });
