@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+
+// Offline guard for the W1 login dynamic-import failure class: every relative
+// specifier reachable from the shipped entry must resolve to a hashed file in
+// the closed deployment package. Runs without a browser, server, or network;
+// it does not prove the live login works.
+const dir = new URL('./dist/', import.meta.url);
+const manifest = JSON.parse(await readFile(new URL('./SHA256.json', import.meta.url), 'utf8'));
+const specifiers = (source) => [...source.matchAll(/(?:import[^'"]*from\s*|import\s*\(|export[^'"]*from\s*)['"](\.[^'"]+)['"]/g)].map((m) => m[1]);
+
+test('every dist file matches SHA256.json', async () => {
+  for (const [file, hash] of Object.entries(manifest)) {
+    const bytes = await readFile(new URL(file, dir));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), hash, file);
+  }
+});
+
+test('module graph from w1-workspace-entry.js is closed', async () => {
+  const seen = new Set();
+  const queue = ['w1-workspace-entry.js'];
+  while (queue.length) {
+    const file = queue.pop();
+    assert.ok(Object.hasOwn(manifest, file), `missing from package: ${file}`);
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const source = await readFile(new URL(file, dir), 'utf8');
+    for (const spec of specifiers(source)) queue.push(spec.replace(/^\.\//, ''));
+  }
+  assert.ok(seen.has('product-fact.mjs'));
+  assert.ok(seen.size >= 10, `graph unexpectedly small: ${seen.size}`);
+});
