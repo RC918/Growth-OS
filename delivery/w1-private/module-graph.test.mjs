@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 
@@ -11,13 +10,8 @@ const dir = new URL('./dist/', import.meta.url);
 const manifest = JSON.parse(await readFile(new URL('./SHA256.json', import.meta.url), 'utf8'));
 const specifiers = (source) => [...source.matchAll(/(?:import[^'"]*from\s*|import\s*\(|export[^'"]*from\s*)['"](\.[^'"]+)['"]/g)].map((m) => m[1]);
 
-test('every dist file matches SHA256.json', async () => {
-  for (const [file, hash] of Object.entries(manifest)) {
-    const bytes = await readFile(new URL(file, dir));
-    assert.equal(createHash('sha256').update(bytes).digest('hex'), hash, file);
-  }
-});
-
+// Hash equality for every dist file is already asserted by verify.mjs; this
+// guard covers what it misses: the classic entry's dynamic import() graph.
 test('module graph from w1-workspace-entry.js is closed', async () => {
   const seen = new Set();
   const queue = ['w1-workspace-entry.js'];

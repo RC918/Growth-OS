@@ -332,6 +332,9 @@ jobs:
             /tmp/w1-product-fact-*.png
           retention-days: 7
           if-no-files-found: warn
+      - name: W1 offline module graph guard (no browser or network)
+        timeout-minutes: 2
+        run: node --test delivery/w1-private/module-graph.test.mjs
       - name: W1 closed pilot native Auth adapter gate and recovery
         timeout-minutes: 5
         run: |

@@ -28,3 +28,9 @@
 ## 中斷恢復
 - 恢復點：本分支 HEAD + 本紀錄；重入時先 `git fetch` 核對鏈尖是否被他人推進，再讀 AGENTS.md → mission-guardrail → engineering-executor。
 - 本紀錄僅在本機接管分支，未 push、未建 PR（待 Owner 批准）。
+
+## 2026-10-16 後續更新（取代上方第一輪敘述）
+- 接管紀錄與 W1 離線守衛已提交並推送：`b28b5aa`、`5e23de6`；Draft PR #31 已建立（基底 feat/private-host-bootstrap，不得自動合併）。
+- W1 守衛已收斂為僅涵蓋 verify.mjs 未及的入口動態 import 圖，並加入 CI 步驟 `W1 offline module graph guard`（無瀏覽器/無網路，限時 2 分）；雜湊全驗仍由既有 verify.mjs 負責，不重複。
+- Reviewer：獨立子會話啟動失敗，狀態 REVIEW_BLOCKED，不宣稱通過；待其他獨立審核方式補行。
+- W1 live 根因仍未知；最小診斷證據清單見 docs/W1_Login_Diagnostic_Evidence_2026-10-16.md，待原 Mac/核准 live 唯讀取得，不猜因、不宣稱已修復。
