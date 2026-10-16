@@ -335,6 +335,9 @@ jobs:
       - name: W1 offline module graph guard (no browser or network)
         timeout-minutes: 2
         run: node --test delivery/w1-private/module-graph.test.mjs
+      - name: W1 entry load timeout regression (no browser or network)
+        timeout-minutes: 2
+        run: node --experimental-vm-modules --test delivery/w1-private/entry-timeout.test.mjs
       - name: W1 closed pilot native Auth adapter gate and recovery
         timeout-minutes: 5
         run: |
