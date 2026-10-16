@@ -10,7 +10,8 @@ export class Watchdog {
     for (const task of Object.values(state.tasks)) {
       const head = this.inspect?.gitHead ? await this.inspect.gitHead(task) : null;
       if (head && task.outputSha && head !== task.outputSha) { actions.push({task: task.id, action: 'stale-evidence', head}); continue; }
-      if (task.status === 'WAITING' && task.waitUntil && task.waitUntil > Date.now()) { actions.push({task: task.id, action: 'wait-429'}); continue; }
+      const now = this.controller.now ? this.controller.now() : Date.now();
+      if (task.status === 'WAITING' && task.waitUntil && task.waitUntil > now) { actions.push({task: task.id, action: 'wait-429'}); continue; }
       if (['BLOCKED', 'REVIEW_BLOCKED', 'FAIL'].includes(task.status)) { actions.push({task: task.id, action: 'bypass-blocked'}); continue; } // other tasks still run
       if (task.status === 'PENDING' || task.status === 'WAITING') {
         await this.controller.run({id: task.id, commit: task.commit}); // resumes at unfinished stage only

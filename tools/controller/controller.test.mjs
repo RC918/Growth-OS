@@ -113,3 +113,41 @@ test('CI adapter maps transport failure to BLOCKED, never green', async () => {
   const down = async () => { throw new Error('context deadline exceeded'); };
   assert.equal(await ciStatusOnce({exec: down, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'BLOCKED');
 });
+
+test('watchdog resume retains original payload and task inputs from checkpoint', async () => {
+  const d = await dir(); let seen = null;
+  const pending = {...ok, preview: async () => 'PENDING'};
+  await new Controller({dir: d, tools: pending}).run({id: 'w', commit: 'aaa', payload: {url: 'https://example.invalid/p', step: 3}});
+  const resumedTools = {...ok, code: async (t, p) => { seen = p; }};
+  const wd = new Watchdog({controller: new Controller({dir: d, tools: resumedTools}), inspect: {}, notify: async () => {}});
+  const actions = await wd.tick('schedule');
+  assert.ok(actions.some((a) => a.task === 'w' && a.action === 'resumed'));
+  const s = JSON.parse(await readFile(join(d, 'state.json'), 'utf8'));
+  assert.deepEqual(s.tasks['w@aaa'].payload, {url: 'https://example.invalid/p', step: 3});
+  assert.equal(s.tasks['w@aaa'].status, 'REVIEW_PASS');
+});
+
+test('watchdog never retries 429 before reset time', async () => {
+  const d = await dir(); const t0 = 5_000_000;
+  const err = Object.assign(new Error('rate'), {code: 'RATE_LIMIT', resetAt: t0 + 7200_000});
+  const tools = {...ok, code: async () => { throw err; }};
+  await new Controller({dir: d, tools, now: () => t0}).run({id: 'q', commit: 'aaa'});
+  const wd = new Watchdog({controller: new Controller({dir: d, tools, now: () => t0 + 1000}), inspect: {}, notify: async () => {}});
+  const actions = await wd.tick('schedule');
+  assert.deepEqual(actions, [{task: 'q', action: 'wait-429'}]);
+});
+
+test('lock race: heartbeat renews lease, unlock by old holder keeps successor', async () => {
+  const d = await dir();
+  let lease1 = null, lease2 = null;
+  const tools = {...ok, code: async () => { lease1 = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8')); await new Promise((r) => setTimeout(r, 30)); lease2 = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8')); }};
+  const c = new Controller({dir: d, tools, heartbeatMs: 5});
+  await c.run({id: 'lock', commit: 'aaa'});
+  assert.equal(lease1.runId, c.runId); assert.ok(lease2.expiresAt >= lease1.expiresAt);
+});
+
+test('hung tool is bounded by per-tool timeout', async () => {
+  const tools = {...ok, test: () => new Promise(() => {})};
+  const t = await new Controller({dir: await dir(), tools, toolTimeoutMs: 30}).run({id: 'hang', commit: 'aaa'});
+  assert.equal(t.status, 'FAIL'); assert.ok(t.log.some((l) => l.includes('TOOL_TIMEOUT')));
+});

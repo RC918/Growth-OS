@@ -17,8 +17,8 @@ export const parseRetryAfter = (e, now) => {
 };
 
 export class Controller {
-  constructor({dir, tools, sessionId = 'coder-session', ownerId = 'owner', pid = process.pid, runId = randomUUID(), now = Date.now, heartbeatMs = 5_000}) {
-    Object.assign(this, {dir, tools, sessionId, ownerId, pid, runId, now, heartbeatMs});
+  constructor({dir, tools, sessionId = 'coder-session', ownerId = 'owner', pid = process.pid, runId = randomUUID(), now = Date.now, heartbeatMs = 5_000, toolTimeoutMs = 600_000}) {
+    Object.assign(this, {dir, tools, sessionId, ownerId, pid, runId, now, heartbeatMs, toolTimeoutMs});
     this.statePath = join(dir, 'state.json'); this.lockPath = join(dir, 'controller.lock');
   }
   async loadState() {
@@ -34,6 +34,12 @@ export class Controller {
     await rename(tmp, this.statePath); // atomic replace
   }
   #audit(state, task, event) { state.audit.push({at: this.now(), runId: this.runId, task: task?.id ?? null, commit: task?.outputSha ?? task?.commit ?? null, event}); }
+  // Every real tool call is bounded; a hung tool fails as TOOL_TIMEOUT, never hangs the loop.
+  async #tool(name, fn) {
+    let timer;
+    try { return await Promise.race([fn(), new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error(`${name} timeout`), {code: 'TOOL_TIMEOUT'})), this.toolTimeoutMs); })]); }
+    finally { clearTimeout(timer); }
+  }
   async #lock() {
     await mkdir(this.dir, {recursive: true});
     for (let i = 0; i < 2; i++) {
@@ -56,7 +62,7 @@ export class Controller {
     if (!this.lease) return;
     this.lease = {...this.lease, expiresAt: this.now() + LEASE_MS};
     const fh = await open(this.lockPath, 'r+').catch(() => null); if (!fh) return;
-    try { const cur = JSON.parse(await fh.readFile('utf8').catch(() => '{}')); if (cur.runId !== this.runId) return; await fh.truncate(0); await fh.writeFile(JSON.stringify(this.lease), 0); } finally { await fh.close().catch(() => {}); }
+    try { const cur = JSON.parse(await fh.readFile({encoding: 'utf8'}).catch(() => '{}')); if (cur.runId !== this.runId) return; await fh.truncate(0); await fh.write(JSON.stringify(this.lease), 0, 'utf8'); } finally { await fh.close().catch(() => {}); }
   }
   async #unlock(fh) {
     clearInterval(this.timer); await fh?.close().catch(() => {});
@@ -85,31 +91,32 @@ export class Controller {
         if (task.stages[stage]?.status === 'PASS' && task.stages[stage].commit === sha) continue;
         if (stage === 'review' && task.reviewAttempts >= MAX_ATTEMPTS && task.stages.review?.status === 'REVIEW_BLOCKED') { task.status = 'REVIEW_BLOCKED'; break; }
         try {
-          if (stage === 'plan') { await this.tools.plan?.(task, payload); task.stages.plan = {status: 'PASS', commit: sha}; }
+          if (stage === 'plan') { await this.#tool('plan', () => this.tools.plan?.(task, payload)); task.stages.plan = {status: 'PASS', commit: sha}; }
           if (stage === 'code') {
-            task.attempts++; await this.tools.code(task, payload);
+            task.attempts++; await this.#tool('code', () => this.tools.code(task, payload));
             sha = this.tools.gitHead ? await this.tools.gitHead() : commit;
             task.outputSha = sha; task.clean = this.tools.gitClean ? await this.tools.gitClean() : true;
             task.stages.code = {status: 'PASS', commit: sha};
             if (sha !== commit) { for (const s of STAGES.slice(2)) delete task.stages[s]; task.log.push(`code: new commit ${sha} invalidates prior evidence`); }
           }
-          if (stage === 'test') { const r = await this.tools.test(task); task.stages.test = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
-          if (stage === 'build') { const r = await this.tools.build(task); task.stages.build = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
-          if (stage === 'e2e') { const r = await this.tools.e2e(task); task.stages.e2e = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
-          if (stage === 'dbauth') { const r = this.tools.dbauth ? await this.tools.dbauth(task) : 'PASS'; task.stages.dbauth = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
+          if (stage === 'test') { const r = await this.#tool('test', () => this.tools.test(task)); task.stages.test = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
+          if (stage === 'build') { const r = await this.#tool('build', () => this.tools.build(task)); task.stages.build = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
+          if (stage === 'e2e') { const r = await this.#tool('e2e', () => this.tools.e2e(task)); task.stages.e2e = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
+          if (stage === 'dbauth') { const r = this.tools.dbauth ? await this.#tool('dbauth', () => this.tools.dbauth(task)) : 'PASS'; task.stages.dbauth = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
           if (stage === 'review') {
             task.reviewAttempts++;
-            const v = await this.tools.review(task).catch(() => null);
+            const v = await this.#tool('review', () => this.tools.review(task)).catch(() => null);
             const valid = v?.verdict === 'APPROVE' && v.commit === sha && v.completed === true && v.source === 'independent-reviewer' && v.sessionId && v.sessionId !== this.sessionId;
             task.stages.review = {status: valid ? 'PASS' : 'REVIEW_BLOCKED', verdictCommit: v?.commit ?? null, commit: sha};
             task.status = valid ? 'REVIEW_PASS' : 'REVIEW_BLOCKED';
           }
-          if (stage === 'preview') { const r = this.tools.preview ? await this.tools.preview(task) : 'PASS'; task.stages.preview = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
+          if (stage === 'preview') { const r = this.tools.preview ? await this.#tool('preview', () => this.tools.preview(task)) : 'PASS'; task.stages.preview = {status: r, commit: sha}; if (r !== 'PASS') { task.status = r; break; } }
           if (stage === 'verify') { const okAll = ['test', 'build', 'e2e', 'review', 'preview'].every((s) => task.stages[s]?.status === 'PASS'); task.stages.verify = {status: okAll ? 'PASS' : 'BLOCKED', commit: sha}; }
           this.#audit(state, task, `stage:${stage}=${task.stages[stage]?.status}`);
           await this.#save(state);
         } catch (e) {
           if (e.code === 'RATE_LIMIT') { task.waitUntil = parseRetryAfter(e, this.now()); task.status = 'WAITING'; task.log.push(`${stage}: 429 waitUntil=${new Date(task.waitUntil).toISOString()}`); this.#audit(state, task, 'wait:429'); await this.#save(state); break; }
+          task.log.push(`${stage}: ${e.code || 'FAIL'}`);
           task.stages[stage] = {status: e.code === 'LOCKED' ? 'BLOCKED' : 'FAIL', commit: sha};
           task.status = task.stages[stage].status; this.#audit(state, task, `stage:${stage}=${task.status}`);
           await this.#save(state); break;
