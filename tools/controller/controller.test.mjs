@@ -140,7 +140,8 @@ test('watchdog never retries 429 before reset time', async () => {
 test('lock race: heartbeat renews lease, unlock by old holder keeps successor', async () => {
   const d = await dir();
   let lease1 = null, lease2 = null;
-  const tools = {...ok, code: async () => { lease1 = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8')); await new Promise((r) => setTimeout(r, 30)); lease2 = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8')); }};
+  const readLease = async () => { for (let i = 0; i < 40; i++) { try { const v = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8')); if (v.runId) return v; } catch {} await new Promise((r) => setTimeout(r, 5)); } return null; };
+  const tools = {...ok, code: async () => { lease1 = await readLease(); await new Promise((r) => setTimeout(r, 30)); lease2 = await readLease(); }};
   const c = new Controller({dir: d, tools, heartbeatMs: 5});
   await c.run({id: 'lock', commit: 'aaa'});
   assert.equal(lease1.runId, c.runId); assert.ok(lease2.expiresAt >= lease1.expiresAt);

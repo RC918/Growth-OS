@@ -62,7 +62,12 @@ export class Controller {
     if (!this.lease) return;
     this.lease = {...this.lease, expiresAt: this.now() + LEASE_MS};
     const fh = await open(this.lockPath, 'r+').catch(() => null); if (!fh) return;
-    try { const cur = JSON.parse(await fh.readFile({encoding: 'utf8'}).catch(() => '{}')); if (cur.runId !== this.runId) return; await fh.truncate(0); await fh.write(JSON.stringify(this.lease), 0, 'utf8'); } finally { await fh.close().catch(() => {}); }
+    try { // positional read at 0: FileHandle offset after the initial write would read EOF
+      const buf = Buffer.alloc(4096); const {bytesRead} = await fh.read(buf, 0, buf.length, 0);
+      const cur = JSON.parse(buf.subarray(0, bytesRead).toString('utf8') || '{}');
+      if (cur.runId !== this.runId) return;
+      await fh.truncate(0); await fh.write(JSON.stringify(this.lease), 0, 'utf8');
+    } catch { /* lease file raced or vanished; next beat or expiry handles it */ } finally { await fh.close().catch(() => {}); }
   }
   async #unlock(fh) {
     clearInterval(this.timer); await fh?.close().catch(() => {});
