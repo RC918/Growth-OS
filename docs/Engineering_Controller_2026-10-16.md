@@ -23,3 +23,4 @@
 - PR #31 單次查詢（不輪詢）：HEAD b209d55，Vercel PASS、兩組 test PENDING，已記錄不阻塞。
 - 後續：新增 adapters.mjs（CI 單次查詢、永不 watch；PENDING 不阻塞）與 adapters.test.mjs；Controller 測試合計 11 項 PASS。PR #31 單次查詢：Vercel PASS、test PENDING（記錄後繼續，不等待）。
 - 強化（P1/P2）：階段 code/test/ci/review 獨立恢復、Checkpoint 原子寫入（tmp+rename）、損毀停機不覆蓋、Lock 建目錄後取得且 60s 過期回收、Reviewer 裁決綁定 commit 且須異會話+completed、CI 改用 Check Runs 結構化結果對應 HEAD。失敗注入測試 10 項 PASS（429 上限、損毀、舊 Lock、混合 CI、過期裁決、去重、階段接續）。
+- 最終安全補強：租約式 Lock（owner/PID/runId/到期+心跳，僅回收已失效且過期持有者，舊持有者不刪新 Lock）、429 保存 Retry-After/reset 與 waitUntil（Watchdog 到期前不呼叫、重啟不丟進度）、Coder 後以實際 gitHead 輸出 SHA 綁定 test/CI/Review 證據（新 Commit 使舊證據失效）、Reviewer 須 independent-reviewer 來源+異會話+SHA 相符+completed、CI Check Runs 分頁/重跑/缺失與非 success 不判綠。失敗注入 8 項 PASS。

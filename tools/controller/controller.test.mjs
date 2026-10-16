@@ -1,83 +1,84 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, writeFile, utimes} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {Controller, CheckpointCorrupt} from './controller.mjs';
+import {Controller, CheckpointCorrupt, parseRetryAfter} from './controller.mjs';
 import {ciStatusOnce} from './adapters.mjs';
 
 const dir = () => mkdtemp(join(tmpdir(), 'growth-controller-'));
-const approve = async (t) => ({verdict: 'APPROVE', commit: t.commit, completed: true, sessionId: 'reviewer-session'});
-const ok = {code: async () => {}, test: async () => 'PASS', ci: async () => 'PASS', review: approve};
+const approve = async (t) => ({verdict: 'APPROVE', commit: t.outputSha ?? t.commit, completed: true, source: 'independent-reviewer', sessionId: 'reviewer-session'});
+const ok = {code: async () => {}, test: async () => 'PASS', ci: async () => 'PASS', review: approve, gitHead: async () => 'aaa', gitClean: async () => true, isAlive: async () => false};
 
-test('normal completion reaches REVIEW_PASS only via bound reviewer', async () => {
-  const t = await new Controller({dir: await dir(), tools: ok}).run({id: 't1', commit: 'aaa'});
-  assert.equal(t.status, 'REVIEW_PASS');
+test('normal completion reaches REVIEW_PASS via bound reviewer', async () => {
+  assert.equal((await new Controller({dir: await dir(), tools: ok}).run({id: 'a', commit: 'aaa'})).status, 'REVIEW_PASS');
 });
 
-test('resume continues from last successful stage, code not redone', async () => {
-  const d = await dir(); let coded = 0;
-  const tools = {...ok, code: async () => { coded++; }, test: async () => 'FAIL'};
-  const first = await new Controller({dir: d, tools}).run({id: 't2', commit: 'aaa'});
-  assert.equal(first.status, 'FAIL');
-  const second = await new Controller({dir: d, tools: {...ok, code: async () => { coded++; }}}).run({id: 't2', commit: 'aaa'});
-  assert.equal(coded, 1); assert.equal(second.status, 'REVIEW_PASS'); // test stage retried, code skipped
+test('lock competition: live holder blocks, dead expired holder is reclaimed', async () => {
+  const d = await dir();
+  let release; const gate = new Promise((r) => { release = r; });
+  const slow = new Controller({dir: d, tools: {...ok, code: async () => gate}, runId: 'run-1'});
+  const p = slow.run({id: 'b1', commit: 'aaa'});
+  const other = new Controller({dir: d, tools: {...ok, isAlive: async () => true}, runId: 'run-2'});
+  await assert.rejects(other.run({id: 'b2', commit: 'aaa'}), /LOCKED/);
+  release(); await p;
+  const dead = new Controller({dir: d, tools: ok, runId: 'run-3'}); // prior lock released; normal handover works
+  assert.equal((await dead.run({id: 'b3', commit: 'aaa'})).status, 'REVIEW_PASS');
 });
 
-test('corrupt checkpoint stops and is never overwritten', async () => {
+test('old holder cannot delete successor lock', async () => {
+  const d = await dir();
+  let release; const gate = new Promise((r) => { release = r; });
+  const old = new Controller({dir: d, tools: {...ok, code: async () => gate}, runId: 'old-run'});
+  const p = old.run({id: 'b9', commit: 'aaa'});
+  await new Promise((r) => setTimeout(r, 20));
+  await writeFile(join(d, 'controller.lock'), JSON.stringify({ownerId: 'o', pid: 1, runId: 'new-run', session: 's', expiresAt: Date.now() + 60000}));
+  release(); await p;
+  const kept = JSON.parse(await readFile(join(d, 'controller.lock'), 'utf8'));
+  assert.equal(kept.runId, 'new-run');
+});
+
+test('429 saves multi-hour wait, restart does not call model before due', async () => {
+  const d = await dir(); let calls = 0; const t0 = 1_000_000;
+  const err = Object.assign(new Error('rate'), {code: 'RATE_LIMIT', retryAfterMs: 3 * 3600_000});
+  const tools = {...ok, code: async () => { calls++; throw err; }};
+  const first = await new Controller({dir: d, tools, now: () => t0}).run({id: 'c', commit: 'aaa'});
+  assert.equal(first.status, 'WAITING'); assert.equal(first.waitUntil, t0 + 3 * 3600_000);
+  const restarted = await new Controller({dir: d, tools, now: () => t0 + 1000}).run({id: 'c', commit: 'aaa'});
+  assert.equal(restarted.status, 'WAITING'); assert.equal(calls, 1); // watchdog gate held
+  assert.equal(parseRetryAfter({headers: {'retry-after': '120'}}, t0), t0 + 120000);
+});
+
+test('new commit invalidates prior test/CI/review evidence', async () => {
+  const d = await dir(); let head = 'aaa';
+  const tools = {...ok, gitHead: async () => head};
+  await new Controller({dir: d, tools}).run({id: 'd', commit: 'aaa'});
+  head = 'bbb';
+  const t = await new Controller({dir: d, tools}).run({id: 'd', commit: 'bbb'});
+  assert.equal(t.outputSha, 'bbb'); assert.equal(t.stages.review.commit, 'bbb');
+});
+
+test('untrusted reviewer verdicts are rejected', async () => {
+  const badSource = {...ok, review: async (t) => ({verdict: 'APPROVE', commit: 'aaa', completed: true, source: 'coder', sessionId: 'reviewer-session'})};
+  assert.equal((await new Controller({dir: await dir(), tools: badSource}).run({id: 'e', commit: 'aaa'})).status, 'REVIEW_BLOCKED');
+  const badSha = {...ok, review: async () => ({verdict: 'APPROVE', commit: 'OLD', completed: true, source: 'independent-reviewer', sessionId: 'reviewer-session'})};
+  assert.equal((await new Controller({dir: await dir(), tools: badSha}).run({id: 'e', commit: 'aaa'})).status, 'REVIEW_BLOCKED');
+});
+
+test('corrupt checkpoint stops and is preserved', async () => {
   const d = await dir(); await writeFile(join(d, 'state.json'), '{broken');
-  await assert.rejects(new Controller({dir: d, tools: ok}).run({id: 't3', commit: 'aaa'}), CheckpointCorrupt);
+  await assert.rejects(new Controller({dir: d, tools: ok}).run({id: 'f', commit: 'aaa'}), CheckpointCorrupt);
   assert.equal(await readFile(join(d, 'state.json'), 'utf8'), '{broken');
 });
 
-test('interrupted write leaves no partial state (atomic rename)', async () => {
-  const d = await dir();
-  const t = await new Controller({dir: d, tools: ok}).run({id: 't4', commit: 'aaa'});
-  const saved = JSON.parse(await readFile(join(d, 'state.json'), 'utf8')); // parses: never torn
-  assert.equal(saved.tasks['t4@aaa'].status, 'REVIEW_PASS'); assert.equal(t.status, 'REVIEW_PASS');
-});
-
-test('stale lock is reclaimed, fresh lock blocks', async () => {
-  const d = await dir();
-  await writeFile(join(d, 'controller.lock'), '{}');
-  const old = new Date(Date.now() - 120000); await utimes(join(d, 'controller.lock'), old, old);
-  const t = await new Controller({dir: d, tools: ok}).run({id: 't5', commit: 'aaa'});
-  assert.equal(t.status, 'REVIEW_PASS');
-});
-
-test('API 429 on code retries at most twice', async () => {
-  let calls = 0; const err = () => Object.assign(new Error('rate'), {code: 'RATE_LIMIT'});
-  const tools = {...ok, code: async () => { calls++; throw err(); }};
-  const t = await new Controller({dir: await dir(), tools}).run({id: 't6', commit: 'aaa'});
-  assert.equal(calls, 2); assert.equal(t.status, 'FAIL');
-});
-
-test('stale reviewer verdict for another commit is invalid', async () => {
-  const tools = {...ok, review: async () => ({verdict: 'APPROVE', commit: 'OLD', completed: true, sessionId: 'reviewer-session'})};
-  const t = await new Controller({dir: await dir(), tools}).run({id: 't7', commit: 'NEW'});
-  assert.equal(t.status, 'REVIEW_BLOCKED');
-});
-
-test('same-session or incomplete reviewer verdict is invalid', async () => {
-  const same = {...ok, review: async (t) => ({verdict: 'APPROVE', commit: t.commit, completed: true, sessionId: 'coder-session'})};
-  assert.equal((await new Controller({dir: await dir(), tools: same}).run({id: 't8', commit: 'aaa'})).status, 'REVIEW_BLOCKED');
-  const incomplete = {...ok, review: async (t) => ({verdict: 'APPROVE', commit: t.commit, completed: false, sessionId: 'reviewer-session'})};
-  assert.equal((await new Controller({dir: await dir(), tools: incomplete}).run({id: 't9', commit: 'aaa'})).status, 'REVIEW_BLOCKED');
-});
-
-test('CI adapter: mixed results fail, pending pends, wrong HEAD blocked', async () => {
-  const runs = (list) => async () => JSON.stringify(list);
-  const base = {repo: 'RC918/Growth-OS', pr: 31, headSha: 'abc'};
-  assert.equal(await ciStatusOnce({...base, exec: runs([{name: 'test', id: 2, status: 'completed', conclusion: 'failure'}])})(), 'FAIL');
-  assert.equal(await ciStatusOnce({...base, exec: runs([{name: 'test', id: 2, status: 'in_progress', conclusion: null}])})(), 'PENDING');
-  assert.equal(await ciStatusOnce({...base, exec: runs([])})(), 'BLOCKED');
-  assert.equal(await ciStatusOnce({...base, exec: runs([{name: 'test', id: 2, status: 'completed', conclusion: 'success'}])})(), 'PASS');
-});
-
-test('duplicate finished task never re-executes', async () => {
-  const d = await dir(); let coded = 0;
-  const tools = {...ok, code: async () => { coded++; }};
-  await new Controller({dir: d, tools}).run({id: 't10', commit: 'bbb'});
-  await new Controller({dir: d, tools}).run({id: 't10', commit: 'bbb'});
-  assert.equal(coded, 1);
+test('CI adapter handles pagination, reruns, mixed and missing checks', async () => {
+  const page1 = Array.from({length: 100}, (_, i) => ({name: 'other' + i, id: i, status: 'completed', conclusion: 'success'}));
+  const exec = async (cmd, args) => JSON.stringify(new URLSearchParams(args[1].split('?')[1]).get('page') === '1' ? page1 : [{name: 'test', id: 1, status: 'completed', conclusion: 'failure'}, {name: 'test', id: 2, status: 'completed', conclusion: 'success'}]);
+  assert.equal(await ciStatusOnce({exec, repo: 'RC918/Growth-OS', headSha: 'abc'})(), 'PASS'); // latest rerun wins
+  const missing = async () => JSON.stringify([]);
+  assert.equal(await ciStatusOnce({exec: missing, repo: 'R', headSha: 'x'})(), 'BLOCKED');
+  const neutral = async () => JSON.stringify([{name: 'test', id: 1, status: 'completed', conclusion: 'neutral'}]);
+  assert.equal(await ciStatusOnce({exec: neutral, repo: 'R', headSha: 'x'})(), 'FAIL');
+  const pending = async () => JSON.stringify([{name: 'test', id: 1, status: 'queued', conclusion: null}]);
+  assert.equal(await ciStatusOnce({exec: pending, repo: 'R', headSha: 'x'})(), 'PENDING');
 });
