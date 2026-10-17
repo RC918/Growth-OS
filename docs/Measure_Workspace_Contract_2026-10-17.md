@@ -20,3 +20,8 @@
 
 ## 最短接入路徑
 登入 Workspace 後由既有 workspace-api 以同一 RPC 保存映射快照，列表/讀回沿用既有版本機制，呈現沿用 baseline-report；不新增第二套身分、資料庫或 HTTP 正式入口。里程碑驗收：登入後能看到可信任（來源揭露完整）、可讀回的 Measure 結果。
+
+## 實際 Workspace 流程驗收（2026-10-17 補記）
+- 已完成：儲存讀回 → snapshot v2 → 既有 Workspace `loadSnapshot` → `growthReport` 實際呈現，合成資料全程通過（test_gsc_workspace_flow），登入後呈現所需的資料形狀與揭露已可操作；Staging Auth 實測仍待 Owner 核准後以合成帳號執行。
+- 已完成真實任務清單（Checkpoint 索引）：W1 載入逾時防護 0053c50、robots 分類 5b97cab 與 API 接入 b0e9166、GSC 儲存 f2483c1、呈現契約 c390eee、Measure HTTP 21b8f64、Workspace 映射 435cec7；皆 CI 全綠與 Reviewer APPROVE，細節見各 Commit 與 PR #31，不重測。
+- Watchdog 原生試運行啟動/停止：`node tools/headless/watchdog-patrol.mjs`（原生終端，Ctrl+C 或 24h 到期停止）；未經新的明確核准不啟用常駐排程。
