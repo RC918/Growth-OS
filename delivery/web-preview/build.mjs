@@ -11,6 +11,8 @@ export function derive(name,text){
   replace("import {createResultHandoff}","import {createReviewNavigation} from './first-result-navigation.mjs';\nimport {createResultHandoff}");
   replace('const errors=',"const navigation=createReviewNavigation({getView:()=>review?.view(),isBusy:()=>!!controller});\nconst errors=");
   replace('\n}\nfunction render(r){','\n navigation.refresh();\n}\nfunction render(r){');
+  replace("robots_unavailable:'無法核對 robots 規則，已停止讀取；可改用允許讀取的公開頁。'","robots_unavailable:'無法核對 robots 規則（網站未正常回應 robots.txt），已停止讀取；請稍後重試，或改貼同一網站可公開讀取的產品詳細頁。'");
+  replace("report('本次未產生新成果；網址保留，請選產品候選或改用公開產品頁。');return;","if(r.guidance){box.append(node('h3','下一步'));const steps=node('ul');for(const step of r.guidance.next_steps)steps.append(node('li',step));box.append(steps);}report('本次未產生新成果；網址保留，請依下一步選擇產品頁。');return;");
  }
  return text;
 }

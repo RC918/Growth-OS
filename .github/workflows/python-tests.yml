@@ -32,13 +32,13 @@ jobs:
           if-no-files-found: error
       - name: Public audit tests
         working-directory: prototype/public-audit
-        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py test_service_source.py
+        run: python3 -B -m unittest -v test_scanner.py test_app.py test_product_source.py test_product_api.py test_service_source.py test_first_result_api.py
       - name: Offline proof example
         working-directory: prototype/offline-proof
         run: python3 proof.py --actions data/actions.csv --metrics data/metrics.csv --events data/events.csv --output /tmp/growth-os-proof.json
       - name: CSV import preview tests
         working-directory: prototype/csv-import
-        run: python3 -m unittest -v test_validate.py test_store.py test_gsc_daily.py
+        run: python3 -m unittest -v test_validate.py test_store.py test_gsc_daily.py test_gsc_store.py test_gsc_integration.py test_measure_http.py test_gsc_workspace.py test_gsc_workspace_flow.py
       - name: Migration static contract checks
         working-directory: supabase
         run: python3 -m unittest -v test_migration_contract.py
@@ -332,6 +332,12 @@ jobs:
             /tmp/w1-product-fact-*.png
           retention-days: 7
           if-no-files-found: warn
+      - name: W1 offline module graph guard (no browser or network)
+        timeout-minutes: 2
+        run: node --test delivery/w1-private/module-graph.test.mjs
+      - name: W1 entry load timeout regression (no browser or network)
+        timeout-minutes: 2
+        run: node --experimental-vm-modules --test delivery/w1-private/entry-timeout.test.mjs
       - name: W1 closed pilot native Auth adapter gate and recovery
         timeout-minutes: 5
         run: |

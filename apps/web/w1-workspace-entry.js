@@ -15,8 +15,18 @@
    ?'登入元件載入失敗，無法寄送。請停止操作並回報；本頁不會自動寄送或重試。'
    :'登入介面初始化失敗，無法寄送。請停止操作並回報；本頁不會自動寄送或重試。')+' 錯誤分類：'+failureReason(error)+'。';
  }
+ // A hung module request never settles the import promise; bound the wait so
+ // the page reports a classified failure instead of initializing forever.
+ var settled=false;
+ var timer=setTimeout(function () {
+  if(settled)return; settled=true;
+  var error=new Error('Failed to fetch dynamically imported module: timeout');
+  error.name='TypeError'; failed(error);
+ }, 15000);
  import('./product-fact.mjs').then(function (module) {
   stage='初始化';
   return module.startWorkspace();
- }).catch(failed);
+ }).then(function () { settled=true; clearTimeout(timer); }, function (error) {
+  if(settled)return; settled=true; clearTimeout(timer); failed(error);
+ });
 }());
