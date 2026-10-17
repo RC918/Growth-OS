@@ -1,0 +1,28 @@
+{
+ "format": "growth-os-search-baseline",
+ "version": 2,
+ "a": {
+  "meta": {
+   "origin": "https://shop.example",
+   "type": "web",
+   "start": "2026-09-01",
+   "end": "2026-09-02",
+   "exported": "2026-09-07T00:00:00+00:00"
+  },
+  "rows": [
+   {
+    "date": "2026-09-01",
+    "clicks": 2,
+    "impressions": 10
+   },
+   {
+    "date": "2026-09-02",
+    "clicks": 0,
+    "impressions": 0
+   }
+  ],
+  "sample": true
+ },
+ "b": null,
+ "actions": []
+}
