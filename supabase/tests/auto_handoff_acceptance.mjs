@@ -40,7 +40,7 @@ try {
   userId = created.data?.id; if (!userId) throw Error('synthetic user creation failed HTTP ' + created.status);
   const spec = (await call('/rest/v1/')).data;
   const orgCols = Object.keys(spec.definitions?.organizations?.properties || {id: 1});
-  await call('/rest/v1/organizations', {method: 'POST', body: Object.fromEntries(orgCols.filter(k => ['id', 'name'].includes(k)).map(k => [k, k === 'id' ? org : 'Auto handoff synthetic']))});
+  await call('/rest/v1/organizations', {method: 'POST', body: Object.fromEntries(orgCols.filter(k => ['id', 'name', 'business_model'].includes(k)).map(k => [k, k === 'id' ? org : k === 'name' ? 'Auto handoff synthetic' : 'ecommerce']))});
   await call('/rest/v1/organization_members', {method: 'POST', body: {organization_id: org, user_id: userId, role: 'owner'}});
 
   browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});

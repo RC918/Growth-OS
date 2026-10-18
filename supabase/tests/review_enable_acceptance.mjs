@@ -56,7 +56,7 @@ const orgA = randomUUID(), orgB = randomUUID(), users = {};
 try {
   const spec = (await call('/rest/v1/', svc)).data;
   const orgCols = Object.keys(spec.definitions?.organizations?.properties || {id: 1});
-  for (const org of [orgA, orgB]) await call('/rest/v1/organizations', {...svc, method: 'POST', expect: 201, body: Object.fromEntries(orgCols.filter(k => ['id', 'name'].includes(k)).map(k => [k, k === 'id' ? org : 'Review acceptance synthetic']))});
+  for (const org of [orgA, orgB]) await call('/rest/v1/organizations', {...svc, method: 'POST', expect: 201, body: Object.fromEntries(orgCols.filter(k => ['id', 'name', 'business_model'].includes(k)).map(k => [k, k === 'id' ? org : k === 'name' ? 'Review acceptance synthetic' : 'ecommerce']))});
   for (const [name, org, role] of [['owner', orgA, 'owner'], ['viewer', orgA, 'viewer'], ['foreign', orgB, 'owner']]) {
     const email = `review-acc-${name}-${stamp}@example.invalid`;
     const created = await call('/auth/v1/admin/users', {...svc, method: 'POST', expect: 200, body: {email, password, email_confirm: true}});
