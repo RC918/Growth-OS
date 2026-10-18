@@ -98,5 +98,18 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - CI 終態補記（後續單次查詢）：`45e2c2c` 一輪 completed success（含
   PG17 步驟實跑通過），另一輪與本 Checkpoint 自身 HEAD 於補記時仍
   in_progress；佇列中其餘更早 Commit 均已 success 或如實 failure。
+
+## 2026-10-18 Staging 唯讀盤點（Owner 授權）
+
+- Commit `4e162fc`：`docs/Review_Staging_Readonly_Inventory_2026-10-18.md`。
+  REST／CLI 唯讀實測：Review RPC 與五欄位已安裝、Review 與 Save 對
+  anon/service_role 均閉鎖，與修訂候選預期一致。未執行任何寫入。
+- SQL 層（history、函數 SHA、constraints、authority ACL、authenticated
+  EXECUTE、RLS）因執行通道受限標記 ENV_CHANNEL_BLOCKED：sandbox 直連
+  DB 停滯且不索取密碼；Management API SQL 需 CLI 內部 OAuth 交換。
+  候選 `state.sql` 已備妥待具通道者一次讀回對帳。
+- 最小變更方案已提出待 Owner 核准：讀回全一致時僅需單次 enable＋
+  enabled config，disable 可逆；本次未啟用。獨立 Reviewer APPROVE
+  （綁定 `4e162fc`）。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
