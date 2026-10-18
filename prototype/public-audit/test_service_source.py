@@ -65,7 +65,13 @@ class StaticSubpage(unittest.TestCase):
             for ref in field['citations']:
                 self.assertEqual(refs[ref]['quote'], field['original'])
                 self.assertEqual(refs[ref]['source_version'], r['snapshot']['version'])
-        payload = json.dumps({k: r[k] for k in ('facts', 'inferences', 'preview')})
+        # Only extracted text values are checked: random snapshot IDs and
+        # content digests elsewhere in the payload can legitimately contain
+        # digit runs such as the decoy price '999'.
+        extracted = [f['value'] for f in r['facts'].values()]
+        extracted += [i['value'] for i in r['inferences']]
+        extracted += [v for field in r['preview']['fields'].values() for v in (field['original'], field['suggested'])]
+        payload = json.dumps(extracted, ensure_ascii=False)
         for excluded in ('GLOBAL PRODUCT TEXT', 'Entire suite', '999', 'Available without signup', 'DO NOT EXTRACT', 'SUPPLEMENT ONLY'):
             self.assertNotIn(excluded, payload)
         self.assertFalse(r['preview']['published'])
