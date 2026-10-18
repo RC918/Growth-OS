@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 import {build,derive} from './build.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 test('same route derived output preserves every other source and all frozen RC bytes',async()=>{
- const m=await build();assert.deepEqual(Object.keys(m.files).filter(f=>m.files[f].derived),['first-result.html','first-result.mjs']);
+ const m=await build();assert.deepEqual(Object.keys(m.files).filter(f=>m.files[f].derived),['first-result.html','first-result.mjs','url-result-config.mjs']);
+ const distConfig=await readFile('delivery/web-preview/dist/url-result-config.mjs','utf8');assert.match(distConfig,/export const urlSaveEnabled=true;/);assert.match(distConfig,/export const urlResultSchemaEnabled=true;/);assert.match(await readFile('apps/web/url-result-config.mjs','utf8'),/export const urlSaveEnabled=false;/);
  assert.deepEqual((await readdir('apps/web')).sort(),(await readdir('delivery/web-preview/dist')).sort());
  for(const [name,entry] of Object.entries(m.files)){const s=await readFile('apps/web/'+name),o=await readFile('delivery/web-preview/dist/'+name);assert.equal(hash(s),entry.source_sha256);assert.equal(hash(o),entry.output_sha256);if(!entry.derived)assert.deepEqual(o,s);}
  const frozen=JSON.parse(await readFile('prototype/internal-rc/deploy/hashes.json'));for(const [file,h]of Object.entries(frozen))assert.equal(hash(await readFile(file)),h,file);
