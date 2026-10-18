@@ -42,3 +42,17 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 本輪 Primary 委派工具連續兩次啟動失敗（native child run failed），
 標記 `ASSIGN_BLOCKED`，未假裝派工成功；已完成的稽核證據由 Manager
 直接記錄於本 Checkpoint，Loop 下一輪將自動重試派工機制。
+
+## 2026-10-18 Owner 決策後接續（Review 相容性 Core）
+
+- Commit `b32debb`：新增 `docs/Review_Persistent_Compatibility_2026-10-18.md`。
+  結論：persistent Review 候選與現況三項不相容（Save 已開放、Save 本體
+  雜湊為舊 bounded 版、Review RPC 已存在於 Staging 且 migration 計數
+  過時），不得直接啟用；可逆設計離線健全。未修改 Staging、未啟用。
+- 獨立 Reviewer：APPROVE（綁定 `b32debb`）。CI：查詢當下 PENDING。
+- Owner 決策已套用：Phase 1 真人驗收維持 HUMAN_REQUIRED 且不阻塞；
+  快照以 Workspace 持久保存為權威、本機 100 筆僅暫存（設計約束，
+  未新增 DB、未變更保存政策）；試點/GSC 僅前置工程。
+- 下一 Core 佇列：(1) Review 候選離線基準修訂（改為一般版 Save 基準，
+  需獨立批准後才談 remote）；(2) GSC/試點不需帳號的前置工程；
+  (3) 其餘藍圖能力對照盤點。另一執行者未提交檔案維持隔離不動。
