@@ -146,5 +146,16 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   Part A；Preview Review UI 開關受另一執行者未提交建置檔阻塞；
   Phase 1 真人驗收 HUMAN_REQUIRED。無人值守的選題→實作→測試→
   Reviewer→Checkpoint 鏈本身已連續多輪實證運作。
+
+## 2026-10-18 下一 Core：Part C 合成驗收工具
+
+- Commit `b03b91b`：新增 `supabase/tests/review_enable_acceptance.mjs`。
+  硬守衛僅限隔離 Staging ref、需 CONFIRM 與 env 金鑰（檔案不含金鑰）、
+  未確認 exit 2 不連網；離線 `--self-check` 以既有模組建置並驗證
+  reviewed payload（實測 PASS、竄改於連網前被拒）。live 步驟涵蓋
+  owner 保存／冪等／新會話讀回／Review／viewer／foreign 隔離／清理，
+  待 Part A 啟用後即可直接執行。獨立 Reviewer APPROVE。
+- CI：`69dbfaa`、`82d12bc`、`b03b91b` 於撰寫時仍 in_progress（佇列
+  單次查詢），終態由後續巡檢確認，不冒充 PASS。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
