@@ -52,6 +52,11 @@ try {
  pq((await persistentBaseline()).replace(/create role (anon|authenticated|service_role) nologin;/g,''));
  const artifact=async file=>readFile(new URL('./persistent/'+file,import.meta.url),'utf8');
  pq('grant all on public.audit_events,public.organization_members to service_role');
+ // Match the deployed Phase 1 staging baseline: general Save impl body
+ // (url_result/proposal.sql verbatim) and URL pair authenticated-open.
+ const urlProposal=await readFile(new URL('../../url_result/proposal.sql',import.meta.url),'utf8'),seg=urlProposal.slice(urlProposal.indexOf('create function private.save_url_result_draft_impl('));
+ pq(seg.slice(0,seg.indexOf('$$;')+3).replace('create function','create or replace function'));
+ pq('grant execute on function public.save_url_result_draft(uuid,uuid,uuid,integer,jsonb),private.save_url_result_draft_impl(uuid,uuid,uuid,integer,jsonb) to authenticated');
  const preserve=await artifact('preservation.sql'),original=pq(preserve),fixed=await fixedReviewManifest();
  for(const {name:table}of protectedTables){
   const oldCount=Number(pq('select count(*) from public.'+table));assert.ok(oldCount>0);
@@ -80,5 +85,5 @@ try {
  console.log('PASS authority/audit revoke PG17: private definer Owner RPC still 1 review/1 audit; injected audit failure rolls back entire review');
  const confirmed=pq(preserve);pq(await artifact('disable.sql'));pq(await artifact('postflight-closed.sql'));assert.throws(()=>pq(call),/permission denied/);assert.equal(pq(preserve),confirmed);
  pq(await artifact('restore.sql'));pq(await artifact('postflight-enabled.sql'));pq(call);assert.equal(pq(preserve),confirmed);pq(await artifact('disable.sql'));
- console.log('PASS persistent PG17 closed install → enable → review → disable denies → restore exact replay; immutable data/audit/catalog, Save closed');
+ console.log('PASS persistent PG17 closed install → enable → review → disable denies → restore exact replay; immutable data/audit/catalog, Save general-open');
 }finally{for(const p of sessions)if(p.exitCode===null)p.kill();if(started)docker(['rm','-f',name]);}
