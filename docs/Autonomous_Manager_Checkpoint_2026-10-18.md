@@ -133,5 +133,18 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 獨立 Reviewer：APPROVE（綁定 `a3661c4`）。Owner 有條件授權的五項
   條件均成立；剩餘唯一動作＝連接器執行 Part A，其後由 Muse 以
   REST 完成 Part C 合成驗證。尚未執行啟用，Review 維持閉鎖。
+
+## 2026-10-18 無人值守交付驗收 Core
+
+- Commit `69dbfaa`：`test_first_result_api.py` 新增保存鏈契約測試。
+  查證 DB 保存驗證（fr_valid_payload）為 product-only，即時萃取輸出
+  此前無測試守住其與保存契約的一致性；新測試以真實 extractor 輸出
+  重算來源雜湊並逐項核對 preview/snapshot 綁定、citation 完整性、
+  facts/欄位鍵集合，Service 則明示僅預覽不支援保存（設計邊界）。
+- 本機 22/22 PASS、frozen 零不符、獨立 Reviewer APPROVE。
+- 未通過的自治條件（如實）：Staging Review 啟用仍待連接器執行已核准
+  Part A；Preview Review UI 開關受另一執行者未提交建置檔阻塞；
+  Phase 1 真人驗收 HUMAN_REQUIRED。無人值守的選題→實作→測試→
+  Reviewer→Checkpoint 鏈本身已連續多輪實證運作。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
