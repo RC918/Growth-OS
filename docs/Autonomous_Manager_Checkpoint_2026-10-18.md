@@ -206,3 +206,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Commit `9fee67d` 更新該守衛的精確預期並新增橋接腳本禁用字串斷言；
   本機封閉性測試 PASS（另一既有測試因 sandbox 連埠 EPERM 本機失敗，
   與本變更無關，CI 為準）。獨立 Reviewer APPROVE：守衛未削弱。
+
+## 2026-10-18 Loop 補記：P0 修復鏈 CI 終態
+
+- 單次查詢確認：`5744f1f`、`9fee67d`、`32b2d03` 均雙輪 completed
+  success；橋接（a9f877c）與其 Checkpoint 的 failure 已由 9fee67d
+  守衛更新修復並經 CI 證明。P0 程式修復鏈證據閉合，剩餘僅為
+  Owner 核准 Auth Redirect 差異後的真人保存驗收（HUMAN_REQUIRED）。
