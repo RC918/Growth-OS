@@ -186,3 +186,15 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 修復差異已備妥待 Owner 核准：僅於隔離 Staging Auth 新增一筆
   分支 Preview 的 workspace Redirect URL，Site URL 不變，移除即回復。
   核准前不改任何 Auth 設定、不動 frozen 程式與衍生建置。
+
+## 2026-10-18 P0 修復：跨分頁交接橋接
+
+- 首版根因文件經獨立 Reviewer 阻斷：同源回跳仍不足（信件新分頁
+  opener 為空、工作階段僅存記憶體）。已核實並修訂為雙重根因。
+- Commit `a9f877c`：新增 `delivery/web-preview/handoff-bridge.mjs`
+  於衍生建置後修補 dist（payload 同源暫存 30 分鐘一次性、登入後經
+  既有 accept() 重驗領取、不存憑證、錨點漂移即失敗），vercel.json
+  串接建置；本機鏈實跑與測試 2/2 PASS，獨立 Reviewer APPROVE。
+- 仍待 Owner 核准：Staging Auth 新增一筆分支 Preview Redirect URL
+  （差異與回復已備妥）。兩者共同生效後 Owner 只需重跑一次保存
+  驗收；在此之前匯出／匯入仍可人工完成保存。尚未真人驗收通過。
