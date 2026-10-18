@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import unittest
 
@@ -188,6 +190,53 @@ class GuidanceTests(unittest.TestCase):
     def test_supported_product_has_no_guidance(self):
         report = build_snapshot('https://example.com/products/bolt', fetcher(PRODUCT))
         self.assertNotIn('guidance', report)
+
+
+class SaveChainContractTests(unittest.TestCase):
+    """Offline mirror of the Workspace save contract essentials.
+
+    The deployed save RPC validates the payload again in the database
+    (product-only page type, source hash binding, preview/snapshot binding,
+    citation integrity). These tests pin the live extractor output to that
+    contract so a builder drift cannot silently produce a First Result that
+    looks successful but can never be saved or reviewed. Non-product
+    results must stay explicitly preview-only instead of entering the chain.
+    """
+
+    def test_product_report_satisfies_save_binding(self):
+        report = build_snapshot('https://shop.example/products/bolt-a', fetcher(PRODUCT))
+        self.assertEqual(report['page_type'], 'product')
+        self.assertIn(report['extraction']['method'],
+                      ('explicit_product_microdata', 'woocommerce_single_product'))
+        snapshot, preview = report['snapshot'], report['preview']
+        raw = base64.b64decode(snapshot['content_base64'])
+        self.assertEqual(snapshot['version'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(snapshot['content_fingerprint'], 'sha256:' + snapshot['version'])
+        self.assertEqual(preview['source_snapshot_id'], snapshot['id'])
+        self.assertEqual(preview['source_version'], snapshot['version'])
+        self.assertFalse(preview['published'])
+        self.assertEqual(set(report['facts']),
+                         {'product_name', 'title', 'meta_description', 'description', 'features', 'use'})
+        self.assertEqual(set(preview['fields']), {'title', 'meta_description', 'description'})
+        for field in preview['fields'].values():
+            self.assertIsInstance(field['suggested'], str)
+            self.assertTrue(field['suggested'])
+        citations = snapshot['citations']
+        self.assertTrue(citations)
+        self.assertEqual(len({c['id'] for c in citations}), len(citations))
+        for citation in citations:
+            self.assertEqual(citation['snapshot_id'], snapshot['id'])
+            self.assertEqual(citation['source_version'], snapshot['version'])
+            self.assertEqual(citation['url'], snapshot['final_url'])
+            self.assertTrue(citation['locator'] and citation['quote'])
+            self.assertIn(citation['quote'], snapshot['html'])
+
+    def test_service_report_is_preview_only_by_design(self):
+        report = build_snapshot('https://example.com/tools/help', fetcher(_service_page()))
+        self.assertEqual(report['page_type'], 'service')
+        self.assertNotEqual(report['page_type'], 'product')
+        pending = ' '.join(report['preview']['pending_confirmation'])
+        self.assertIn('不支援確認、匯出保存或發布', pending)
 
 
 if __name__ == '__main__':
