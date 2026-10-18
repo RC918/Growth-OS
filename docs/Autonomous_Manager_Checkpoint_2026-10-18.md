@@ -249,3 +249,33 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   兩支驗收工具並經實跑驗證。
 - 本機瀏覽器自動交接仍受 sandbox 限制（Chromium 啟動即遭終止，
   多組參數實證），維持 ENV_BLOCKED；腳本與守衛已備妥。
+
+## 2026-10-19 Review Part A 已執行與 Part C 合成驗收 PASS
+
+- Part A（Owner 回報，連接器執行）：已審核 `enable.sql` 已於隔離
+  Staging `vhzryhibmpvglzcmfnaa` 執行，`postflight-enabled.sql` 通過；
+  Review public/private RPC 對 authenticated EXECUTE=true、
+  anon/service_role=false，一般版 Save 仍開放；migration history
+  28→29，新增 `20261018170133 url_review_persistent_enable`。
+  Muse 未自行執行 SQL、未重跑 enable。
+- Part C（Muse 實跑，Commit 基準 `68cd396`）：離線 self-check PASS
+  後，以既有 `supabase/tests/review_enable_acceptance.mjs` 經 Supabase
+  CLI 正式介面取得金鑰（未輸出值）、合成帳號實跑，9/9 PASS：
+  owner save HTTP 200、冪等重試、新會話讀回、owner Review HTTP 200
+  （Part A 前為 403）、Review 讀回 decision=approved 且 digest 一致、
+  viewer save/review 被拒、foreign 讀取隔離、foreign save 被拒；
+  合成 org/user 已清理，acceptance exit=0。Staging Review 持續啟用
+  至此隔離驗收通過（非產品正式開放、非真人驗收）。
+- Preview Review UI：衍生旗標本機複驗 PASS（預設關閉、
+  `REVIEW_UI_ENABLED=true` 才翻轉、錨點漂移 fail-loud，測試 2/2）。
+  實際部署啟用標記 ENV_ACCESS_BLOCKED：本環境 Vercel CLI 無有效
+  登入（未索取 Token、未讀憑證內容），線上 Preview 受 Vercel
+  Authentication 保護，無法由 Muse 設定 Preview 環境變數或驗證
+  部署後旗標。Owner 唯一一次性動作：於 Vercel 專案為 Preview
+  （分支 `takeover/muse-primary-20261016`）新增環境變數
+  `REVIEW_UI_ENABLED=true` 後重新部署該分支 Preview；完成後 Muse
+  以同版本 Preview 驗證 UI 並安排最後真人 Review 驗收。
+- 待辦：disable/restore 的 DB 層復驗需連接器執行已審核
+  `disable.sql`→`enable.sql`（離線 PGlite/PG17 已驗，本輪未重跑，
+  不阻塞 UI 與真人驗收）；自動交接瀏覽器驗收維持 ENV_BLOCKED；
+  Phase 1 最後真人 Review 驗收待 UI 啟用後由 Owner 執行一次。
