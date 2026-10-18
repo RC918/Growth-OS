@@ -173,3 +173,16 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   與本 Checkpoint 前一版仍 in_progress，待佇列消化後補記。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
+
+## 2026-10-18 P0 真人驗收阻塞：跨 Preview 網域交接
+
+- Owner 實測：分支 Preview 取得 BIC00001 並確認版本，Magic Link 登入
+  後落在另一部署網域，未觀察到交接／保存。列為 Phase 1 P0。
+- 根因（程式證據）：交接為同源分頁 postMessage；Workspace 的
+  redirectTo 為同源且程式驗證正確；最終跨網域代表 Supabase Auth
+  未接受 redirectTo 而回退 Site URL——Staging Auth Redirect URLs
+  未含接管分支 Preview 網域（詳見
+  `docs/Phase1_Handoff_RootCause_2026-10-18.md`）。
+- 修復差異已備妥待 Owner 核准：僅於隔離 Staging Auth 新增一筆
+  分支 Preview 的 workspace Redirect URL，Site URL 不變，移除即回復。
+  核准前不改任何 Auth 設定、不動 frozen 程式與衍生建置。
