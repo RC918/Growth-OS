@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "node delivery/web-preview/build.mjs && node delivery/web-preview/handoff-bridge.mjs",
+  "buildCommand": "node delivery/web-preview/build.mjs && node delivery/web-preview/handoff-bridge.mjs && node delivery/web-preview/review-flag.mjs",
   "outputDirectory": "delivery/web-preview/dist",
   "functions": {
     "api/product-source.py": {
