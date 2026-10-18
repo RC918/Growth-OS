@@ -238,3 +238,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Review 啟用唯一交接（A）：請連接器依已核准啟用包 Part A 執行
   enable.sql → postflight-enabled.sql → 新增 url_review_persistent_enable
   history；完成後 Muse 以既有驗收工具接續 Part C，不需 Owner 手動 SQL。
+
+## 2026-10-19 Part C 預演與 Review 啟用狀態實證
+
+- 以既有驗收工具對隔離 Staging 實跑（合成資料、用後清理）：owner
+  保存、冪等重試、新會話讀回、viewer/foreign 隔離共 7 項 PASS；
+  owner Review 回 HTTP 403，證實連接器尚未執行已核准 Part A，
+  Review 維持閉鎖。啟用後重跑同一工具即可完成 Part C，不需改程式。
+- 工具修正：合成組織建立需 business_model（值 ecommerce），已修正
+  兩支驗收工具並經實跑驗證。
+- 本機瀏覽器自動交接仍受 sandbox 限制（Chromium 啟動即遭終止，
+  多組參數實證），維持 ENV_BLOCKED；腳本與守衛已備妥。
