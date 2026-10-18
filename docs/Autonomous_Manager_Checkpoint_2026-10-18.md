@@ -83,5 +83,17 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   鄰近 bound/offline 測試 14 PASS，frozen 115 檔零不符。
 - 未修改 Staging DB 權限、未啟用、未恢復 bounded 實作。下一步仍為
   Owner 一次性批准 Staging 唯讀對帳與啟用窗口後才可談 remote 步驟。
+
+## 2026-10-18 Loop 補記：CI 失敗修復（492c471 → 45e2c2c）
+
+- `492c471` CI 雙輪 failure：步驟「URL exact-version Review PG17
+  concurrency」中 `supabase/drafts/url_review/native.mjs` 的 PG17 環境仍
+  建立舊封閉 Save 基準，遭新守衛 fail-closed 拒絕。屬基準修訂的必要
+  連帶修復，非守衛放寬。
+- Commit `0c1cce9` 同步該 harness 至一般版模擬；獨立 Reviewer 判定
+  BLOCK（相對檔案 URL 路徑多一層，實跑必 ENOENT）。
+- Commit `45e2c2c` 修正路徑為 `../url_result/proposal.sql`，Node 實證
+  存在；獨立 Reviewer APPROVE。本機無 Docker，PG17 實跑以 CI 為準，
+  本 Checkpoint 撰寫時 CI 尚未終結，不冒充 PASS。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
