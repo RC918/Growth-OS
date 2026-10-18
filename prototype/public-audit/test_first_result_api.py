@@ -62,6 +62,80 @@ class RobotsPolicyTests(unittest.TestCase):
         self.assertEqual(report['page_type'], 'product')
 
 
+SINGLE_CANDIDATE_LIST = b'''<html><head><title>Shop</title></head><body><main>
+<h1>Our shop</h1><a href="/products/bolt-a">Bolt A</a>
+</main></body></html>'''
+
+
+def routed_fetcher(routes, robots_status=200, robots_body=b'User-agent: *\nAllow: /\n'):
+    def fetch(url):
+        if url.endswith('/robots.txt'):
+            return robots_status, {'content-type': 'text/plain'}, robots_body
+        for suffix, page in routes.items():
+            if url.endswith(suffix):
+                return 200, {'content-type': 'text/html'}, page
+        return 404, {'content-type': 'text/html'}, b'not found'
+    return fetch
+
+
+class TrackingParamTests(unittest.TestCase):
+    def test_tracking_params_removed_and_result_produced(self):
+        report = build_snapshot(
+            'https://example.com/products/bolt?utm_source=news&gclid=abc123&utm_medium=email',
+            fetcher(PRODUCT))
+        self.assertEqual(report['page_type'], 'product')
+        self.assertEqual(report['snapshot']['original_url'], 'https://example.com/products/bolt')
+        self.assertEqual(report['url_sanitization']['removed_tracking_parameters'],
+                         ['gclid', 'utm_medium', 'utm_source'])
+        # Values of tracking parameters are never recorded.
+        self.assertNotIn('abc123', str(report['url_sanitization']))
+
+    def test_business_param_is_preserved_and_still_rejected(self):
+        with self.assertRaises(ScanError) as error:
+            build_snapshot('https://example.com/products/bolt?color=red', fetcher(PRODUCT))
+        self.assertEqual(error.exception.code, 'unsupported_query')
+
+    def test_mixed_tracking_and_business_params_still_rejected(self):
+        with self.assertRaises(ScanError) as error:
+            build_snapshot('https://example.com/products/bolt?utm_source=x&variant=42', fetcher(PRODUCT))
+        self.assertEqual(error.exception.code, 'unsupported_query')
+
+    def test_fragment_only_url_unchanged(self):
+        report = build_snapshot('https://example.com/products/bolt#details', fetcher(PRODUCT))
+        self.assertEqual(report['page_type'], 'product')
+        self.assertNotIn('url_sanitization', report)
+
+
+class AutoSelectTests(unittest.TestCase):
+    def test_single_candidate_is_followed_once_with_provenance(self):
+        fetch = routed_fetcher({'/catalog': SINGLE_CANDIDATE_LIST, '/products/bolt-a': PRODUCT})
+        report = build_snapshot('https://example.com/catalog', fetch)
+        self.assertEqual(report['page_type'], 'product')
+        self.assertEqual(report['facts']['product_name']['value'], 'Bolt A')
+        self.assertEqual(report['auto_selected']['candidate_url'],
+                         'https://example.com/products/bolt-a')
+        self.assertEqual(report['auto_selected']['from_url'], 'https://example.com/catalog')
+
+    def test_multiple_candidates_are_not_followed_and_get_summary(self):
+        fetch = routed_fetcher({'/catalog': LIST_PAGE, '/products/bolt-a': PRODUCT,
+                                '/products/drill-b': PRODUCT})
+        report = build_snapshot('https://example.com/catalog', fetch)
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertNotIn('auto_selected', report)
+        summary = report['opportunity_summary']
+        self.assertEqual(summary['candidate_count'], 2)
+        self.assertEqual(summary['recommended_candidate']['url'],
+                         'https://example.com/products/bolt-a')
+        self.assertEqual(len(summary['alternative_candidates']), 1)
+
+    def test_no_candidate_summary_has_no_fabricated_product(self):
+        report = build_snapshot('https://example.com/ctbc/golf_list.aspx', fetcher(SERVICE_PAGE))
+        summary = report['opportunity_summary']
+        self.assertEqual(summary['page_kind'], 'service_or_list')
+        self.assertEqual(summary['candidate_count'], 0)
+        self.assertIsNone(summary['recommended_candidate'])
+
+
 class GuidanceTests(unittest.TestCase):
     def test_listing_page_offers_candidate_guidance(self):
         report = build_snapshot('https://example.com/catalog', fetcher(LIST_PAGE))

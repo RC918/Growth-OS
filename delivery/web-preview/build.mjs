@@ -12,7 +12,8 @@ export function derive(name,text){
   replace('const errors=',"const navigation=createReviewNavigation({getView:()=>review?.view(),isBusy:()=>!!controller});\nconst errors=");
   replace('\n}\nfunction render(r){','\n navigation.refresh();\n}\nfunction render(r){');
   replace("robots_unavailable:'無法核對 robots 規則，已停止讀取；可改用允許讀取的公開頁。'","robots_unavailable:'無法核對 robots 規則（網站未正常回應 robots.txt），已停止讀取；請稍後重試，或改貼同一網站可公開讀取的產品詳細頁。'");
-  replace("report('本次未產生新成果；網址保留，請選產品候選或改用公開產品頁。');return;","if(r.guidance){box.append(node('h3','下一步'));const steps=node('ul');for(const step of r.guidance.next_steps)steps.append(node('li',step));box.append(steps);}report('本次未產生新成果；網址保留，請依下一步選擇產品頁。');return;");
+  replace("report('本次未產生新成果；網址保留，請選產品候選或改用公開產品頁。');return;","if(r.opportunity_summary){const s=r.opportunity_summary;box.append(node('h3','本頁機會摘要'));box.append(node('p','頁面類型：'+s.page_kind+'；標題：'+(s.site_title||'未提供')));if(s.headline)box.append(node('p','主要標題：'+s.headline));box.append(node('p',s.note));if(s.recommended_candidate)box.append(node('p','推薦候選：'+s.recommended_candidate.label+'（'+s.recommended_candidate.reason+'）'));}if(r.guidance){box.append(node('h3','下一步'));const steps=node('ul');for(const step of r.guidance.next_steps)steps.append(node('li',step));box.append(steps);}report('本次未產生新成果；網址保留，請依下一步選擇產品頁。');return;");
+  replace("report('第一份文本已備妥，請檢查來源及待確認資訊；尚未發布。');","report(r.auto_selected?'已自動帶入唯一產品候選並取得成果（'+r.auto_selected.candidate_url+'）；請檢查來源及待確認資訊；尚未發布。':'第一份文本已備妥，請檢查來源及待確認資訊；尚未發布。');");
  }
  // Phase 1 Preview only: enable the existing First Result -> Workspace save
  // chain (handoff/import -> save_url_result_draft RPC) in the derived output.

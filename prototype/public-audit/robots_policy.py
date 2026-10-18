@@ -12,11 +12,42 @@ size, redirect and content-type protections are unchanged.
 from __future__ import annotations
 
 import re
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from scanner import ScanError, fetch_following_redirects, fetch_once, normalize_url
 
 EMPTY_ROBOTS_STATUSES = frozenset({404, 410})
+
+# Explicit tracking-parameter allowlist. Only these names are removed during
+# normalization; every other query parameter is preserved untouched (and the
+# frozen builder will keep rejecting URLs whose remaining query could change
+# content). Parameter values are never recorded, only names.
+TRACKING_PARAMETERS = frozenset({
+    "gclid", "gbraid", "wbraid", "dclid", "fbclid", "msclkid", "twclid",
+    "ttclid", "li_fat_id", "mc_cid", "mc_eid", "igshid", "rb_clickid",
+    "s_kwcid", "_kx", "vero_id",
+})
+
+
+def _is_tracking(name: str) -> bool:
+    lowered = name.lower()
+    return lowered.startswith("utm_") or lowered in TRACKING_PARAMETERS
+
+
+def sanitize_tracking_params(raw_url):
+    """Remove allowlisted tracking params. Returns (url, removed_names)."""
+    if not isinstance(raw_url, str):
+        return raw_url, []
+    parts = urlsplit(raw_url.strip())
+    if not parts.query:
+        return raw_url, []
+    pairs = parse_qsl(parts.query, keep_blank_values=True)
+    kept = [(k, v) for k, v in pairs if not _is_tracking(k)]
+    removed = sorted({k for k, _ in pairs if _is_tracking(k)})
+    if not removed:
+        return raw_url, []
+    cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(kept), ""))
+    return cleaned, removed
 
 
 def robots_status(raw_url, fetch=fetch_once):
@@ -30,17 +61,18 @@ def robots_status(raw_url, fetch=fetch_once):
 
 
 def build_snapshot(raw_url, fetch=fetch_once, clock=None):
-    """Frozen snapshot builder with the 404/410 empty-robots policy applied."""
+    """Frozen builder + tracking-param normalization + 404/410 robots policy."""
     from product_source import build_snapshot as frozen_build
 
+    cleaned_url, removed = sanitize_tracking_params(raw_url)
     try:
-        return frozen_build(raw_url, fetch=fetch, clock=clock)
+        report = frozen_build(cleaned_url, fetch=fetch, clock=clock)
     except ScanError as exc:
         if exc.code != "robots_unavailable":
             raise
-        if robots_status(raw_url, fetch) not in EMPTY_ROBOTS_STATUSES:
+        if robots_status(cleaned_url, fetch) not in EMPTY_ROBOTS_STATUSES:
             raise
-        host = urlsplit(normalize_url(raw_url)).hostname
+        host = urlsplit(normalize_url(cleaned_url)).hostname
         robots_url = f"https://{host}/robots.txt"
 
         def policy_fetch(url):
@@ -48,7 +80,10 @@ def build_snapshot(raw_url, fetch=fetch_once, clock=None):
                 return 200, {}, b""
             return fetch(url)
 
-        return frozen_build(raw_url, fetch=policy_fetch, clock=clock)
+        report = frozen_build(cleaned_url, fetch=policy_fetch, clock=clock)
+    if removed:
+        report["url_sanitization"] = {"removed_tracking_parameters": removed}
+    return report
 
 
 _GUIDANCE = {
