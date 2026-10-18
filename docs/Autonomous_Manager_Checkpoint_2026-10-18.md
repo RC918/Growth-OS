@@ -224,3 +224,17 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   Preview Review UI 改以衍生建置開關做啟用準備；自動交接以合成
   帳號先驗；Workspace 重新整理回登入畫面經查為 token 僅存記憶體
   的刻意設計邊界，不弱化 Auth。
+
+## 2026-10-19 Review UI 準備與自動交接驗證狀態
+
+- Commit `1634376`：Review UI 衍生建置開關（預設關閉、REVIEW_UI_ENABLED
+  明示才翻轉、守衛同步更新），本機測試與建置鏈 PASS，Reviewer APPROVE。
+  待 DB Part A 啟用後於部署設定開啟，不需再改程式。
+- Commit（auto handoff）：`supabase/tests/auto_handoff_acceptance.mjs`
+  瀏覽器合成驗收已備妥（守衛、合成帳號、橋接領取、保存、讀回、清理）；
+  本機 Chromium 受 sandbox 限制無法啟動，標記 ENV_BLOCKED，未冒充通過，
+  待具瀏覽器環境執行。Session 重新整理回登入畫面屬 token 僅存記憶體
+  的刻意設計邊界，不弱化 Auth（D 項結案）。
+- Review 啟用唯一交接（A）：請連接器依已核准啟用包 Part A 執行
+  enable.sql → postflight-enabled.sql → 新增 url_review_persistent_enable
+  history；完成後 Muse 以既有驗收工具接續 Part C，不需 Owner 手動 SQL。
