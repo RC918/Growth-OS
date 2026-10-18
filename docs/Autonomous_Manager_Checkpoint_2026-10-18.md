@@ -168,5 +168,8 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - CI 佇列（69dbfaa 起多個 HEAD）於本段撰寫時仍 in_progress，屬佇列
   深度問題；各 Commit 均已具本機測試與 Reviewer 證據，終態待佇列
   消化後以單次查詢補記，不冒充 PASS、不重複派工。
+- CI 終態補記（2026-10-18 15:04 UTC 單次查詢）：`69dbfaa` 與
+  `82d12bc` 均雙輪 completed success；`b03b91b`、`df40591`、`58e82a6`
+  與本 Checkpoint 前一版仍 in_progress，待佇列消化後補記。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
