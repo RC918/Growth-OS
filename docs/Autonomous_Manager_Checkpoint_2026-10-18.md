@@ -279,3 +279,21 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   `disable.sql`→`enable.sql`（離線 PGlite/PG17 已驗，本輪未重跑，
   不阻塞 UI 與真人驗收）；自動交接瀏覽器驗收維持 ENV_BLOCKED；
   Phase 1 最後真人 Review 驗收待 UI 啟用後由 Owner 執行一次。
+
+## 2026-10-19 Preview Review UI 部署啟用驗證
+
+- Owner 已於 Vercel 為 Preview（分支 takeover/muse-primary-20261016）
+  設定 `REVIEW_UI_ENABLED=true` 並 Redeploy：Deployment DX9CxctTF、
+  Commit `b09b551`、Status Ready，網域為分支 Preview。
+- Muse 驗證（未重部署、未重跑 SQL）：線上內容受 Vercel SSO 保護，
+  匿名讀取被導向登入頁，無法直接讀回線上設定檔（如實記錄）；
+  改以部署 Commit `b09b551` 的乾淨封存重現完全相同建置鏈：
+  帶 `REVIEW_UI_ENABLED=true` 時 dist 輸出 `urlReviewEnabled=true`
+  （review-flag 回 `enabled`），不帶環境變數時為 `false`
+  （`disabled`），且 `1634376` 旗標 Commit 為 `b09b551` 祖先。
+  dist 內 Workspace API 確實呼叫 `/rest/v1/rpc/review_url_result`，
+  該 RPC 已於 Part C 合成驗收實證 HTTP 200 且讀回 approved。
+- CI 補記：`b09b551` 第二輪 run completed success；第一輪 failure
+  經日誌實證僅 GitHub Artifact 上傳逾時，全部測試步驟 success。
+- 狀態：Review UI 部署啟用具建置層證據，待 Owner 最後一次真人
+  Review 驗收（僅 Review 步驟，不重做已通過的保存與讀回）。
