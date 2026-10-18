@@ -9,7 +9,7 @@ import {root,render,sha,entries,saves,protectedTables} from './candidate.mjs';
 import {createWorkspaceApi} from '../../../../apps/web/workspace-api.mjs';
 import {createRevisionMarker} from '../../../../apps/web/url-result-trial-marker.mjs';
 const pack=await render(),m=await fixedManifest();
-test('persistent deployment lifecycle on historical closed baseline; normal SQL authority only',async t=>{
+test('persistent deployment lifecycle on revised general-save baseline; normal SQL authority only',async t=>{
  const db=await PGlite.create(),q=(s,a=[])=>db.query(s,a),scalar=async(s,a=[])=>Object.values((await q(s,a)).rows[0])[0];
  const auth=async(actor=m.actor_id)=>{await db.exec('reset role');await q("select set_config('request.jwt.claim.sub',$1,false)",[actor]);await db.exec('set role authenticated');};
  const review=(request=randomUUID())=>scalar('select public.review_url_result($1,$2,$3,$4,$5,$6,$7)',[m.organization_id,m.version_id,request,m.source_digest,m.content_digest,m.version_digest,JSON.stringify(checks)]);
@@ -17,7 +17,13 @@ test('persistent deployment lifecycle on historical closed baseline; normal SQL 
  const tx=async fn=>{await db.exec('reset role;begin');try{await fn();}finally{await db.exec('rollback;reset role');}};
  const reject=async fn=>{await db.exec('savepoint rejected');try{await assert.rejects(fn);}finally{await db.exec('rollback to rejected;release rejected');}};
  try{
-  await db.exec(await baseline({pglite:true}));await db.exec('grant all on public.audit_events,public.organization_members to service_role');let before=await snapshot();
+  await db.exec(await baseline({pglite:true}));await db.exec('grant all on public.audit_events,public.organization_members to service_role');
+  // Simulate the deployed Phase 1 staging state: general Save impl body
+  // (url_result/proposal.sql verbatim) and URL pair authenticated-open.
+  const urlProposal=await readFile(new URL('../../url_result/proposal.sql',root),'utf8'),seg=urlProposal.slice(urlProposal.indexOf('create function private.save_url_result_draft_impl('));
+  await db.exec(seg.slice(0,seg.indexOf('$$;')+3).replace('create function','create or replace function'));
+  await db.exec(`grant execute on function ${saves[0]},${saves[1]} to authenticated`);
+  let before=await snapshot();
   await t.test('shared authority/audit revoke removes both TRUNCATE paths; SELECT, memberships, RLS, service_role and data preserved',async()=>{
    for(const {name}of protectedTables){
     const count=await scalar('select count(*) from public.'+name);assert.ok(count>0);
@@ -59,11 +65,11 @@ test('persistent deployment lifecycle on historical closed baseline; normal SQL 
    await db.exec(pack['preflight.sql']);await db.exec(pack['install-closed.sql']);await db.exec(pack['postflight-closed.sql']);assert.deepEqual(await snapshot(),before);await assert.rejects(db.exec(pack['install-closed.sql']),/already installed/);
    await auth();await assert.rejects(review(),e=>e.code==='42501');
   });
-  await t.test('enable/disable/restore change only intended ACL, Save always closed; body/RLS/table/ACL drift refuses restore',async()=>{
+  await t.test('enable/disable/restore change only intended ACL, Save stays general-open; body/RLS/table/ACL drift refuses restore',async()=>{
    await db.exec('reset role');await db.exec(pack['enable.sql']);await db.exec(pack['postflight-enabled.sql']);assert.deepEqual(await snapshot(),before);
-   for(const role of ['anon','authenticated','service_role'])for(const f of saves)assert.equal(await scalar(`select has_function_privilege($1,$2,'execute')`,[role,f]),false);
+   for(const role of ['anon','authenticated','service_role'])for(const [i,f]of saves.entries())assert.equal(await scalar(`select has_function_privilege($1,$2,'execute')`,[role,f]),role==='authenticated'&&i<2);
    await db.exec(pack['disable.sql']);await db.exec(pack['postflight-closed.sql']);assert.deepEqual(await snapshot(),before);
-   for(const drift of ["alter function public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb) security definer","alter table public.content_reviews disable row level security","grant insert on public.content_reviews to authenticated",`grant execute on function ${entries[0]} to anon`,`grant execute on function ${saves[2]} to authenticated`,...protectedTables.flatMap(t=>['INSERT','UPDATE','DELETE','TRUNCATE'].map(p=>`grant ${p} on public.${t.name} to authenticated`)),...protectedTables.map(t=>`grant TRUNCATE on public.${t.name} to PUBLIC`)])await tx(async()=>{await db.exec(drift);await reject(()=>db.exec(pack['restore.sql']));await reject(()=>db.exec(pack['enable.sql']));if(protectedTables.some(t=>drift.includes('public.'+t.name))){await reject(()=>db.exec(pack['postflight-closed.sql']));await reject(()=>db.exec(pack['postflight-enabled.sql']));}assert.equal(await scalar(`select has_function_privilege('authenticated',$1,'execute')`,[entries[1]]),false);});
+   for(const drift of ["alter function public.review_url_result(uuid,uuid,uuid,text,text,text,jsonb) security definer","alter table public.content_reviews disable row level security","grant insert on public.content_reviews to authenticated",`grant execute on function ${entries[0]} to anon`,`grant execute on function ${saves[2]} to authenticated`,`revoke execute on function ${saves[0]} from authenticated`,`grant execute on function ${saves[1]} to anon`,...protectedTables.flatMap(t=>['INSERT','UPDATE','DELETE','TRUNCATE'].map(p=>`grant ${p} on public.${t.name} to authenticated`)),...protectedTables.map(t=>`grant TRUNCATE on public.${t.name} to PUBLIC`)])await tx(async()=>{await db.exec(drift);await reject(()=>db.exec(pack['restore.sql']));await reject(()=>db.exec(pack['enable.sql']));if(protectedTables.some(t=>drift.includes('public.'+t.name))){await reject(()=>db.exec(pack['postflight-closed.sql']));await reject(()=>db.exec(pack['postflight-enabled.sql']));}assert.equal(await scalar(`select has_function_privilege('authenticated',$1,'execute')`,[entries[1]]),false);});
    await db.exec(pack['restore.sql']);await db.exec(pack['postflight-enabled.sql']);assert.deepEqual(await snapshot(),before);
   });
   await t.test('scope is not fixed actor/request: another same-org Owner accepted; viewer and foreign denied',()=>tx(async()=>{

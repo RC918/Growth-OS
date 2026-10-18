@@ -1,5 +1,7 @@
 # 持續版本 Review：隔離測試站離線部署候選
 
+> **2026-10-18 基準修訂（離線、未啟用）**：本包原以「Save 全關閉＋bounded 本體」為基準，已過時。修訂後基準為已部署的一般版保存（URL pair 對 authenticated 開放、本體與 `url_result/proposal.sql` 逐字一致）；Review RPC 於 bounded 時代已安裝於 Staging，任何啟用前須先只讀對帳，不得重放 install。本修訂未修改 Staging、未授予任何權限、未啟用。詳見 `docs/Review_Persistent_Compatibility_2026-10-18.md`。
+
 Owner 2026-10-04 07:48 只同意方向；Reviewer `01a105e3` 方案 APPROVE。**未批准任何 remote DDL/ACL/config/資料寫入**。本包在 drafts，不在 migrations discovery，也未改 served config。修正基準 `c4ae4ec34df52a1271a059db0301adc905b54a1f`，CI `37187566457` success。該版仍是未批准候選；本次依Reviewer `01a1061a`／`01a10626` 合併啟用前同根因P2 authority/audit ACL blocker。父07:53–07:54 UTC唯讀核對project ACTIVE_HEALTHY／PG17.6、history23（最後20261004050737）、四個Save entry閉鎖、URL Save body hash吻合及URL Review RPC不存在。現有人群：Fixture A兩位Owner（8fc0dd39-a9d9-4a56-80b9-362768547d81、e85f1a90-3565-4fc1-a7e0-3b7d08830d0e），Fixture B兩位viewer（5d14dbf9-e9ef-453b-8760-e48a20fa63ad、9dd82ae4-2263-4af6-bf6b-84085234b0e2）；詳manifest。此DB快照本身不證明無production共用；父後續報告Auth證據無額外blocker，exact deployment／環境綁定及完整history/catalog/preservation仍按執行envelope核對。Agent未讀credentials/token。
 
 ## Review authority 與 audit ACL P2 前置修正
@@ -18,15 +20,15 @@ project `vhzryhibmpvglzcmfnaa`、Growth OS Preview 的指定 branch alias 見 ma
 
 **authenticated 可 EXECUTE 兩個 Review entry**；實際 SQL 只允許同 org 當前 Owner 確認該 parent 最新已保存 URL draft，並核 source/content/version digests 與五項checks。同 request exact replay只返回既有歷史，不核准新版。viewer/editor不寫，合法同org成員只讀；foreign不可讀寫別org。PUBLIC/anon/service_role不新增有效 EXECUTE，不新增任何table write grant。不得宣稱固定本Owner、固定v2或一次request：範圍是此測試project所有符合條件的org Owner／最新URL版本，含後續合法membership／版本變化。
 
-Save始終closed，候選不建立parent/version，不擴Publish/Measure/100cap。功能**沒有自動到期**；action-time窗口與授權另列，manifest為null不猜短窗口。持續期間每次合法確認1review+1audit，沒有單次bounded的全生命週期總量上限；最初真人驗收是否要做、帳號/版本/最大POST數需在獨立批准中指定，這不是每日regression前置。
+Save已依Phase 1一般版部署開放（2026-10-18基準修訂）：URL保存pair對authenticated可執行、其餘角色與first-result pair維持閉鎖，候選不得更改Save ACL或恢復過期bounded實作；候選不建立parent/version，不擴Publish/Measure/100cap。功能**沒有自動到期**；action-time窗口與授權另列，manifest為null不猜短窗口。持續期間每次合法確認1review+1audit，沒有單次bounded的全生命週期總量上限；最初真人驗收是否要做、帳號/版本/最大POST數需在獨立批准中指定，這不是每日regression前置。
 
 ## 檔案與操作順序
 
-1. 父核project隔離、Preview deployment綁定、既有人群/Auth設定及DB基準；核原23 history全row/statement hash與closed Save body，不只計數。任一pending不進remote。Owner再批准本包exact commit／hashes、combined authority revoke+initial install+enable、paired configs、action-time窗口、允許的人群與正常使用資料写入範圍、停用權限及恢復是否須再批。
-2. 先以`state.sql`＋`preservation.sql`抓原23筆history／資料／catalog及完整raw ACL baseline。Owner另行批准後單次tracked執行`authority-revoke.sql`（23→24），核`authority-postflight.sql`與兩表精確ACL allowlist；其他資料／policy／角色／service_role不變。再跑`preflight.sql`：Save與兩表四寫權閉鎖、RLS、無Review安裝，history必須24且唯一`url_review_persistent_authority_revoke`記錄的statement SHA吻合本包。這不是缺記錄時補history的授權；unknown一律核原操作不重送。
+1. 父核project隔離、Preview deployment綁定、既有人群/Auth設定及DB基準；核原history全row/statement hash、一般版Save body與已安裝Review schema（bounded時代已存在，須先以state.sql對帳、不得盲目重放install），不只計數。任一pending不進remote。Owner再批准本包exact commit／hashes、combined authority revoke+initial install+enable、paired configs、action-time窗口、允許的人群與正常使用資料写入範圍、停用權限及恢復是否須再批。
+2. 先以`state.sql`＋`preservation.sql`抓原23筆history／資料／catalog及完整raw ACL baseline。Owner另行批准後單次tracked執行`authority-revoke.sql`（23→24），核`authority-postflight.sql`與兩表精確ACL allowlist；其他資料／policy／角色／service_role不變。再跑`preflight.sql`：Save一般版基準（URL pair開放／其餘閉鎖＋一般版本體雜湊）與兩表四寫權閉鎖、RLS、Review安裝狀態對帳，history必須24且唯一`url_review_persistent_authority_revoke`記錄的statement SHA吻合本包。這不是缺記錄時補history的授權；unknown一律核原操作不重送。
 3. 單次tracked `install-closed.sql`（24→25）：原proposal的DDL/RPC預設closed、同一DO核exact schema/body/ACL，失敗回滾SQL。不得重跑已安裝／部分安裝；hosted migration-history＋DDL是否原子仍不能假定，未知走state對帳。verify `postflight-closed.sql`，所有業務資料零增量、原history逐row不變，只新增批准的history。
 4. 部署 `preview-disabled-config.mjs` 到兩份指定config路徑，Save=false、Review schema=true/gate=false、trial=null；核immutable deployment ID/HEAD/config hash及schema/ACL。這是安裝後合法唯讀config，不可在schema未完成時部署。
-5. 另一次tracked `enable.sql`（25→26）：重核原Savebody、RLS、無direct writes、exact Review schema/function與closed ACL才grant authenticated。核`postflight-enabled.sql`、preservation；最後部署enabled config並核對部署身份。ACL先於UI，仍僅在批准action窗口執行。部署失敗保持gate closed、對帳後依批准disable，不盲目重試。
+5. 另一次tracked `enable.sql`（25→26）：重核一般版Save body與ACL基準、RLS、無direct writes、exact Review schema/function與closed ACL才grant authenticated。核`postflight-enabled.sql`、preservation；最後部署enabled config並核對部署身份。ACL先於UI，仍僅在批准action窗口執行。部署失敗保持gate closed、對帳後依批准disable，不盲目重試。
 6. 正常Auth使用；unknown Review只能既有marker原request／known UUID GET-only，見`reconcile.sql`。不清pending marker、不換request、不覆寫歷史、不重送推定未成功。
 7. 停用：先部署disabled config，再執行獨立tracked `disable.sql`撤兩entry的有效EXECUTE，核closed postflight。舊開頁gate不是安全邊界，DB撤權拒絕後續呼叫。**已通過權限檢查的in-flight交易不會被REVOKE回溯取消**；停止新入口、等待／只讀核對在途結果與audit後，才記錄靜止baseline。若仍活動或結果未知，回報未完全靜止、不強制kill、不聲稱零新增。成功review/audit、schema、payload、marker及合法讀取保留。
 8. 恢復：以disabled config且有效ACL closed開始，重新核hosted deployment/schema/ACL、完整preservation及在途對帳。另經所需批准用`restore.sql`；它只重核並grant，不重建schema、不替換body、不清marker。核enabled postflight後才換enabled config。drift先停，不讓restore修復未知狀態。
