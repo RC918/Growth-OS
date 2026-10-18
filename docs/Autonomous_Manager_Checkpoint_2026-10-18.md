@@ -56,3 +56,20 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 下一 Core 佇列：(1) Review 候選離線基準修訂（改為一般版 Save 基準，
   需獨立批准後才談 remote）；(2) GSC/試點不需帳號的前置工程；
   (3) 其餘藍圖能力對照盤點。另一執行者未提交檔案維持隔離不動。
+
+## 2026-10-18 試點／GSC 前置 Core
+
+- Commit `6ca0871`：新增 `prototype/csv-import/pilot_preflight.py` 與
+  `test_gsc_workspace.py` 5 案離線測試。僅組合既有 GSC 驗證／呈現／
+  Workspace snapshot v2 映射；不連網、不寫 DB、不使用真實帳號或站點
+  寫入。完整且明示 `sample` 才 `workspace_save_ready`；缺日阻塞且不填零。
+- 權威規則已落實為合約：Workspace 持久保存為權威、本機儲存僅
+  `cache_only_not_authoritative`；`google_verified`、`traffic_verified`、
+  `causal_claim` 恆為 false，`real_pilot_ready=false`，待外部授權為
+  真實 GSC 帳號授權與站點寫入權限。未新增資料庫、未變更保存政策。
+- 本機離線測試 26 案 PASS（csv-import 相關子集）；frozen 115 檔雜湊
+  零不符。獨立 Reviewer：APPROVE（綁定 `6ca0871`）。
+- CI：`3420995` 與 `6ca0871` 於本 Checkpoint 撰寫時均為 in_progress
+  （單次查詢，未輪詢），終態由後續巡檢單次確認，不冒充 PASS。
+- Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
+  權限未修改；另一執行者未提交檔案維持隔離。
