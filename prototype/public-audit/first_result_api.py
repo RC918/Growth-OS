@@ -77,6 +77,24 @@ def build_snapshot(*args, **kwargs):
                     }
                     return followed
             report["opportunity_summary"] = opportunity_summary(report)
+            # Single-entry integration: a page that is not a single product
+            # may still be a reliably identifiable Service/tool/subpage.
+            # Reuse the existing service builder; any failure keeps the
+            # product-path report (with guidance) unchanged.
+            try:
+                from service_source import build_snapshot as service_build
+                service_kwargs = dict(kwargs)
+                if len(args) > 1:
+                    service_kwargs.setdefault("fetch", args[1])
+                if len(args) > 2:
+                    service_kwargs.setdefault("clock", args[2])
+                service_report = service_build(args[0] if args else kwargs.get("raw_url"), **service_kwargs)
+            except Exception:
+                service_report = None
+            if (service_report is not None and service_report.get("preview")
+                    and service_report.get("page_type") in ("service", "software_application", "static_subpage")):
+                service_report["result_kind"] = service_report["page_type"]
+                return service_report
         return report
     except Exception as exc:
         if getattr(exc, "code", None) == "robots_unavailable":

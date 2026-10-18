@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from first_result_api import build_snapshot
@@ -134,6 +135,35 @@ class AutoSelectTests(unittest.TestCase):
         self.assertEqual(summary['page_kind'], 'service_or_list')
         self.assertEqual(summary['candidate_count'], 0)
         self.assertIsNone(summary['recommended_candidate'])
+
+
+def _service_page():
+    name, description = 'Workshop help', 'Plan workshop tasks with a checklist of supplied requirements.'
+    data = json.dumps({'@context': 'https://schema.org', '@type': 'Service', 'name': name, 'description': description})
+    return (f'<html><head><title>Workshop help | Example</title><meta name="description" content="Old introduction">'
+            f'<script type="application/ld+json">{data}</script></head><body><main>'
+            f'<article itemscope itemtype="https://schema.org/Service"><h1 itemprop="name">{name}</h1>'
+            f'<p itemprop="description">{description}</p></article></main></body></html>').encode()
+
+
+class ServiceIntegrationTests(unittest.TestCase):
+    def test_service_page_accepted_at_single_entry(self):
+        report = build_snapshot('https://example.com/tools/help', fetcher(_service_page()))
+        self.assertEqual(report['page_type'], 'service')
+        self.assertEqual(report['result_kind'], 'service')
+        self.assertIsNotNone(report['preview'])
+        self.assertEqual(report['facts']['entity_name']['value'], 'Workshop help')
+
+    def test_neither_product_nor_service_keeps_guidance(self):
+        report = build_snapshot('https://example.com/ctbc/golf_list.aspx', fetcher(SERVICE_PAGE))
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertNotIn('result_kind', report)
+        self.assertEqual(report['guidance']['page_kind'], 'service_or_list')
+
+    def test_product_page_unaffected_by_service_attempt(self):
+        report = build_snapshot('https://example.com/products/bolt', fetcher(PRODUCT))
+        self.assertEqual(report['page_type'], 'product')
+        self.assertNotIn('result_kind', report)
 
 
 class GuidanceTests(unittest.TestCase):
