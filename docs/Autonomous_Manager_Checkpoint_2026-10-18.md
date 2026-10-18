@@ -198,3 +198,11 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 仍待 Owner 核准：Staging Auth 新增一筆分支 Preview Redirect URL
   （差異與回復已備妥）。兩者共同生效後 Owner 只需重跑一次保存
   驗收；在此之前匯出／匯入仍可人工完成保存。尚未真人驗收通過。
+
+## 2026-10-18 Loop 補記：橋接 CI 封閉性守衛
+
+- `a9f877c`/`9679d6e` CI failure 經日誌實證：部署封閉性守衛測試固定
+  buildCommand 字串，與串接橋接後的新指令不符（非橋接邏輯錯誤）。
+- Commit `9fee67d` 更新該守衛的精確預期並新增橋接腳本禁用字串斷言；
+  本機封閉性測試 PASS（另一既有測試因 sandbox 連埠 EPERM 本機失敗，
+  與本變更無關，CI 為準）。獨立 Reviewer APPROVE：守衛未削弱。
