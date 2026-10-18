@@ -122,5 +122,16 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   本機儲存的連線密碼；新版 CLI 需 sbp 型 token 與既有 OAuth 登入
   不相容，未索取 Token。SQL 層對帳結論不變：待連接器唯讀執行
   `state.sql` 一次完成，或於啟用核准時一併讀回。
+
+## 2026-10-18 Staging 對帳完成與啟用包核准
+
+- Owner 回報連接器唯讀對帳全項符合（history 28、函數 SHA、欄位／
+  constraints、EXECUTE 矩陣、authority ACL、RLS），無任何寫入。
+- Commit `a3661c4`：`docs/Review_Staging_Enable_Package_2026-10-18.md`
+  精確啟用包（Part A 連接器單次 enable＋postflight＋history 紀錄、
+  Part B Preview config 缺口、Part C 合成驗收），工件 hashes 全符。
+- 獨立 Reviewer：APPROVE（綁定 `a3661c4`）。Owner 有條件授權的五項
+  條件均成立；剩餘唯一動作＝連接器執行 Part A，其後由 Muse 以
+  REST 完成 Part C 合成驗證。尚未執行啟用，Review 維持閉鎖。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
