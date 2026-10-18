@@ -111,5 +111,16 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 最小變更方案已提出待 Owner 核准：讀回全一致時僅需單次 enable＋
   enabled config，disable 可逆；本次未啟用。獨立 Reviewer APPROVE
   （綁定 `4e162fc`）。
+
+## 2026-10-18 Loop 補記：CI 假陽性修正與 SQL 通道結論
+
+- `4e162fc` 一輪 CI failure 經日誌實證為既有測試假陽性：
+  `test_service_source` 斷言誘餌 `999` 不得出現於整份 JSON，隨機
+  UUID 恰含該字串。Commit `224e91f` 改為僅檢查萃取文字值，本機
+  連跑 30 次全 PASS，獨立 Reviewer APPROVE；產品程式未改。
+- SQL 通道補充查證：pooler 主機在 sandbox 內 DNS 即失敗，未使用
+  本機儲存的連線密碼；新版 CLI 需 sbp 型 token 與既有 OAuth 登入
+  不相容，未索取 Token。SQL 層對帳結論不變：待連接器唯讀執行
+  `state.sql` 一次完成，或於啟用核准時一併讀回。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。

@@ -25,6 +25,8 @@
 
 候選 `state.sql`（唯讀 SELECT）已備妥，可由具 SQL 通道者（例如先前執行 Staging 操作的連接器）一次執行完成對帳。
 
+補充通道查證（同日）：舊版 CLI 的 Management API 指令（projects／api-keys）可正常運作；直連 pooler 在 sandbox 內 DNS 解析即失敗（`nodename nor servname`），且本輪未使用任何儲存於本機的連線密碼。新版 CLI 的 `db query --linked` 需要 `sbp_` 型 token，與既有 OAuth 型登入不相容；未請 Owner 貼上任何 Token。因此 SQL 層最快的合法完成路徑仍為：由先前執行 Staging 操作的連接器以唯讀方式執行一次 `state.sql` 等價查詢並回傳結果，或 Owner 另行核准啟用窗口時一併讀回。
+
 ## 最小變更方案（待 Owner 核准，本次未執行）
 
 1. 以連接器唯讀執行 `state.sql` 等價盤點，逐項比對 `expected-schema.json` 與修訂後守衛；任一不一致即停止並回報，不自動修復。
