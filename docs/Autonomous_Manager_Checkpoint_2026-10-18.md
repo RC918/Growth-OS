@@ -95,5 +95,8 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Commit `45e2c2c` 修正路徑為 `../url_result/proposal.sql`，Node 實證
   存在；獨立 Reviewer APPROVE。本機無 Docker，PG17 實跑以 CI 為準，
   本 Checkpoint 撰寫時 CI 尚未終結，不冒充 PASS。
+- CI 終態補記（後續單次查詢）：`45e2c2c` 一輪 completed success（含
+  PG17 步驟實跑通過），另一輪與本 Checkpoint 自身 HEAD 於補記時仍
+  in_progress；佇列中其餘更早 Commit 均已 success 或如實 failure。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
