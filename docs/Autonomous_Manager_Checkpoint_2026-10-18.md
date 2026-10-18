@@ -69,7 +69,19 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   真實 GSC 帳號授權與站點寫入權限。未新增資料庫、未變更保存政策。
 - 本機離線測試 26 案 PASS（csv-import 相關子集）；frozen 115 檔雜湊
   零不符。獨立 Reviewer：APPROVE（綁定 `6ca0871`）。
-- CI：`3420995` 與 `6ca0871` 於本 Checkpoint 撰寫時均為 in_progress
-  （單次查詢，未輪詢），終態由後續巡檢單次確認，不冒充 PASS。
+- CI 終態（後續單次查詢補記）：`3420995` 兩輪 success、`6ca0871`
+  至少一輪 success（另一輪查詢時仍 in_progress）；`0dbeda4` 於補記時
+  仍 in_progress，由後續巡檢確認，不冒充 PASS。
+
+## 2026-10-18 Review 候選基準修訂 Core
+
+- Commit `988a0aa`：persistent Review 候選基準由「Save 全關閉＋bounded
+  本體」修訂為已部署一般版（URL pair authenticated 開放、其餘閉鎖、
+  body SHA `39663723…e1f6b`）；工件與 hashes 已重產，README 與 manifest
+  同步標記須先對帳已安裝 Review、不得重放 install。
+- 離線證據：PGlite 生命週期 6/6 PASS（含新增 Save ACL 漂移拒絕），
+  鄰近 bound/offline 測試 14 PASS，frozen 115 檔零不符。
+- 未修改 Staging DB 權限、未啟用、未恢復 bounded 實作。下一步仍為
+  Owner 一次性批准 Staging 唯讀對帳與啟用窗口後才可談 remote 步驟。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。

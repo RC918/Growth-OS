@@ -25,7 +25,7 @@
 ## 啟用前必須完成（下一個授權包）
 
 1. 連接器唯讀執行候選 `state.sql` 等價盤點：實際 history 全列、Review 函數本體 SHA 與 `expected-schema.json` 比對、四個 Save entry 有效 EXECUTE、兩 authority 表 ACL。
-2. 離線修訂候選基準：Save 基準改為「一般版開放（authenticated 可執行、anon/service_role 不可）＋一般版 body SHA」；重新產生 manifest/hashes 並獨立 Reviewer 審核；**不得恢復 bounded 實作**。
+2. ~~離線修訂候選基準~~ **已完成（Commit `988a0aa`，離線）**：Save 守衛改為「URL pair 對 authenticated 開放、anon/service_role/PUBLIC 閉鎖、first-result pair 閉鎖」＋一般版 body SHA（`39663723…e1f6b`，與已部署檔案逐字一致）；manifest/hashes 已重產，PGlite 生命週期測試在模擬一般版部署的 fixture 上 6/6 PASS，新增 Save ACL 漂移拒絕案例（撤銷 URL 開放、授予 anon 均拒絕 restore/enable）；**未恢復 bounded 實作**。
 3. Owner 另行批准：exact commit/hashes、啟用窗口、停用/恢復權限後，才可依序執行 authority revoke→install（若已安裝則對帳不重放）→enable→部署 enabled config。
 
 ## 狀態
