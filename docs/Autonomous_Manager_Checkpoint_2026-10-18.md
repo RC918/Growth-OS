@@ -157,5 +157,16 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   待 Part A 啟用後即可直接執行。獨立 Reviewer APPROVE。
 - CI：`69dbfaa`、`82d12bc`、`b03b91b` 於撰寫時仍 in_progress（佇列
   單次查詢），終態由後續巡檢確認，不冒充 PASS。
+
+## 2026-10-18 下一 Core：JS 試點前置對等實作
+
+- Commit `58e82a6`：新增 `prototype/csv-import/pilot-preflight.mjs`，
+  與 Python 版契約逐項對等（sample 必明示、缺日阻塞不填零、Workspace
+  權威／本機僅暫存、三項 verified 恆 false、real_pilot_ready 恆 false）；
+  snapshot 經既有 save/load 往返驗證。測試併入 CI 既有列舉的
+  `search-baseline.test.mjs`（本機 14/14 PASS），獨立 Reviewer APPROVE。
+- CI 佇列（69dbfaa 起多個 HEAD）於本段撰寫時仍 in_progress，屬佇列
+  深度問題；各 Commit 均已具本機測試與 Reviewer 證據，終態待佇列
+  消化後以單次查詢補記，不冒充 PASS、不重複派工。
 - Phase 1 真人瀏覽器驗收維持 HUMAN_REQUIRED，未觸碰；Staging DB
   權限未修改；另一執行者未提交檔案維持隔離。
