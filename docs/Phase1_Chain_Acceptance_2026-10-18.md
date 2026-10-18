@@ -45,3 +45,18 @@
 - 瀏覽器端由 Owner 自行完成最後產品體驗（First Result → 登入 Workspace
   保存 → Review），不需再建合成資料。
 - 真實 GSC 成效未連接，標示「追蹤中」。
+
+## Owner 真人驗收紀錄（2026-10-19，正式納入）
+
+來源網址：`https://woo.novamodule.com/product/happy-ninja/`；保存版本 ID `c24902d6-b334-4e8a-99ca-d1b71a1afe21`（Title BIC00001、Meta description `Downhill Bike – Sunday Team`、商品描述一致）。
+
+| # | 真人驗收項目 | 結果 |
+|---|---|---|
+| 1 | First Useful Result 成功產生成果 | PASS |
+| 2 | 來源主要事實完成核對 | PASS |
+| 3 | 完整 JSON 成功匯入 Workspace | PASS |
+| 4 | 成功保存為 Staging 待審草稿 | PASS |
+| 5 | 重新登入後讀回同一版本 ID | PASS |
+| 6 | Title／Meta／描述與保存前一致 | PASS |
+
+邊界：此紀錄不代表 Review RPC 已核准、自動交接已通過或內容已發布；自動交接與 Review 啟用依後續段落接續，不重測本表項目。

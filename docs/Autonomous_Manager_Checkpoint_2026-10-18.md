@@ -213,3 +213,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success；橋接（a9f877c）與其 Checkpoint 的 failure 已由 9fee67d
   守衛更新修復並經 CI 證明。P0 程式修復鏈證據閉合，剩餘僅為
   Owner 核准 Auth Redirect 差異後的真人保存驗收（HUMAN_REQUIRED）。
+
+## 2026-10-19 Owner 真人驗收 PASS 與接續
+
+- Phase 1 真人驗收（手動匯入路徑）經 Owner 實證 PASS 並納入
+  `docs/Phase1_Chain_Acceptance_2026-10-18.md`：版本
+  `c24902d6-b334-4e8a-99ca-d1b71a1afe21` 保存與重新登入讀回一致。
+  不重測、不代表 Review 已核准或自動交接已通過。
+- 接續：Review 啟用待連接器執行已核准 Part A（交接要求見啟用包）；
+  Preview Review UI 改以衍生建置開關做啟用準備；自動交接以合成
+  帳號先驗；Workspace 重新整理回登入畫面經查為 token 僅存記憶體
+  的刻意設計邊界，不弱化 Auth。
