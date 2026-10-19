@@ -77,3 +77,24 @@ Reviewer → Preview 部署 → 以 Landyachtz 完成
 First Result → Save → Review 隔離驗收。
 不核准：適配器保留為隔離能力，L1 fail-closed
 現況維持，後續 Loop 不再重提相同提案。
+
+## 執行紀錄（Owner 一次性核准後）
+
+- 核准範圍與本包 Diff 逐字一致，已套用於
+  接管分支；未修改其他 frozen 檔案，未放寬
+  source_asserted、citations、product_scope
+  或 SHA 驗證，未變更 RPC、RLS、Secrets。
+- 修改前 SHA-256：
+  `3c3ee22192c3ae11b51f5ebf86afef0b46a8d4db514f295500a5387352d9750b`
+  （與 frozen 清單記錄一致）。
+- 修改後 SHA-256：
+  `bc17a364a5496ad14ea252199d0fbc60c5ed202bcca8becc96687a915d09ca1c`。
+- 其餘 frozen 檔案：115 檔中僅此 1 檔漂移，
+  其餘 114 檔零漂移（逐檔驗證）。
+- 隔離契約驗證：適配器成果經真實 Review 匯出
+  後通過更新後驗證器；並以真實 Workspace API
+  完成領取驗證、Save、讀回核對、Review 確認與
+  Review 讀回（`supabase/tests/declared_product_contract.test.mjs`，
+  合成傳輸；託管持久化不在此宣稱）。
+- 託管 Preview 實測：未執行，維持 NOT_TESTED／
+  ENV_BLOCKED，不得冒充 PASS。
