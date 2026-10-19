@@ -790,3 +790,8 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   清單由 build 自動重算，不計）；v3 決策包
   已備妥三處精確範圍，待 Owner 核准後
   重新套用。本節 Commit 待批次補審。
+- 收尾補記：`2bb0dd7` 與 `c60aa04` 已取得
+  Workflow Reviewer APPROVE；`2bb0dd7` 之
+  Python Job completed success（103/103）、
+  Handoff success。目前維持回復狀態，
+  待 Owner 核准 v3 三處範圍後重新套用。
