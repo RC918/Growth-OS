@@ -490,3 +490,33 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 待辦：`e3e28e5` 已取得 Workflow Reviewer APPROVE；
   `99b8c48`、`e3e28e5`、`637bda5` 的 Python CI 於最後查詢
   仍 PENDING，終態於後續單次查詢確認，不等待。
+
+## 2026-10-19 隔離交接驗收延伸：登入後領取與保存通過
+
+- Commit `1a8c66f`（Workflow 獨立 Reviewer APPROVE）：於
+  `auto_handoff_isolated.mjs` 新增登入後段落，以合成傳輸完成
+  領取渲染、stash 單次消費、保存 RPC 請求形狀與讀回回饋斷言；
+  登入前 fail-closed 斷言未改動。首次 CI 執行於新段落失敗
+  （同頁 fragment 導航未重跑模組啟動），未視為通過。
+- Commit `23324e1`：改以全新分頁開啟帶 access_token 的
+  Workspace，並於中斷時輸出已捕捉的 Supabase 呼叫路徑診斷；
+  CI 證明登入後儀表板載入成功，但領取預覽逾時，仍未通過。
+- Commit `6796462`（Workflow 獨立 Reviewer APPROVE，未決項
+  零）：根因為舊合成 Fixture 不符合生產
+  `validateReport()` 的完整證據契約。Fixture 改為生產者形狀
+  （真實內容位元組、SHA-256 版本、型別化 facts/inferences/
+  missing、pending_confirmation 前綴、非空 limitations），
+  本機以真實 `createResultReview`＋`validateReport` 驗證
+  VALIDATE_OK，未弱化任何生產驗證。
+- CI 證據：Run `39231396039`（HEAD `6796462`）Handoff bridge
+  tests completed success，Job `117989940401` 日誌 15/15 PASS，
+  含「登入後領取渲染」「stash 恰消費一次」「保存讀回回饋」
+  「保存 RPC 請求形狀」。Run `39231389117` 亦 success。
+- 範圍界線不變：此為隔離瀏覽器橋接＋領取＋保存接線、合成
+  傳輸驗收；不證明託管 Auth／RLS／RPC 持久化（仍由 Part C
+  9/9 與真人 Save／Review 驗收證明）。託管版瀏覽器 E2E
+  維持 ENV_BLOCKED／NEED_OWNER（CI Staging Secrets 與 Vercel
+  Preview 保護處理），未自行擴權。
+- `6796462` 的 Python prototype tests 於最後單次查詢仍
+  in_progress，標記 PENDING，不等待、不重跑。
+- 其他執行者的 11 項未提交檔案未觸碰、未提交。
