@@ -606,3 +606,37 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Checkpoint `6fa14ff` 已取得 Workflow Reviewer
   APPROVE。本節 Commit 待下一輪批次補審；PR #31
   維持 Draft；其他執行者未提交檔案未觸碰。
+
+## 2026-10-19 託管自動交接驗收調查：ENV_BLOCKED（自動化）
+
+- 實查一：接管分支 Preview 網域匿名請求回 302 至
+  `vercel.com/sso-api`（Deployment Protection SSO），
+  自動化瀏覽器無法存取；本次未解除、未繞過。
+- 實查二：本機受控 Chromium 於 Muse 沙箱啟動即遭
+  終止（與先前紀錄一致），且即使啟動仍需 Owner 的
+  Vercel 會話與 Supabase Magic Link 真人信箱登入。
+- 實查三：託管自動化腳本需 hosted service key 產生
+  合成會話；新增高權限 Secrets 經 Owner 明確禁止，
+  本機亦未取得或讀取任何 Secret。
+- 判定：託管零手動 JSON 自動交接「自動化驗收」為
+  ENV_BLOCKED，不得以隔離原生堆疊 34/34 取代。唯一
+  路徑為 Owner 一次最小真人操作（見下），不重做
+  BIC00001 已通過的 Save／Review。
+- Checkpoint `6df05e5` 已取得 Workflow Reviewer
+  APPROVE。Preview 目前部署 Commit 於 SSO 後無法
+  匿名核對，標記 UNKNOWN。
+
+### Owner 最小操作（約 3 分鐘，僅一次）
+
+1. 開啟接管分支 Preview 的 `first-result.html`
+   （`growth-os-preview-git-takeover-muse-primary-20261016-morning-ai.vercel.app`），
+   如要求 Vercel 登入請以既有帳號完成。
+2. 輸入一條新的公開產品頁網址（不要用已驗收的
+   BIC00001），取得成果後勾選三項核對並確認。
+3. 點擊「登入後保存」交接按鈕；在新分頁以既有
+   Magic Link 登入 Workspace（確認網域仍為同一
+   接管分支 Preview 網域）。
+4. 登入後應自動出現待保存成果預覽（不需下載或
+   上傳 JSON）；點擊「確認保存待審草稿」，看到
+   「已保存第 1 版」即完成。只需回報成功或卡住的
+   步驟編號，不需重做 Review。
