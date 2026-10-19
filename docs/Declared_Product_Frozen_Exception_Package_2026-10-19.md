@@ -113,22 +113,3 @@ frozen 115 檔零漂移、本機 Workspace API
 其餘條款與 v1 相同。**待 Owner 核准此修訂
 範圍後重新套用**；未核准前維持回復狀態。
 託管 Preview 實測維持 NOT_TESTED／ENV_BLOCKED。
-
-## v2 執行紀錄（Owner 核准修訂範圍後）
-
-- 兩檔已同步套用同一行：修改前同為
-  `3c3ee22192c3ae11b51f5ebf86afef0b46a8d4db514f295500a5387352d9750b`，
-  修改後同為
-  `bc17a364a5496ad14ea252199d0fbc60c5ed202bcca8becc96687a915d09ca1c`，
-  `cmp` 驗證逐位元組一致；frozen 115 檔僅
-  `apps/web/first-result-payload.mjs` 具核准
-  差異，其餘 114 檔零漂移。
-- 本機驗證：Workspace 鏡像一致性測試與
-  Declared-Product 契約測試合計 15 案通過；
-  Python `test_first_result_api` 與
-  `test_service_source` 合計 36 案通過。
-- 契約驗收（合成傳輸，真實 Workspace API）：
-  Landyachtz Fixture 成果通過領取驗證 →
-  Save → 讀回核對 → Review 確認 → Review
-  讀回；託管 Preview 維持 NOT_TESTED／
-  ENV_BLOCKED，未冒充 PASS。
