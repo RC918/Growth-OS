@@ -14,3 +14,12 @@ jobs:
           node-version: '24'
       - name: Handoff bridge and review flag tests
         run: node --test delivery/web-preview/handoff-bridge.test.mjs delivery/web-preview/review-flag.test.mjs
+      - name: Auto-handoff config guard tests
+        run: node --test supabase/tests/auto_handoff_config.test.mjs
+      - name: Install isolated UI test browser
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Isolated browser handoff bridge acceptance (synthetic transport)
+        timeout-minutes: 6
+        run: node supabase/tests/auto_handoff_isolated.mjs

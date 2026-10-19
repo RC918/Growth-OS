@@ -9,14 +9,16 @@
 //   node supabase/tests/auto_handoff_acceptance.mjs
 import {randomUUID} from 'node:crypto';
 import {chromium} from 'playwright';
+import {resolveAutoHandoffConfig} from './auto_handoff_config.mjs';
 
-const REF = 'vhzryhibmpvglzcmfnaa';
-const ORIGIN = 'https://growth-os-preview-git-takeover-muse-primary-20261016-morning-ai.vercel.app';
-const PRODUCT_URL = 'https://woo.novamodule.com/product/happy-ninja/';
+// Target defaults stay on the branch Preview + isolated Staging; env
+// overrides (HANDOFF_SUPABASE_REF / HANDOFF_ORIGIN / HANDOFF_SUPABASE_URL
+// / HANDOFF_PRODUCT_URL) only retarget the same acceptance, e.g. to an
+// isolated stack. See auto_handoff_config.mjs.
+const {ORIGIN, base, PRODUCT_URL} = resolveAutoHandoffConfig(process.env);
 if (process.env.CONFIRM !== 'AUTO_HANDOFF_ACCEPTANCE') { console.error('REFUSED: set CONFIRM=AUTO_HANDOFF_ACCEPTANCE'); process.exit(2); }
 const service = process.env.SUPABASE_SERVICE_KEY, anon = process.env.SUPABASE_ANON_KEY;
 if (!service || !anon) { console.error('REFUSED: SUPABASE_SERVICE_KEY and SUPABASE_ANON_KEY are required'); process.exit(2); }
-const base = `https://${REF}.supabase.co`;
 const password = 'Synthetic-' + randomUUID();
 const email = `auto-handoff-${Date.now()}@example.invalid`;
 const org = randomUUID();
