@@ -520,3 +520,22 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - `6796462` 的 Python prototype tests 於最後單次查詢仍
   in_progress，標記 PENDING，不等待、不重跑。
 - 其他執行者的 11 項未提交檔案未觸碰、未提交。
+
+## 2026-10-19 Loop：停用／回復再驗證連接器交接包
+
+- Commit `52b37e3`（Workflow 獨立 Reviewer APPROVE，六項
+  核對全過）：新增
+  `docs/Review_Disable_Restore_Connector_Handoff_2026-10-19.md`，
+  將 Staging Review 即時停用→回復循環整理為連接器一次性
+  執行包（前置唯讀核對、disable→postflight-closed→合成
+  停用態驗證→enable→postflight-enabled→Part C 9/9、停止
+  條件與證據回傳格式）。
+- 狀態界線：即時循環仍未執行，維持「離線已驗證、即時
+  未驗證」；Muse 無 SQL 通道，不自行執行；若核准函
+  不涵蓋本循環，執行者須先向 Owner 提出一次精確請求。
+- 本機與遠端 HEAD 一致（`f7147a7` 起始、本節 Commit 收尾）；
+  其他執行者 11 項未提交檔案未觸碰。`f7147a7` 的
+  Handoff bridge tests 已 success；Python prototype tests
+  仍 in_progress，標記 PENDING，不等待。
+- 本節 Commit 待下一輪批次補審（比照既有文件 Commit 模式），
+  未審前不進入正式發布，PR #31 維持 Draft。
