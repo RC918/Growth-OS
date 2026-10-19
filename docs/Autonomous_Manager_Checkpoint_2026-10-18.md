@@ -452,3 +452,20 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Reviewer：通道探測累計第二十七次仍為 `runtime_turn_task_lost`；
   未審 Commit 名單加入 `0ccc486` 與本節 Commit，維持
   REVIEW_BLOCKED，每輪至多探測一次，恢復即依序補審。
+
+## 2026-10-19 Owner 檢討後：Reviewer 通道修復與補審完成
+
+- 通道修復：原生子代理連續 27 次 `runtime_turn_task_lost`
+  （模型請求配置後、子代理首個回應前遺失），改用 Workflow
+  執行期獨立子代理作為 Reviewer 通道，實證可完成唯讀審核並
+  回傳結構化裁決；原生子代理改為有條件退避，不再每輪重試。
+- 補審結果：11 個 REVIEW_BLOCKED Commit 全數取得獨立
+  Reviewer APPROVE——`1c6303f`（實質 CI 工作流，本機重跑
+  5/5 PASS、禁用檔案未觸碰、無冒充主張）與 10 個純文件
+  Checkpoint Commit（diff-tree 單一檔案、禁用主張掃描通過），
+  未決項為零。明細與待審清單見
+  `docs/Review_Backlog_2026-10-19.md`。
+- E2E 結論：現行交接 E2E 於 CI 需 Staging service key 與
+  Vercel 保護處理，均屬 NEED_OWNER；建議優先改走 CI 既有
+  隔離臨時堆疊的瀏覽器級驗收（不新增高權限 Secrets，不冒充
+  託管 Staging 驗收），腳本參數化列為下一個 Core。
