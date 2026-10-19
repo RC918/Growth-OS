@@ -29,6 +29,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {randomBytes, randomUUID, createHmac, createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {build} from '../../delivery/web-preview/build.mjs';
 import {applyHandoffBridge} from '../../delivery/web-preview/handoff-bridge.mjs';
@@ -38,7 +39,7 @@ import {nativeServiceEnv} from '../../prototype/internal-rc/deploy/native-env.mj
 import {schema} from '../../prototype/internal-rc/deploy/schema.mjs';
 import {ids} from '../../supabase/drafts/first_result_save/fixtures.mjs';
 
-process.chdir(new URL('../../', import.meta.url)); // schema() reads supabase/migrations relative to repo root
+process.chdir(fileURLToPath(new URL('../../', import.meta.url))); // schema() reads supabase/migrations relative to repo root
 
 const results = [];
 const step = (name, ok, detail = '') => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' ' + String(detail).slice(0, 200) : '')); };
