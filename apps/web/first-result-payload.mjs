@@ -82,7 +82,7 @@ async function validateReport(r) {
   // The supported producer has a complete typed evidence envelope, not arbitrary
   // recursively discovered citations. A hash alone cannot detect missing sections.
   requireThat(r.page_type === 'product' && record(r.extraction) &&
-    ['explicit_product_microdata', 'woocommerce_single_product', 'declared_product_dom'].includes(r.extraction.method) &&
+    ['explicit_product_microdata', 'woocommerce_single_product'].includes(r.extraction.method) &&
     stringList(r.extraction.limitations) && stringList(s.limitations) && p.generation === 'extractive_rules', 'INVALID_EVIDENCE_SCHEMA');
   requireThat(exactKeys(r.facts, ['product_name','title','meta_description','description','features','use']), 'INVALID_FACTS');
   function fact(value, scoped = false) {
