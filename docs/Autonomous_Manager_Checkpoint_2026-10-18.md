@@ -297,3 +297,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   經日誌實證僅 GitHub Artifact 上傳逾時，全部測試步驟 success。
 - 狀態：Review UI 部署啟用具建置層證據，待 Owner 最後一次真人
   Review 驗收（僅 Review 步驟，不重做已通過的保存與讀回）。
+
+## 2026-10-19 Phase 1 真人 Review 持久化驗收 PASS
+
+- Owner 實證 PASS 並正式納入 `docs/Phase1_Chain_Acceptance_2026-10-18.md`：
+  版本 `c24902d6-…e21`、Review 確認 ID `3bf683f1-…45a`，Save → Review
+  → Refresh → Magic Link 重新登入讀回同一版本與 Review 紀錄，
+  狀態已確認、未發布。不重測已通過的保存或 Review。
+- 接續 Core：(1) First Result 自動跨分頁交接（合成瀏覽器驗收，
+  本機 ENV_BLOCKED 待具瀏覽器環境）；(2) Publish 隔離工程與驗收
+  準備（不自動正式發布）；(3) Measure 資料接線與可驗證觀測
+  （真實 GSC 未授權，維持追蹤中，不捏造）。

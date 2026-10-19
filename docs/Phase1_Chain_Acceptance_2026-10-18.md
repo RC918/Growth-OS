@@ -60,3 +60,7 @@
 | 6 | Title／Meta／描述與保存前一致 | PASS |
 
 邊界：此紀錄不代表 Review RPC 已核准、自動交接已通過或內容已發布；自動交接與 Review 啟用依後續段落接續，不重測本表項目。
+
+## Owner 真人 Review 持久化驗收（2026-10-19，PASS）
+
+版本 `c24902d6-b334-4e8a-99ca-d1b71a1afe21`（BIC00001 第 1 版）；Review 確認 ID `3bf683f1-b56a-4b7b-9c2e-3de6fdf1a45a`。Owner 實證：Save → Review → Refresh → Magic Link 重新登入 → 同一版本與 Review 確認紀錄讀回，狀態已確認、未發布。標記真人產品驗收 PASS，不重測；不代表已發布或自動交接已通過。
