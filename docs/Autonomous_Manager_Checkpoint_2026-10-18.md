@@ -308,3 +308,28 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   本機 ENV_BLOCKED 待具瀏覽器環境）；(2) Publish 隔離工程與驗收
   準備（不自動正式發布）；(3) Measure 資料接線與可驗證觀測
   （真實 GSC 未授權，維持追蹤中，不捏造）。
+
+## 2026-10-19 五小時自治：P1 交接橋接硬化
+
+- Core（P1）：`handoff-bridge.mjs` 領取邏輯硬化。原缺口：localStorage
+  stash 過期（>30 分）或格式錯誤（nonce 非字串／無 payload／saved_at
+  非有限數）時永不清除，且每次開啟面板都會重試無效領取。修復：
+  領取前驗證形狀並計算 expired，過期或格式錯誤即 removeItem；
+  有效且未過期、nonce 未使用者維持既有一次性領取（成功後移除）；
+  nonce 已使用者不清除，保留重新載入後重試語意。未改 frozen 檔案，
+  未弱化 accept() 全量重驗。
+- 測試：`handoff-bridge.test.mjs` 新增功能級案例（以實際 claim 字串
+  於 stub localStorage/accept 執行）：過期清除、格式錯誤清除、有效
+  領取一次且成功後移除、已用 nonce 保留，四案與既有共 5/5 PASS
+  （含 review-flag 2 案）。
+- P2/P3 本輪實跑：Publish（publisher/journal/url-publish-preview）
+  與 Measure（publication-measurement、search-baseline）既有隔離
+  套件共 39/39 PASS（核准閘門、冪等防重複、grant 到期、基線漂移
+  阻擋、restore 讀回、版本-觀測關聯、錯誤/缺日拒絕）。無新缺口，
+  不重造已有功能；真實試點發布與真實 GSC 仍待 Owner 授權，
+  成效維持 UNKNOWN/追蹤中。
+- 待辦（技術債，非阻塞）：handoff-bridge 與 review-flag 兩支測試
+  尚未接入 CI；CI 檔案現有另一執行者未提交修改，避免衝突不代改，
+  待其提交或撤回後由 Loop 補接。自動交接瀏覽器 E2E 維持
+  ENV_BLOCKED（本機 Chromium sandbox 實證無法啟動；CI 執行需
+  Staging 金鑰型 Secrets，屬 NEED_OWNER，不自行新增）。

@@ -26,7 +26,7 @@ export async function applyHandoffBridge(distDir) {
   const anchorCancel = 'function cancel(){if(pending){';
   if (!handoff.includes(anchorCancel)) throw Error('handoff anchor drift: cancel');
   handoff = handoff.replace(anchorCancel, `function cancel(){try{localStorage.removeItem('${KEY}')}catch{};if(pending){`);
-  const claim = `if(!payload){try{const stash=JSON.parse(localStorage.getItem('${KEY}')||'null');if(stash&&Date.now()-stash.saved_at<1800000&&!used.has(stash.nonce)){used.add(stash.nonce);transfer=stash.nonce;const own=++ticket;accept(stash.payload,stash.nonce,own).then(ok=>{if(ok){try{localStorage.removeItem('${KEY}')}catch{}}}).catch(()=>{});}}catch{}}`;
+  const claim = `if(!payload){try{const stash=JSON.parse(localStorage.getItem('${KEY}')||'null');const valid=stash&&typeof stash.nonce==='string'&&stash.payload&&Number.isFinite(stash.saved_at);const expired=valid&&Date.now()-stash.saved_at>=1800000;if(valid&&!expired&&!used.has(stash.nonce)){used.add(stash.nonce);transfer=stash.nonce;const own=++ticket;accept(stash.payload,stash.nonce,own).then(ok=>{if(ok){try{localStorage.removeItem('${KEY}')}catch{}}}).catch(()=>{});}else if(!valid||expired){try{localStorage.removeItem('${KEY}')}catch{}}}catch{}}`;
   const anchorOpen = "if(trial){void probeTrial()";
   if (!save.includes(anchorOpen)) throw Error('save anchor drift: open');
   save = save.replace(anchorOpen, `${claim}\n   if(trial){void probeTrial()`);

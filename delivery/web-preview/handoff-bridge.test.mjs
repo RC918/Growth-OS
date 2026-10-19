@@ -44,6 +44,34 @@ test('bridge patches derived dist only, is idempotent, and fails loud on drift',
   }
 });
 
+test('claim cleans expired or malformed stash, claims valid stash once, keeps used nonce for reload retry', async () => {
+  const bridgeSource = await readFile(new URL('handoff-bridge.mjs', import.meta.url), 'utf8');
+  const template = bridgeSource.match(/const claim = `([\s\S]*?)`;/)[1].replaceAll('${KEY}', 'growth-os:pending-handoff:v1');
+  const KEY = 'growth-os:pending-handoff:v1';
+  const runClaim = async (store, used = new Set()) => {
+    const calls = [];
+    const localStorage = {getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, v), removeItem: k => store.delete(k)};
+    const accept = async (p, n) => { calls.push([p, n]); return true; };
+    const fn = new Function('localStorage', 'used', 'accept', 'payload', 'transfer', 'ticket', `${template}\nreturn transfer;`);
+    const transfer = fn(localStorage, used, accept, null, null, 0);
+    await new Promise(r => setImmediate(r));
+    return {calls, transfer};
+  };
+  const stash = (ageMs, extra = {}) => new Map([[KEY, JSON.stringify({nonce: 'n1', payload: {ok: true}, saved_at: Date.now() - ageMs, ...extra})]]);
+  let store = stash(1800000);
+  let r = await runClaim(store);
+  assert.equal(r.calls.length, 0); assert.equal(store.has(KEY), false, 'expired stash removed');
+  store = stash(0, {nonce: 42});
+  r = await runClaim(store);
+  assert.equal(r.calls.length, 0); assert.equal(store.has(KEY), false, 'malformed stash removed');
+  store = stash(1000);
+  r = await runClaim(store);
+  assert.equal(r.calls.length, 1); assert.equal(r.transfer, 'n1'); assert.equal(store.has(KEY), false, 'claimed stash removed after accept');
+  store = stash(1000);
+  r = await runClaim(store, new Set(['n1']));
+  assert.equal(r.calls.length, 0); assert.equal(store.has(KEY), true, 'used nonce keeps stash for reload retry');
+});
+
 test('bridge never stashes credentials and keeps origin checks intact', async () => {
   const source = await readFile(new URL('handoff-bridge.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /access_token|service_role|password/i);
