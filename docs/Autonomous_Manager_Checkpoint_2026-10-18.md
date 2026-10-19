@@ -728,3 +728,27 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success、Reviewer APPROVE 併齊；Checkpoint
   `c639b53` 亦取得 Workflow Reviewer APPROVE。
   本節 Commit 待批次補審。
+
+## 2026-10-19 Declared-Product Rescue Adapter 隔離完成
+
+- Commit `5d30965`（Workflow 獨立 Reviewer APPROVE，
+  明確不含核准套用 frozen 修改）：新增非凍結
+  `declared_product.py` 適配器，於單一入口在 Service
+  辨識後執行。僅在頁面宣告商品、單一相同頁首身分、
+  JSON-LD 名稱與頁首或標題一致、具商品根與價格或
+  購物車佐證、且頁首後只有一個連續描述群集時，於
+  既有快照上產生完整商品成果；衝突即拒絕。
+- 真實 Landyachtz Fixture 產生可追溯成果（名稱、
+  描述、5 筆引用、預覽綁定）；多商品、描述衝突、
+  缺描述三類負例維持 fail-closed。本機 36 案全過。
+- 契約驗證：未修改的 JS 驗證器對適配器成果僅回
+  `INVALID_EVIDENCE_SCHEMA`；記憶體內暫換既有方法
+  枚舉後完整通過，證明唯一落差為擷取方法枚舉。
+  frozen 115 檔雜湊零漂移。
+- 決策包 `docs/Declared_Product_Frozen_Exception_Package_2026-10-19.md`
+  已備妥一行 Diff、影響、風險與回復方式，待
+  Owner 另行核准；未核准前 Workspace 保存仍被
+  拒絕，不宣稱已打通 Save/Review。
+- CI：`5d30965` Handoff bridge tests success；
+  Python Run `39277229819` Job completed success。
+  本節 Commit 待批次補審；PR #31 維持 Draft。
