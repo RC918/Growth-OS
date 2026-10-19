@@ -271,6 +271,20 @@ try {
     reviewRows.status === 200 && reviewRows.data.length === 1 && reviewRows.data[0].decision === 'approved');
   step('review status renders in browser', /已確認|確認/.test(await reviewSection.locator('.url-review-status').textContent() || ''));
 
+  stage = 'publish preview and measurement preparation';
+  await reviewSection.locator('.publish-preview-read').click();
+  await reviewSection.locator('.publish-preview-status').getByText(/預覽已讀取 · 實際發布仍被阻擋 · 未發布/).waitFor({timeout: 30000});
+  step('publish preview loads for reviewed version and stays unpublished', true);
+  step('publish preview shows exact-version confirmation (not publish authorization)',
+    /此版本已有確認/.test(await reviewSection.locator('.publish-preview-body').textContent() || ''));
+  await reviewSection.locator('.measurement-read').click();
+  await reviewSection.locator('.measurement-status').getByText(/量測準備已讀取/).waitFor({timeout: 30000});
+  const measurementText = await reviewSection.locator('.measurement-body').textContent() || '';
+  step('measurement preparation reports baseline unknown (not zero)',
+    measurementText.includes('基線未知') && measurementText.includes('不是零'));
+  step('no real publication or measurement rows created by previews',
+    Number(sql('select count(*) from public.content_reviews;')) === 1 && versionCount() === 1);
+
   stage = 'new session readback';
   const freshSession = await login('owner');
   const freshContext = await browser.newContext();
