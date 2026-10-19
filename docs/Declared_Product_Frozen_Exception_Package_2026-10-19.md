@@ -113,3 +113,33 @@ frozen 115 檔零漂移、本機 Workspace API
 其餘條款與 v1 相同。**待 Owner 核准此修訂
 範圍後重新套用**；未核准前維持回復狀態。
 託管 Preview 實測維持 NOT_TESTED／ENV_BLOCKED。
+
+## 修訂（v3）：部署清單雜湊同步（最終範圍）
+
+v2 套用後 CI（Run `39290711011`／`39290700758`）
+於「URL exact-version Review contracts」失敗：
+`prototype/internal-rc/contract.test.mjs` 的
+「frozen RC candidate bytes match the reviewable
+deployment manifest」逐筆比對 `deploy/hashes.json`
+全部條目，`apps/web/first-result-payload.mjs`
+雜湊仍為舊值。此為第二處設計釘選，非行為
+退化；已依指示以 Commit `2bb0dd7` 回復 v2
+全數變更（兩檔回原雜湊、frozen 零漂移、
+本機契約測試僅餘沙箱 EPERM 環境失敗）。
+
+經全面盤點，此檔案的釘選點共三處（另一
+`delivery/growth-console/SHA256.json` 由其
+build 於 CI 自動重算，非釘選，不需變更）：
+
+1. `apps/web/first-result-payload.mjs` 同一行
+   （frozen；`3c3ee221…` → `bc17a364…`）。
+2. `prototype/owner-workspace/first-result-payload.mjs`
+   同一行（已審鏡像；同步後逐字一致）。
+3. `prototype/internal-rc/deploy/hashes.json`
+   僅更新第 1 檔的單筆雜湊記錄
+   （`3c3ee221…` → `bc17a364…`），其餘 114
+   筆不動；此清單由 contract test 逐筆強制。
+
+**待 Owner 核准 v3 三處範圍後重新套用**；
+未核准前維持回復狀態（CI 全綠路徑、
+適配器維持隔離能力、託管 NOT_TESTED）。
