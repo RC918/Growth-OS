@@ -655,15 +655,19 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 本節 Commit 待下一輪批次補審；PR #31 維持 Draft；
   其他執行者未提交檔案未觸碰。
 
-## 2026-10-19 收尾：審核與 CI 全數結清
+## 2026-10-19 收尾：審核與 CI 全數結清（截至 `d6daff0`）
 
 - Checkpoint `d6daff0` 已取得 Workflow Reviewer
   APPROVE（首位停滯者已停止，精簡重送完成）。
-  至此本鏈所有 Commit 均具獨立 Reviewer 裁決。
-- CI 全數終態：最新 HEAD 在内所有近期 Commit 的
+  截至 `d6daff0`，本鏈所有 Commit 均具獨立
+  Reviewer 裁決；本節與其後的文件 Commit 不在
+  此宣稱範圍內，仍待批次補審。
+- CI 終態（截至 `d6daff0`）：近期 Commit 的
   Handoff bridge tests 與 Python prototype tests
-  均 completed success，先前 PENDING 積壓已結清
-  （含 `d6daff0` 兩工作流程各兩次 success）。
+  均 completed success，PENDING 積壓結清。
+  `d6daff0` 證據：Handoff Run `39243241446`、
+  `39243235337` success；Python Run
+  `39243241442`、`39243235489` success。
 - 自治側可執行工作已收斂：剩餘事項全屬外部條件
   （Owner 託管真人操作約 3 分鐘、disable/restore
   受控窗口另行核准、真實試點／GSC 授權、Phase 1
