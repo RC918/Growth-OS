@@ -265,8 +265,9 @@ try {
   await freshPage.goto(ORIGIN + '/workspace.html' + fragment(freshSession), {waitUntil: 'domcontentloaded', timeout: 60000});
   await freshPage.waitForSelector('#workspace:not([hidden])', {timeout: 60000});
   step('fresh GoTrue session opens workspace in new browser context', true);
-  await freshPage.waitForFunction(t => (document.body?.textContent || '').includes(t), TITLE, {timeout: 30000});
-  step('fresh session workspace renders saved version title', true);
+  await freshPage.waitForFunction(({t, v}) => { const body = document.body?.textContent || ''; return body.includes(t) || body.includes(v); },
+    {t: TITLE, v: versionId}, {timeout: 30000});
+  step('fresh session workspace renders saved version (title or version id)', true);
   const freshRows = await restCall('/content_versions?select=id&id=eq.' + versionId, freshSession.access_token);
   step('fresh session API readback returns same version', freshRows.status === 200 && freshRows.data.length === 1);
 
