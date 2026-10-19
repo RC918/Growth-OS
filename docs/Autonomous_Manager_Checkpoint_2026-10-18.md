@@ -360,3 +360,18 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   subagent run failed），有限重試已用完，`1c6303f` 標記
   REVIEW_BLOCKED；主管不自行批准，待 Reviewer 通道恢復後補審，
   補審前不得宣稱本 Commit 已審核通過。
+
+## 2026-10-19 Loop 補記：CI 執行中釐清與 Reviewer 通道狀態
+
+- CI 釐清：`ebdc437` 單次查詢時 `Handoff bridge tests` 兩次執行
+  均 completed success；`Python prototype tests` 多次顯示
+  in_progress，經檢視 Run 39202695728 步驟明細確認屬正常執行
+  （全程 102 步，查詢當下僅歷時約 9 分鐘、第 61 步甫開始 36 秒，
+  舊成功 Run 同一步驟耗時約 70 秒），非卡死、非本輪變更造成，
+  記 PENDING，不修復、不等待。
+- Reviewer 通道：本輪再以縮小範圍重試獨立 Reviewer 兩次，仍為
+  native subagent run failed；同儕會話清單為空，無替代獨立審核
+  通道。連同前輪，子代理通道目前系統性不可用；`1c6303f` 與
+  `ebdc437` 維持 REVIEW_BLOCKED，主管不自行批准。通道恢復後
+  第一優先補審此二 Commit，不因審核阻塞而停做其他 Core。
+- 未提交衝突不變：另一執行者 11 項未提交內容未被觸碰。
