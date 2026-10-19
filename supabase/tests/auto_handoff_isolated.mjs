@@ -21,13 +21,37 @@ const ORIGIN = 'http://127.0.0.1:4321';
 const SUPABASE_ORIGIN = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
 const TITLE = 'ISO-HANDOFF-001';
 const fields = ['title', 'meta_description', 'description'];
-const fixture = () => ({
-  snapshot: {id: 'iso-a', version: 'source-a', original_url: 'https://example.invalid/iso', final_url: 'https://example.invalid/iso', citations: []},
-  facts: {}, inferences: [], missing: [],
-  preview: {source_snapshot_id: 'iso-a', source_version: 'source-a',
-    fields: Object.fromEntries(fields.map(k => [k, {original: '原文 ' + k, suggested: k === 'title' ? TITLE : '候選 ' + k, reason: '隔離測試來源', citations: ['s1']}])),
-    pending_confirmation: []},
-});
+// A fully valid producer-shaped report: the Workspace save panel runs
+// the complete validateReport() on claim, so the fixture snapshot must
+// carry real content bytes whose SHA-256 is the source version.
+import {createHash} from 'node:crypto';
+const SNAP_ID = '44444444-4444-4444-8444-444444444444';
+const fixture = () => {
+  const html = `<!doctype html><html><head><title>${TITLE}</title></head><body><h1>${TITLE}</h1><p>ISO product description</p></body></html>`;
+  const bytes = Buffer.from(html, 'utf8');
+  const version = createHash('sha256').update(bytes).digest('hex');
+  const fact = (value, scoped = false) => scoped
+    ? {kind: 'fact', verification: 'source_asserted', value, citations: ['s1'], product_scope: {locator: 'h1', name_locator: 'h1', product_name: TITLE}}
+    : {kind: 'fact', verification: 'source_asserted', value, citations: ['s1']};
+  const facts = {product_name: fact(TITLE), title: fact(TITLE), meta_description: fact('ISO meta'),
+    description: fact('ISO product description', true), features: [fact('ISO feature', true)], use: fact('ISO use')};
+  const missing = ['specifications', 'price', 'certifications', 'performance', 'comparisons', 'guarantees'];
+  const field = (key, suggested) => ({original: facts[key].value, suggested, reason: '隔離測試來源', citations: ['s1']});
+  return {
+    snapshot: {schema_version: 1, id: SNAP_ID, version, original_url: 'https://example.invalid/iso',
+      final_url: 'https://example.invalid/iso', fetched_at: new Date().toISOString(),
+      content_base64: bytes.toString('base64'), content_fingerprint: 'sha256:' + version,
+      encoding: 'utf-8-with-replacement', html,
+      citations: [{id: 's1', snapshot_id: SNAP_ID, source_version: version, url: 'https://example.invalid/iso', locator: 'h1', quote: TITLE}],
+      limitations: ['ISO limitation']},
+    page_type: 'product', extraction: {method: 'explicit_product_microdata', limitations: ['ISO limitation']},
+    facts, inferences: [{kind: 'inference', value: 'ISO inference', basis: 'ISO basis', citations: ['s1']}], missing,
+    preview: {source_snapshot_id: SNAP_ID, source_version: version, published: false, generation: 'extractive_rules',
+      status: 'awaiting_review',
+      pending_confirmation: ['Confirm source assertions and suitability before applying.', ...missing],
+      fields: {title: field('title', TITLE), meta_description: field('meta_description', '候選 meta_description'), description: field('description', '候選 description')}},
+  };
+};
 
 const results = [];
 const step = (name, ok, detail = '') => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' ' + detail : '')); };
