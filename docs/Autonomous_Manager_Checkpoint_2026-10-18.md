@@ -673,3 +673,18 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   受控窗口另行核准、真實試點／GSC 授權、Phase 1
   正式開放與合併授權），逐項證據見前節，不再以
   重複巡檢或文件代替進展。本節為本鏈收尾紀錄。
+
+## 2026-10-19 Loop：Edge Runtime 偶發失敗結案
+
+- HEAD `b0553f4` 之 Python Run `39247607570` 曾
+  failure，失敗僅在 Edge Runtime 步驟：容器影像
+  拉取後立即死亡（daemon 回報 dead/removal），
+  腳本解析空回應崩潰；同步驟於多個先前 HEAD
+  均 success，且該 Commit 僅改文件，判定為 CI
+  基礎設施偶發，非變更回歸。
+- 同 HEAD 第二次 Python Run `39247613909` 已
+  completed success，偶發結案；`c25c604` 之
+  Python 兩 Run（`39247171906`、`39247165081`）
+  亦均 success。至此所有近期 HEAD 均至少有一組
+  完整 Python success，不再有 PENDING 積壓。
+- 本節 Commit 待批次補審；PR #31 維持 Draft。
