@@ -539,3 +539,33 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   仍 in_progress，標記 PENDING，不等待。
 - 本節 Commit 待下一輪批次補審（比照既有文件 Commit 模式），
   未審前不進入正式發布，PR #31 維持 Draft。
+
+## 2026-10-19 原生堆疊瀏覽器交接 E2E 完成
+
+- Commit `20e9224`、`437b387`、`b9dbe8e`、`a903d71`、`17c2c52`
+  （Workflow 獨立 Reviewer APPROVE，未決項僅 Python CI
+  PENDING 與託管 E2E 維持 ENV_BLOCKED）：新增
+  `supabase/tests/auto_handoff_native.mjs` 並接入
+  `handoff-bridge.yml`。在 CI 臨時 Docker 內網啟動釘版
+  PG17＋GoTrue＋PostgREST（tmpfs、無公開埠、結束即清除），
+  瀏覽器以真實衍生建置完成：成果→確認→stash→未登入
+  fail-closed（真實 DB 零列）→真實 GoTrue 會話（密碼授權
+  為 Magic Link 測試等效，JWT 由 GoTrue 本人簽發、經相同
+  fragment 進入）→領取→`save_url_result_draft` 真實 RPC
+  持久化→新瀏覽器脈絡＋新會話資料層讀回同一版本→viewer
+  只讀且保存 403→外租戶零列且保存 403→拒絕後 DB 不變→
+  堆疊清除。CI Run `39235794878` Handoff bridge tests
+  success，原生步驟 25/25 PASS（Job `118004422827`）。
+- 範圍界線：瀏覽器仍指向寫死的 Staging 形狀來源，僅於
+  Playwright 傳輸層改送臨時堆疊並將 apikey 換為堆疊自身
+  anon JWT；使用者 JWT、Auth、RLS、RPC 本體與 SHA／摘要
+  驗證均未放寬。此不證明託管 Staging；託管持久化仍由
+  Part C 9/9 與真人驗收證明，託管瀏覽器 E2E 維持
+  ENV_BLOCKED／NEED_OWNER。
+- Checkpoint `27f0541` 同獲 Workflow Reviewer APPROVE
+  （補審完成）；`17c2c52` 的 Python prototype tests 於
+  最後單次查詢仍 in_progress，標記 PENDING，不等待。
+- Staging Review disable/restore 交接包維持 READY，
+  本輪未執行，待另行核准受控測試窗口。
+- 本節 Commit 待下一輪批次補審；PR #31 維持 Draft；
+  其他執行者未提交檔案未觸碰。
