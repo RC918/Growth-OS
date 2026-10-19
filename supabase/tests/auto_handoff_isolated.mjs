@@ -36,11 +36,10 @@ await build();
 await applyHandoffBridge(new URL('../../delivery/web-preview/dist/', import.meta.url));
 await applyReviewFlag(new URL('../../delivery/web-preview/dist/', import.meta.url), {});
 
-let browser;
+let browser, supabaseCalls = [];
 try {
   browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});
   const context = await browser.newContext();
-  const supabaseCalls = [];
   const USER = '11111111-1111-4111-8111-111111111111';
   const ORG = '22222222-2222-4222-8222-222222222222';
   const VERSION = '33333333-3333-4333-8333-333333333333';
@@ -111,19 +110,23 @@ try {
   step('payload not leaked into save preview pre-login', !(await bridged.evaluate(() => document.querySelector('#url-save-preview')?.textContent || '')).includes(TITLE));
 
   authed = true;
-  await bridged.goto(ORIGIN + '/workspace.html#access_token=iso-token&token_type=bearer&expires_in=3600', {waitUntil: 'domcontentloaded', timeout: 60000});
-  await bridged.waitForSelector('#workspace:not([hidden])', {timeout: 60000});
+  // A fresh page is required: re-navigating the same document with only
+  // a new fragment does not re-run the module boot that consumes it.
+  const bridged2 = await context.newPage();
+  await bridged2.goto(ORIGIN + '/workspace.html#access_token=iso-token&token_type=bearer&expires_in=3600', {waitUntil: 'domcontentloaded', timeout: 60000});
+  await bridged2.waitForSelector('#workspace:not([hidden])', {timeout: 60000});
   step('synthetic owner session opens workspace', true);
-  await bridged.waitForFunction(t => (document.querySelector('#url-save-preview')?.textContent || '').includes(t), TITLE, {timeout: 30000});
+  await bridged2.waitForFunction(t => (document.querySelector('#url-save-preview')?.textContent || '').includes(t), TITLE, {timeout: 30000});
   step('bridge claim renders confirmed payload after login', true);
-  await bridged.waitForFunction(() => localStorage.getItem('growth-os:pending-handoff:v1') === null, null, {timeout: 30000});
+  await bridged2.waitForFunction(() => localStorage.getItem('growth-os:pending-handoff:v1') === null, null, {timeout: 30000});
   step('stash consumed exactly once after claim', true);
-  await bridged.click('#save-url-result');
-  await bridged.waitForFunction(v => (document.querySelector('#url-save-feedback')?.textContent || '').includes('已保存第 1 版') && (document.querySelector('#url-save-feedback')?.textContent || '').includes(v), VERSION, {timeout: 60000});
+  await bridged2.click("#save-url-result");
+  await bridged2.waitForFunction(v => (document.querySelector('#url-save-feedback')?.textContent || '').includes('已保存第 1 版') && (document.querySelector('#url-save-feedback')?.textContent || '').includes(v), VERSION, {timeout: 60000});
   step('save readback feedback renders returned version', true);
   step('save RPC request shape (org, expected version, payload)', !!saveBody && saveBody.p_organization_id === ORG && saveBody.p_expected_version === 0 && saveBody.p_payload?.preview?.fields?.title?.suggested === TITLE);
 } catch (error) {
   step('isolated acceptance aborted', false, String(error?.message || error).slice(0, 240));
+  console.log('DIAG supabaseCalls=' + supabaseCalls.join(',').slice(0, 400));
 } finally {
   await browser?.close().catch(() => {});
 }
