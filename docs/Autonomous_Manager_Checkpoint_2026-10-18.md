@@ -469,3 +469,24 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   Vercel 保護處理，均屬 NEED_OWNER；建議優先改走 CI 既有
   隔離臨時堆疊的瀏覽器級驗收（不新增高權限 Secrets，不冒充
   託管 Staging 驗收），腳本參數化列為下一個 Core。
+
+## 2026-10-19 隔離交接驗收 Core 完成
+
+- Commit `637bda5`（Workflow 獨立 Reviewer APPROVE，未決項零）：
+  `auto_handoff_acceptance.mjs` 目標改由
+  `auto_handoff_config.mjs` 解析（HANDOFF_SUPABASE_REF／
+  HANDOFF_ORIGIN／HANDOFF_SUPABASE_URL／HANDOFF_PRODUCT_URL），
+  預設與原寫死值逐字相同，CONFIRM 與金鑰拒絕行為不變
+  （本機實證 exit 2）；守衛測試 3 案與橋接／旗標共 8/8 PASS。
+- 新增 `supabase/tests/auto_handoff_isolated.mjs` 並接入
+  `handoff-bridge.yml`：以真實衍生建置（build＋橋接＋旗標）在
+  Chromium 完成「成果 → 確認 → 交接 stash → 無 opener 新分頁 →
+  登入前 fail-closed（stash 未被領取、無 save RPC、預覽未洩漏）」。
+  CI Run 39227928017／39227937000 兩次 completed success，
+  其中隔離步驟 conclusion=success（Job 117978679673）。
+- 範圍界線：此為瀏覽器橋接層、合成傳輸驗收；託管 Auth／RLS／
+  RPC 持久化與讀回仍由 Part C 9/9 與真人驗收證明，託管版
+  E2E 維持 ENV_BLOCKED／NEED_OWNER，不互相冒充。
+- 待辦：`e3e28e5` 已取得 Workflow Reviewer APPROVE；
+  `99b8c48`、`e3e28e5`、`637bda5` 的 Python CI 於最後查詢
+  仍 PENDING，終態於後續單次查詢確認，不等待。
