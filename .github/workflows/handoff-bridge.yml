@@ -31,3 +31,5 @@ jobs:
       - name: Native-stack browser handoff acceptance (ephemeral GoTrue/PostgREST/PostgreSQL)
         timeout-minutes: 12
         run: node supabase/tests/auto_handoff_native.mjs
+      - name: Declared-product claim and Save/Review contract (synthetic transport)
+        run: node --test supabase/tests/declared_product_contract.test.mjs
