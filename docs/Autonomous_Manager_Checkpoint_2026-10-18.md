@@ -425,3 +425,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Reviewer：通道探測累計第十八次仍為 `runtime_turn_task_lost`；
   未審 Commit 名單加入 `10375fc` 與本節 Commit，維持
   REVIEW_BLOCKED，每輪至多探測一次，恢復即依序補審。
+
+## 2026-10-19 Loop 補記：CI 證據鏈完整至 31b6157
+
+- 單次查詢終態：`31b6157` 的兩項工作流已各雙次 completed
+  success；自 `1c6303f` 至 `31b6157` 的全部 Commit 均具完整
+  CI success 證據。
+- Reviewer：通道探測累計第二十一次仍為 `runtime_turn_task_lost`；
+  未審 Commit 名單加入 `31b6157` 與本節 Commit，維持
+  REVIEW_BLOCKED，每輪至多探測一次，恢復即依序補審。
