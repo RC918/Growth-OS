@@ -588,3 +588,21 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   HEAD 仍 in_progress，標記 PENDING，不等待、不重跑。
 - 本節 Commit 待下一輪批次補審；PR #31 維持 Draft；
   其他執行者未提交檔案未觸碰。
+
+## 2026-10-19 Loop：原生 E2E 延伸至 Publish 預覽與 Measure 準備
+
+- Commit `835eb3a`（Workflow 獨立 Reviewer APPROVE；
+  首位 Reviewer 異常停滯已停止，改以精簡證據範圍重送
+  並完成）：`auto_handoff_native.mjs` 於 Review 後新增
+  Publish 預覽與 Measure 準備段落——發布預覽載入且
+  明示「實際發布仍被阻擋 · 未發布」與 exact-version
+  確認（非發布授權）；量測準備明示基線未知、不是零；
+  預覽後 DB 列數不變。CI Run `39238473959` success，
+  原生步驟 34/34 PASS。
+- Python CI 開始結清：Run `39238183155`（HEAD
+  `6fa14ff`）completed success；較早 HEAD 的多個
+  Python 執行仍 in_progress（長流程依序排隊，曾實測
+  81/102 步驟進行中，非卡住），維持 PENDING。
+- Checkpoint `6fa14ff` 已取得 Workflow Reviewer
+  APPROVE。本節 Commit 待下一輪批次補審；PR #31
+  維持 Draft；其他執行者未提交檔案未觸碰。
