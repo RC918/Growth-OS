@@ -175,7 +175,7 @@ try {
   stage = 'preview build';
   await build();
   await applyHandoffBridge(new URL('../../delivery/web-preview/dist/', import.meta.url));
-  await applyReviewFlag(new URL('../../delivery/web-preview/dist/', import.meta.url), {});
+  await applyReviewFlag(new URL('../../delivery/web-preview/dist/', import.meta.url), {REVIEW_UI_ENABLED: 'true'});
   browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});
 
   // Transport rewrite: only the hardcoded Supabase origin is forwarded
@@ -257,6 +257,20 @@ try {
     saved.status === 200 && saved.data.length === 1 && saved.data[0].first_result_payload?.preview?.fields?.title?.suggested === TITLE);
   step('real DB row count is exactly one', versionCount() === 1);
 
+  stage = 'browser review persistence';
+  const reviewSection = claimed.locator('.typed-version[data-version-id="' + versionId + '"]');
+  await reviewSection.locator('summary').click();
+  await reviewSection.locator('.url-review-confirm').waitFor({timeout: 30000});
+  const checkKeys = await reviewSection.locator('[data-review-check]').evaluateAll(els => els.map(e => e.dataset.reviewCheck));
+  step('review panel offers all five fact checks', ['title', 'meta_description', 'description', 'source', 'blocking_facts_clear'].every(k => checkKeys.includes(k)), checkKeys.join(','));
+  for (const box of await reviewSection.locator('[data-review-check]').all()) await box.check();
+  await reviewSection.locator('.url-review-confirm').click();
+  await reviewSection.locator('.url-review-status').getByText(/已確認/).waitFor({timeout: 30000}).catch(() => {});
+  const reviewRows = await restCall('/content_reviews?select=*&version_id=eq.' + versionId, ownerSession.access_token);
+  step('real DB review readback: one approved review for saved version',
+    reviewRows.status === 200 && reviewRows.data.length === 1 && reviewRows.data[0].decision === 'approved');
+  step('review status renders in browser', /已確認|確認/.test(await reviewSection.locator('.url-review-status').textContent() || ''));
+
   stage = 'new session readback';
   const freshSession = await login('owner');
   const freshContext = await browser.newContext();
@@ -272,6 +286,8 @@ try {
     await freshPage.evaluate(() => document.querySelector('#sign-in')?.hidden === true));
   const freshRows = await restCall('/content_versions?select=id&id=eq.' + versionId, freshSession.access_token);
   step('fresh session API readback returns same version', freshRows.status === 200 && freshRows.data.length === 1);
+  const freshReviews = await restCall('/content_reviews?select=id&version_id=eq.' + versionId, freshSession.access_token);
+  step('fresh session API readback returns the review', freshReviews.status === 200 && freshReviews.data.length === 1);
 
   stage = 'tenant denials';
   const viewerSession = await login('viewer');
@@ -280,6 +296,13 @@ try {
   const viewerSave = await restCall('/rpc/save_url_result_draft', viewerSession.access_token, {method: 'POST', body: {
     p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 1, p_payload: fixture()}});
   step('viewer save RPC denied by real RLS/RPC', viewerSave.status === 403, 'HTTP ' + viewerSave.status);
+  const viewerReview = await restCall('/rpc/review_url_result', viewerSession.access_token, {method: 'POST', body: {
+    p_organization_id: ids.org, p_version_id: versionId, p_request_id: randomUUID(),
+    p_source_digest: saved.data[0].first_result_payload.snapshot.content_fingerprint,
+    p_content_digest: saved.data[0].first_result_payload.review.content_digest,
+    p_version_digest: saved.data[0].first_result_request_digest,
+    p_checks: {title: true, meta_description: true, description: true, source: true, blocking_facts_clear: true}}});
+  step('viewer review RPC denied by real RLS/RPC', viewerReview.status === 403, 'HTTP ' + viewerReview.status);
   const foreignSession = await login('foreign');
   const foreignRows = await restCall('/content_versions?select=id&organization_id=eq.' + ids.org, foreignSession.access_token);
   step('foreign tenant reads zero org rows', foreignRows.status === 200 && foreignRows.data.length === 0);
@@ -305,5 +328,5 @@ try {
   step('ephemeral stack removed (containers and network)', leftovers.length === 0, leftovers.join(','));
 }
 console.log(JSON.stringify({auto_handoff_native: results.every(Boolean) ? 'PASS' : 'FAIL',
-  scope: 'browser bridge+claim+save against ephemeral GoTrue/PostgREST/PostgreSQL in CI; transport of staging-shaped origin rewritten to stack; hosted Staging not proven'}));
+  scope: 'browser bridge+claim+save+review against ephemeral GoTrue/PostgREST/PostgreSQL in CI; transport of staging-shaped origin rewritten to stack; hosted Staging not proven'}));
 process.exit(results.every(Boolean) ? 0 : 1);
