@@ -95,6 +95,17 @@ def build_snapshot(*args, **kwargs):
                     and service_report.get("page_type") in ("service", "software_application", "static_subpage")):
                 service_report["result_kind"] = service_report["page_type"]
                 return service_report
+            # Declared-product rescue: a page that declares a single
+            # product but fails frozen ownership rules may still bind
+            # one visible description under strict adapter rules. Any
+            # failure keeps the fail-closed guidance report unchanged.
+            try:
+                from declared_product import rescue_declared_product
+                rescued = rescue_declared_product(report)
+            except Exception:
+                rescued = None
+            if rescued is not None and rescued.get("preview"):
+                return rescued
         return report
     except Exception as exc:
         if getattr(exc, "code", None) == "robots_unavailable":

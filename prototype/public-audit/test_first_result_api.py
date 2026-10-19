@@ -217,6 +217,58 @@ class GuidanceTests(unittest.TestCase):
         self.assertNotIn('guidance', report)
 
 
+class DeclaredProductRescueTests(unittest.TestCase):
+    def test_real_landyachtz_fixture_produces_traceable_product(self):
+        from pathlib import Path
+        page = (Path(__file__).parent / 'fixtures' / 'landyachtz-the-clark.html').read_bytes()
+        report = build_snapshot('https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/',
+                                fetcher(page))
+        self.assertEqual(report['page_type'], 'product')
+        self.assertEqual(report['extraction']['method'], 'declared_product_dom')
+        facts = report['facts']
+        self.assertEqual(facts['product_name']['value'], 'The Clark')
+        self.assertEqual(facts['product_name']['verification'], 'source_asserted')
+        self.assertTrue(facts['description']['value'].startswith('It’s a 40.2'))
+        self.assertEqual(facts['description']['product_scope']['product_name'], 'The Clark')
+        self.assertIsNotNone(report['preview'])
+        self.assertEqual(report['preview']['fields']['title']['suggested'], 'The Clark')
+        snapshot = report['snapshot']
+        self.assertEqual(snapshot['content_fingerprint'],
+                         'sha256:' + hashlib.sha256(page).hexdigest())
+        self.assertEqual(report['preview']['source_version'], snapshot['version'])
+        self.assertTrue(snapshot['citations'])
+
+    def test_multiple_products_stay_fail_closed(self):
+        page = b'''<html><head><title>Two boards</title>
+<meta property="og:type" content="product">
+<script type="application/ld+json">[{"@type":"Product","name":"Board A","offers":{"price":"10"}},{"@type":"Product","name":"Board B","offers":{"price":"20"}}]</script>
+</head><body><div class="product type-product"><h1>Board A</h1><p>Board A is a complete cruiser for city riding and commuting daily.</p>
+<h1>Board B</h1><p>Board B is a downhill board built for speed and stability.</p></div></body></html>'''
+        report = build_snapshot('https://example.com/shop/two', fetcher(page))
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertIsNone(report['preview'])
+
+    def test_conflicting_descriptions_stay_fail_closed(self):
+        page = b'''<html><head><title>Clark X - Shop</title>
+<meta property="og:type" content="product">
+<script type="application/ld+json">{"@type":"Product","name":"Clark X - Shop","offers":{"price":"10"}}</script>
+</head><body><div class="product type-product"><div><h1>Clark X</h1><p>Clark X is a city cruiser board made for daily commuting routes.</p></div>
+<div><h1>Clark X</h1><p>Clark X is a downhill racing board made for steep mountain roads.</p></div></div></body></html>'''
+        report = build_snapshot('https://example.com/shop/clark-x', fetcher(page))
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertIsNone(report['preview'])
+
+    def test_missing_product_description_stays_fail_closed(self):
+        page = b'''<html><head><title>Clark Y - Shop</title>
+<meta property="og:type" content="product">
+<script type="application/ld+json">{"@type":"Product","name":"Clark Y - Shop","offers":{"price":"10"}}</script>
+</head><body><div class="product type-product"><h1>Clark Y</h1><ul><li>Maple deck</li><li>Steel trucks</li></ul></div></body></html>'''
+        report = build_snapshot('https://example.com/shop/clark-y', fetcher(page))
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertIsNone(report['preview'])
+        self.assertEqual(report['guidance']['page_kind'], 'declared_product_unbindable')
+
+
 class SaveChainContractTests(unittest.TestCase):
     """Offline mirror of the Workspace save contract essentials.
 
