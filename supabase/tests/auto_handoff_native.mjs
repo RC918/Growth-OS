@@ -222,6 +222,10 @@ try {
   await first.click('#review-confirm');
   await first.waitForFunction(() => document.querySelector('#review-state')?.textContent.includes('已確認'), null, {timeout: 30000});
   step('owner confirmed current version', true);
+  const [popup] = await Promise.all([context.waitForEvent('page', {timeout: 30000}), first.click('#handoff-result')]);
+  await popup.waitForLoadState('domcontentloaded');
+  step('workspace tab opened same-origin', popup.url().startsWith(ORIGIN + '/workspace.html'), popup.url());
+  await popup.close();
   const stash = await first.evaluate(() => JSON.parse(localStorage.getItem('growth-os:pending-handoff:v1') || 'null'));
   step('bridge stash written with one-time nonce', !!stash && stash.payload?.preview?.fields?.title?.suggested === TITLE);
 
