@@ -688,3 +688,38 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   亦均 success。至此所有近期 HEAD 均至少有一組
   完整 Python success，不再有 PENDING 積壓。
 - 本節 Commit 待批次補審；PR #31 維持 Draft。
+
+## 2026-10-19 Landyachtz 真實產品頁相容性調查與修正
+
+- 案例：`landyachtz.com/.../the-clark/`（轉址至
+  `/shop/discontinued/the-clark/`，HTTP 200，robots
+  未擋）。實測頁面含 JSON-LD Product、og:type=product
+  與 WooCommerce 標記，非來源限制、非動態渲染問題。
+- 根因：現有辨識規則不足以涵蓋此自訂佈景——頁面有
+  兩個同文 H1、JSON-LD 商品名為標題式全名（與 H1
+  不一致）、且無 `main#main`／標準 Woo 容器／商品
+  範圍標記，凍結擷取器無法把單一商品名稱與商品
+  專屬說明可靠綁定。離線以真實 HTML 重現
+  `not_supported_product`，並以模擬放寬門檻證明
+  僅放寬分類仍無法產生可信描述與預覽。
+- 決策：維持 fail-closed，不以 URL／H1 強制判定、
+  不降低事實驗證標準、不改凍結擷取器
+  （product_source／product_api／scanner 屬 RC
+  凍結雜湊）。
+- Commit `6b6cfe5`（Workflow 獨立 Reviewer
+  APPROVE）：於非凍結引導層 `robots_policy.py`
+  新增 `declared_product_unbindable` 分類——頁面
+  自行宣告商品（og:type=product 或 JSON-LD
+  Product）且有 H1、但凍結擷取器已判定不支援且
+  無候選連結時，UI 精確說明無法可靠綁定、不會
+  猜測商品內容，並給予可操作下一步。僅改分類
+  與引導文字，不產生任何事實。真實 HTML 驗證
+  page_kind 已正確分類、preview 仍為 None；
+  `test_first_result_api` 24 案全過（含新增
+  Landyachtz 形狀與無宣告對照組）；本機另兩案
+  失敗僅因沙箱禁止綁定 127.0.0.1，與變更無關，
+  由 CI 覆蓋。
+- `6b6cfe5` 之 Python CI 於最後單次查詢仍
+  in_progress，標記 PENDING；Handoff bridge tests
+  已 success。本節 Commit 待批次補審，PR #31
+  維持 Draft。
