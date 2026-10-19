@@ -2,9 +2,12 @@
 // handoff bridge. Scope is deliberately narrow and labeled: it proves,
 // in a real browser against the real derived Preview build, that
 //   First Result -> confirm -> handoff stash -> opener-less new tab ->
-//   pre-login fail-closed (no claim, no save call, no payload leak).
+//   pre-login fail-closed (no claim, no save call, no payload leak) ->
+//   synthetic owner session -> bridge claim renders the confirmed
+//   payload -> save issues the real RPC request shape -> readback
+//   reconciliation feedback renders the returned version.
 // It uses synthetic transport for /api/product-source and for the
-// Supabase origin (401), so it does NOT prove hosted Auth, RLS, RPC
+// Supabase origin, so it does NOT prove hosted Auth, RLS, RPC
 // persistence, or readback; those stay proven by the hosted Part C
 // acceptance and the Owner human acceptance. Run in CI (Chromium).
 import assert from 'node:assert/strict';
@@ -38,11 +41,32 @@ try {
   browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});
   const context = await browser.newContext();
   const supabaseCalls = [];
+  const USER = '11111111-1111-4111-8111-111111111111';
+  const ORG = '22222222-2222-4222-8222-222222222222';
+  const VERSION = '33333333-3333-4333-8333-333333333333';
+  let authed = false, saveBody = null;
+  const savedRow = () => ({organization_id: ORG, id: VERSION, opportunity_id: saveBody.p_opportunity_id,
+    version_number: 1, title: TITLE, draft_body: '候選 description', status: 'draft',
+    created_at: new Date().toISOString(), first_result_request_id: saveBody.p_request_id,
+    first_result_expected_version: saveBody.p_expected_version,
+    first_result_request_digest: 'pg-jsonb-sha256:' + 'a'.repeat(64), first_result_payload: saveBody.p_payload});
   await context.route('**/*', async route => {
     const req = route.request(), u = new URL(req.url());
     if (u.origin === SUPABASE_ORIGIN) {
       supabaseCalls.push(req.method() + ' ' + u.pathname);
-      return route.fulfill({status: 401, contentType: 'application/json', body: '{"message":"unauthorized (isolated)"}'});
+      const json = (status, value) => route.fulfill({status, contentType: 'application/json', body: JSON.stringify(value)});
+      if (!authed) return json(401, {message: 'unauthorized (isolated)'});
+      if (u.pathname === '/auth/v1/user') return json(200, {id: USER, email: 'iso@example.invalid'});
+      if (req.method() === 'POST' && u.pathname === '/rest/v1/rpc/save_url_result_draft') {
+        saveBody = JSON.parse(req.postData() || '{}');
+        return json(200, VERSION);
+      }
+      if (req.method() === 'POST' && u.pathname.startsWith('/rest/v1/rpc/')) return json(200, null);
+      if (u.pathname === '/rest/v1/organization_members') return json(200, [{organization_id: ORG, role: 'owner'}]);
+      if (u.pathname === '/rest/v1/organizations') return json(200, [{id: ORG, name: 'ISO ORG', business_model: 'ecommerce'}]);
+      if (u.pathname === '/rest/v1/content_versions') return json(200, saveBody ? [savedRow()] : []);
+      if (u.pathname.startsWith('/rest/v1/')) return json(200, []);
+      return json(401, {message: 'unexpected (isolated)'});
     }
     assert.equal(u.origin, ORIGIN, 'unexpected origin ' + u.origin);
     if (u.pathname === '/api/product-source') {
@@ -85,10 +109,23 @@ try {
   step('stash not claimed or consumed pre-login', stashAfter?.nonce === stash.nonce);
   step('no save RPC attempted pre-login', !supabaseCalls.some(c => c.includes('save_url_result_draft')), supabaseCalls.join(',').slice(0, 160));
   step('payload not leaked into save preview pre-login', !(await bridged.evaluate(() => document.querySelector('#url-save-preview')?.textContent || '')).includes(TITLE));
+
+  authed = true;
+  await bridged.goto(ORIGIN + '/workspace.html#access_token=iso-token&token_type=bearer&expires_in=3600', {waitUntil: 'domcontentloaded', timeout: 60000});
+  await bridged.waitForSelector('#workspace:not([hidden])', {timeout: 60000});
+  step('synthetic owner session opens workspace', true);
+  await bridged.waitForFunction(t => (document.querySelector('#url-save-preview')?.textContent || '').includes(t), TITLE, {timeout: 30000});
+  step('bridge claim renders confirmed payload after login', true);
+  await bridged.waitForFunction(() => localStorage.getItem('growth-os:pending-handoff:v1') === null, null, {timeout: 30000});
+  step('stash consumed exactly once after claim', true);
+  await bridged.click('#save-url-result');
+  await bridged.waitForFunction(v => (document.querySelector('#url-save-feedback')?.textContent || '').includes('已保存第 1 版') && (document.querySelector('#url-save-feedback')?.textContent || '').includes(v), VERSION, {timeout: 60000});
+  step('save readback feedback renders returned version', true);
+  step('save RPC request shape (org, expected version, payload)', !!saveBody && saveBody.p_organization_id === ORG && saveBody.p_expected_version === 0 && saveBody.p_payload?.preview?.fields?.title?.suggested === TITLE);
 } catch (error) {
   step('isolated acceptance aborted', false, String(error?.message || error).slice(0, 240));
 } finally {
   await browser?.close().catch(() => {});
 }
-console.log(JSON.stringify({auto_handoff_isolated: results.every(Boolean) ? 'PASS' : 'FAIL', scope: 'browser bridge layer, synthetic transport; hosted persistence not proven'}));
+console.log(JSON.stringify({auto_handoff_isolated: results.every(Boolean) ? 'PASS' : 'FAIL', scope: 'browser bridge+claim+save wiring, synthetic transport; hosted persistence not proven'}));
 process.exit(results.every(Boolean) ? 0 : 1);
