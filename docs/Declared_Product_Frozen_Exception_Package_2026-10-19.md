@@ -77,3 +77,39 @@ Reviewer → Preview 部署 → 以 Landyachtz 完成
 First Result → Save → Review 隔離驗收。
 不核准：適配器保留為隔離能力，L1 fail-closed
 現況維持，後續 Loop 不再重提相同提案。
+
+## 執行紀錄與修訂（v2）
+
+Owner 一次性核准後已套用（Commit `ca945df`），
+與本包 Diff 逐字一致：修改前雜湊
+`3c3ee22192c3ae11b51f5ebf86afef0b46a8d4db514f295500a5387352d9750b`、
+修改後雜湊
+`bc17a364a5496ad14ea252199d0fbc60c5ed202bcca8becc96687a915d09ca1c`，
+其餘 114 檔零漂移；隔離契約測試通過（領取
+驗證、Save、讀回、Review 確認與讀回，合成
+傳輸），Workflow Reviewer 曾裁決 APPROVE。
+
+惟 CI（Run `39283245114`）於「Workspace API
+contract checks」失敗：測試
+`preview publishes the exact reviewed workspace files`
+逐檔比對 `prototype/owner-workspace/` 已審鏡像
+與 `apps/web/` 是否逐字相同；僅改一側觸發
+此釘選守衛（其餘步驟均通過，非行為退化）。
+
+依核准函第 5 點，已以 Commit `38245bc` 回復
+`ca945df` 全數變更：payload 回復原雜湊、
+frozen 115 檔零漂移、本機 Workspace API
+測試 14/14 通過、CI 回復全綠路徑。
+
+修訂後精確範圍（共兩檔、同一行、內容一致）：
+
+1. `apps/web/first-result-payload.mjs`（frozen，
+   前 `3c3ee221…` → 後 `bc17a364…`）。
+2. `prototype/owner-workspace/first-result-payload.mjs`
+   （已審鏡像，不在 frozen 清單；修改前與
+   第 1 檔逐字相同，同步同一行後同為
+   `bc17a364…`，鏡像不變式維持）。
+
+其餘條款與 v1 相同。**待 Owner 核准此修訂
+範圍後重新套用**；未核准前維持回復狀態。
+託管 Preview 實測維持 NOT_TESTED／ENV_BLOCKED。

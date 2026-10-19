@@ -752,3 +752,21 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - CI：`5d30965` Handoff bridge tests success；
   Python Run `39277229819` Job completed success。
   本節 Commit 待批次補審；PR #31 維持 Draft。
+
+## 2026-10-20 Frozen Exception 套用、CI 釘選觸發與回復
+
+- Commit `ca945df` 依 Owner 一次性核准套用
+  一行例外（前雜湊 `3c3ee221…`、後雜湊
+  `bc17a364…`、其餘 114 檔零漂移），隔離
+  契約測試通過，Workflow Reviewer APPROVE。
+- CI Run `39283245114` 於 Workspace API 契約
+  步驟失敗：已審鏡像釘選測試要求
+  `prototype/owner-workspace/` 與 `apps/web/`
+  逐字相同，僅改一側觸發守衛（非行為退化）。
+- 依核准函第 5 點以 `38245bc` 全數回復；
+  雜湊零漂移、本機測試 14/14、回復全綠。
+- 修訂決策包 v2 已備妥：例外範圍擴為兩檔
+  同一行（frozen 原檔＋非凍結已審鏡像，
+  同步後雜湊同為 `bc17a364…`），待 Owner
+  核准修訂範圍後重新套用；託管 Preview
+  維持 NOT_TESTED／ENV_BLOCKED。
