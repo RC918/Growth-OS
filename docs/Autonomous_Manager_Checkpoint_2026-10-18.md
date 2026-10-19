@@ -333,3 +333,22 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   待其提交或撤回後由 Loop 補接。自動交接瀏覽器 E2E 維持
   ENV_BLOCKED（本機 Chromium sandbox 實證無法啟動；CI 執行需
   Staging 金鑰型 Secrets，屬 NEED_OWNER，不自行新增）。
+
+## 2026-10-19 Loop：橋接測試獨立 CI 工作流
+
+- 缺口實證：`3c4fdc3` 的橋接硬化測試僅本機執行，既有 CI 工作流
+  （`.github/workflows/python-tests.yml`）未包含該兩支測試，且該檔案
+  現有另一執行者未提交修改（用於 phase1-save-candidate 接線），
+  不代改、不覆蓋。
+- 本輪 Core（必要 P2，證據封閉）：新增獨立工作流
+  `.github/workflows/handoff-bridge.yml`（push／pull_request 觸發、
+  setup-node 24），只跑 `handoff-bridge.test.mjs` 與
+  `review-flag.test.mjs`，不觸碰衝突檔案；另一執行者日後提交其
+  CI 修改時，本工作流可再評估併回主工作流。
+- Primary 子代理本輪啟動失敗（native subagent run failed，無部分
+  產物），依 Owner 既定規則由主管直接執行 L1，成果仍須獨立
+  Reviewer 裁決，主管不自行批准。
+- 本機驗證：YAML 可解析；兩支測試重跑 5/5 PASS（exit 0）。
+- 其餘狀態不變：自動交接瀏覽器 E2E 為 ENV_BLOCKED（待合法瀏覽器
+  環境或 Owner 核准 CI Staging Secrets）；真實試點發布與真實 GSC
+  為 NEED_OWNER；成效 UNKNOWN；Phase 1 未正式開放。

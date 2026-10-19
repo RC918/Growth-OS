@@ -1,0 +1,16 @@
+name: Handoff bridge tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Handoff bridge and review flag tests
+        run: node --test delivery/web-preview/handoff-bridge.test.mjs delivery/web-preview/review-flag.test.mjs
