@@ -569,3 +569,22 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   本輪未執行，待另行核准受控測試窗口。
 - 本節 Commit 待下一輪批次補審；PR #31 維持 Draft；
   其他執行者未提交檔案未觸碰。
+
+## 2026-10-19 Loop：原生 E2E 延伸至 Review 持久化
+
+- Commit `1eb4d18`（Workflow 獨立 Reviewer APPROVE）：
+  `auto_handoff_native.mjs` 於測試建置啟用 Review UI
+  旗標，瀏覽器展開已保存版本、勾選五項事實核對、送出
+  確認；成功以真實 DB 斷言（`content_reviews` 對該版本
+  恰一筆 approved）與瀏覽器狀態文字雙重證明。新會話
+  讀回新增 Review 列；viewer 以正確摘要呼叫
+  `review_url_result` 仍遭 403。
+- CI Run `39237447576` Handoff bridge tests success，
+  原生步驟擴充為 30/30 PASS。範圍界線不變：隔離原生
+  堆疊驗收，非託管 Staging 證明；託管 Review 持久化
+  仍由 Part C 9/9 與真人驗收證明。
+- Checkpoint `cfba1b1` 已於本輪取得 Workflow Reviewer
+  APPROVE（補審完成）。Python prototype tests 多個
+  HEAD 仍 in_progress，標記 PENDING，不等待、不重跑。
+- 本節 Commit 待下一輪批次補審；PR #31 維持 Draft；
+  其他執行者未提交檔案未觸碰。
