@@ -640,3 +640,17 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
    上傳 JSON）；點擊「確認保存待審草稿」，看到
    「已保存第 1 版」即完成。只需回報成功或卡住的
    步驟編號，不需重做 Review。
+
+## 2026-10-19 Loop 補正：Preview 部署版本已可核對
+
+- 經 GitHub Deployments API 核對：接管分支 Preview
+  部署隨每次推送建立，最新 HEAD `4be1fa4` 的部署
+  `7172037618` 狀態 success（`6df05e5`、`835eb3a`
+  亦然）。前節「部署 Commit UNKNOWN」更正為「已核對
+  為目前 HEAD，僅 SSO 後內容無法匿名讀取」；託管
+  自動交接維持 ENV_BLOCKED，Owner 最小操作不變。
+- Checkpoint `4be1fa4` 已取得 Workflow Reviewer
+  APPROVE。`4be1fa4` 的 Handoff bridge tests 兩次
+  success；Python tests 仍排隊，標記 PENDING。
+- 本節 Commit 待下一輪批次補審；PR #31 維持 Draft；
+  其他執行者未提交檔案未觸碰。
