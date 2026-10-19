@@ -375,3 +375,15 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   `ebdc437` 維持 REVIEW_BLOCKED，主管不自行批准。通道恢復後
   第一優先補審此二 Commit，不因審核阻塞而停做其他 Core。
 - 未提交衝突不變：另一執行者 11 項未提交內容未被觸碰。
+
+## 2026-10-19 Loop 補記：Reviewer 失敗根因與 CI 終態更新
+
+- 根因實證：讀取子代理會話日誌，終端事件為
+  `runtime_turn_task_lost`（child run failed），連續七次一致；
+  非任務內容、路徑或權限問題，屬子代理執行期系統性故障。
+  後續每輪至多探測一次，不再同輪反覆重試；通道恢復後依序補審
+  `1c6303f`、`ebdc437`、`8ed7594` 與本節 Commit。
+- CI 終態更新（單次查詢）：`Python prototype tests` 於
+  `1c6303f` 與 `ebdc437` 已各雙次 completed success，先前
+  in_progress 確認為正常長流程結束；`8ed7594` 仍 in_progress，
+  記 PENDING。`Handoff bridge tests` 至 `8ed7594` 均 success。
