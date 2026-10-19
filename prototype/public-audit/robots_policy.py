@@ -104,7 +104,22 @@ _GUIDANCE = {
         "請改貼公開的單一產品詳細頁網址（不需登入、含產品名稱與說明）。",
         "若產品資訊分散在多個頁面，請選擇資訊最完整的那一頁。",
     ],
+    "declared_product_unbindable": [
+        "此頁已宣告為商品頁（含商品結構化資料），但目前版面無法把單一商品名稱與商品專屬說明可靠綁定（例如自訂佈景、重複頁首或缺少商品範圍標記），因此未產生結果，也不會猜測商品內容。",
+        "請改用同一商品的標準商品詳細頁，或提供同時含商品名稱與說明的公開頁面。",
+    ],
 }
+
+
+def _declares_product(html):
+    """True when the page itself declares a single product: Open Graph
+    product type or schema.org Product structured data. This classifies
+    the failure message only; it never creates product facts."""
+    if re.search(r"og:type[\"'][^>]*content=[\"']product[\"']", html, re.IGNORECASE):
+        return True
+    if re.search(r"content=[\"']product[\"'][^>]*property=[\"']og:type[\"']", html, re.IGNORECASE):
+        return True
+    return bool(re.search(r"[\"']@type[\"']\s*:\s*(\[[^\]]*[\"']Product[\"']|[\"']Product[\"'])", html))
 
 
 def enrich_guidance(report):
@@ -118,6 +133,8 @@ def enrich_guidance(report):
     h1_count = len(re.findall(r"<h1[\s>]", html, re.IGNORECASE))
     if candidates:
         kind = "listing_with_candidates"
+    elif h1_count >= 1 and _declares_product(html):
+        kind = "declared_product_unbindable"
     elif path in ("", "/"):
         kind = "homepage"
     elif h1_count == 0:

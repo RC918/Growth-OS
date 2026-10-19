@@ -187,6 +187,31 @@ class GuidanceTests(unittest.TestCase):
         report = build_snapshot('https://example.com/', fetcher(HOME_PAGE))
         self.assertEqual(report['guidance']['page_kind'], 'homepage')
 
+    def test_declared_product_with_unbindable_layout_gets_precise_guidance(self):
+        # Custom-theme shape (Landyachtz): the page declares a product via
+        # og:type and JSON-LD, but duplicate headings and a title-form
+        # JSON-LD name leave no reliably bound single product. The result
+        # must stay fail-closed with a precise reason, never guess facts.
+        page = b'''<html><head><title>The Clark - Landyachtz</title>
+<meta property="og:type" content="product">
+<script type="application/ld+json">{"@type":"Product","name":"The Clark - Landyachtz","description":"A complete cruiser board."}</script>
+</head><body><div class="product type-product"><div><h1>The Clark</h1></div>
+<div><h1>The Clark</h1><p>A complete cruiser board for city riding and commuting.</p></div></div>
+</body></html>'''
+        report = build_snapshot('https://example.com/shop/the-clark/', fetcher(page))
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertIsNone(report['preview'])
+        self.assertEqual(report['guidance']['page_kind'], 'declared_product_unbindable')
+        self.assertIn('不會猜測商品內容', report['guidance']['next_steps'][0])
+
+    def test_undeclared_page_keeps_generic_unsupported_guidance(self):
+        page = b'''<html><head><title>Some page</title></head><body><main>
+<h1>Some page</h1><p>General text without any product declaration or binding.</p>
+</main></body></html>'''
+        report = build_snapshot('https://example.com/some-page', fetcher(page))
+        self.assertEqual(report['page_type'], 'not_supported_product')
+        self.assertEqual(report['guidance']['page_kind'], 'unsupported')
+
     def test_supported_product_has_no_guidance(self):
         report = build_snapshot('https://example.com/products/bolt', fetcher(PRODUCT))
         self.assertNotIn('guidance', report)
