@@ -770,3 +770,9 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   同步後雜湊同為 `bc17a364…`），待 Owner
   核准修訂範圍後重新套用；託管 Preview
   維持 NOT_TESTED／ENV_BLOCKED。
+- 收尾補記：`38245bc` 與 `80f2fdf` 已取得
+  Workflow Reviewer APPROVE；兩 HEAD 之
+  Handoff bridge tests 與 Python prototype
+  tests 均 completed success（Job 103/103）。
+  目前維持回復狀態，等待 Owner 核准 v2
+  修訂範圍（兩檔同一行）後重新套用。
