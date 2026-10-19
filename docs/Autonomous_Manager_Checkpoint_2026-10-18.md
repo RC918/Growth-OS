@@ -352,3 +352,11 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 其餘狀態不變：自動交接瀏覽器 E2E 為 ENV_BLOCKED（待合法瀏覽器
   環境或 Owner 核准 CI Staging Secrets）；真實試點發布與真實 GSC
   為 NEED_OWNER；成效 UNKNOWN；Phase 1 未正式開放。
+- CI 終態（單次查詢）：新工作流 `Handoff bridge tests` 於 Commit
+  `1c6303f` 兩次執行均 completed success（Run 39202695894、
+  39202701105），橋接／旗標測試自此具 CI 證據；同 Commit 的
+  `Python prototype tests` 查詢時仍 in_progress，記 PENDING，不等待。
+- Reviewer：獨立 Reviewer 子代理本輪連續兩次啟動失敗（native
+  subagent run failed），有限重試已用完，`1c6303f` 標記
+  REVIEW_BLOCKED；主管不自行批准，待 Reviewer 通道恢復後補審，
+  補審前不得宣稱本 Commit 已審核通過。
