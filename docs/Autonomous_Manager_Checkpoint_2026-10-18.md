@@ -398,3 +398,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   未審 Commit（`1c6303f`、`ebdc437`、`8ed7594`、`aede06f`
   與本節 Commit）維持 REVIEW_BLOCKED；每輪至多探測一次，
   恢復即依序補審。CI success 不取代獨立 Reviewer 裁決。
+
+## 2026-10-19 Loop 補記：CI 證據鏈完整至 6d29c16
+
+- 單次查詢終態：`6d29c16` 的兩項工作流已各雙次 completed
+  success；自 `1c6303f` 至 `6d29c16` 的全部 Commit 均具完整
+  CI success 證據。
+- Reviewer：通道探測累計第十三次仍為 `runtime_turn_task_lost`；
+  未審 Commit 名單加入 `6d29c16` 與本節 Commit，維持
+  REVIEW_BLOCKED，每輪至多探測一次，恢復即依序補審。
