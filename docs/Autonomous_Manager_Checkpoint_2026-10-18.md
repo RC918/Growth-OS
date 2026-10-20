@@ -1164,3 +1164,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 連接盤點：排程僅唯一永久 Loop `98e1e126`；目前無
   peer session；GitHub CI 於此時多個 Run 排隊中
   （PENDING，非失敗），終態由 Loop 後續單次查詢補記。
+
+### 補記：AI 欄位成為發布權威（綁定來自保存版本）
+- 新增 `authority-from-reviewed.mjs`：綁定永遠來自已保存
+  Review 讀回，欄位文字僅來自 REVIEWED AI 結果並保留
+  來源標籤；未審核或綁定不全拒絕。測試合計 7/7，接入 CI。
+- 連接盤點：Supabase CLI 工作階段唯讀可見 Staging；
+  其餘連接狀態不變，無新增通道。
