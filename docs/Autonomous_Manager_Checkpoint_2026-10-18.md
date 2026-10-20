@@ -839,3 +839,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   誤判為已審鏡像；修正 Commit `a1146a5` 排除 `dist/` 產生檔（已審鏡像與清單檢查不變），
   測試 5/5 PASS、本機對 `origin/main` 模擬 PASS；獨立 Reviewer 對 `a1146a5` 裁決 APPROVE。
 - `a1146a5` 之 GitHub CI 於最後單次查詢時仍為 in_progress，標記 PENDING，不冒充 PASS。
+
+### 補記：Landyachtz CI 變體實跑結果與第四處相依（NEED_OWNER）
+- CI 已以 `HANDOFF_VARIANT=landyachtz` 實際執行原生堆疊驗收：
+  適配器 provenance、登入領取、stash 一次性消費均 PASS，
+  於 real save 階段因 DB 端 `fr_valid_payload` 方法清單未含
+  `declared_product_dom` 而逾時 FAIL（run 39361568273／39361564421）。
+- 此為 v3 核准三處之外的第四處相依，依授權未自行修改；
+  決策包：`docs/Declared_Product_DB_Validator_Exception_Package_2026-10-20.md`。
+- 測試已補強：save 逾時時記錄 `#url-save-feedback` 實際文字作為證據。

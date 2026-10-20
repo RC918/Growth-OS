@@ -267,7 +267,13 @@ try {
 
   stage = 'real save';
   await claimed.click('#save-url-result');
-  await claimed.waitForFunction(() => /已保存第 1 版/.test(document.querySelector('#url-save-feedback')?.textContent || ''), null, {timeout: 60000});
+  try {
+    await claimed.waitForFunction(() => /已保存第 1 版/.test(document.querySelector('#url-save-feedback')?.textContent || ''), null, {timeout: 60000});
+  } catch (e) {
+    const fb = await claimed.evaluate(() => document.querySelector('#url-save-feedback')?.textContent || '').catch(() => '');
+    step('save feedback renders persisted version', false, 'save feedback after timeout: ' + fb);
+    throw e;
+  }
   const feedback = await claimed.evaluate(() => document.querySelector('#url-save-feedback')?.textContent || '');
   const versionId = feedback.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/)?.[0];
   step('save feedback renders persisted version', !!versionId, feedback);
