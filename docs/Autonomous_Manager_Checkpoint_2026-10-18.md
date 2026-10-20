@@ -1071,3 +1071,7 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 依其試點前提醒補強：英文事實詞彙改全詞彙比對（小寫
   捏造詞亦攔截）、實際成本超上限時 FAIL_CLOSED 並保留
   帳本紀錄；新增負面測試後合計 8/8 PASS。
+- 安全補強經 Workflow 複審 `b182e3b` 裁決 **APPROVE**（8/8）。
+- 連接能力現況（已盤點）：GitHub CI、Workflow Reviewer、
+  Supabase 連接器（執行者）與 CLI 唯讀可見 Staging；
+  Muse MCP OAuth 仍受平台限制；無真實模型連線。
