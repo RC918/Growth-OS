@@ -885,3 +885,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 修正 `40f42b0` 僅補該唯讀 SELECT；複審裁決 **APPROVE**。
 - 執行包四工件＋文件已備妥，等待授權連接器執行者依序操作；
   Muse 未執行任何遠端 SQL，Owner 不需手動貼 SQL。
+
+### 補記：Staging 執行前置狀態（2026-10-20）
+- 唯讀核對：以 Owner 已完成的 Supabase CLI 登入工作階段，
+  `supabase projects list` 可見目標 Staging `vhzryhibmpvglzcmfnaa`；
+  未讀取或匯出任何憑證、未建立新連線通道、未執行任何 SQL。
+- 執行門檻：Handoff CI 全綠，惟 Python CI 於此時仍 in_progress
+  （PENDING，非失敗）；依授權條件 5，forward 尚未執行，
+  待 Python 終態確認無安全／契約失敗後，才交連接器執行者
+  依執行包操作並回傳 preflight／postflight／合成驗收證據。
