@@ -33,3 +33,8 @@ jobs:
         run: node supabase/tests/auto_handoff_native.mjs
       - name: Declared-product claim and Save/Review contract (synthetic transport)
         run: node --test supabase/tests/declared_product_contract.test.mjs
+      - name: Landyachtz adapter-to-native-stack browser acceptance (real adapter, ephemeral DB)
+        timeout-minutes: 12
+        run: node supabase/tests/auto_handoff_native.mjs
+        env:
+          HANDOFF_VARIANT: landyachtz

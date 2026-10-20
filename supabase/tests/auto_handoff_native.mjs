@@ -27,7 +27,7 @@
 // acceptance, and the hosted browser E2E stays ENV_BLOCKED.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawn} from 'node:child_process';
 import {randomBytes, randomUUID, createHmac, createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
@@ -43,7 +43,11 @@ process.chdir(fileURLToPath(new URL('../../', import.meta.url))); // schema() re
 
 const results = [];
 const step = (name, ok, detail = '') => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' ' + String(detail).slice(0, 200) : '')); };
-const TITLE = 'NATIVE-HANDOFF-001';
+const LANDY = process.env.HANDOFF_VARIANT === 'landyachtz';
+const TITLE = LANDY ? 'The Clark' : 'NATIVE-HANDOFF-001';
+const SOURCE_URL = LANDY
+  ? 'https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/'
+  : 'https://example.invalid/native';
 const ORIGIN = 'http://127.0.0.1:4321';
 const SUPABASE_ORIGIN = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
 const fields = ['title', 'meta_description', 'description'];
@@ -124,7 +128,7 @@ const signJwt = claims => {
 const adminToken = () => signJwt({role: 'service_role', aud: 'authenticated', exp: Math.floor(deadline / 1000)});
 const anonToken = () => signJwt({role: 'anon', aud: 'anon', exp: Math.floor(deadline / 1000)});
 
-let browser;
+let browser, landyServer;
 const credentials = {};
 async function stackCall(originUrl, path, {method = 'GET', token, body} = {}) {
   bounded();
@@ -177,6 +181,14 @@ try {
   await applyHandoffBridge(new URL('../../delivery/web-preview/dist/', import.meta.url));
   await applyReviewFlag(new URL('../../delivery/web-preview/dist/', import.meta.url), {REVIEW_UI_ENABLED: 'true'});
   browser = await chromium.launch(process.env.CHROMIUM_PATH ? {executablePath: process.env.CHROMIUM_PATH} : {});
+  if (LANDY) {
+    landyServer = spawn('python3', ['supabase/tests/landy_fixture_server.py'], {cwd: fileURLToPath(new URL('../../', import.meta.url)), stdio: 'ignore'});
+    await wait(async () => {
+      const r = await fetch('http://127.0.0.1:18765/', {method: 'POST', body: '{}', signal: AbortSignal.timeout(2000)}).catch(() => null);
+      return r !== null;
+    }, 'Landyachtz fixture server failed to start');
+    step('real adapter pipeline serves Landyachtz fixture', true);
+  }
 
   // Transport rewrite: only the hardcoded Supabase origin is forwarded
   // to the ephemeral stack. Everything else behaves as in production.
@@ -198,6 +210,12 @@ try {
       assert.equal(u.origin, ORIGIN, 'unexpected origin ' + u.origin);
       if (u.pathname === '/api/product-source') {
         assert.equal(req.method(), 'POST');
+        if (LANDY) {
+          const resp = await fetch('http://127.0.0.1:18765/', {method: 'POST',
+            headers: {'content-type': 'application/json'}, body: req.postDataBuffer() || Buffer.from('{}'),
+            signal: AbortSignal.timeout(30000)});
+          return route.fulfill({status: resp.status, contentType: 'application/json', body: Buffer.from(await resp.arrayBuffer())});
+        }
         return route.fulfill({contentType: 'application/json', body: JSON.stringify(fixture())});
       }
       assert.equal(req.method(), 'GET');
@@ -214,7 +232,7 @@ try {
   await installRoutes(context);
   const first = await context.newPage();
   await first.goto(ORIGIN + '/first-result.html', {waitUntil: 'domcontentloaded', timeout: 60000});
-  await first.fill('#source-url', 'https://example.invalid/native');
+  await first.fill('#source-url', SOURCE_URL);
   await first.click('#source-submit');
   await first.waitForSelector('#result-section:not([hidden])', {timeout: 60000});
   step('first result produced (native fixture)', true);
@@ -228,6 +246,7 @@ try {
   await popup.close();
   const stash = await first.evaluate(() => JSON.parse(localStorage.getItem('growth-os:pending-handoff:v1') || 'null'));
   step('bridge stash written with one-time nonce', !!stash && stash.payload?.preview?.fields?.title?.suggested === TITLE);
+  if (LANDY) step('adapter provenance is declared_product_dom', stash?.payload?.extraction?.method === 'declared_product_dom', stash?.payload?.extraction?.method);
 
   const bridged = await context.newPage();
   await bridged.goto(ORIGIN + '/workspace.html', {waitUntil: 'domcontentloaded', timeout: 60000});
@@ -327,6 +346,7 @@ try {
 } catch (error) {
   step('native handoff acceptance aborted', false, String(error?.message || error).slice(0, 240));
 } finally {
+  landyServer?.kill('SIGTERM');
   await browser?.close().catch(() => {});
   stage = 'cleanup';
   const leftovers = [];
@@ -341,6 +361,6 @@ try {
   } catch (e) { leftovers.push(String(e.message).slice(0, 120)); }
   step('ephemeral stack removed (containers and network)', leftovers.length === 0, leftovers.join(','));
 }
-console.log(JSON.stringify({auto_handoff_native: results.every(Boolean) ? 'PASS' : 'FAIL',
-  scope: 'browser bridge+claim+save+review against ephemeral GoTrue/PostgREST/PostgreSQL in CI; transport of staging-shaped origin rewritten to stack; hosted Staging not proven'}));
+console.log(JSON.stringify({auto_handoff_native: results.every(Boolean) ? 'PASS' : 'FAIL', variant: LANDY ? 'landyachtz' : 'synthetic',
+  scope: (LANDY ? 'real Python adapter + Landyachtz recorded HTML -> ' : '') + 'browser bridge+claim+save+review against ephemeral GoTrue/PostgREST/PostgreSQL in CI; transport of staging-shaped origin rewritten to stack; hosted Staging not proven'}));
 process.exit(results.every(Boolean) ? 0 : 1);
