@@ -36,8 +36,8 @@
 </head>
 <body>
 <header>
-  <h1>從一條網址開始</h1>
-  <p>只需要先貼上網址。右側會逐步告訴你目前狀態、需要你決定的事，以及下一步。原型使用示範狀態，不連線、不發布。</p>
+  <h1 id="pageTitle">從一條網址開始</h1>
+  <p id="pageIntro">只需要先貼上網址。右側會逐步告訴你目前狀態、需要你決定的事，以及下一步。原型使用示範狀態，不連線、不發布。</p>
   <p><button id="langBtn" class="secondary" style="margin-top:8px">English</button></p>
 </header>
 <main>
@@ -52,7 +52,7 @@
       <button id="nextBtn"></button>
       <button id="resetBtn" class="secondary">重新開始（示範）</button>
     </div>
-    <p class="demo">示範操作：依序按主要按鈕走完整流程；「發布」在本原型不會真的寫入任何網站。</p>
+    <p class="demo" id="demoNote">示範操作：依序按主要按鈕走完整流程；「發布」在本原型不會真的寫入任何網站。</p>
   </section>
 </main>
 <script>
@@ -91,35 +91,35 @@ const FLOW = [
     next:'完成（示範）' },
 ];
 const FLOW_EN = [
-  { name:'Paste a URL', hint:'One URL is enough', title:'Paste a product or service URL',
+  { id:'url', name:'Paste a URL', hint:'One URL is enough', title:'Paste a product or service URL',
     status:['warn','Not started'], need:'You only provide one URL; the system reads the rest.',
     body:'<label for="u">URL</label><input id="u" type="url" value="https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/">',
     next:'Read and produce the first result' },
-  { name:'First result', hint:'Source-traceable', title:'First result produced',
+  { id:'result', name:'First result', hint:'Source-traceable', title:'First result produced',
     status:['ok','PASS · declared_product_dom'], need:'Check that title, description and source belong to the same product; report mismatches instead of rewriting facts.',
     fact:'Source: Landyachtz The Clark\nAll facts are source-asserted with citations and a snapshot SHA; unknown fields stay UNKNOWN.',
     next:'Confirm and send to Review' },
-  { name:'Market & language', hint:'Only what is needed', title:'Choose target market and language',
+  { id:'market', name:'Market & language', hint:'Only what is needed', title:'Choose target market and language',
     status:['warn','Your choice needed'], need:'Decide: target market and language (Traditional Chinese or English). The system never assumes a market.',
     body:'<label for="m">Market</label><input id="m" type="url" value="Taiwan (TW)" readonly><label for="l">Language</label><input id="l" type="url" value="English (en)" readonly>',
     next:'Generate AI suggestions (demo)' },
-  { name:'AI optimization', hint:'Suggestions are not facts', title:'AI suggestions produced',
+  { id:'ai', name:'AI optimization', hint:'Suggestions are not facts', title:'AI suggestions produced',
     status:['warn','Waiting for your confirmation'], need:'AI suggestions are shown separately from the original; unknown or conflicting fields stay UNKNOWN and never auto-apply.',
     fact:'Cost record: 0 in this demo (no real model called). A real model needs an Owner-approved budget first.\nMissing facts: price and specifications stay UNKNOWN.',
     next:'Confirm suggestions and send to Review' },
-  { name:'Autonomous tasks', hint:'System working on its own', title:'Growth Engine status',
+  { id:'engine', name:'Autonomous tasks', hint:'System working on its own', title:'Growth Engine status',
     status:['ok','Isolated task done (demo)'], need:'No exception needs you right now; if verification fails, the system stops at that task and escalates instead of publishing.',
     fact:'Task: analyze -> candidate -> approved -> isolated execute -> auto-verify -> done.\nRetry cap, budget cap and audit log are on.',
     next:'View publish preview' },
-  { name:'Review', hint:'Confirmation is not publish approval', title:'Reviewed version confirmed',
+  { id:'review', name:'Review', hint:'Confirmation is not publish approval', title:'Reviewed version confirmed',
     status:['ok','PASS · confirmed, not published'], need:'Confirmation only queues the content for publishing; it is not publish authorization.',
     fact:'Version and Review record are saved and readable after re-login.',
     next:'Create publish preview' },
-  { name:'Publish', hint:'Preview -> approve -> write -> readback', title:'Publish preview (isolated test site)',
+  { id:'publish', name:'Publish', hint:'Preview -> approve -> write -> readback', title:'Publish preview (isolated test site)',
     status:['warn','Waiting for your publish approval'], need:'Decide: publish this confirmed version to the isolated test site? Real sites are out of scope here.',
     fact:'After publishing, the page is read back over HTTP; failures can roll back. Unapproved, stale or foreign-tenant versions are rejected.',
     next:'Authorize publish to test site (demo)' },
-  { name:'Measure', hint:'UNKNOWN is not zero', title:'Post-publish measurement',
+  { id:'measure', name:'Measure', hint:'UNKNOWN is not zero', title:'Post-publish measurement',
     status:['warn','UNKNOWN · no real observation data yet'], need:'Only version-to-URL correspondence and readback time are recorded; search impressions and clicks need Search Console before real values exist.',
     fact:'States: UNKNOWN (not known yet) / NOT_CONNECTED / NO_DATA (connected, no data) / actual values. They never impersonate each other.',
     next:'Finish (demo)' },
@@ -133,6 +133,18 @@ function render() {
     `<div class="step" data-state="${i < idx ? 'done' : i === idx ? 'current' : 'todo'}">
        <div class="dot">${i < idx ? '✓' : i + 1}</div>
        <div><b>${s.name}</b><span>${s.hint}</span></div></div>`).join('');
+  const btn0 = $('nextBtn');
+  if (idx >= flow().length) {
+    $('panelTitle').textContent = lang === 'en' ? 'Flow complete (demo)' : '流程完成（示範）';
+    $('panelStatus').innerHTML = (lang === 'en' ? 'Status: ' : '目前狀態：') + '<b data-s="ok">' + (lang === 'en' ? 'All stages walked through' : '已走完所有階段') + '</b>';
+    $('panelBody').innerHTML = '';
+    $('panelNeed').hidden = false;
+    $('panelNeed').textContent = lang === 'en' ? 'Your decision: proceed to the first real controlled test-site publish (needs the Owner decision package)?' : '需要你決定：是否進入第一個真實受控測試站發布（需 Owner 決策包核准）。';
+    $('panelFact').textContent = '';
+    btn0.textContent = lang === 'en' ? 'Done' : '已完成';
+    btn0.disabled = true;
+    return;
+  }
   const s = flow()[idx];
   $('panelTitle').textContent = s.title;
   $('panelStatus').innerHTML = (lang === 'en' ? 'Status: ' : '目前狀態：') + '<b data-s="' + s.status[0] + '">' + s.status[1] + '</b>';
@@ -142,21 +154,22 @@ function render() {
   $('panelFact').textContent = s.fact || '';
   const btn = $('nextBtn');
   btn.textContent = (lang === 'en' ? 'Next: ' : '下一步：') + s.next;
-  btn.disabled = idx >= flow().length;
-  if (idx >= flow().length) {
-    $('panelTitle').textContent = lang === 'en' ? 'Flow complete (demo)' : '流程完成（示範）';
-    $('panelStatus').innerHTML = (lang === 'en' ? 'Status: ' : '目前狀態：') + '<b data-s="ok">' + (lang === 'en' ? 'All stages walked through' : '已走完所有階段') + '</b>';
-    $('panelBody').innerHTML = '';
-    $('panelNeed').textContent = lang === 'en' ? 'Your decision: proceed to the first real controlled test-site publish (needs the Owner decision package)?' : '需要你決定：是否進入第一個真實受控測試站發布（需 Owner 決策包核准）。';
-    $('panelFact').textContent = '';
-    btn.textContent = lang === 'en' ? 'Done' : '已完成';
-  }
+  btn.disabled = false;
 }
 $('nextBtn').addEventListener('click', () => { idx = Math.min(idx + 1, flow().length); render(); });
 $('langBtn').addEventListener('click', () => {
   lang = lang === 'en' ? 'zh' : 'en';
   document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
   $('langBtn').textContent = lang === 'en' ? '繁體中文' : 'English';
+  $('resetBtn').textContent = lang === 'en' ? 'Restart (demo)' : '重新開始（示範）';
+  $('pageTitle').textContent = lang === 'en' ? 'Start with one URL' : '從一條網址開始';
+  $('pageIntro').firstChild.textContent = lang === 'en'
+    ? 'Just paste one URL. The right side shows the current status, what needs your decision, and the next step. Demo state only; no connection, no publishing.'
+    : '只需要先貼上網址。右側會逐步告訴你目前狀態、需要你決定的事，以及下一步。原型使用示範狀態，不連線、不發布。';
+  $('demoNote').textContent = lang === 'en'
+    ? 'Demo: press the main button to walk the whole flow; Publish here never writes to any site.'
+    : '示範操作：依序按主要按鈕走完整流程；「發布」在本原型不會真的寫入任何網站。';
+  document.title = lang === 'en' ? 'Growth-OS Guided Flow Prototype (Phase 3A)' : 'Growth-OS 引導流程原型（Phase 3A）';
   render();
 });
 $('resetBtn').addEventListener('click', () => { idx = 0; render(); });
