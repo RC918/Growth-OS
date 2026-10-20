@@ -1171,3 +1171,20 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   來源標籤；未審核或綁定不全拒絕。測試合計 7/7，接入 CI。
 - 連接盤點：Supabase CLI 工作階段唯讀可見 Staging；
   其餘連接狀態不變，無新增通道。
+
+### 補記：240ae95 與 c923047 獨立複審、CI 與連接盤點
+- Workflow 獨立 Reviewer 對 `240ae95` 裁決 **APPROVE**：
+  綁定來自已保存版本而非 AI 物件、未審核先拒絕、
+  與發布器權威形狀相符經獨立核對；流程測試 7/7。
+- Workflow 獨立 Reviewer 對 `c923047` 裁決 **APPROVE**：
+  僅文件一檔、核准歸屬 `c9c3c33` 而非自審、
+  CI 用語維持 PENDING，未冒稱即時模型或新權限。
+- CI 單次查詢（非 watch）：`240ae95` 四 Run 與
+  `c923047` 四 Run 均 queued；`beb9d30` Handoff
+  success、Python in_progress。以上未終結者一律
+  PENDING，非失敗；最新 HEAD CI 未宣稱 PASS，
+  終態由 Loop 後續單次查詢補記。
+- 連接盤點：查核路徑未發現本地 MCP 設定檔，未新增
+  連接或高權限通道；唯一永久 Loop `98e1e126` 不變。
+- 其他執行者未提交檔案原樣保留，未覆蓋、未刪除、
+  未納入本輪提交。真實模型維持零呼叫，試點未定。
