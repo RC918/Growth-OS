@@ -28,6 +28,13 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Phase 2A reviewed URL-result publication contracts
         run: node --test prototype/wordpress-publish/url-result-publish.test.mjs prototype/wordpress-publish/url-result-authority.test.mjs prototype/phase2a-measure/observe.test.mjs prototype/phase2a-measure/from-publication.test.mjs prototype/wordpress-publish/url-result-chain.test.mjs
+      - name: Pull pinned disposable WordPress images
+        run: |
+          docker pull wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4
+          docker pull mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6
+      - name: Phase 2B disposable WordPress publish/rollback acceptance
+        timeout-minutes: 10
+        run: node prototype/wordpress-publish/phase2b-regression.mjs --mode growth-os-isolated-regression
       - name: Isolated browser handoff bridge acceptance (synthetic transport)
         timeout-minutes: 6
         run: node supabase/tests/auto_handoff_isolated.mjs
