@@ -1149,3 +1149,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   Supabase CLI 唯讀與連接器執行者分工不變；遠端 MCP
   OAuth 仍受平台限制；無新增連接或高權限通道。
 - `beb9d30` CI 於記錄時 queued（PENDING，非失敗）。
+
+### 補記：AI 成果銜接 Publish Preview
+- 新增 `prototype/phase3a-flow/to-publish-preview.mjs`：
+  僅 REVIEWED（事實驗證＋人工審核）的 AI 欄位可轉為
+  發布預覽欄位並保留來源標籤；未審核直接拒絕。
+  與全流程測試合計 5/5，已接入 CI。
+- CI：`beb9d30` 於記錄時仍 queued（PENDING，非失敗）。
