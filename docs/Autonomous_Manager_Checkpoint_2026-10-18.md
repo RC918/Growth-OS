@@ -983,3 +983,9 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   content_reviews）推導發布器權威；未核准、版本不符、欄位或
   來源摘要缺失一律拒絕。測試 2/2 PASS，已接入 CI。
 - Python CI（`ed481f2`）仍 in_progress，已推進至後段步驟。
+
+### 補記：發布權威綁定複審與 Python 進度
+- Workflow 獨立 Reviewer 對 `918c07c` 裁決 **APPROVE**
+  （14 個拒絕分支經探測、Phase 2A CI 清單 12/12）。
+- Python CI（`ed481f2`）：push 事件 completed **success**；
+  pull_request 事件於記錄時仍 in_progress（PENDING）。
