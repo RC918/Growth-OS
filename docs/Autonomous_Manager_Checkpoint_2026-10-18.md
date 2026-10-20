@@ -869,3 +869,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   候選函數與 proposal 僅差一行、Staging 包未執行任何遠端寫入。
 - Python CI 於記錄時仍 in_progress（PENDING）；託管 Staging 部署
   仍待 Owner 核准決策包，不以隔離 PASS 冒充。
+
+### 補記：Staging DB Validator 執行包（待連接器執行者）
+- Owner 已條件核准 Staging `vhzryhibmpvglzcmfnaa` 單一函數升級；
+  Muse 無合法 SQL 執行通道，已備精確執行包
+  `docs/Declared_Product_Staging_Execution_Package_2026-10-20.md`
+  與 preflight／forward／postflight／rollback 四件工件，
+  交授權連接器執行者；Owner 不需手動 SQL。
+- 執行前置：現行函數定義與基線僅差一行、ACL 不變、最新 CI
+  無安全／契約失敗（Handoff 全綠；Python 交包時仍 PENDING）。
