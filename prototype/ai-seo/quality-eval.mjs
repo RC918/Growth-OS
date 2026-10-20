@@ -40,7 +40,10 @@ export function validateFixtureBindings(testCase) {
       if (!citation) { problems.push(key + ': unknown citation ' + id); continue; }
       quotes.push(citation.quote ?? '');
     }
-    if (quotes.length > 0 && !quotes.some(q => q.includes(fact.value) || fact.value.includes(q))) {
+    // The value must appear verbatim in the concatenation of its
+    // cited quotes. The reverse direction is never accepted: a
+    // value that merely contains a quote could append inventions.
+    if (quotes.length > 0 && !quotes.join(' ').includes(fact.value)) {
       problems.push(key + ': value not supported by cited quote(s)');
     }
   }

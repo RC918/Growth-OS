@@ -33,6 +33,10 @@ test('fixture facts are bound to recorded snapshot citations', () => {
   forged.report.facts.description = {value: 'The Clark. Maple complete with 54mm wheels.',
     citations: ['s4'], verification: 'source_asserted'};
   assert.ok(validateFixtureBindings(forged).some(p => p.includes('description')));
+  const appended = structuredClone(landy);
+  appended.report.facts.title = {value: 'The Clark • Landyachtz EXTRA INVENTED',
+    citations: ['s3'], verification: 'source_asserted'};
+  assert.ok(validateFixtureBindings(appended).some(p => p.includes('title')));
   assert.equal(byId['conflicting-facts-negative'].synthetic, true);
 });
 
