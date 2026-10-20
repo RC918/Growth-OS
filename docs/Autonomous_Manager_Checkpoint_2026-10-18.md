@@ -1198,3 +1198,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   一律標記 PENDING，非失敗，最新 HEAD CI 未宣稱 PASS。
 - Phase 3A 原型不重做；真實模型維持零呼叫、試點未定、
   不建常駐 WordPress 站；PR #31 維持 Draft。
+
+### 補記：8a9e953 獨立複審與 Loop 盤點
+- Workflow 獨立 Reviewer 對 `8a9e953` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+10/-0）、歸屬正確且未自審、
+  無 Production／合併／Secrets／GSC 等越界主張。
+- CI 單次查詢（非 watch）：`8a9e953` 四 Run 均 queued；
+  `81f1c3b` 三 Run queued、一 Run in_progress。均無
+  終態，一律 PENDING，非失敗，未宣稱 CI PASS。
+- 藍圖盤點：M4 真實試點與 M5 GSC 真實連線仍待 Owner
+  指定站點／帳號，屬決策阻塞；其餘已授權 Core 無待辦。
+- 其他執行者未提交檔案原樣保留；未建第二 Loop。
