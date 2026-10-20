@@ -848,3 +848,13 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 此為 v3 核准三處之外的第四處相依，依授權未自行修改；
   決策包：`docs/Declared_Product_DB_Validator_Exception_Package_2026-10-20.md`。
 - 測試已補強：save 逾時時記錄 `#url-save-feedback` 實際文字作為證據。
+
+### 補記：DB 驗證器隔離修復授權執行（2026-10-20）
+- Owner 授權僅於 CI 臨時隔離堆疊修復 DB 驗證器；已建立可追溯候選
+  `supabase/drafts/declared_product_validator/candidate.sql`
+  （函數本體與 proposal.sql 僅差方法清單一行），原生驗收僅於
+  Landyachtz 變體套用（Commit `b2d736e`），並新增未註冊方法與
+  偽造來源摘要的 DB 拒絕負面步驟。
+- 未修改 proposal.sql、closed-package.sql、任何 migration 或遠端 DB。
+- Staging 精確變更決策包：
+  `docs/Declared_Product_Staging_Change_Package_2026-10-20.md`（待 Owner 核准）。
