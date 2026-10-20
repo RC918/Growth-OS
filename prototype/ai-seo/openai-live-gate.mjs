@@ -135,7 +135,7 @@ export function createOpenAiTransport({
       try {
         response = await Promise.race([fetchImpl('https://api.openai.com/v1/responses', {
           method: 'POST',
-          headers: {authorization: 'Bearer ' + credentialProvider(), 'content-type': 'application/json'},
+          headers: {authorization: 'Bearer ' + await credentialProvider(), 'content-type': 'application/json'},
           body: JSON.stringify(body),
           signal: controller.signal,
         }), aborted]);
