@@ -1012,3 +1012,13 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Workflow 獨立 Reviewer 對 `d4ec5e7` 裁決 **APPROVE**；
   依建議硬化負面案例的錯誤訊息匹配，並斷言發布證據
   `traffic === 'unknown'`。
+
+### 補記：Phase 2B 真實 WordPress 隔離驗收 PASS
+- CI run `39375278968`（HEAD `d4ec5e7`）Handoff **success**：
+  官方 WordPress 6.8.3／MariaDB 11.4.8 可銷毀實例完成
+  未核准零寫入、外租戶零寫入、遺失回覆→unknown 且拒絕
+  重複發布、發布 API/HTML 讀回、Measure HTTP 觀測
+  MEASURED（流量 UNKNOWN）、Rollback 讀回等於基線、
+  對照頁不變，證據 `PHASE2B_WORDPRESS_ACCEPTANCE_PASS`。
+- 硬化提交 `a1472b7`（負面錯誤匹配＋traffic 斷言）之 CI
+  於記錄時仍 PENDING；常駐測試站未建立、未公開上線。
