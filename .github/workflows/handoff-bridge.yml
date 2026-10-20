@@ -26,6 +26,8 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
+      - name: Phase 2A reviewed URL-result publication contracts
+        run: node --test prototype/wordpress-publish/url-result-publish.test.mjs
       - name: Isolated browser handoff bridge acceptance (synthetic transport)
         timeout-minutes: 6
         run: node supabase/tests/auto_handoff_isolated.mjs
