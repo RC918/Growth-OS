@@ -894,3 +894,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   （PENDING，非失敗）；依授權條件 5，forward 尚未執行，
   待 Python 終態確認無安全／契約失敗後，才交連接器執行者
   依執行包操作並回傳 preflight／postflight／合成驗收證據。
+
+### 補記：Python CI 終態確認（2026-10-20）
+- Run API 直接讀回：Python run `39362570450`（HEAD `61fddfd`）
+  job completed **success**（103 steps）；`gh run list` 顯示為
+  in_progress 屬列表延遲，以 Run API 終態為準。
+- 至此 Staging 升級五項前置全數成立：函數基線僅差一行、
+  forward／rollback／postflight 審核 APPROVE、Handoff 與
+  Python CI 全綠、ACL 影響分析完成。
+- 下一步僅剩授權連接器執行者依執行包操作並回傳證據。
