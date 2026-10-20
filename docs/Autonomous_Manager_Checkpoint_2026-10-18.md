@@ -878,3 +878,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   交授權連接器執行者；Owner 不需手動 SQL。
 - 執行前置：現行函數定義與基線僅差一行、ACL 不變、最新 CI
   無安全／契約失敗（Handoff 全綠；Python 交包時仍 PENDING）。
+
+### 補記：Staging 執行包 Reviewer 裁決
+- Workflow 獨立 Reviewer 首審 `7e4c761` 為 REQUEST_CHANGES：
+  postflight 缺少 prosecdef／proconfig 安全設定讀回。
+- 修正 `40f42b0` 僅補該唯讀 SELECT；複審裁決 **APPROVE**。
+- 執行包四工件＋文件已備妥，等待授權連接器執行者依序操作；
+  Muse 未執行任何遠端 SQL，Owner 不需手動貼 SQL。
