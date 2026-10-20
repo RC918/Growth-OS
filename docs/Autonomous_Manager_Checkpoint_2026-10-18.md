@@ -925,3 +925,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - WooCommerce 回歸：既有 chain 驗收全 PASS（Save／讀回／
   viewer／跨租戶），清理完成。託管 Staging 升級驗收完成；
   託管瀏覽器真人驗收不在此範圍。
+
+### 補記：託管驗收複審結果
+- Workflow 獨立 Reviewer 對 `0ca8fec`＋`3cd6010` 裁決 **APPROVE**：
+  部署證據正確歸屬於連接器執行者、驗收腳本無硬編碼機密且
+  含清理、未觸及 Production／migration／RLS／frozen。
+- 非阻斷註記：拒絕檢查接受 >=400、清理回應未逐項核對，
+  列技術債；本次實際回傳碼已逐項記錄（403／403／400／400）。
