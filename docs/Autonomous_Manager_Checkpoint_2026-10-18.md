@@ -1022,3 +1022,7 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   對照頁不變，證據 `PHASE2B_WORDPRESS_ACCEPTANCE_PASS`。
 - 硬化提交 `a1472b7`（負面錯誤匹配＋traffic 斷言）之 CI
   於記錄時仍 PENDING；常駐測試站未建立、未公開上線。
+
+### 補記：Phase 2B 常駐測試站 Owner 決策
+- Owner 決定：暫不建常駐測試站。維持 CI 可銷毀 WordPress
+  驗收；任何持續可存取網域的建立或公開，另行核准。
