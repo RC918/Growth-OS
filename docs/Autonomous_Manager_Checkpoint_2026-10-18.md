@@ -967,3 +967,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   以發布器 confirmed_applied 證據（版本綁定、target_url、
   標題）建立 Measure 發布紀錄，未驗證或綁定不符直接拒絕；
   與觀測測試合計 5/5 PASS，已接入 CI。
+
+### 補記：Phase 2A CI 與 Publish→Measure 複審
+- `ed481f2`：Handoff CI 雙事件 **success**；Python CI
+  經 Jobs API 確認仍 in_progress（PENDING，非失敗）。
+- Publish→Measure 銜接經 Workflow Reviewer 對 `0f06a38`
+  裁決 **APPROVE**（證據綁定拒絕、5/5、流量維持 UNKNOWN）。
+- GSC 接入方案（設計、未連線）：
+  `docs/Phase2A_GSC_Connection_Proposal_2026-10-20.md`。
+- 第一個真實受控測試站維持 NEED_OWNER，未自行發布。
