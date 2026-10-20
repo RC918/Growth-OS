@@ -62,6 +62,11 @@
 
 - Fixture：`prototype/ai-seo/fixtures/phase3b-cases.json`
   （Landyachtz The Clark、WooCommerce BIC00001、衝突負例）。
+  正例事實綁定真實快照引用（id→locator＋quote），由
+  `validateFixtureBindings` 驗證：引用不存在、值不受引用
+  支持、UNKNOWN 帶引用皆拒絕；負例明示 synthetic。
+  Landy 為真實快照 `c98f512d…ab57`（meta 為 UNKNOWN）；
+  Woo 依 2026-10-17 一致性驗收錄（meta 同為 UNKNOWN）。
 - 產出：SEO Title、Meta description、商品描述、GEO 問答，
   各附 `used_fact_ids` 與來源引用。
 - 機器閘門（`quality-eval.mjs`，非品質分數）：事實詞元可

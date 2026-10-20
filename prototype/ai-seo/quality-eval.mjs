@@ -9,6 +9,44 @@
 
 import {trustedFacts, verifySuggestions} from './ai-seo-pipeline.mjs';
 
+// A fixture may only claim facts that its recorded snapshot actually
+// supports: every cited id must exist in the snapshot registry and
+// the fact value must appear in the cited quote(s). A null fact must
+// be marked UNKNOWN with no citations. Synthetic cases must declare
+// themselves instead of borrowing source authority.
+export function validateFixtureBindings(testCase) {
+  const problems = [];
+  if (testCase.synthetic === true || testCase.kind === 'synthetic_negative') {
+    if (!String(testCase.source_url ?? '').startsWith('synthetic://')) {
+      problems.push('synthetic case must use a synthetic:// source_url');
+    }
+    return problems;
+  }
+  const registry = new Map((testCase.snapshot?.citations ?? []).map(c => [c.id, c]));
+  if (registry.size === 0) problems.push('missing snapshot citation registry');
+  for (const [key, fact] of Object.entries(testCase.report?.facts ?? {})) {
+    if (!fact || fact.value == null) {
+      if (fact?.verification !== 'UNKNOWN') problems.push(key + ': null fact not marked UNKNOWN');
+      if ((fact?.citations ?? []).length > 0) problems.push(key + ': UNKNOWN fact carries citations');
+      continue;
+    }
+    if (!Array.isArray(fact.citations) || fact.citations.length === 0) {
+      problems.push(key + ': fact without citations');
+      continue;
+    }
+    const quotes = [];
+    for (const id of fact.citations) {
+      const citation = registry.get(id);
+      if (!citation) { problems.push(key + ': unknown citation ' + id); continue; }
+      quotes.push(citation.quote ?? '');
+    }
+    if (quotes.length > 0 && !quotes.some(q => q.includes(fact.value) || fact.value.includes(q))) {
+      problems.push(key + ': value not supported by cited quote(s)');
+    }
+  }
+  return problems;
+}
+
 export function evaluateGeneration({report, suggestions}) {
   const facts = trustedFacts(report);
   const problems = verifySuggestions(suggestions, facts);

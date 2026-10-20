@@ -1,46 +1,71 @@
 {
-  "version": "phase3b-quality-v1",
-  "note": "Reproducible source fixtures for the Phase 3B quality trial. Facts are copied from already-verified Phase 1/3A evidence; the negative case is explicitly synthetic. Nothing here is published.",
+  "version": "phase3b-quality-v2",
+  "note": "Reproducible source fixtures for the Phase 3B quality trial. Positive facts are bound to recorded source snapshots (citation id -> locator + quote) and validated by validateFixtureBindings; the negative case is explicitly synthetic. Nothing here is published.",
   "cases": [
     {
       "id": "landyachtz-the-clark",
       "kind": "nonstandard_product_page",
       "source_url": "https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/",
+      "evidence": "Real recorded snapshot prototype/public-audit/fixtures/landyachtz-the-clark.html via first_result_api.build_snapshot (declared_product_dom); snapshot version equals the page SHA-256.",
+      "snapshot": {
+        "version": "c98f512dfd62bfb519afd0cdc41c4ff48561a41c7fbc7f4a5f5c969bf258ab57",
+        "content_fingerprint": "sha256:c98f512dfd62bfb519afd0cdc41c4ff48561a41c7fbc7f4a5f5c969bf258ab57",
+        "citations": [
+          {"id": "s1", "locator": "meta[property=og:type]", "quote": "product"},
+          {"id": "s2", "locator": "h1[641]", "quote": "The Clark"},
+          {"id": "s3", "locator": "title", "quote": "The Clark • Landyachtz"},
+          {"id": "s4", "locator": "p[659]", "quote": "It’s a 40.2″ long skateboard built to skate everything. Team Rider Clark Patrick embodies the “Skate Everything” philosophy at a level that is truly inspiring. When it came time to design his pro model, versatility was the priority. The Clark is a twin kick longboard designed to handle it all, from fast freeriding and downhill runs to tricks, skateparks, and street skating. With its long, stable platform and double kick shape, The Clark bridges the gap between a traditional skateboard and a longboard. Whether you’re bombing hills, slashing curbs, skating park, or getting airborne in the street, this 40.2 inch long skateboard is built to keep up with your creativity and push your limits."},
+          {"id": "s5", "locator": "p[660]", "quote": "With its long, stable platform and double kick shape, The Clark bridges the gap between a traditional skateboard and a longboard. Whether you’re bombing hills, slashing curbs, skating park, or getting airborne in the street, this 40.2 inch long skateboard is built to keep up with your creativity and push your limits."}
+        ]
+      },
       "report": {
         "page_type": "product",
         "extraction": {"method": "declared_product_dom"},
         "facts": {
-          "product_name": {"value": "The Clark", "citations": ["s1"], "verification": "source_asserted"},
-          "title": {"value": "The Clark", "citations": ["s1"], "verification": "source_asserted"},
-          "meta_description": {"value": "Maple complete skateboard", "citations": ["s2"], "verification": "source_asserted"},
-          "description": {"value": "The Clark. Maple complete with 54mm wheels.", "citations": ["s3"], "verification": "source_asserted"}
+          "product_name": {"value": "The Clark", "citations": ["s2"], "verification": "source_asserted"},
+          "title": {"value": "The Clark • Landyachtz", "citations": ["s3"], "verification": "source_asserted"},
+          "meta_description": {"value": null, "citations": [], "verification": "UNKNOWN"},
+          "description": {"value": "It’s a 40.2″ long skateboard built to skate everything. Team Rider Clark Patrick embodies the “Skate Everything” philosophy at a level that is truly inspiring. When it came time to design his pro model, versatility was the priority. The Clark is a twin kick longboard designed to handle it all, from fast freeriding and downhill runs to tricks, skateparks, and street skating. With its long, stable platform and double kick shape, The Clark bridges the gap between a traditional skateboard and a longboard. Whether you’re bombing hills, slashing curbs, skating park, or getting airborne in the street, this 40.2 inch long skateboard is built to keep up with your creativity and push your limits.", "citations": ["s4", "s5", "s2"], "verification": "source_asserted"}
         }
       },
       "expected": "GENERATE_WITH_CITATIONS",
-      "unknown_facts": []
+      "unknown_facts": ["meta_description"]
     },
     {
       "id": "woocommerce-bic00001",
       "kind": "woocommerce_product",
       "source_url": "https://woo.novamodule.com/product/happy-ninja/",
-      "evidence": "docs/First_Result_Consistency_Acceptance_2026-10-17.md: H1 BIC00001 (s2), title 'BIC00001 – woocommerce Demo' (s3), description 'Downhill Bike – Sunday Team'; the name/description difference is the site's own data for the same product.",
+      "evidence": "docs/First_Result_Consistency_Acceptance_2026-10-17.md: recorded build_snapshot citations - container s1, H1 BIC00001 (s2), title (s3), short description (s4), description tab (s5, identical text); page has no meta description tag.",
+      "snapshot": {
+        "version": "recorded-in-consistency-acceptance-2026-10-17",
+        "content_fingerprint": null,
+        "citations": [
+          {"id": "s1", "locator": "div.product type-product post-37", "quote": "div.product type-product post-37"},
+          {"id": "s2", "locator": "h1", "quote": "BIC00001"},
+          {"id": "s3", "locator": "title", "quote": "BIC00001 – woocommerce Demo"},
+          {"id": "s4", "locator": "short-description", "quote": "Downhill Bike – Sunday Team"},
+          {"id": "s5", "locator": "tab-description", "quote": "Downhill Bike – Sunday Team"}
+        ]
+      },
       "report": {
         "page_type": "product",
-        "extraction": {"method": "woocommerce_json_ld"},
+        "extraction": {"method": "woocommerce_dom"},
         "facts": {
           "product_name": {"value": "BIC00001", "citations": ["s2"], "verification": "source_asserted"},
           "title": {"value": "BIC00001 – woocommerce Demo", "citations": ["s3"], "verification": "source_asserted"},
-          "meta_description": {"value": "Downhill Bike – Sunday Team", "citations": ["s4"], "verification": "source_asserted"},
-          "description": {"value": "BIC00001. Downhill Bike – Sunday Team", "citations": ["s4"], "verification": "source_asserted"}
+          "meta_description": {"value": null, "citations": [], "verification": "UNKNOWN"},
+          "description": {"value": "Downhill Bike – Sunday Team", "citations": ["s4", "s5"], "verification": "source_asserted"}
         }
       },
       "expected": "GENERATE_WITH_CITATIONS",
-      "unknown_facts": []
+      "unknown_facts": ["meta_description"]
     },
     {
       "id": "conflicting-facts-negative",
       "kind": "synthetic_negative",
+      "synthetic": true,
       "source_url": "synthetic://conflicting-product",
+      "evidence": "Explicitly synthetic negative case; not a real product and never presented as source-verified.",
       "report": {
         "page_type": "product",
         "extraction": {"method": "declared_product_dom"},
