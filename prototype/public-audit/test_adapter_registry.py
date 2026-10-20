@@ -1,8 +1,8 @@
 import unittest
 from pathlib import Path
 
-from adapter_registry import RegistryError, run_adapter
-from first_result_api import build_snapshot
+from adapter_registry import RegistryError, _validate_contract, run_adapter
+from robots_policy import build_snapshot as build_raw_snapshot
 
 FIXTURE = Path(__file__).parent / "fixtures" / "landyachtz-the-clark.html"
 URL = "https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/"
@@ -18,11 +18,24 @@ def fetch_for(html_bytes):
 
 class AdapterRegistryTests(unittest.TestCase):
     def test_registered_adapter_rescues_landyachtz_fixture(self):
-        report = build_snapshot(URL, fetch_for(FIXTURE.read_bytes()))
-        # The pipeline already applies the registered adapter; the
-        # registry contract must accept its output shape.
+        raw = build_raw_snapshot(URL, fetch_for(FIXTURE.read_bytes()))
+        self.assertEqual(raw["page_type"], "not_supported_product")
+        report = run_adapter("declared-product-dom-v1", raw)
+        self.assertIsNotNone(report)
         self.assertEqual(report["page_type"], "product")
         self.assertEqual(report["extraction"]["method"], "declared_product_dom")
+        self.assertEqual(
+            report["snapshot"]["content_fingerprint"],
+            "sha256:" + report["snapshot"]["version"],
+        )
+
+    def test_fingerprint_mismatch_is_rejected(self):
+        raw = build_raw_snapshot(URL, fetch_for(FIXTURE.read_bytes()))
+        report = run_adapter("declared-product-dom-v1", raw)
+        report["snapshot"]["content_fingerprint"] = "sha256:" + "0" * 64
+        with self.assertRaises(RegistryError):
+            _validate_contract(
+                "declared-product-dom-v1", "declared_product_dom", report)
 
     def test_unregistered_adapter_is_rejected(self):
         with self.assertRaises(RegistryError):

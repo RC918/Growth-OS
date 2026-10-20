@@ -48,8 +48,12 @@ def _validate_contract(adapter_id, method, result):
     if extraction.get("method") != method:
         raise RegistryError(f"{adapter_id}: method mismatch")
     snapshot = result.get("snapshot") or {}
-    if not snapshot.get("sha256"):
-        raise RegistryError(f"{adapter_id}: missing snapshot sha256")
+    version = snapshot.get("version")
+    fingerprint = snapshot.get("content_fingerprint")
+    if not isinstance(version, str) or not version:
+        raise RegistryError(f"{adapter_id}: missing snapshot version")
+    if fingerprint != "sha256:" + version:
+        raise RegistryError(f"{adapter_id}: snapshot fingerprint mismatch")
     facts = result.get("facts") or {}
     asserted = [f for f in facts.values() if isinstance(f, dict) and f.get("value")]
     if not asserted:
