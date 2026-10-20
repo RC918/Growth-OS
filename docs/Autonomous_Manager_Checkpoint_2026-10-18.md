@@ -858,3 +858,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 未修改 proposal.sql、closed-package.sql、任何 migration 或遠端 DB。
 - Staging 精確變更決策包：
   `docs/Declared_Product_Staging_Change_Package_2026-10-20.md`（待 Owner 核准）。
+
+### 補記：Landyachtz 隔離完整鏈 PASS（2026-10-20）
+- Handoff CI run `39362388522`（HEAD `d2a887f`）completed **success**：
+  Landyachtz 變體全鏈 PASS——真實適配器 → First Result → 交接領取 →
+  Save（版本 `5092e781…`）→ Review 讀回 → 新會話讀回 →
+  viewer／外租戶 403 → 未註冊方法與偽造摘要 HTTP 400 拒絕 →
+  資料列數不變 → 臨時堆疊銷毀。合成變體同 run 亦 PASS。
+- Workflow 獨立 Reviewer 對 `b2d736e`＋`d2a887f` 裁決 APPROVE：
+  候選函數與 proposal 僅差一行、Staging 包未執行任何遠端寫入。
+- Python CI 於記錄時仍 in_progress（PENDING）；託管 Staging 部署
+  仍待 Owner 核准決策包，不以隔離 PASS 冒充。
