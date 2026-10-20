@@ -9,9 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Frozen change preflight (last commit)
+        run: |
+          node --test tools/frozen-preflight.test.mjs
+          node tools/frozen-preflight.mjs --base HEAD~1
       - name: Handoff bridge and review flag tests
         run: node --test delivery/web-preview/handoff-bridge.test.mjs delivery/web-preview/review-flag.test.mjs
       - name: Auto-handoff config guard tests
