@@ -1123,3 +1123,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   捏造編輯 FAIL_CLOSED。管線測試增至 5/5。
 - CI：`eb8b405` 於記錄時仍 PENDING；`fcbc0dc` Handoff
   雙事件 success、Python 仍 PENDING（均非失敗）。
+
+### 補記：人工編輯驗證複審與 CI 狀態
+- Workflow 獨立 Reviewer 對 `b6b7990` 裁決 **APPROVE**
+  （編輯驗證、原欄位不變異經獨立探測）。
+- CI：`fcbc0dc` 與 `eb8b405` Handoff 雙事件 **success**；
+  `b6b7990` 四 Run 與各 HEAD Python 於記錄時仍
+  in_progress（PENDING，非失敗），終態由 Loop 補記。
