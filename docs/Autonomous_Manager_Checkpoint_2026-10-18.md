@@ -1140,3 +1140,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   FLOW_EN 缺 id、完成狀態先解引用後防護、靜態文字未切換。
 - 三項已修復並以 DOM 替身實跑驗證（8 步走完、完成切換
   中英、reset 與橫幅同步翻譯）。
+
+### 補記：Phase 3A 引導修正複審與連接盤點
+- Workflow 複審 `beb9d30` 裁決 **APPROVE**（三項修正
+  經 DOM 實跑驗證）。Phase 3A 全批提交皆已審核通過。
+- 連接盤點：唯一永久 Loop `98e1e126`（每 10 分鐘、
+  已觸發 202 次）維持；GitHub CI、Workflow Reviewer、
+  Supabase CLI 唯讀與連接器執行者分工不變；遠端 MCP
+  OAuth 仍受平台限制；無新增連接或高權限通道。
+- `beb9d30` CI 於記錄時 queued（PENDING，非失敗）。
