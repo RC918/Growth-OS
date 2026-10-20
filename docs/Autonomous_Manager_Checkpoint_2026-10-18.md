@@ -1054,3 +1054,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - `345751b`：Handoff 與 Python 於 push／pull_request
   兩事件皆 completed **success**。至此目前 HEAD 之
   全部必要 CI 終態通過，Phase 1／2A／2B 結案成立。
+
+### Phase 3A 啟動（2026-10-20）
+- P0 盤點矩陣完成（見 Phase3A 文件）；未重做 1～2B 驗收。
+- P1 AI SEO/GEO 隔離管線：中英、事實驗證 fail closed、
+  UNKNOWN 保留、成本帳本/預算阻斷，3/3 PASS（注入替身，
+  未呼叫真實付費模型）。
+- P2 Growth Engine 最小原型：狀態機、核准閘門、重試/
+  冪等/預算/升級/稽核，4/4 PASS（隔離，非新 Controller）。
+- P3 引導原型 `prototype/phase3a-guide/index.html`。
+- 真實模型與試點網站決策包待 Owner：
+  `docs/Phase3A_Inventory_And_Decision_2026-10-20.md`。
