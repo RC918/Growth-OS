@@ -994,3 +994,9 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Python CI（`ed481f2`）pull_request 事件經 Jobs API 確認
   completed **success**；連同先前 push success 與 Handoff
   雙 success，該 HEAD 全部必要 CI 終態通過。
+
+### 補記：Phase 2A 全鏈契約
+- 新增 `prototype/wordpress-publish/url-result-chain.test.mjs`：
+  保存 Review 讀回 → 發布權威 → 預覽/發布/讀回/回復 →
+  Measure 觀測，四段共用同一版本身分，流量維持 UNKNOWN，
+  離線 1/1 PASS，已接入 CI（清單累計 13 項）。
