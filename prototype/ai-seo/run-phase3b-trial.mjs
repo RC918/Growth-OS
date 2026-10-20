@@ -1,29 +1,62 @@
-// Phase 3B macOS local trial entry (MOCK ONLY in this build).
+// Phase 3B macOS local trial entry.
 //
-// Run on the Owner's Mac in a native terminal:
+// Owner Mac native terminal (mock, no network, no keychain read):
 //   node prototype/ai-seo/run-phase3b-trial.mjs --mock
 //
-// Safety contract:
-// - Mock mode uses a local fake fetch and a mock credential. It can
-//   never reach the network: no real fetch implementation is wired.
-// - Live mode is refused in this build (LIVE_NOT_AUTHORIZED). A
-//   future Owner authorization must separately enable it; the mere
-//   presence of a keychain item or environment variable never does.
-// - The future keychain credential provider is designed here but is
-//   NOT executed by this entry in mock mode. Tests inject a mock
-//   keychain response; the credential exists only in process memory
-//   and is never printed, logged or persisted.
+// Live mode is disabled by default. It becomes available only inside
+// one process invocation when the Owner supplies all of:
+//   --live
+//   --project-id=proj_...
+//   --confirm-live=PHASE3B-LIVE-ONCE:<single-use nonce, >=12 chars>
+// A confirmation nonce can be consumed once in a process and is never
+// persisted; when the process exits, live is disabled again. The mere
+// presence of a keychain item or environment variable never enables it.
+// In live mode the credential is read through the macOS keychain
+// provider, exists only in process memory, and is never printed,
+// logged, written to an audit record or persisted.
 
 import {readFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
-import {createOpenAiTransport, createTrialBudget} from './openai-live-gate.mjs';
+import {existsSync} from 'node:fs';
+import {createOpenAiTransport, createTrialBudget, OPENAI_MODEL} from './openai-live-gate.mjs';
 import {buildSeoRequest} from './model-adapter.mjs';
 import {trustedFacts} from './ai-seo-pipeline.mjs';
 import {evaluateGeneration, validateFixtureBindings} from './quality-eval.mjs';
 
 export const KEYCHAIN_IDENTITY = {account: 'growth-os-phase3b', service: 'openai-project-key'};
+export const LIVE_CONFIRMATION_PREFIX = 'PHASE3B-LIVE-ONCE:';
+export const LIVE_LIMITS = {maxRequests: 12, trialCapUsd: 5, model: OPENAI_MODEL.snapshot};
 
-// Future live credential provider (designed, not used by mock mode).
+const consumedLiveConfirmations = new Set();
+
+export function consumeLiveConfirmation(confirmation) {
+  if (typeof confirmation !== 'string' || !confirmation.startsWith(LIVE_CONFIRMATION_PREFIX)) {
+    throw Error('LIVE_NOT_AUTHORIZED: Owner single-use live confirmation required');
+  }
+  const nonce = confirmation.slice(LIVE_CONFIRMATION_PREFIX.length);
+  if (nonce.length < 12) throw Error('LIVE_NOT_AUTHORIZED: live confirmation nonce too short');
+  if (consumedLiveConfirmations.has(nonce)) {
+    throw Error('LIVE_NOT_AUTHORIZED: live confirmation already consumed');
+  }
+  consumedLiveConfirmations.add(nonce);
+  return true;
+}
+
+export function validateProjectId(projectId) {
+  if (typeof projectId !== 'string' || !/^proj_[A-Za-z0-9][A-Za-z0-9_-]{7,}$/.test(projectId)) {
+    throw Error('PROJECT_ID_REQUIRED: valid non-secret OpenAI project id (proj_...) required');
+  }
+  return projectId;
+}
+
+export function validateLiveBudget(budget) {
+  if (budget.cap > LIVE_LIMITS.trialCapUsd) throw Error('TRIAL_BUDGET_CAP exceeds Phase 3B US$5 limit');
+  if ((budget.maxRequests ?? LIVE_LIMITS.maxRequests) > LIVE_LIMITS.maxRequests) {
+    throw Error('TRIAL_REQUEST_CAP exceeds Phase 3B 12-request limit');
+  }
+  return budget;
+}
+
 // The real execFile call reads the macOS keychain item into memory;
 // tests replace execFileImpl with a mock and assert redaction.
 export function createKeychainCredentialProvider({execFileImpl} = {}) {
@@ -64,34 +97,46 @@ export function createMockFetch() {
   };
 }
 
-export async function runTrial({mode = 'mock', enableLive = false, credentialProvider, fetchImpl, budget} = {}) {
+export async function runTrial({
+  mode = 'mock', credentialProvider, fetchImpl, budget,
+  confirmation, projectId, shouldStop,
+} = {}) {
+  if (mode !== 'mock' && mode !== 'live') throw Error('Unknown mode: ' + mode);
+  const trialBudget = validateLiveBudget(budget ?? createTrialBudget({}));
+
   if (mode === 'live') {
-    // This build has no authorized live path at all. Enabling needs a
-    // separate, explicit Owner authorization plus code review; it is
-    // never inferred from keychain or environment state.
-    if (enableLive !== true) throw Error('LIVE_NOT_AUTHORIZED: Owner enable decision required');
-    throw Error('LIVE_NOT_AUTHORIZED: live path not enabled in this build');
+    // All authorization checks run before any credential or fetch use.
+    consumeLiveConfirmation(confirmation);
+    validateProjectId(projectId);
+    if (typeof credentialProvider !== 'function') throw Error('CREDENTIAL_PROVIDER_REQUIRED');
   }
-  if (mode !== 'mock') throw Error('Unknown mode: ' + mode);
-  if (typeof credentialProvider !== 'function') throw Error('CREDENTIAL_PROVIDER_REQUIRED');
+  if (mode === 'mock' && typeof credentialProvider !== 'function') {
+    throw Error('CREDENTIAL_PROVIDER_REQUIRED');
+  }
 
   const cases = JSON.parse(await readFile(new URL('./fixtures/phase3b-cases.json', import.meta.url)));
-  const trialBudget = budget ?? createTrialBudget({});
   const transport = createOpenAiTransport({
-    enabled: true, // gate open only around the injected mock fetch
+    enabled: true, // gate open only around the injected/controlled fetch
     credentialProvider,
-    fetchImpl: fetchImpl ?? createMockFetch(),
+    fetchImpl: fetchImpl ?? (mode === 'mock' ? createMockFetch() : globalThis.fetch),
     budget: trialBudget,
   });
 
   const results = [];
-  for (const testCase of cases.cases) {
+  const audit = [];
+  let stoppedByOwner = false;
+  outer: for (const testCase of cases.cases) {
     const bindingProblems = validateFixtureBindings(testCase);
     if (bindingProblems.length > 0) {
       results.push({case: testCase.id, status: 'FAIL_CLOSED', problems: bindingProblems});
       continue;
     }
     for (const language of ['zh-TW', 'en']) {
+      if (typeof shouldStop === 'function' && shouldStop()) {
+        trialBudget.stop('owner stop switch activated');
+        stoppedByOwner = true;
+        break outer;
+      }
       const facts = trustedFacts(testCase.report);
       const known = Object.fromEntries(Object.entries(facts).filter(([, f]) => f.value));
       const request = buildSeoRequest({
@@ -103,33 +148,78 @@ export async function runTrial({mode = 'mock', enableLive = false, credentialPro
       const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
       results.push({case: testCase.id, language, status: evaluation.status,
         problems: evaluation.problems, unknown_facts: evaluation.unknown_facts});
+      audit.push({
+        at: new Date().toISOString(), mode, case: testCase.id, language,
+        model: OPENAI_MODEL.snapshot, project_id: mode === 'live' ? projectId : null,
+        status: evaluation.status, input_tokens: response.usage.input_tokens,
+        output_tokens: response.usage.output_tokens, cost_usd: response.usage.cost,
+      });
     }
   }
   const failed = results.some(r => r.status === 'FAIL_CLOSED');
   return {
-    mode: 'mock',
-    status: failed ? 'MOCK_FAIL_CLOSED' : 'MOCK_PASS',
-    real_api_calls: 0,
+    mode,
+    status: stoppedByOwner ? (mode === 'live' ? 'LIVE_STOPPED' : 'MOCK_STOPPED')
+      : failed ? (mode === 'live' ? 'LIVE_FAIL_CLOSED' : 'MOCK_FAIL_CLOSED')
+        : (mode === 'live' ? 'LIVE_PASS' : 'MOCK_PASS'),
+    real_api_calls: mode === 'live' ? trialBudget.entries.length : 0,
     results,
+    audit,
     requests: trialBudget.entries.length,
     total_cost_usd: trialBudget.spent(),
     budget_cap_usd: trialBudget.cap,
     stopped: trialBudget.stopped,
+    live_enabled_after_run: false,
+    authorization_consumed: mode === 'live',
+    model_permission_evidence: mode === 'live'
+      ? 'first API response or API error for the pinned model; not verified offline'
+      : 'not applicable in mock mode',
+  };
+}
+
+export function parseCliArgs(argv) {
+  const get = (name) => {
+    const item = argv.find(a => a.startsWith(name + '='));
+    return item ? item.slice(name.length + 1) : undefined;
+  };
+  const maxRequestsRaw = get('--max-requests');
+  const maxRequests = maxRequestsRaw === undefined ? undefined : Number(maxRequestsRaw);
+  if (maxRequests !== undefined && (!Number.isInteger(maxRequests) || maxRequests < 1 || maxRequests > 12)) {
+    throw Error('INVALID_MAX_REQUESTS: must be an integer from 1 to 12');
+  }
+  return {
+    mode: argv.includes('--live') ? 'live' : 'mock',
+    projectId: get('--project-id'),
+    confirmation: get('--confirm-live'),
+    stopFile: get('--stop-file'),
+    maxRequests,
   };
 }
 
 const isMain = import.meta.url === new URL(process.argv[1], 'file:').href
   || process.argv[1]?.endsWith('run-phase3b-trial.mjs');
 if (isMain) {
-  const mode = process.argv.includes('--live') ? 'live' : 'mock';
+  let cli;
   try {
+    cli = parseCliArgs(process.argv.slice(2));
     const summary = await runTrial({
-      mode,
-      credentialProvider: async () => 'mock-credential-not-real',
+      mode: cli.mode,
+      projectId: cli.projectId,
+      confirmation: cli.confirmation,
+      budget: cli.maxRequests ? createTrialBudget({maxRequests: cli.maxRequests}) : undefined,
+      shouldStop: cli.stopFile ? () => existsSync(cli.stopFile) : undefined,
+      credentialProvider: cli.mode === 'live'
+        ? createKeychainCredentialProvider()
+        : async () => 'mock-credential-not-real',
     });
     console.log(JSON.stringify(summary, null, 1));
+    if (summary.status.endsWith('FAIL_CLOSED')) process.exit(1);
   } catch (error) {
-    console.error(JSON.stringify({mode, status: 'REFUSED', error: String(error.message ?? error)}));
+    console.error(JSON.stringify({
+      mode: cli?.mode ?? 'unknown', status: 'REFUSED',
+      live_enabled_after_run: false,
+      error: String(error.message ?? error),
+    }));
     process.exit(2);
   }
 }

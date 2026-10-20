@@ -47,6 +47,7 @@ export function createTrialBudget({
   const spent = () => entries.reduce((sum, e) => sum + e.cost, 0);
   return {
     cap: trialCapUsd,
+    maxRequests,
     entries,
     spent,
     remaining: () => trialCapUsd - spent(),
