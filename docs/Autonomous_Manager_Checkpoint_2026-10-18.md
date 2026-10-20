@@ -1267,3 +1267,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success（該代 Reviewer 亦 APPROVE）；`5e31c27` 與
   `a1f0697` Handoff success、Python in_progress，
   最新代整體仍 PENDING，未宣稱全綠。
+
+### 補記：3e3ff41 獨立複審與 CI 終態進展
+- Workflow 獨立 Reviewer 對 `3e3ff41` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+9/-0）、歸屬正確且未自審、
+  用語誠實，無越界主張。
+- CI 單次查詢（非 watch）：`a1f0697` 四 Run 全數
+  success（該代 Reviewer 亦 APPROVE）；`3e3ff41` 與
+  `5e31c27` Handoff success、Python in_progress，
+  最新代整體仍 PENDING，未宣稱全綠。
