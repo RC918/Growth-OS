@@ -1188,3 +1188,13 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   連接或高權限通道；唯一永久 Loop `98e1e126` 不變。
 - 其他執行者未提交檔案原樣保留，未覆蓋、未刪除、
   未納入本輪提交。真實模型維持零呼叫，試點未定。
+
+### 補記：81f1c3b 獨立複審與 CI 收尾
+- Workflow 獨立 Reviewer 對 `81f1c3b` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+17/-0）、核准歸屬正確且未自審、
+  CI 用語誠實、連接盤點與他方檔案保留經核對。
+- CI 單次查詢（非 watch）：`81f1c3b` 四 Run（push 與
+  pull_request 各 Handoff、Python）均 queued，無終態；
+  一律標記 PENDING，非失敗，最新 HEAD CI 未宣稱 PASS。
+- Phase 3A 原型不重做；真實模型維持零呼叫、試點未定、
+  不建常駐 WordPress 站；PR #31 維持 Draft。
