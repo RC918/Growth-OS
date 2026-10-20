@@ -143,3 +143,24 @@ build 於 CI 自動重算，非釘選，不需變更）：
 **待 Owner 核准 v3 三處範圍後重新套用**；
 未核准前維持回復狀態（CI 全綠路徑、
 適配器維持隔離能力、託管 NOT_TESTED）。
+
+## v3 執行紀錄（Owner 核准三處範圍後）
+
+- 先於隔離 worktree 套用完整候選，再以
+  cherry-pick 進入接管分支（候選
+  `27ff3da` → 接管 `fe50915`），Diff 與核准
+  範圍逐字一致：兩份 payload 同一行、
+  `hashes.json` 僅第 9 行單筆更新。
+- 雜湊證據：兩份 payload 修改前同為
+  `3c3ee221…`、修改後同為 `bc17a364…`，
+  `cmp` 逐位元組一致；部署清單 115 筆
+  全數比對相符（更新後），其餘 114 檔
+  零漂移。
+- 本機前置驗證：凍結清單契約測試通過；
+  Workspace 鏡像＋Declared-Product 契約
+  測試 15/15；Python 相關 36 案通過。
+  隔離 worktree 因無 node_modules 無法載入
+  RC 契約測試檔，已於主 worktree 補跑
+  通過，此限制如實記錄。
+- 託管 Preview 實測維持 NOT_TESTED／
+  ENV_BLOCKED，未冒充 PASS。
