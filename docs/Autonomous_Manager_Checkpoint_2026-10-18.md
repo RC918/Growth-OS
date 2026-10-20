@@ -1026,3 +1026,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 ### 補記：Phase 2B 常駐測試站 Owner 決策
 - Owner 決定：暫不建常駐測試站。維持 CI 可銷毀 WordPress
   驗收；任何持續可存取網域的建立或公開，另行核准。
+
+### 補記：Phase 2B 硬化複審與 CI 狀態
+- Workflow 獨立 Reviewer 對 `a1472b7` 裁決 **APPROVE**
+  （負面錯誤匹配與 traffic 斷言經來源鏈核對）。
+- CI：`a1472b7` Handoff 雙事件 **success**（含硬化後
+  Phase 2B 實跑）；Python 及 `2c8b574` 雙 workflow
+  於記錄時仍 in_progress（PENDING，非失敗）。
