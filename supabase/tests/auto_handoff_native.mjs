@@ -172,6 +172,13 @@ try {
 
   stage = 'business schema';
   sql(await schema());
+  if (LANDY) {
+    // Owner-authorized 2026-10-20, isolated stack only: apply the
+    // traceable DB-validator candidate (one method allowlist line).
+    // Proposal/closed-package/hosted databases are never touched.
+    sql(await readFile(new URL('../drafts/declared_product_validator/candidate.sql', import.meta.url), 'utf8'));
+    step('declared-product DB validator candidate applied (isolated stack only)', true);
+  }
   await wait(async () => (await restCall('/content_versions?select=id', ownerSession.access_token)).status === 200, 'PostgREST schema reload failed');
   step('business schema applied and PostgREST reloaded', true);
   assert.equal(versionCount(), 0);
@@ -349,6 +356,19 @@ try {
     p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: fixture()}});
   step('foreign save RPC denied by real RLS/RPC', foreignSave.status === 403, 'HTTP ' + foreignSave.status);
   step('denied writes left DB unchanged', versionCount() === 1);
+
+  if (LANDY) {
+    stage = 'DB validator negatives (declared-product candidate)';
+    const evilMethod = fixture(); evilMethod.extraction.method = 'unregistered_method';
+    const evil = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
+      p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: evilMethod}});
+    step('unregistered extraction method still rejected by DB validator', evil.status >= 400, 'HTTP ' + evil.status);
+    const forged = fixture(); forged.snapshot.version = '0'.repeat(64);
+    const forgedResult = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
+      p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: forged}});
+    step('forged source version/digest still rejected by DB validator', forgedResult.status >= 400, 'HTTP ' + forgedResult.status);
+    step('validator negatives left DB unchanged', versionCount() === 1);
+  }
 } catch (error) {
   step('native handoff acceptance aborted', false, String(error?.message || error).slice(0, 240));
 } finally {
