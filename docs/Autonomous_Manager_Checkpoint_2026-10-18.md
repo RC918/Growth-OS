@@ -903,3 +903,15 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   forward／rollback／postflight 審核 APPROVE、Handoff 與
   Python CI 全綠、ACL 影響分析完成。
 - 下一步僅剩授權連接器執行者依執行包操作並回傳證據。
+
+### 補記：Staging DB Validator 升級完成（2026-10-20，連接器執行）
+- ChatGPT 經正式 Supabase 連接器於隔離 Staging `vhzryhibmpvglzcmfnaa`
+  完成受控升級：Preflight PASS（本體與候選僅差一允許方法）。
+- Migration `20261020040808`
+  `declared_product_dom_validator_allowlist_20261020`；
+  函數 MD5 `e7139b29…d463` → `9e46a65f…158`；
+  `declared_product_dom` 已允許；ACL、擁有者、SECURITY INVOKER、
+  search_path 不變；anon／authenticated／service_role 直接
+  EXECUTE 維持 false。Postflight PASS。
+- 未操作 Production、RLS、Secrets，未合併 PR。
+- 待辦：託管合成帳號 Landy Save／Review／新會話讀回驗收（未執行）。
