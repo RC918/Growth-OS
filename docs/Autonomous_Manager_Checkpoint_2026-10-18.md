@@ -1082,3 +1082,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   （無 transport 直接拒絕、live 需正預算）、請求只帶
   可信事實與 UNKNOWN 標記；未讀取任何憑證、未呼叫 API。
   測試組合計 11/11 PASS，已接入 CI。
+
+### 補記：Phase 3A 模型接入層複審與連接盤點
+- Workflow 獨立 Reviewer 對 `3608496` 裁決 **APPROVE**（11/11）：
+  零調用經檢查確認（無網路/憑證讀取）、請求只帶可信事實。
+- 連接器盤點：GitHub CLI 與 CI 可用；Supabase CLI 登入
+  工作階段唯讀可見 Staging；Supabase 連接器由授權執行者
+  操作；Muse 遠端 MCP OAuth 仍受平台 query 限制；
+  本機 Docker 受 Sandbox 限制（CI 代行）。無新增高權限通道。
+- 真實模型 live 調用與試點網站均未啟用，待 Owner 後續決策。
