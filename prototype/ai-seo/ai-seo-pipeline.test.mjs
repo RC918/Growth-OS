@@ -55,6 +55,29 @@ test('model inventing a price fails closed', async () => {
   assert.ok(out.problems.some(p => p.includes('999')));
 });
 
+test('lowercase invented claim and overshooting actual cost fail closed', async () => {
+  const ledger = createCostLedger(0.01);
+  const invented = await runAiSeoPipeline({
+    report, market: 'US', language: 'en', ledger,
+    model: async () => ({usage: {cost: 0.002}, suggestions: {
+      title: {text: 'The Clark titanium edition', used_fact_ids: ['product_name']},
+      meta_description: {text: 'Maple complete skateboard', used_fact_ids: ['meta_description']},
+      description: {text: 'The Clark. Maple complete with 54mm wheels.', used_fact_ids: ['description']},
+    }})});
+  assert.equal(invented.status, 'FAIL_CLOSED');
+  assert.ok(invented.problems.some(p => p.includes('titanium')));
+
+  const pricey = await runAiSeoPipeline({
+    report, market: 'US', language: 'en', ledger: createCostLedger(0.01),
+    model: async () => ({usage: {cost: 0.5}, suggestions: {
+      title: {text: 'The Clark', used_fact_ids: ['product_name']},
+      meta_description: {text: 'Maple complete skateboard', used_fact_ids: ['meta_description']},
+      description: {text: 'The Clark. Maple complete with 54mm wheels.', used_fact_ids: ['description']},
+    }})});
+  assert.equal(pricey.status, 'FAIL_CLOSED');
+  assert.ok(pricey.problems.some(p => p.includes('budget')));
+});
+
 test('unknown facts stay UNKNOWN and budget cap blocks new calls', async () => {
   const sparse = structuredClone(report);
   delete sparse.facts.meta_description;

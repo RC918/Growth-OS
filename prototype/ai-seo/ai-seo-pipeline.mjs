@@ -31,12 +31,12 @@ export function trustedFacts(report) {
 }
 
 function factualTokens(text) {
-  // Numbers and Latin model-like tokens are treated as factual
-  // claims that must be traceable to the source.
+  // Every Latin word or number in a suggestion is treated as a
+  // factual claim that must be traceable to the source vocabulary.
+  // (CJK copy is bounded by the used_fact_ids declaration instead.)
   return new Set([
     ...(text.match(/\d+(?:[.,]\d+)?/g) ?? []),
-    ...(text.match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? [])
-      .filter(t => /\d/.test(t) || /^[A-Z][A-Za-z0-9-]+$/.test(t)),
+    ...(text.match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []),
   ]);
 }
 
@@ -74,6 +74,7 @@ export function verifySuggestions(suggestions, facts) {
 export function createCostLedger(budget) {
   const entries = [];
   return {
+    budget,
     entries,
     spent: () => entries.reduce((sum, e) => sum + e.cost, 0),
     canAfford: estimate => entries.reduce((sum, e) => sum + e.cost, 0) + estimate <= budget,
@@ -94,12 +95,19 @@ export async function runAiSeoPipeline({report, market, language, model, ledger}
     return {status: 'BUDGET_BLOCKED', facts, suggestions: null, problems: ['budget cap reached']};
   }
   const response = await model({facts: known, market, language, fields: FIELDS});
+  const actualCost = response.usage?.cost ?? estimate;
   ledger.record({
     at: new Date().toISOString(), market, language,
     input_tokens: response.usage?.input_tokens ?? null,
     output_tokens: response.usage?.output_tokens ?? null,
-    cost: response.usage?.cost ?? estimate,
+    cost: actualCost,
   });
+  if (ledger.spent() > ledger.budget) {
+    return {status: 'FAIL_CLOSED', facts, suggestions: null,
+      problems: ['actual model cost exceeded budget cap'],
+      unknown_fields: Object.keys(facts).filter(k => !facts[k].value),
+      cost: ledger.entries.at(-1)};
+  }
 
   const problems = verifySuggestions(response.suggestions, facts);
   if (problems.length > 0) {

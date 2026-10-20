@@ -1065,3 +1065,9 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - P3 引導原型 `prototype/phase3a-guide/index.html`。
 - 真實模型與試點網站決策包待 Owner：
   `docs/Phase3A_Inventory_And_Decision_2026-10-20.md`。
+
+### 補記：Phase 3A 複審與安全補強
+- Workflow 獨立 Reviewer 對 `5f32526`＋`82402c8` 裁決 **APPROVE**（7/7）。
+- 依其試點前提醒補強：英文事實詞彙改全詞彙比對（小寫
+  捏造詞亦攔截）、實際成本超上限時 FAIL_CLOSED 並保留
+  帳本紀錄；新增負面測試後合計 8/8 PASS。
