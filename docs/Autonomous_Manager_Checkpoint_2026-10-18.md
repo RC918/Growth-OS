@@ -1000,3 +1000,5 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   保存 Review 讀回 → 發布權威 → 預覽/發布/讀回/回復 →
   Measure 觀測，四段共用同一版本身分，流量維持 UNKNOWN，
   離線 1/1 PASS，已接入 CI（清單累計 13 項）。
+- 全鏈契約經 Workflow Reviewer 對 `b444c23` 裁決 APPROVE
+  （清單 13/13）；依建議補 observation 版本與 URL 身分斷言。

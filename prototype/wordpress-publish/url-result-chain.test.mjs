@@ -79,6 +79,8 @@ test('saved review -> publish -> restore -> measure keeps one identity', async (
     clock: () => Date.parse('2026-10-21T00:00:00Z'),
   });
   assert.equal(observation.state, 'MEASURED');
+  assert.equal(observation.version_id, versionRow.id);
+  assert.equal(observation.public_url, TARGET);
   assert.equal(summarizeObservations([observation]).traffic, 'UNKNOWN');
 
   const restored = await run('owner', 'restore', {intent_id: intent.id, page_id: 7, confirm: true});
