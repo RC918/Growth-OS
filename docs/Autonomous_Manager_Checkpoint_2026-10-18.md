@@ -1209,3 +1209,13 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 藍圖盤點：M4 真實試點與 M5 GSC 真實連線仍待 Owner
   指定站點／帳號，屬決策阻塞；其餘已授權 Core 無待辦。
 - 其他執行者未提交檔案原樣保留；未建第二 Loop。
+
+### 補記：392514a 獨立複審與 CI 進展
+- Workflow 獨立 Reviewer 對 `392514a` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+11/-0）、歸屬正確且未自審、
+  盤點與保留用語經核對，無越界主張。
+- CI 單次查詢（非 watch）：`392514a`、`8a9e953`、
+  `81f1c3b` 之 Handoff 雙事件均 success；三代 Python
+  均 in_progress。故 Handoff 已通過、整體仍 PENDING，
+  未宣稱全綠，Python 終態由後續 Loop 單次查詢補記。
+- 藍圖待辦不變：M4／M5 待 Owner 決策，其餘無待辦。
