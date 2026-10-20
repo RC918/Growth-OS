@@ -1075,3 +1075,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - 連接能力現況（已盤點）：GitHub CI、Workflow Reviewer、
   Supabase 連接器（執行者）與 CLI 唯讀可見 Staging；
   Muse MCP OAuth 仍受平台限制；無真實模型連線。
+
+### 補記：Phase 3A 真實模型準備（Owner 決策）
+- Owner 決策：OpenAI 方向、本階段零調用；試點網站暫緩。
+- 新增 `prototype/ai-seo/model-adapter.mjs`：零調用閘門
+  （無 transport 直接拒絕、live 需正預算）、請求只帶
+  可信事實與 UNKNOWN 標記；未讀取任何憑證、未呼叫 API。
+  測試組合計 11/11 PASS，已接入 CI。
