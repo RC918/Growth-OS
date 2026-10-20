@@ -1219,3 +1219,13 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   均 in_progress。故 Handoff 已通過、整體仍 PENDING，
   未宣稱全綠，Python 終態由後續 Loop 單次查詢補記。
 - 藍圖待辦不變：M4／M5 待 Owner 決策，其餘無待辦。
+
+### 補記：773f6f9 獨立複審與 CI 進展
+- Workflow 獨立 Reviewer 對 `773f6f9` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+10/-0）、歸屬正確且未自審、
+  用語與盤點經核對，無越界主張。
+- CI 單次查詢（非 watch）：`773f6f9` Handoff 雙事件
+  success、Python 雙事件 in_progress；`81f1c3b` Python
+  push 已 success、PR 仍 in_progress，其餘 Python 未
+  終結。整體仍 PENDING，未宣稱全綠。
+- 其他執行者未提交檔案原樣保留；未建第二 Loop。
