@@ -932,3 +932,15 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   含清理、未觸及 Production／migration／RLS／frozen。
 - 非阻斷註記：拒絕檢查接受 >=400、清理回應未逐項核對，
   列技術債；本次實際回傳碼已逐項記錄（403／403／400／400）。
+
+### Phase 2A 啟動（2026-10-20）
+- P0 封存：Owner 真人驗收 Landy 全 PASS，版本
+  `25b7a06c-d177-4efc-8474-83dafe2d5239`、Review
+  `bb06b0d6-ca29-4b20-9e31-5f7839102f06`、未發布；
+  Staging Migration `20261020040808`、託管驗收 11/11 PASS。
+- P1/P2：既有 WordPress 發布器盤點完成（preview→confirm→
+  寫入→雙讀回→restore、版本/租戶綁定、journal 回復）；
+  新增已審 URL 成果版本綁定契約測試 4/4 PASS。
+- P4：引導原型 `prototype/phase2a-guide/index.html`（不連線）。
+- 盤點與第一個真實測試站決策包：
+  `docs/Phase2A_Publish_Inventory_And_Decision_2026-10-20.md`。
