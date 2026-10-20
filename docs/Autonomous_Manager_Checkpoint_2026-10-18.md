@@ -915,3 +915,13 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   EXECUTE 維持 false。Postflight PASS。
 - 未操作 Production、RLS、Secrets，未合併 PR。
 - 待辦：託管合成帳號 Landy Save／Review／新會話讀回驗收（未執行）。
+
+### 補記：託管 Staging 合成驗收 PASS（2026-10-20）
+- Landyachtz（declared_product_dom）：Save 200（版本
+  `21cb4e99…8394`）、冪等重試同版、Review 200、新會話讀回
+  同版本與 Review（approved）、viewer 寫入 403、外租戶讀 0 列／
+  寫入 403、未註冊方法 400、偽造摘要 400；合成資料已清理。
+  驗收腳本：`supabase/tests/staging_landy_acceptance.mjs`。
+- WooCommerce 回歸：既有 chain 驗收全 PASS（Save／讀回／
+  viewer／跨租戶），清理完成。託管 Staging 升級驗收完成；
+  託管瀏覽器真人驗收不在此範圍。
