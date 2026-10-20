@@ -827,3 +827,15 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 ### P4 跨網站可重用性：ENV_BLOCKED / NOT_TESTED
 - 本環境對外站台讀取逾時，未能錄製第二個真實站台；僅以既有 WooCommerce
   結構離線驗證不干擾。真實第二站台維持 NOT_TESTED。
+
+### 補記：批次 Reviewer 裁決與修正（HEAD a1146a5）
+- Workflow 獨立 Reviewer 對 `fe50915..81043cf` 批次裁決 REQUEST_CHANGES：
+  唯一阻斷項為 Adapter Registry 誤用 `snapshot.sha256` 欄位，且正例測試未實際呼叫 `run_adapter`；
+  Landyachtz 變體（`3a42e08`）與 Frozen Preflight（`7027631`）均 APPROVE。
+- 修正 Commit `04ab026`：改驗 `snapshot.version` 與 `content_fingerprint == sha256:<version>`，
+  正例改走 pre-rescue 報告實際呼叫 `run_adapter`；Registry 4/4、First Result 28/28 PASS；
+  獨立 Reviewer 對 `04ab026` 裁決 APPROVE。
+- CI 發現 Preflight 於 PR 範圍把 build 產生之 `delivery/growth-console/dist/*`
+  誤判為已審鏡像；修正 Commit `a1146a5` 排除 `dist/` 產生檔（已審鏡像與清單檢查不變），
+  測試 5/5 PASS、本機對 `origin/main` 模擬 PASS；獨立 Reviewer 對 `a1146a5` 裁決 APPROVE。
+- `a1146a5` 之 GitHub CI 於最後單次查詢時仍為 in_progress，標記 PENDING，不冒充 PASS。
