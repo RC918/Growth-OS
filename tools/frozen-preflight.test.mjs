@@ -41,6 +41,21 @@ test('mirror changed alone FAILs', () => {
   assert.ok(r.requiredSync.includes(FROZEN));
 });
 
+test('generated dist copy is not treated as a reviewed mirror', () => {
+  const DIST = 'delivery/growth-console/dist/first-result-payload.mjs';
+  const base = {[FROZEN]: Buffer.from('v1'), [MIRROR]: Buffer.from('v1'), [DIST]: Buffer.from('v1'),
+    [MANIFEST]: Buffer.from(JSON.stringify({files: {[FROZEN]: sha('v1')}}))};
+  const now = {[FROZEN]: Buffer.from('v2'), [MIRROR]: Buffer.from('v2'), [DIST]: Buffer.from('v1')};
+  const r = analyze({
+    changed: [FROZEN, MIRROR, MANIFEST],
+    trackedFiles: [FROZEN, MIRROR, DIST],
+    manifest: {[FROZEN]: sha('v2')},
+    readCurrent: p => now[p] ?? null,
+    readBase: p => base[p] ?? null,
+  });
+  assert.equal(r.ok, true, JSON.stringify(r.problems));
+});
+
 test('unrelated change PASSes', () => {
   const r = scenario({changed: ['apps/web/other.mjs'], frozenNow: 'v1', mirrorNow: 'v1', manifestNow: sha('v1')});
   assert.equal(r.ok, true, JSON.stringify(r.problems));

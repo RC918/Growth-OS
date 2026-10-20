@@ -36,12 +36,14 @@ export function analyze({changed, manifest, trackedFiles = [], readCurrent, read
   // Mirror candidates: tracked files (from manifest keys plus any file
   // sharing a basename with a changed frozen file) whose base bytes
   // equal the frozen file's base bytes.
+  // Build outputs under dist/ are regenerated, not reviewed mirrors.
+  const isGenerated = path => /(^|\/)dist\//.test(path);
   const mirrorCandidates = (frozenPath) => {
     const baseBytes = readBase(frozenPath);
     if (baseBytes === null) return [];
     const out = [];
     for (const candidate of byBasename.get(basename(frozenPath)) || []) {
-      if (candidate === frozenPath) continue;
+      if (candidate === frozenPath || isGenerated(candidate)) continue;
       const candidateBytes = readBase(candidate);
       if (candidateBytes !== null && candidateBytes.equals(baseBytes)) out.push(candidate);
     }
@@ -68,7 +70,7 @@ export function analyze({changed, manifest, trackedFiles = [], readCurrent, read
   }
   // Mirror changed without its frozen source.
   for (const path of changed) {
-    if (isFrozen(path)) continue;
+    if (isFrozen(path) || isGenerated(path)) continue;
     for (const frozenPath of trackedFiles.filter(p => isFrozen(p))) {
       if (basename(frozenPath) !== basename(path)) continue;
       const frozenBase = readBase(frozenPath), mirrorBase = readBase(path);
