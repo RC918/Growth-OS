@@ -1365,3 +1365,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success（該代 Reviewer 亦 APPROVE）；`05044cb`
   Handoff success、Python in_progress，`47538d3`
   push Python 未終結，最新代整體仍 PENDING。
+
+### 補記：f9bf50a 獨立複審與 CI 終態進展
+- Workflow 獨立 Reviewer 對 `f9bf50a` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+9/-0）且該節只出現一次、
+  歸屬正確且未自審，無越界主張。
+- CI 單次查詢（非 watch）：`47538d3` 四 Run 全數
+  success（該代 Reviewer 亦 APPROVE）；`f9bf50a` 與
+  `05044cb` Handoff success、Python in_progress，
+  最新代整體仍 PENDING，未宣稱全綠。
