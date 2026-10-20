@@ -1099,3 +1099,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success 紀錄，其餘 Run 仍在執行。
 - Phase 3A 本輪交付結案：盤點矩陣、AI 管線、Engine、
   引導原型、零調用接入層與決策包齊全。
+
+### 補記：Phase 3A 全流程整合
+- 新增 `prototype/phase3a-flow/flow.mjs`：Growth Engine
+  駕駛 AI 管線（未核准不呼叫模型、核准後執行、事實衝突
+  自動升級），3/3 PASS，已接入 CI。
+- CI 狀態：`3608496` Handoff 雙事件 success；Python 與
+  `edc8068` 於記錄時仍 PENDING（非失敗）。
