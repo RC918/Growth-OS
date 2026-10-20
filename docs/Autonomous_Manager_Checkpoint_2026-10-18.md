@@ -1303,3 +1303,11 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success（該代 Reviewer 亦 APPROVE）；`d4058e7` 與
   `ea2f497` Handoff success、Python in_progress，
   最新代整體仍 PENDING，未宣稱全綠。
+
+### 補記：2e9d487 獨立複審
+- Workflow 獨立 Reviewer 對 `2e9d487` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+9/-0）且該節只出現一次、
+  歸屬正確且未自審，無越界主張。
+- CI 單次查詢（非 watch）：狀態與前輪相同，
+  `2e9d487`、`d4058e7`、`ea2f497` 均 Handoff success、
+  Python in_progress，無新終態；整體 PENDING。
