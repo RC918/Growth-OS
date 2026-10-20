@@ -66,12 +66,12 @@ try {
   const dispatch = (action, input, token = 'fixture-owner') => service.dispatch(token, action, input);
 
   // Unapproved version: zero writes.
-  await assert.rejects(dispatch('preview', {version_id: 'unapproved-version'}));
+  await assert.rejects(dispatch('preview', {version_id: 'unapproved-version'}), /Exact reviewed version required/);
   assert.equal(posts, 0);
   console.log('PASS unapproved version rejected before any write');
 
   // Cross-tenant token: zero writes.
-  await assert.rejects(dispatch('preview', {version_id: versionRow.id}, 'foreign'));
+  await assert.rejects(dispatch('preview', {version_id: versionRow.id}, 'foreign'), /denied/);
   assert.equal(posts, 0);
   console.log('PASS foreign tenant token rejected before any write');
 
@@ -91,6 +91,7 @@ try {
 
   const applied = await dispatch('readback', input);
   assert.equal(applied.state, 'confirmed_applied');
+  assert.equal(applied.evidence.traffic, 'unknown');
   assert.equal(posts, 1, 'reconciliation is GET-only');
   console.log('PASS publish API/HTML readback confirmed (version ' + versionRow.id + ')');
 

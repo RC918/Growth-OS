@@ -1007,3 +1007,8 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Workflow 獨立 Reviewer 對 `b444c23` 裁決 **APPROVE**（13/13）；
   身分斷言補強 `a092630` 已推送，遠端 HEAD 一致；
   `a092630` Handoff CI 雙事件 **success**，Python 仍 PENDING。
+
+### 補記：Phase 2B 複審
+- Workflow 獨立 Reviewer 對 `d4ec5e7` 裁決 **APPROVE**；
+  依建議硬化負面案例的錯誤訊息匹配，並斷言發布證據
+  `traffic === 'unknown'`。
