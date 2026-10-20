@@ -989,3 +989,8 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   （14 個拒絕分支經探測、Phase 2A CI 清單 12/12）。
 - Python CI（`ed481f2`）：push 事件 completed **success**；
   pull_request 事件於記錄時仍 in_progress（PENDING）。
+
+### 補記：ed481f2 雙 CI 全綠
+- Python CI（`ed481f2`）pull_request 事件經 Jobs API 確認
+  completed **success**；連同先前 push success 與 Handoff
+  雙 success，該 HEAD 全部必要 CI 終態通過。
