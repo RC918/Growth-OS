@@ -795,3 +795,35 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   Python Job completed success（103/103）、
   Handoff success。目前維持回復狀態，
   待 Owner 核准 v3 三處範圍後重新套用。
+
+## 2026-10-19 Owner 離線 8 小時授權執行紀錄
+
+### P0 Frozen Exception v3：PASS（隔離驗收）
+- 三處同步已套用：`apps/web/first-result-payload.mjs`、
+  `prototype/owner-workspace/first-result-payload.mjs`（逐位元組一致）、
+  `prototype/internal-rc/deploy/hashes.json` 僅更新對應一筆 SHA。
+- 修改前 SHA `3c3ee221…d9750b` → 修改後 `bc17a364…ca1c`；其餘 frozen 114 檔零漂移。
+- Commit：`fe50915`（三處同步）、`bce78fa`（執行紀錄）。
+- Landyachtz 契約：declared-product 契約測試、Python 28 項、RC 契約測試均 PASS（隔離）。
+- 託管 Preview 實測維持 NOT_TESTED／ENV_BLOCKED，未冒充通過。
+
+### P1 Landyachtz 整合驗收：隔離 PASS（合成傳輸層）
+- `landy_fixture_server.py` 以真實 Python 管線（robots→快照→Rescue Adapter）
+  對已錄製 Landyachtz HTML 產生 First Result；`HANDOFF_VARIANT=landyachtz`
+  變體接入既有 native-stack 瀏覽器驗收（Commit `3a42e08`）。
+- 本機 socket 受 Sandbox 限制，完整瀏覽器執行由 CI 證據判定；託管 Staging 未實測。
+
+### P2 Frozen Preflight：PASS
+- `tools/frozen-preflight.mjs`：由 deploy/hashes.json 推導 frozen 集合，
+  比對已審鏡像與清單 SHA；缺鏡像或缺清單更新時 FAIL 並列出必需同步清單。
+- 單元測試 4/4 PASS（v1、v2 失敗型態均被攔截）；已接入 Handoff CI（最後一筆提交）。
+- Commit `7027631`。
+
+### P3 Adapter Registry：設計＋非凍結原型 PASS
+- `prototype/public-audit/adapter_registry.py` 與 3/3 測試 PASS；
+  未來單一 registry-attested frozen 例外仍需 Owner 決策包（未執行）。
+- Commit `091e242`，設計文件 `docs/Adapter_Registry_Design_2026-10-19.md`。
+
+### P4 跨網站可重用性：ENV_BLOCKED / NOT_TESTED
+- 本環境對外站台讀取逾時，未能錄製第二個真實站台；僅以既有 WooCommerce
+  結構離線驗證不干擾。真實第二站台維持 NOT_TESTED。
