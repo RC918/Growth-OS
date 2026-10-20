@@ -34,10 +34,12 @@ function factualTokens(text) {
   // Every Latin word or number in a suggestion is treated as a
   // factual claim that must be traceable to the source vocabulary.
   // (CJK copy is bounded by the used_fact_ids declaration instead.)
-  return new Set([
-    ...(text.match(/\d+(?:[.,]\d+)?/g) ?? []),
-    ...(text.match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? []),
-  ]);
+  // Numbers inside an alphanumeric code (e.g. BIC00001) belong to
+  // that word token and must not be re-read as standalone numbers.
+  const words = text.match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? [];
+  const numbers = text.replace(/[A-Za-z][A-Za-z0-9-]{2,}/g, ' ')
+    .match(/\d+(?:[.,]\d+)?/g) ?? [];
+  return new Set([...numbers, ...words]);
 }
 
 export function verifySuggestions(suggestions, facts) {

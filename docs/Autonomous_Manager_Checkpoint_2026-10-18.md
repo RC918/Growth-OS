@@ -1393,3 +1393,14 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success（該代 Reviewer 亦 APPROVE）；`2eec93d` 與
   `50cc26a` Handoff success、Python in_progress，
   最新代整體仍 PENDING，未宣稱全綠。
+
+### 補記：Phase 3B OpenAI 試驗準備（未啟用）
+- Owner 核准方向：OpenAI、一次性上限 US$5、不建常駐
+  站、不接 GSC、不對外發布；本輪僅準備，零真實呼叫。
+- 新增 `openai-live-gate`（預算預檢／token 與請求上限／
+  停止開關／預設停用 transport）、三案例 Fixture 與
+  `quality-eval` 機器閘門；決策包見
+  `docs/Phase3B_OpenAI_Trial_Decision_Package_2026-10-20.md`。
+- 非凍結管線修正：英數代碼（如 BIC00001）不再被誤判
+  為獨立數字事實；離線回歸 24/24。正式啟用待 Owner
+  依決策包第 8 節一次確認，Loop 維持 QUIESCENT。

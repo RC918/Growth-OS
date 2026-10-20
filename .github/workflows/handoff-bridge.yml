@@ -27,7 +27,7 @@ jobs:
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
       - name: Phase 2A reviewed URL-result publication contracts
-        run: node --test prototype/wordpress-publish/url-result-publish.test.mjs prototype/wordpress-publish/url-result-authority.test.mjs prototype/phase2a-measure/observe.test.mjs prototype/phase2a-measure/from-publication.test.mjs prototype/wordpress-publish/url-result-chain.test.mjs prototype/ai-seo/ai-seo-pipeline.test.mjs prototype/ai-seo/model-adapter.test.mjs prototype/growth-engine/engine.test.mjs prototype/phase3a-flow/flow.test.mjs prototype/phase3a-flow/to-publish-preview.test.mjs prototype/phase3a-flow/authority-from-reviewed.test.mjs
+        run: node --test prototype/wordpress-publish/url-result-publish.test.mjs prototype/wordpress-publish/url-result-authority.test.mjs prototype/phase2a-measure/observe.test.mjs prototype/phase2a-measure/from-publication.test.mjs prototype/wordpress-publish/url-result-chain.test.mjs prototype/ai-seo/ai-seo-pipeline.test.mjs prototype/ai-seo/model-adapter.test.mjs prototype/growth-engine/engine.test.mjs prototype/phase3a-flow/flow.test.mjs prototype/phase3a-flow/to-publish-preview.test.mjs prototype/phase3a-flow/authority-from-reviewed.test.mjs prototype/ai-seo/openai-live-gate.test.mjs prototype/ai-seo/quality-eval.test.mjs
       - name: Pull pinned disposable WordPress images
         run: |
           docker pull wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4

@@ -1,0 +1,61 @@
+{
+  "version": "phase3b-quality-v1",
+  "note": "Reproducible source fixtures for the Phase 3B quality trial. Facts are copied from already-verified Phase 1/3A evidence; the negative case is explicitly synthetic. Nothing here is published.",
+  "cases": [
+    {
+      "id": "landyachtz-the-clark",
+      "kind": "nonstandard_product_page",
+      "source_url": "https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/",
+      "report": {
+        "page_type": "product",
+        "extraction": {"method": "declared_product_dom"},
+        "facts": {
+          "product_name": {"value": "The Clark", "citations": ["s1"], "verification": "source_asserted"},
+          "title": {"value": "The Clark", "citations": ["s1"], "verification": "source_asserted"},
+          "meta_description": {"value": "Maple complete skateboard", "citations": ["s2"], "verification": "source_asserted"},
+          "description": {"value": "The Clark. Maple complete with 54mm wheels.", "citations": ["s3"], "verification": "source_asserted"}
+        }
+      },
+      "expected": "GENERATE_WITH_CITATIONS",
+      "unknown_facts": []
+    },
+    {
+      "id": "woocommerce-bic00001",
+      "kind": "woocommerce_product",
+      "source_url": "https://woo.novamodule.com/product/happy-ninja/",
+      "evidence": "docs/First_Result_Consistency_Acceptance_2026-10-17.md: H1 BIC00001 (s2), title 'BIC00001 – woocommerce Demo' (s3), description 'Downhill Bike – Sunday Team'; the name/description difference is the site's own data for the same product.",
+      "report": {
+        "page_type": "product",
+        "extraction": {"method": "woocommerce_json_ld"},
+        "facts": {
+          "product_name": {"value": "BIC00001", "citations": ["s2"], "verification": "source_asserted"},
+          "title": {"value": "BIC00001 – woocommerce Demo", "citations": ["s3"], "verification": "source_asserted"},
+          "meta_description": {"value": "Downhill Bike – Sunday Team", "citations": ["s4"], "verification": "source_asserted"},
+          "description": {"value": "BIC00001. Downhill Bike – Sunday Team", "citations": ["s4"], "verification": "source_asserted"}
+        }
+      },
+      "expected": "GENERATE_WITH_CITATIONS",
+      "unknown_facts": []
+    },
+    {
+      "id": "conflicting-facts-negative",
+      "kind": "synthetic_negative",
+      "source_url": "synthetic://conflicting-product",
+      "report": {
+        "page_type": "product",
+        "extraction": {"method": "declared_product_dom"},
+        "facts": {
+          "product_name": {"value": "Conflicting Board", "citations": ["s1"], "verification": "source_asserted"},
+          "title": {"value": "Conflicting Board", "citations": ["s1"], "verification": "source_asserted"},
+          "meta_description": {"value": null, "citations": [], "verification": "UNKNOWN"},
+          "description": {"value": "Conflicting Board. Maple complete.", "citations": ["s3"], "verification": "conflicting"}
+        },
+        "conflicts": [
+          {"fact": "description", "values": ["Maple complete.", "Carbon complete."], "resolution": "UNRESOLVED"}
+        ]
+      },
+      "expected": "FAIL_CLOSED_OR_PRESERVE_UNKNOWN",
+      "unknown_facts": ["meta_description", "price", "material"]
+    }
+  ]
+}
