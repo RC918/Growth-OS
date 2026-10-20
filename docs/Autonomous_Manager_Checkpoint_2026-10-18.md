@@ -1130,3 +1130,7 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - CI：`fcbc0dc` 與 `eb8b405` Handoff 雙事件 **success**；
   `b6b7990` 四 Run 與各 HEAD Python 於記錄時仍
   in_progress（PENDING，非失敗），終態由 Loop 補記。
+
+### 補記：引導原型英文介面
+- Phase 3A 引導原型新增中／英切換（步驟、狀態、決策
+  提示與按鈕），與管線的中英市場一致；仍為離線示範。
