@@ -7,5 +7,7 @@ select has_function_privilege('anon','private.fr_valid_payload(jsonb)','EXECUTE'
        has_function_privilege('authenticated','private.fr_valid_payload(jsonb)','EXECUTE') as auth_exec,
        has_function_privilege('service_role','private.fr_valid_payload(jsonb)','EXECUTE') as service_exec;
 -- ACL/security values must equal the preflight record exactly.
+select prosecdef, proconfig from pg_proc
+ where oid='private.fr_valid_payload(jsonb)'::regprocedure;  -- must equal preflight
 select version, name from supabase_migrations.schema_migrations
  order by version desc limit 1;  -- new forward migration recorded
