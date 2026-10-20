@@ -1238,3 +1238,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   success（該代 Reviewer 亦 APPROVE，證據鏈完整）；
   `f35f895` 與 `773f6f9` Handoff success、Python
   in_progress，最新代整體仍 PENDING，未宣稱全綠。
+
+### 補記：9595b12 獨立複審與 CI 終態進展
+- Workflow 獨立 Reviewer 對 `9595b12` 裁決 **APPROVE**：
+  僅 Checkpoint 一檔（+9/-0）、歸屬正確且未自審、
+  紀錄時 CI 用語經 Run 時間核對，無越界主張。
+- CI 單次查詢（非 watch）：`773f6f9` 四 Run 全數
+  success（該代 Reviewer 亦 APPROVE）；`9595b12` 與
+  `f35f895` Handoff success、Python in_progress，
+  最新代整體仍 PENDING，未宣稱全綠。
