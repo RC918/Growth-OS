@@ -1033,3 +1033,11 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - CI：`a1472b7` Handoff 雙事件 **success**（含硬化後
   Phase 2B 實跑）；Python 及 `2c8b574` 雙 workflow
   於記錄時仍 in_progress（PENDING，非失敗）。
+
+### 補記：a1472b7 雙 CI 全綠（Phase 2B 結案證據）
+- 程式 HEAD `a1472b7`：Handoff 與 Python CI 於 push／
+  pull_request 兩事件皆 completed **success**（含硬化後
+  Phase 2B 真實 WordPress 實跑）。
+- 連同 Reviewer APPROVE（`d4ec5e7`、`a1472b7`）與 Owner
+  「暫不建常駐站」決策，Phase 2B 全數結案；後續 HEAD
+  僅文件紀錄，其 CI 不影響程式結論。
