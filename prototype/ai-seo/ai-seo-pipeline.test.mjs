@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createCostLedger, runAiSeoPipeline} from './ai-seo-pipeline.mjs';
+import {applyUserEdits, createCostLedger, runAiSeoPipeline} from './ai-seo-pipeline.mjs';
 
 const report = {
   page_type: 'product',
@@ -76,6 +76,20 @@ test('lowercase invented claim and overshooting actual cost fail closed', async 
     }})});
   assert.equal(pricey.status, 'FAIL_CLOSED');
   assert.ok(pricey.problems.some(p => p.includes('budget')));
+});
+
+test('user edits are fact-verified before becoming final fields', async () => {
+  const ledger = createCostLedger(0.01);
+  const out = await runAiSeoPipeline({
+    report, market: 'TW', language: 'zh-TW', model: goodModel('zh-TW'), ledger});
+  assert.equal(out.status, 'AWAITING_REVIEW');
+  const reviewed = applyUserEdits(out, {title: 'The Clark 完整滑板'});
+  assert.equal(reviewed.status, 'REVIEWED');
+  assert.equal(reviewed.fields.title.final_source, 'user_edit');
+  assert.equal(reviewed.fields.description.final_source, 'ai_suggestion');
+  const bad = applyUserEdits(out, {title: 'The Clark 特價 999'});
+  assert.equal(bad.status, 'FAIL_CLOSED');
+  assert.equal(bad.fields.title.user_edit, null);
 });
 
 test('unknown facts stay UNKNOWN and budget cap blocks new calls', async () => {

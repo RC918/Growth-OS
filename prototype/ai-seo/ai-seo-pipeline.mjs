@@ -71,6 +71,37 @@ export function verifySuggestions(suggestions, facts) {
   return problems;
 }
 
+export function applyUserEdits(result, edits) {
+  // Human Review edits are applied only after the same fact
+  // verification as AI suggestions; an unverifiable edit fails
+  // closed instead of silently becoming the final field.
+  if (!result || result.status !== 'AWAITING_REVIEW') {
+    throw Error('Only AWAITING_REVIEW results can be edited');
+  }
+  const fields = structuredClone(result.fields);
+  for (const [field, text] of Object.entries(edits ?? {})) {
+    if (!FIELDS.includes(field)) throw Error('Unknown field: ' + field);
+    if (typeof text !== 'string' || !text) throw Error('Edit must be non-empty text');
+    const problems = verifySuggestions(
+      {[field]: {text, used_fact_ids: fields[field].used_fact_ids}}, result.facts)
+      .filter(p => p.startsWith(field));
+    if (problems.length > 0) {
+      return {status: 'FAIL_CLOSED', fields: result.fields, problems};
+    }
+    fields[field].user_edit = text;
+    fields[field].final = text;
+    fields[field].final_source = 'user_edit';
+  }
+  for (const field of FIELDS) {
+    if (!fields[field].final) {
+      fields[field].final = fields[field].ai_suggestion;
+      fields[field].final_source = 'ai_suggestion';
+    }
+  }
+  return {status: 'REVIEWED', fields,
+    unknown_fields: result.unknown_fields, total_cost: result.total_cost};
+}
+
 export function createCostLedger(budget) {
   const entries = [];
   return {

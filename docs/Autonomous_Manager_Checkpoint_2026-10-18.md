@@ -1116,3 +1116,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   （PENDING，非失敗），終態由 Loop 後續補記。
 - Phase 3A 交付標準 1–7 已齊；第 8 項決策包待 Owner
   後續決定（OpenAI live 預算與試點網站）。
+
+### 補記：人工 Review 編輯驗證
+- `applyUserEdits`：人工修改須通過與 AI 建議相同之事實
+  驗證才成為 final 欄位，並標示 final_source 來源；
+  捏造編輯 FAIL_CLOSED。管線測試增至 5/5。
+- CI：`eb8b405` 於記錄時仍 PENDING；`fcbc0dc` Handoff
+  雙事件 success、Python 仍 PENDING（均非失敗）。
