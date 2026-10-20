@@ -976,3 +976,10 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - GSC 接入方案（設計、未連線）：
   `docs/Phase2A_GSC_Connection_Proposal_2026-10-20.md`。
 - 第一個真實受控測試站維持 NEED_OWNER，未自行發布。
+
+### 補記：Phase 2A 發布權威綁定
+- 新增 `prototype/wordpress-publish/url-result-authority.mjs`：
+  由 Staging 保存/Review 讀回形狀（content_versions＋
+  content_reviews）推導發布器權威；未核准、版本不符、欄位或
+  來源摘要缺失一律拒絕。測試 2/2 PASS，已接入 CI。
+- Python CI（`ed481f2`）仍 in_progress，已推進至後段步驟。
