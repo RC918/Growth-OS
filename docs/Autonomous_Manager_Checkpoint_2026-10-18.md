@@ -944,3 +944,8 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - P4：引導原型 `prototype/phase2a-guide/index.html`（不連線）。
 - 盤點與第一個真實測試站決策包：
   `docs/Phase2A_Publish_Inventory_And_Decision_2026-10-20.md`。
+
+### 補記：Phase 2A 首批複審
+- Workflow 獨立 Reviewer 對 `6be202a`＋`b1cd28b` 裁決 **APPROVE**
+  （契約測試 4/4、引導原型離線、盤點文件與程式相符、CI 接線乾淨）；
+  依其建議補強 explicit readback 與租戶綁定變更拒絕兩項測試。

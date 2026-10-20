@@ -87,6 +87,8 @@ test('reviewed URL-result version publishes, reads back and restores', async () 
     {intent_id: intent.id, page_id: 7, confirm: true});
   assert.equal(applied.state, 'confirmed_applied');
   assert.equal(applied.evidence.target_url, reviewed.target_url);
+  const readback = await run('owner', 'readback', {intent_id: intent.id});
+  assert.equal(readback.state, 'confirmed_applied');
   const restored = await run('owner', 'restore',
     {intent_id: intent.id, page_id: 7, confirm: true});
   assert.equal(restored.state, 'restored');
@@ -115,6 +117,16 @@ test('cross-tenant token cannot preview or publish', async () => {
     );
   await assert.rejects(run('foreign', 'preview',
     {version_id: reviewed.version_id}));
+  assert.equal(posts(), 0);
+});
+
+test('tenant binding changed after preview blocks publish', async () => {
+  const authority = authorityFrom(reviewed);
+  const {run, posts} = publisherFor(authority);
+  const intent = await run('owner', 'preview', {version_id: reviewed.version_id});
+  authority.binding.organization_id = 'org-b';
+  await assert.rejects(run('owner', 'publish',
+    {intent_id: intent.id, page_id: 7, confirm: true}));
   assert.equal(posts(), 0);
 });
 
