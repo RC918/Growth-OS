@@ -958,3 +958,12 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   UNKNOWN，不冒充搜尋曝光或點擊。測試 3/3 PASS，已接入 CI。
 - CI 狀態：程式 HEAD `418c2d9` Handoff success；Python 與
   `ed481f2` 雙 workflow 於記錄時仍 PENDING（非失敗）。
+
+### 補記：CI 終態與 Publish→Measure 銜接
+- `ed481f2` Handoff CI 雙事件 **success**；Python 同 HEAD
+  於記錄時仍 in_progress（PENDING，非失敗）。
+- Measure 觀測模組經 Workflow Reviewer 對 `62be70a` 裁決 APPROVE。
+- 新增 `prototype/phase2a-measure/from-publication.mjs`：
+  以發布器 confirmed_applied 證據（版本綁定、target_url、
+  標題）建立 Measure 發布紀錄，未驗證或綁定不符直接拒絕；
+  與觀測測試合計 5/5 PASS，已接入 CI。
