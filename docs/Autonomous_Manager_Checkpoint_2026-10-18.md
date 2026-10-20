@@ -949,3 +949,4 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
 - Workflow 獨立 Reviewer 對 `6be202a`＋`b1cd28b` 裁決 **APPROVE**
   （契約測試 4/4、引導原型離線、盤點文件與程式相符、CI 接線乾淨）；
   依其建議補強 explicit readback 與租戶綁定變更拒絕兩項測試。
+- 補強後契約測試 5/5 PASS，Workflow 複審 `418c2d9` 裁決 APPROVE。
