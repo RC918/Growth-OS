@@ -950,3 +950,11 @@ CI 與 web-preview build 變更），其內容為離線 bounded 試驗窗口候�
   （契約測試 4/4、引導原型離線、盤點文件與程式相符、CI 接線乾淨）；
   依其建議補強 explicit readback 與租戶綁定變更拒絕兩項測試。
 - 補強後契約測試 5/5 PASS，Workflow 複審 `418c2d9` 裁決 APPROVE。
+
+### 補記：Phase 2A Measure 最小閉環
+- `prototype/phase2a-measure/observe.mjs`：發布版本↔公開 URL
+  對應＋時間戳 HTTP 可用性/標題讀回觀測；狀態 MEASURED／
+  NO_DATA／NOT_CONNECTED／UNKNOWN 明確區分，流量一律
+  UNKNOWN，不冒充搜尋曝光或點擊。測試 3/3 PASS，已接入 CI。
+- CI 狀態：程式 HEAD `418c2d9` Handoff success；Python 與
+  `ed481f2` 雙 workflow 於記錄時仍 PENDING（非失敗）。
