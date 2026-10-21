@@ -64,14 +64,19 @@ export function extractClaims(rawText, {field = 'description'} = {}) {
   // than by enumerating codepoints: NFKC folds fullwidth forms,
   // every apostrophe-like modifier/quote becomes ', every dash or
   // minus sign becomes -, and zero-width/format characters vanish.
-  const apostrophes = /[\u02B9\u02BB\u02BC\u02BE\u2018\u2019\u201B\u00B4\u2032\u2033\u2035\u2036\uFF07]/g;
+  const apostrophes = /[\u0060\u02B9\u02BB\u02BC\u02CA\u02CB\u2018\u2019\u201B\u00B4\u2032\u2033\u2035\u2036\uFF07\uFF40]/g;
   const text = String(rawText)
     .replace(apostrophes, "'")
     .normalize('NFKC')
     .replace(apostrophes, "'")
     .replace(/\p{Pd}|\u2212|\uFE58|\uFE63/gu, '-')
     .replace(/\p{Cf}/gu, '')
-    .replace(/\u00A0/g, ' ');
+    .replace(/\u00A0/g, ' ')
+    // Contraction repair by form, not by codepoint: any single
+    // non-letter mark inside an n't-contraction restores the
+    // negation, whatever apostrophe-like character was used.
+    .replace(/\b(isn|aren|doesn|don|can|couldn|shouldn|wouldn|hasn|haven|wasn|weren)[^\p{L}\p{N}\s-]?t\b/giu,
+      "$1n't");
   const claims = [];
   // Negation is judged per claim occurrence, from its own sentence:
   // an affirmative first sentence must not mask a later negation.
