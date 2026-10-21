@@ -42,42 +42,61 @@ function latinWords(text) {
   return (text.match(/[A-Za-z][A-Za-z0-9'-]*/g) ?? []).map(w => w.toLowerCase());
 }
 
+function sentenceAt(text, index) {
+  // The sentence containing the character at `index`; a '.' between
+  // digits (40.2) is a decimal point, not a sentence boundary.
+  const isBoundary = (i) => {
+    const ch = text[i];
+    if (ch === '\n' || ch === '!' || ch === '?' || ch === '…') return true;
+    if (ch !== '.') return false;
+    return !(/\d/.test(text[i - 1] ?? '') && /\d/.test(text[i + 1] ?? ''));
+  };
+  let start = 0;
+  for (let i = (index ?? 0) - 1; i >= 0; i--) if (isBoundary(i)) { start = i + 1; break; }
+  let end = text.length;
+  for (let i = index ?? 0; i < text.length; i++) if (isBoundary(i)) { end = i; break; }
+  return text.slice(start, end);
+}
+
 export function extractClaims(text, {field = 'description'} = {}) {
   const claims = [];
-  const sentenceOf = (needle) => text.split(/[.!?…\n]+/)
-    .find(s => s.toLowerCase().includes(String(needle).toLowerCase())) ?? text;
-  const push = (type, span, detail = {}) =>
-    claims.push({field, type, span, negated: NEGATION.test(sentenceOf(span)), ...detail});
+  // Negation is judged per claim occurrence, from its own sentence:
+  // an affirmative first sentence must not mask a later negation.
+  const push = (type, span, detail = {}, index = 0) =>
+    claims.push({field, type, span, negated: NEGATION.test(sentenceAt(text, index)), ...detail});
   // Numeric claims, with an optional following unit. Digit runs
   // fused to letters belong to a model code, not a number claim.
   for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(inch|in|cm|mm|km|kg|mph|kph|ft|oz|lb|m|g|″|")?/g)) {
     const before = text[m.index - 1] ?? '';
     const after = text[(m.index ?? 0) + m[0].length] ?? '';
     if (/[A-Za-z]/.test(before) || /[A-Za-z]/.test(after.replace(/\s/g, '').charAt(0) ?? '')) continue;
-    push('numeric', m[0].trim(), {value: Number(m[1].replace(',', '.')), unit: m[2] ? UNIT_ALIASES[m[2]] : null});
+    push('numeric', m[0].trim(), {value: Number(m[1].replace(',', '.')), unit: m[2] ? UNIT_ALIASES[m[2]] : null}, m.index);
   }
   // CJK factual markers map to the same claim categories.
   for (const [marker, type] of [['碳纖維', 'material'], ['楓木', 'material'], ['鈦合金', 'material'],
     ['最輕', 'performance'], ['最高時速', 'performance'], ['終身保固', 'performance']]) {
-    if (text.includes(marker)) push(type, marker, {});
+    for (const m of text.matchAll(new RegExp(marker, 'g'))) push(type, marker, {}, m.index);
   }
   // Model / product codes: letters fused with digits.
-  for (const m of text.matchAll(/[A-Za-z]+[0-9][A-Za-z0-9-]*/g)) push('model_code', m[0], {});
-  const words = latinWords(text);
-  for (const word of words) {
+  for (const m of text.matchAll(/[A-Za-z]+[0-9][A-Za-z0-9-]*/g)) push('model_code', m[0], {}, m.index);
+  for (const m of text.matchAll(/[A-Za-z][A-Za-z0-9'-]*/g)) {
+    const word = m[0].toLowerCase();
     const base = stem(word.replace(/-.*$/, ''));
-    if (MATERIAL.has(word) || MATERIAL.has(base)) push('material', word, {});
-    else if (PERFORMANCE.has(word) || PERFORMANCE.has(base)) push('performance', word, {});
-    else if (SPEC_NOUN.has(word) || SPEC_NOUN.has(base)) push('specification', word, {});
+    if (MATERIAL.has(word) || MATERIAL.has(base)) push('material', word, {}, m.index);
+    else if (PERFORMANCE.has(word) || PERFORMANCE.has(base)) push('performance', word, {}, m.index);
+    else if (SPEC_NOUN.has(word) || SPEC_NOUN.has(base)) push('specification', word, {}, m.index);
   }
   for (const m of text.matchAll(/twin-kick|double-kick|[A-Za-z]+-[A-Za-z]+/g)) {
-    push('specification', m[0].toLowerCase(), {compound: m[0].toLowerCase()});
+    push('specification', m[0].toLowerCase(), {compound: m[0].toLowerCase()}, m.index);
   }
-  const purpose = text.match(/\b(?:for|designed for|built for|ideal for)\s+([A-Za-z][A-Za-z -]{2,30})/i)
-    ?? text.match(/適合(.{2,12})/);
-  if (purpose) push('purpose', purpose[0], {target: purpose[1].trim().toLowerCase()});
-  if (COMPARISON.test(text)) push('comparison', text.slice(0, 80), {});
-  if (claims.length === 0) push('general_rewrite', text.slice(0, 80), {});
+  for (const m of text.matchAll(/\b(?:for|designed for|built for|ideal for)\s+([A-Za-z][A-Za-z -]{2,30})/gi)) {
+    push('purpose', m[0], {target: m[1].trim().toLowerCase()}, m.index);
+  }
+  for (const m of text.matchAll(/適合(.{2,12})/g)) {
+    push('purpose', m[0], {target: m[1].trim().toLowerCase()}, m.index);
+  }
+  if (COMPARISON.test(text)) push('comparison', text.slice(0, 80), {}, 0);
+  if (claims.length === 0) push('general_rewrite', text.slice(0, 80), {}, 0);
   return claims;
 }
 
