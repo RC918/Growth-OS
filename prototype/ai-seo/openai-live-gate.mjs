@@ -148,22 +148,35 @@ export function classifyApiError({status, code} = {}) {
   return 'UNKNOWN';
 }
 
-const SUGGESTION_SCHEMA = {
-  type: 'object', additionalProperties: false,
-  required: ['title', 'meta_description', 'description', 'geo_qa'],
-  properties: {
-    title: {type: 'object', additionalProperties: false, required: ['text', 'used_fact_ids'],
-      properties: {text: {type: 'string'}, used_fact_ids: {type: 'array', items: {type: 'string'}}}},
-    meta_description: {type: 'object', additionalProperties: false, required: ['text', 'used_fact_ids'],
-      properties: {text: {type: 'string'}, used_fact_ids: {type: 'array', items: {type: 'string'}}}},
-    description: {type: 'object', additionalProperties: false, required: ['text', 'used_fact_ids'],
-      properties: {text: {type: 'string'}, used_fact_ids: {type: 'array', items: {type: 'string'}}}},
-    geo_qa: {type: 'array', items: {type: 'object', additionalProperties: false,
-      required: ['question', 'answer', 'used_fact_ids'],
-      properties: {question: {type: 'string'}, answer: {type: 'string'},
-        used_fact_ids: {type: 'array', items: {type: 'string'}}}}},
-  },
-};
+// Build the strict suggestion schema for one request. When the
+// request carries allowed fact IDs, every used_fact_ids item is
+// constrained by enum to those IDs at the schema layer, so citation
+// IDs (s1, s2, ...) or UNKNOWN fact IDs cannot be emitted at all.
+// Without a request-specific list, fall back to plain strings.
+export function buildSuggestionSchema(allowedFactIds = []) {
+  const ids = Array.isArray(allowedFactIds)
+    ? allowedFactIds.filter(id => typeof id === 'string' && id) : [];
+  const idItems = ids.length > 0 ? {type: 'string', enum: ids} : {type: 'string'};
+  const field = () => ({type: 'object', additionalProperties: false,
+    required: ['text', 'used_fact_ids'],
+    properties: {text: {type: 'string'},
+      used_fact_ids: {type: 'array', items: idItems}}});
+  return {
+    type: 'object', additionalProperties: false,
+    required: ['title', 'meta_description', 'description', 'geo_qa'],
+    properties: {
+      title: field(),
+      meta_description: field(),
+      description: field(),
+      geo_qa: {type: 'array', items: {type: 'object', additionalProperties: false,
+        required: ['question', 'answer', 'used_fact_ids'],
+        properties: {question: {type: 'string'}, answer: {type: 'string'},
+          used_fact_ids: {type: 'array', items: idItems}}}},
+    },
+  };
+}
+
+const SUGGESTION_SCHEMA = buildSuggestionSchema([]);
 
 // Conservative input-token ESTIMATE (not an exact token count) for
 // everything that shapes the request input: system instructions, the
@@ -270,12 +283,21 @@ export function createOpenAiTransport({
       throw Error('TRIAL_ATTEMPT_LEDGER_REQUIRED');
     }
 
-    const userContent = JSON.stringify({facts: request.facts, market: request.market, language: request.language});
+    const allowedFactIds = Array.isArray(request.allowed_fact_ids)
+      ? request.allowed_fact_ids
+      : Object.keys(request.facts ?? {}).filter(
+        id => request.facts[id] && typeof request.facts[id].value === 'string' && request.facts[id].value);
+    const suggestionSchema = buildSuggestionSchema(allowedFactIds);
+    const userContent = JSON.stringify({
+      facts: request.facts, allowed_fact_ids: allowedFactIds,
+      fact_citation_map: request.fact_citation_map ?? Object.fromEntries(
+        allowedFactIds.map(id => [id, request.facts?.[id]?.citations ?? []])),
+      market: request.market, language: request.language});
     const body = {
       model: OPENAI_MODEL.snapshot,
       input: [{role: 'system', content: request.instructions},
               {role: 'user', content: userContent}],
-      text: {format: {type: 'json_schema', name: 'seo_geo_suggestions', strict: true, schema: SUGGESTION_SCHEMA}},
+      text: {format: {type: 'json_schema', name: 'seo_geo_suggestions', strict: true, schema: suggestionSchema}},
       max_output_tokens: outputTokens,
     };
     // The input gate uses the conservative estimate over the exact
@@ -291,7 +313,7 @@ export function createOpenAiTransport({
       request.estimated_input_tokens ?? 0,
       estimateInputTokens({
         instructions: request.instructions, userContent,
-        schemaText: JSON.stringify(SUGGESTION_SCHEMA), envelopeText}));
+        schemaText: JSON.stringify(suggestionSchema), envelopeText}));
 
     let retried = false;
     for (;;) {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAiTransport, createTrialBudget, estimateCost, estimateInputTokens, parseResponsesSuggestions, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
+import {buildSuggestionSchema, createOpenAiTransport, createTrialBudget, estimateCost, estimateInputTokens, parseResponsesSuggestions, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
 
 const okResponse = (cost = {}) => ({
   ok: true, status: 200, headers: {get: () => null},
@@ -290,6 +290,32 @@ test('reported usage above the input gate fails closed after accounting', async 
   assert.match(error.message, /USAGE_INPUT_CAP_EXCEEDED/);
   assert.equal(budget.entries.length, 1);
   assert.equal(budget.attempts[0].outcome, 'usage_exceeds_input_cap');
+});
+
+test('schema constrains used_fact_ids to allowed fact IDs, never citation IDs', async () => {
+  const allowed = ['product_name', 'title', 'description'];
+  const schema = buildSuggestionSchema(allowed);
+  assert.deepEqual(schema.properties.title.properties.used_fact_ids.items.enum, allowed);
+  assert.deepEqual(schema.properties.geo_qa.items.properties.used_fact_ids.items.enum, allowed);
+  assert.ok(!schema.properties.title.properties.used_fact_ids.items.enum.includes('s2'));
+  assert.ok(!schema.properties.title.properties.used_fact_ids.items.enum.includes('meta_description'));
+
+  // The wire schema for a real request carries the same enum, and the
+  // user payload carries the auditable fact -> citation map.
+  let wire;
+  const transport = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real',
+    budget: createTrialBudget({}),
+    fetchImpl: async (_url, options) => { wire = JSON.parse(options.body); return okResponse(); }});
+  await transport({
+    instructions: 'x', market: 'TW', language: 'zh-TW',
+    facts: {title: {value: 'The Clark', citations: ['s3']}},
+    allowed_fact_ids: ['title'],
+    fact_citation_map: {title: ['s3']}});
+  assert.deepEqual(wire.text.format.schema.properties.description.properties.used_fact_ids.items.enum, ['title']);
+  const payload = JSON.parse(wire.input[1].content);
+  assert.deepEqual(payload.allowed_fact_ids, ['title']);
+  assert.deepEqual(payload.fact_citation_map, {title: ['s3']});
 });
 
 test('non-completed status and null suggestion fields fail explicitly', () => {

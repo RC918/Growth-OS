@@ -187,6 +187,60 @@ test('unknown case selection is refused before any fetch', async () => {
   assert.equal(calls, 0);
 });
 
+const suggestionFetch = (suggestions) => async (_url, options) => ({
+  ok: true, status: 200, headers: {get: () => null},
+  json: async () => ({id: 'resp_test', status: 'completed',
+    output: [{type: 'message', content: [{type: 'output_text', text: JSON.stringify(suggestions)}]}],
+    usage: {input_tokens: 100, output_tokens: 50}})});
+
+test('citation IDs returned as used_fact_ids fail closed, legal fact IDs pass', async () => {
+  const base = {
+    title: {text: 'The Clark • Landyachtz', used_fact_ids: ['title']},
+    meta_description: {text: 'The Clark', used_fact_ids: ['description']},
+    description: {text: 'The Clark', used_fact_ids: ['description']},
+    geo_qa: [{question: 'What is it?', answer: 'The Clark', used_fact_ids: ['description']}]};
+  const legal = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: mockCredential, caseId: 'landyachtz-the-clark', language: 'zh-TW',
+    fetchImpl: suggestionFetch(base)});
+  assert.notEqual(legal.results[0].status, 'FAIL_CLOSED');
+  assert.deepEqual(legal.results[0].used_fact_ids.title, ['title']);
+  assert.deepEqual(legal.results[0].fact_citation_map.description, ['s4', 's5', 's2']);
+  assert.ok(legal.results[0].unknown_facts.includes('meta_description'));
+
+  const citationIds = structuredClone(base);
+  citationIds.title.used_fact_ids = ['s2', 's3'];
+  citationIds.description.used_fact_ids = ['s4', 's5'];
+  const illegal = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: mockCredential, caseId: 'landyachtz-the-clark', language: 'zh-TW',
+    fetchImpl: suggestionFetch(citationIds)});
+  assert.equal(illegal.results[0].status, 'FAIL_CLOSED');
+  assert.ok(illegal.results[0].problems.some(p => p.includes('unknown fact id s2')));
+  assert.equal(illegal.attempted_requests, 1);
+  assert.ok(illegal.total_cost_usd > 0);
+});
+
+test('unknown fact IDs in GEO Q&A fail closed; conflicting facts stay unresolved', async () => {
+  const badGeo = {
+    title: {text: 'The Clark • Landyachtz', used_fact_ids: ['title']},
+    meta_description: {text: 'The Clark', used_fact_ids: ['description']},
+    description: {text: 'The Clark', used_fact_ids: ['description']},
+    geo_qa: [{question: 'What is it?', answer: 'The Clark', used_fact_ids: ['s4']}]};
+  const geoResult = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: mockCredential, caseId: 'landyachtz-the-clark', language: 'en',
+    fetchImpl: suggestionFetch(badGeo)});
+  assert.equal(geoResult.results[0].status, 'FAIL_CLOSED');
+  assert.ok(geoResult.results[0].problems.some(p => p.startsWith('geo_qa')));
+
+  const conflict = await runTrial({
+    mode: 'mock', credentialProvider: mockCredential,
+    caseId: 'conflicting-facts-negative', language: 'zh-TW'});
+  assert.equal(conflict.results[0].status, 'PASS_WITH_UNKNOWNS');
+  assert.ok(conflict.results[0].unknown_facts.includes('meta_description'));
+});
+
 test('owner stop switch halts live path before further requests', async () => {
   let fetchCalls = 0;
   const summary = await runTrial({

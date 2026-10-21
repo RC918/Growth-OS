@@ -27,3 +27,21 @@ test('seo request carries only trusted facts and unknown markers', () => {
   assert.equal(req.facts.price.value, null);
   assert.match(req.instructions, /Do not invent/);
 });
+
+test('seo request separates fact IDs from citation IDs with an auditable map', () => {
+  const req = buildSeoRequest({
+    facts: {
+      product_name: {value: 'The Clark', citations: ['s2']},
+      title: {value: 'The Clark • Landyachtz', citations: ['s3']},
+      meta_description: {value: null, citations: []},
+      description: {value: 'A skateboard', citations: ['s4', 's5', 's2']},
+    },
+    market: 'TW', language: 'zh-TW', fields: ['title', 'meta_description', 'description'],
+  });
+  // UNKNOWN meta_description is not an allowed fact ID.
+  assert.deepEqual(req.allowed_fact_ids, ['product_name', 'title', 'description']);
+  assert.deepEqual(req.fact_citation_map, {
+    product_name: ['s2'], title: ['s3'], description: ['s4', 's5', 's2']});
+  assert.match(req.instructions, /Never return citation IDs/);
+  assert.match(req.instructions, /product_name, title, description/);
+});

@@ -32,8 +32,13 @@ export function createModelAdapter({transport = null, liveEnabled = false, month
 
 export function buildSeoRequest({facts, market, language, fields}) {
   // Provider-shaped request built ONLY from trusted source facts.
-  // Unknown facts are passed as UNKNOWN so the model cannot
-  // silently invent them; verification happens in the pipeline.
+  // Fact IDs are the keys of the provided facts object. Citation IDs
+  // (s1, s2, ...) inside each fact are provenance only and must never
+  // be returned as used_fact_ids; the mapping stays auditable here.
+  const allowedFactIds = Object.keys(facts ?? {})
+    .filter(id => facts[id] && typeof facts[id].value === 'string' && facts[id].value);
+  const factCitationMap = Object.fromEntries(
+    allowedFactIds.map(id => [id, [...(facts[id].citations ?? [])]]));
   return {
     model_role: 'seo_geo_suggestion',
     market, language,
@@ -41,9 +46,16 @@ export function buildSeoRequest({facts, market, language, fields}) {
       'Use only the provided source facts. Do not invent prices,',
       'specifications, certifications or performance claims.',
       'For every field return text plus used_fact_ids.',
-      'If a fact is UNKNOWN, leave the field conservative and',
-      'declare no fact id for the unknown part.',
+      'used_fact_ids may only contain IDs from allowed_fact_ids:',
+      allowedFactIds.join(', ') + '.',
+      'Never return citation IDs such as s1 or s2 as used_fact_ids;',
+      'citations are provenance for a fact, not fact IDs.',
+      'If a fact is UNKNOWN, it is absent from allowed_fact_ids:',
+      'base any conservative suggestion on other allowed facts and',
+      'declare those fact IDs instead.',
     ].join(' '),
     facts, fields,
+    allowed_fact_ids: allowedFactIds,
+    fact_citation_map: factCitationMap,
   };
 }

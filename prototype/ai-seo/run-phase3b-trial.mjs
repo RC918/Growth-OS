@@ -186,7 +186,13 @@ export async function runTrial({
       }
       const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
       results.push({case: testCase.id, language, status: evaluation.status,
-        problems: evaluation.problems, unknown_facts: evaluation.unknown_facts});
+        problems: evaluation.problems, unknown_facts: evaluation.unknown_facts,
+        used_fact_ids: Object.fromEntries(
+          Object.entries(response.suggestions ?? {})
+            .filter(([, v]) => v && typeof v === 'object' && 'used_fact_ids' in v)
+            .map(([field, v]) => [field, v.used_fact_ids ?? []])),
+        geo_qa_used_fact_ids: (response.suggestions?.geo_qa ?? []).map(qa => qa?.used_fact_ids ?? []),
+        fact_citation_map: request.fact_citation_map});
       audit.push({
         at: new Date().toISOString(), mode, case: testCase.id, language,
         model: OPENAI_MODEL.snapshot, project_id: mode === 'live' ? projectId : null,
