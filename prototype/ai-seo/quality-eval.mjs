@@ -7,7 +7,7 @@
 // docs/Phase3B_OpenAI_Trial_Decision_Package_2026-10-20.md; an AI
 // self-score is never accepted as quality evidence.
 
-import {trustedFacts, verifySuggestions} from './ai-seo-pipeline.mjs';
+import {FUNCTION_WORDS, trustedFacts, verifySuggestions} from './ai-seo-pipeline.mjs';
 
 // A fixture may only claim facts that its recorded snapshot actually
 // supports: every cited id must exist in the snapshot registry and
@@ -82,7 +82,7 @@ export function evaluateGeneration({report, suggestions}) {
     // Ordered subsequence: the conflicting value's tokens must all
     // appear in order, with only function words allowed in between
     // ("Maple is complete" still presents "Maple complete.").
-    const GAP = new Set(['is', 'are', 'was', 'were', 'be', 'been', 'the', 'a', 'an', 'of', 'to', 'and', 'or']);
+    const GAP = FUNCTION_WORDS;
     const containsSeq = (haystack, needle) => {
       if (needle.length === 0) return false;
       let n = 0;

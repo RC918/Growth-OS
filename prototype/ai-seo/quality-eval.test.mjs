@@ -134,13 +134,24 @@ test('conflict values fail regardless of punctuation or cited fact id', () => {
   const reworded = structuredClone(settled);
   reworded.description = {text: 'Conflicting Board. Maple is complete.', used_fact_ids: ['product_name']};
   assert.equal(evaluateGeneration({report, suggestions: reworded}).status, 'FAIL_CLOSED');
+
+  // Any function word may sit between the conflicting tokens, and a
+  // non-conflicting fact supplying the same words must not launder it.
+  const launderedReport = structuredClone(report);
+  launderedReport.facts.title = {value: 'Maple complete board guide', citations: ['s1'], verification: 'source_asserted'};
+  for (const gap of ['very', 'now', 'just', 'also']) {
+    const gapped = structuredClone(settled);
+    gapped.description = {text: 'Conflicting Board. Maple ' + gap + ' complete.', used_fact_ids: ['product_name']};
+    assert.equal(evaluateGeneration({report: launderedReport, suggestions: gapped}).status,
+      'FAIL_CLOSED', 'gap: ' + gap);
+  }
 });
 
 test('unlisted short units and size codes fail closed by default', () => {
   const report = byId['landyachtz-the-clark'].report;
   for (const text of ['The Clark is a 40.2 yd long skateboard.',
     'The Clark is a 40.2 m long skateboard.',
-    'The Clark XL Longboard']) {
+    'The Clark XL Longboard', 'The Clark US', 'The Clark IT']) {
     const suggestions = {
       title: {text: 'The Clark', used_fact_ids: ['product_name']},
       meta_description: {text: 'The Clark', used_fact_ids: ['product_name']},

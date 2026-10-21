@@ -47,7 +47,7 @@ export function trustedFacts(report) {
 //   words observed in one failed output: any other unseen content
 //   word still fails closed.
 // (CJK copy is bounded by the used_fact_ids declaration instead.)
-const FUNCTION_WORDS = new Set((
+export const FUNCTION_WORDS = new Set((
   'the a an and or but if then than so as at by for from in into of off on onto out over per to under up upon via with within without '
   + 'i you he she it we they me him her us them my your his its our their mine yours ours theirs this that these those who whom whose which what when where why how '
   + 'am is are was were be been being do does did doing have has had having can could may might must shall should will would '
@@ -76,7 +76,12 @@ function sourceVocabulary(sourceTexts) {
   const singles = new Set();
   const phrases = new Set();
   const numbers = new Set();
+  const acronyms = new Set();
   for (const sourceText of sourceTexts) {
+    for (const rawWord of wordsOf(sourceText)) {
+      if (rawWord.length >= 2 && rawWord === rawWord.toUpperCase()
+        && /[A-Z]/.test(rawWord)) acronyms.add(rawWord);
+    }
     const words = wordsOf(sourceText).map(w => w.toLowerCase().replace(/'s$/, ''));
     for (const word of words) {
       for (const part of word.split('-')) { singles.add(part); singles.add(stem(part)); }
@@ -84,7 +89,7 @@ function sourceVocabulary(sourceTexts) {
     }
     // Adjacent phrases only count within one sentence of one fact:
     // tokens across a sentence or fact boundary are not a phrase.
-    for (const sentence of sourceText.split(/[.!?…\n]+/)) {
+    for (const sentence of sourceText.split(/[.!?…\n;:—()]+/)) {
       const parts = wordsOf(sentence).map(w => w.toLowerCase().replace(/'s$/, ''))
         .flatMap(w => w.split('-'));
       for (let i = 0; i + 1 < parts.length; i++) phrases.add(parts[i] + '-' + parts[i + 1]);
@@ -92,7 +97,7 @@ function sourceVocabulary(sourceTexts) {
     for (const n of sourceText.replace(/[A-Za-z][A-Za-z0-9-]{2,}/g, ' ')
       .match(/\d+(?:[.,]\d+)?/g) ?? []) numbers.add(n);
   }
-  return {singles, phrases, numbers};
+  return {singles, phrases, numbers, acronyms};
 }
 
 function unverifiableTokens(text, source) {
@@ -121,8 +126,19 @@ function unverifiableTokens(text, source) {
       // Short tokens fail closed by default: units (cm, yd, m),
       // size codes (XL) and acronyms are concrete claims. Only a
       // short token present in the source, or a closed-class
-      // function word, passes.
-      if (source.singles.has(word) || FUNCTION_WORDS.has(word)) continue;
+      // function word in ordinary (non-all-caps) form, passes: an
+      // all-caps short token (US, IT, XL) reads as a market,
+      // edition or size claim, not as a pronoun or preposition.
+      if (raw === raw.toUpperCase() && /[A-Z]/.test(raw)) {
+        // All-caps reads as an acronym/size/market claim: only the
+        // same acronym, in caps, in the source can support it (a
+        // lowercase pronoun homograph such as "it" cannot).
+        if (source.acronyms.has(raw)) continue;
+        problems.push(raw);
+        continue;
+      }
+      if (source.singles.has(word)) continue;
+      if (FUNCTION_WORDS.has(word)) continue;
       problems.push(raw);
       continue;
     }
