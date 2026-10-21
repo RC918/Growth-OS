@@ -99,7 +99,7 @@ export function createMockFetch() {
 
 export async function runTrial({
   mode = 'mock', credentialProvider, fetchImpl, budget,
-  confirmation, projectId, shouldStop,
+  confirmation, projectId, shouldStop, caseId, language,
 } = {}) {
   if (mode !== 'mock' && mode !== 'live') throw Error('Unknown mode: ' + mode);
   const trialBudget = validateLiveBudget(budget ?? createTrialBudget({}));
@@ -114,7 +114,21 @@ export async function runTrial({
     throw Error('CREDENTIAL_PROVIDER_REQUIRED');
   }
 
-  const cases = JSON.parse(await readFile(new URL('./fixtures/phase3b-cases.json', import.meta.url)));
+  const allCases = JSON.parse(await readFile(new URL('./fixtures/phase3b-cases.json', import.meta.url)));
+  // Case and language selection are separate from the HTTP attempt
+  // cap: selecting one case/language ends normally after that scope,
+  // while --max-requests only limits actual HTTP sends.
+  if (caseId != null && !allCases.cases.some(c => c.id === caseId)) {
+    throw Error('CASE_NOT_FOUND: ' + String(caseId).slice(0, 64));
+  }
+  if (language != null && language !== 'zh-TW' && language !== 'en') {
+    throw Error('LANGUAGE_NOT_SUPPORTED: ' + String(language).slice(0, 32));
+  }
+  const selectedCases = caseId ? allCases.cases.filter(c => c.id === caseId) : allCases.cases;
+  const selectedLanguages = language ? [language] : ['zh-TW', 'en'];
+  const isPartialScope = selectedCases.length !== allCases.cases.length
+    || selectedLanguages.length !== 2;
+  const cases = {cases: selectedCases};
   const transport = createOpenAiTransport({
     enabled: true, // gate open only around the injected/controlled fetch
     credentialProvider,
@@ -125,13 +139,14 @@ export async function runTrial({
   const results = [];
   const audit = [];
   let stoppedByOwner = false;
+  let failure = null;
   outer: for (const testCase of cases.cases) {
     const bindingProblems = validateFixtureBindings(testCase);
     if (bindingProblems.length > 0) {
       results.push({case: testCase.id, status: 'FAIL_CLOSED', problems: bindingProblems});
       continue;
     }
-    for (const language of ['zh-TW', 'en']) {
+    for (const language of selectedLanguages) {
       if (typeof shouldStop === 'function' && shouldStop()) {
         trialBudget.stop('owner stop switch activated');
         stoppedByOwner = true;
@@ -146,16 +161,28 @@ export async function runTrial({
       let response;
       try {
         response = await transport({
-          ...request, estimated_input_tokens: 1200,
-          max_output_tokens: TRIAL_TOKEN_CAPS.outputPerRequest});
+          ...request, max_output_tokens: TRIAL_TOKEN_CAPS.outputPerRequest});
       } catch (error) {
-        // Preserve the safe attempt ledger and API diagnostics on the
-        // thrown error so a failed run is never recorded as 0 attempts.
-        error.trialAttempts = trialBudget.attempts;
-        error.attemptedRequests = trialBudget.attempts.length;
-        error.trialEntries = trialBudget.entries;
-        error.totalCostUsd = trialBudget.spent();
-        throw error;
+        // Fail closed, but preserve every completed result and the
+        // safe diagnostics of the failed request in the summary.
+        failure = {
+          case: testCase.id, language,
+          error: String(error.message ?? error),
+          api_error: error.apiError ?? null,
+          usage: error.usage ?? null,
+        };
+        results.push({case: testCase.id, language, status: 'FAILED',
+          error: failure.error, api_error: failure.api_error});
+        audit.push({
+          at: new Date().toISOString(), mode, case: testCase.id, language,
+          model: OPENAI_MODEL.snapshot, project_id: mode === 'live' ? projectId : null,
+          status: 'FAILED', api_error: failure.api_error,
+          input_tokens: error.usage?.input_tokens ?? null,
+          output_tokens: error.usage?.output_tokens ?? null,
+          cost_usd: error.usage?.cost ?? null,
+          usage_reported: error.usage?.usage_reported ?? null,
+        });
+        break outer;
       }
       const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
       results.push({case: testCase.id, language, status: evaluation.status,
@@ -165,15 +192,23 @@ export async function runTrial({
         model: OPENAI_MODEL.snapshot, project_id: mode === 'live' ? projectId : null,
         status: evaluation.status, input_tokens: response.usage.input_tokens,
         output_tokens: response.usage.output_tokens, cost_usd: response.usage.cost,
+        usage_reported: response.usage.usage_reported ?? null,
       });
     }
   }
   const failed = results.some(r => r.status === 'FAIL_CLOSED');
   return {
     mode,
-    status: stoppedByOwner ? (mode === 'live' ? 'LIVE_STOPPED' : 'MOCK_STOPPED')
+    status: failure ? (mode === 'live' ? 'LIVE_FAILED' : 'MOCK_FAILED')
+      : stoppedByOwner ? (mode === 'live' ? 'LIVE_STOPPED' : 'MOCK_STOPPED')
       : failed ? (mode === 'live' ? 'LIVE_FAIL_CLOSED' : 'MOCK_FAIL_CLOSED')
         : (mode === 'live' ? 'LIVE_PASS' : 'MOCK_PASS'),
+    failure,
+    acceptance_scope: isPartialScope ? 'PARTIAL_SELECTION' : 'FULL_6_RESULTS',
+    selected_case: caseId ?? null,
+    selected_language: language ?? null,
+    selected_cases: selectedCases.length,
+    selected_languages: selectedLanguages,
     real_api_calls: mode === 'live' ? trialBudget.attempts.length : 0,
     attempted_requests: trialBudget.attempts.length,
     attempts: trialBudget.attempts,
@@ -207,6 +242,8 @@ export function parseCliArgs(argv) {
     projectId: get('--project-id'),
     confirmation: get('--confirm-live'),
     stopFile: get('--stop-file'),
+    caseId: get('--case'),
+    language: get('--language'),
     maxRequests,
   };
 }
@@ -221,6 +258,8 @@ if (isMain) {
       mode: cli.mode,
       projectId: cli.projectId,
       confirmation: cli.confirmation,
+      caseId: cli.caseId,
+      language: cli.language,
       budget: cli.maxRequests ? createTrialBudget({maxRequests: cli.maxRequests}) : undefined,
       shouldStop: cli.stopFile ? () => existsSync(cli.stopFile) : undefined,
       credentialProvider: cli.mode === 'live'
@@ -228,7 +267,7 @@ if (isMain) {
         : async () => 'mock-credential-not-real',
     });
     console.log(JSON.stringify(summary, null, 1));
-    if (summary.status.endsWith('FAIL_CLOSED')) process.exit(1);
+    if (summary.status.endsWith('FAIL_CLOSED') || summary.status.endsWith('FAILED')) process.exit(1);
   } catch (error) {
     console.error(JSON.stringify({
       mode: cli?.mode ?? 'unknown', status: 'REFUSED',

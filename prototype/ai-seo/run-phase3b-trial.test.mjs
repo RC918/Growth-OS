@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {consumeLiveConfirmation, createKeychainCredentialProvider, parseCliArgs, runTrial} from './run-phase3b-trial.mjs';
+import {consumeLiveConfirmation, createKeychainCredentialProvider, createMockFetch, parseCliArgs, runTrial} from './run-phase3b-trial.mjs';
 import {createTrialBudget} from './openai-live-gate.mjs';
 
 const mockCredential = async () => 'mock-credential-not-real';
@@ -67,8 +67,8 @@ test('offline live path uses injected fetch, audits without secrets, then auto-d
   assert.ok(summary.audit.every(a => a.project_id === 'proj_test12345' && !('authorization' in a)));
 });
 
-test('live 401 failure carries one counted attempt and safe diagnostics', async () => {
-  const error = await runTrial({
+test('live 401 failure preserves summary evidence with one counted attempt', async () => {
+  const summary = await runTrial({
     mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
     credentialProvider: async () => 'fake-secret-for-live-test',
     fetchImpl: async () => ({ok: false, status: 401,
@@ -76,17 +76,106 @@ test('live 401 failure carries one counted attempt and safe diagnostics', async 
       json: async () => ({request_id: 'req_live_401', error: {
         code: 'invalid_api_key', type: 'invalid_request_error',
         secret: 'must-never-be-recorded'}})}),
-  }).catch(e => e);
-  assert.match(error.message, /HTTP 401/);
-  assert.equal(error.attemptedRequests, 1);
-  assert.equal(error.trialAttempts.length, 1);
-  assert.equal(error.trialAttempts[0].http_status, 401);
-  assert.deepEqual(error.apiError, {
+  });
+  assert.equal(summary.status, 'LIVE_FAILED');
+  assert.match(summary.failure.error, /HTTP 401/);
+  assert.equal(summary.attempted_requests, 1);
+  assert.equal(summary.attempts.length, 1);
+  assert.equal(summary.attempts[0].http_status, 401);
+  assert.deepEqual(summary.failure.api_error, {
     http_status: 401, error_type: 'invalid_request_error',
     error_code: 'invalid_api_key', request_id: 'req_live_401'});
-  assert.ok(!JSON.stringify({apiError: error.apiError, attempts: error.trialAttempts})
-    .includes('must-never-be-recorded'));
-  assert.ok(!JSON.stringify(error.trialAttempts).includes('fake-secret'));
+  assert.equal(summary.results.length, 1);
+  assert.equal(summary.results[0].status, 'FAILED');
+  assert.equal(summary.audit.length, 1);
+  assert.ok(!JSON.stringify(summary).includes('must-never-be-recorded'));
+  assert.ok(!JSON.stringify(summary).includes('fake-secret'));
+});
+
+test('single case and language ends normally with one attempt and partial scope', async () => {
+  const summary = await runTrial({
+    mode: 'mock', credentialProvider: mockCredential,
+    caseId: 'landyachtz-the-clark', language: 'zh-TW',
+    budget: createTrialBudget({maxRequests: 1}),
+  });
+  assert.equal(summary.status, 'MOCK_PASS');
+  assert.equal(summary.acceptance_scope, 'PARTIAL_SELECTION');
+  assert.equal(summary.selected_case, 'landyachtz-the-clark');
+  assert.deepEqual(summary.selected_languages, ['zh-TW']);
+  assert.equal(summary.results.length, 1);
+  assert.equal(summary.audit.length, 1);
+  assert.equal(summary.attempted_requests, 1);
+  assert.equal(summary.requests, 1);
+});
+
+test('single-attempt cap blocks a 429 retry from sending twice', async () => {
+  let calls = 0;
+  const summary = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: mockCredential, caseId: 'landyachtz-the-clark', language: 'en',
+    budget: createTrialBudget({maxRequests: 1}),
+    fetchImpl: async () => { calls++; return {ok: false, status: 429,
+      headers: {get: () => '0'},
+      json: async () => ({error: {code: 'rate_limit_exceeded', type: 'rate_limit_error'}})}; },
+  });
+  assert.equal(summary.status, 'LIVE_FAILED');
+  assert.equal(calls, 1);
+  assert.equal(summary.attempted_requests, 1);
+  assert.match(summary.failure.error, /TRIAL_REQUEST_CAP/);
+});
+
+test('incomplete and unknown outcomes are failures, never successes, without retry', async () => {
+  const incomplete = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: mockCredential, caseId: 'landyachtz-the-clark', language: 'zh-TW',
+    fetchImpl: async () => ({ok: true, status: 200, headers: {get: () => null},
+      json: async () => ({id: 'resp_inc', status: 'incomplete',
+        incomplete_details: {reason: 'max_output_tokens'}, output: [],
+        usage: {input_tokens: 100, output_tokens: 3000}})}),
+  });
+  assert.equal(incomplete.status, 'LIVE_FAILED');
+  assert.match(incomplete.failure.error, /OPENAI_INCOMPLETE/);
+  assert.equal(incomplete.attempts[0].outcome, 'parse_failed');
+  assert.equal(incomplete.requests, 1);
+
+  let calls = 0;
+  const unknown = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: mockCredential, caseId: 'landyachtz-the-clark', language: 'zh-TW',
+    fetchImpl: async () => { calls++; throw Error('socket reset'); },
+  });
+  assert.equal(unknown.status, 'LIVE_FAILED');
+  assert.match(unknown.failure.error, /UNKNOWN_OUTCOME/);
+  assert.equal(calls, 1);
+  assert.equal(unknown.attempts[0].outcome, 'UNKNOWN_OUTCOME');
+});
+
+test('a later case failure preserves all earlier completed results', async () => {
+  const mockFetch = createMockFetch();
+  let calls = 0;
+  const summary = await runTrial({
+    mode: 'mock', credentialProvider: mockCredential,
+    fetchImpl: async (url, options) => {
+      calls++;
+      if (calls <= 2) return mockFetch(url, options);
+      return {ok: false, status: 401, headers: {get: () => null},
+        json: async () => ({error: {code: 'invalid_api_key', type: 'invalid_request_error'}})};
+    },
+  });
+  assert.equal(summary.status, 'MOCK_FAILED');
+  assert.equal(summary.results.filter(r => r.status !== 'FAILED').length, 2);
+  assert.equal(summary.results.at(-1).status, 'FAILED');
+  assert.equal(summary.audit.filter(a => a.status !== 'FAILED').length, 2);
+  assert.equal(summary.attempted_requests, 3);
+});
+
+test('unknown case selection is refused before any fetch', async () => {
+  let calls = 0;
+  await assert.rejects(runTrial({
+    mode: 'mock', credentialProvider: mockCredential, caseId: 'no-such-case',
+    fetchImpl: async () => { calls++; },
+  }), /CASE_NOT_FOUND/);
+  assert.equal(calls, 0);
 });
 
 test('owner stop switch halts live path before further requests', async () => {
@@ -107,6 +196,10 @@ test('CLI parsing rejects invalid request caps and defaults to mock', () => {
   assert.equal(parseCliArgs(['--live']).mode, 'live');
   assert.throws(() => parseCliArgs(['--max-requests=13']), /INVALID_MAX_REQUESTS/);
   assert.throws(() => parseCliArgs(['--max-requests=abc']), /INVALID_MAX_REQUESTS/);
+  const single = parseCliArgs(['--live', '--case=landyachtz-the-clark', '--language=zh-TW', '--max-requests=1']);
+  assert.equal(single.caseId, 'landyachtz-the-clark');
+  assert.equal(single.language, 'zh-TW');
+  assert.equal(single.maxRequests, 1);
 });
 
 test('missing credential provider is refused before any request', async () => {
@@ -124,12 +217,15 @@ test('mock trial runs all fixtures in both languages with zero real calls', asyn
   assert.ok(!JSON.stringify(summary).includes('mock-credential'));
 });
 
-test('trial caps: request limit and budget stop the run', async () => {
+test('trial caps: attempt limit stops the run but preserves completed results', async () => {
   const budget = createTrialBudget({trialCapUsd: 5, maxRequests: 2});
-  await assert.rejects(
-    runTrial({mode: 'mock', credentialProvider: mockCredential, budget}),
-    /TRIAL_REQUEST_CAP/);
+  const summary = await runTrial({mode: 'mock', credentialProvider: mockCredential, budget});
+  assert.equal(summary.status, 'MOCK_FAILED');
+  assert.match(summary.failure.error, /TRIAL_REQUEST_CAP/);
   assert.equal(budget.entries.length, 2);
+  assert.equal(summary.results.filter(r => r.status !== 'FAILED').length, 2);
+  assert.equal(summary.results.at(-1).status, 'FAILED');
+  assert.equal(summary.audit.filter(a => a.status !== 'FAILED').length, 2);
 });
 
 test('keychain provider uses the approved identity and stays in memory only', async () => {

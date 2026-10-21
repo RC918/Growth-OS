@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAiTransport, createTrialBudget, estimateCost, parseResponsesSuggestions, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
+import {createOpenAiTransport, createTrialBudget, estimateCost, estimateInputTokens, parseResponsesSuggestions, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
 
 const okResponse = (cost = {}) => ({
   ok: true, status: 200, headers: {get: () => null},
@@ -233,6 +233,57 @@ test('output token cap is synchronized between request, gate and cost preflight'
     capped({instructions: 'x', facts: {}, max_output_tokens: 3001}),
     /TRIAL_OUTPUT_TOKEN_CAP/);
   assert.equal(calls, 0);
+});
+
+test('input gate uses actual sent content and never trusts a low caller estimate', async () => {
+  assert.ok(estimateInputTokens({instructions: 'x'.repeat(100), userContent: 'y'.repeat(50)}) >= 150);
+  let calls = 0;
+  const transport = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real',
+    budget: createTrialBudget({}),
+    fetchImpl: async () => { calls++; return okResponse(); }});
+  await assert.rejects(transport({
+    instructions: 'x', estimated_input_tokens: 1,
+    facts: {blob: 'z'.repeat(3000)}, market: 'TW', language: 'zh-TW'}),
+    /TRIAL_INPUT_TOKEN_CAP/);
+  assert.equal(calls, 0);
+
+  // Insufficient budget is also stopped before sending.
+  let budgetCalls = 0;
+  const poor = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real',
+    budget: createTrialBudget({trialCapUsd: 0.0001}),
+    fetchImpl: async () => { budgetCalls++; return okResponse(); }});
+  await assert.rejects(poor({instructions: 'x', facts: {}}), /TRIAL_BUDGET_CAP/);
+  assert.equal(budgetCalls, 0);
+});
+
+test('unknown usage is costed conservatively, never as zero', async () => {
+  const budget = createTrialBudget({});
+  const transport = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real', budget,
+    fetchImpl: async () => nativeResponse({
+      id: 'resp_nousage', status: 'completed',
+      output: [{type: 'message', content: [{type: 'output_text', text: suggestionJson}]}]})});
+  const out = await transport({instructions: 'x', facts: {}});
+  assert.equal(out.usage.usage_reported, false);
+  assert.equal(out.usage.input_tokens, null);
+  assert.ok(out.usage.cost > 0);
+  assert.equal(budget.entries[0].output_tokens, 3000);
+});
+
+test('reported usage above the input gate fails closed after accounting', async () => {
+  const budget = createTrialBudget({});
+  const transport = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real', budget,
+    fetchImpl: async () => nativeResponse({
+      id: 'resp_over', status: 'completed',
+      output: [{type: 'message', content: [{type: 'output_text', text: suggestionJson}]}],
+      usage: {input_tokens: 9999, output_tokens: 10}})});
+  const error = await transport({instructions: 'x', facts: {}}).catch(e => e);
+  assert.match(error.message, /USAGE_INPUT_CAP_EXCEEDED/);
+  assert.equal(budget.entries.length, 1);
+  assert.equal(budget.attempts[0].outcome, 'usage_exceeds_input_cap');
 });
 
 test('non-completed status and null suggestion fields fail explicitly', () => {

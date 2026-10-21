@@ -95,6 +95,8 @@ export function createTrialBudget({
   return {
     cap: trialCapUsd,
     maxRequests,
+    maxInputTokensPerRequest,
+    maxOutputTokensPerRequest,
     entries,
     attempts,
     spent,
@@ -162,6 +164,17 @@ const SUGGESTION_SCHEMA = {
         used_fact_ids: {type: 'array', items: {type: 'string'}}}}},
   },
 };
+
+// Conservative input-token estimate for the exact content that will
+// be sent. A token is at least one UTF-8 byte, so the UTF-8 byte
+// length of the system instructions plus the serialized user payload
+// is an upper bound on the input token count; callers may supply a
+// larger estimate, never a smaller one.
+export function estimateInputTokens({instructions = '', userContent = ''} = {}) {
+  const encoder = new TextEncoder();
+  return encoder.encode(String(instructions)).length
+    + encoder.encode(String(userContent)).length;
+}
 
 // Parse a raw Responses API payload. The REST response does not
 // guarantee a top-level output_text helper field: the text lives in
@@ -239,19 +252,25 @@ export function createOpenAiTransport({
     if (typeof fetchImpl !== 'function') throw Error('FETCH_REQUIRED');
     if (!budget) throw Error('TRIAL_BUDGET_REQUIRED');
 
-    const inputTokens = request.estimated_input_tokens ?? 1200;
     const outputTokens = request.max_output_tokens ?? TRIAL_TOKEN_CAPS.outputPerRequest;
     if (typeof budget.recordAttempt !== 'function' || typeof budget.updateAttempt !== 'function') {
       throw Error('TRIAL_ATTEMPT_LEDGER_REQUIRED');
     }
 
+    const userContent = JSON.stringify({facts: request.facts, market: request.market, language: request.language});
     const body = {
       model: OPENAI_MODEL.snapshot,
       input: [{role: 'system', content: request.instructions},
-              {role: 'user', content: JSON.stringify({facts: request.facts, market: request.market, language: request.language})}],
+              {role: 'user', content: userContent}],
       text: {format: {type: 'json_schema', name: 'seo_geo_suggestions', strict: true, schema: SUGGESTION_SCHEMA}},
       max_output_tokens: outputTokens,
     };
+    // The input gate uses the conservative byte-length estimate of the
+    // exact content being sent; a smaller caller estimate is raised,
+    // never trusted.
+    const inputTokens = Math.max(
+      request.estimated_input_tokens ?? 0,
+      estimateInputTokens({instructions: request.instructions, userContent}));
 
     let retried = false;
     for (;;) {
@@ -290,12 +309,26 @@ export function createOpenAiTransport({
         });
         const data = await response.json().catch(() => null);
         const usage = data?.usage ?? {};
+        // Reconcile reported usage against the gates. Unknown usage is
+        // never treated as zero: it is costed at the conservative
+        // preflight amounts (estimated input, maximum output).
+        const reportedInput = Number.isFinite(usage.input_tokens) ? usage.input_tokens : null;
+        const reportedOutput = Number.isFinite(usage.output_tokens) ? usage.output_tokens : null;
+        const usageReported = reportedInput != null && reportedOutput != null;
         // The HTTP request succeeded and may be billed, so record its
         // cost before parsing; a parse failure must not erase it.
         const cost = budget.record({
-          inputTokens: usage.input_tokens ?? inputTokens,
-          outputTokens: usage.output_tokens ?? outputTokens,
+          inputTokens: reportedInput ?? inputTokens,
+          outputTokens: reportedOutput ?? outputTokens,
         });
+        if (reportedInput != null && reportedInput > (budget.maxInputTokensPerRequest ?? Infinity)) {
+          budget.updateAttempt(attempt, {outcome: 'usage_exceeds_input_cap'});
+          const error = makeApiError('USAGE_INPUT_CAP_EXCEEDED: reported input usage exceeds gate',
+            {http_status: response.status, error_type: 'usage_error', error_code: 'usage_input_cap_exceeded',
+              request_id: response.headers?.get?.('x-request-id') ?? data?.id ?? null});
+          error.usage = {input_tokens: reportedInput, output_tokens: reportedOutput, cost, usage_reported: usageReported};
+          throw error;
+        }
         let suggestions;
         try {
           suggestions = parseResponsesSuggestions(data);
@@ -307,13 +340,13 @@ export function createOpenAiTransport({
               request_id: response.headers?.get?.('x-request-id') ?? null});
           }
           error.usage = {
-            input_tokens: usage.input_tokens ?? null,
-            output_tokens: usage.output_tokens ?? null, cost};
+            input_tokens: reportedInput, output_tokens: reportedOutput,
+            cost, usage_reported: usageReported};
           throw error;
         }
         return {suggestions, usage: {
-          input_tokens: usage.input_tokens ?? null,
-          output_tokens: usage.output_tokens ?? null, cost}};
+          input_tokens: reportedInput, output_tokens: reportedOutput,
+          cost, usage_reported: usageReported}};
       }
       const errorBody = await response.json().catch(() => ({}));
       const fields = safeApiErrorFields({status: response.status, errorBody, response});
