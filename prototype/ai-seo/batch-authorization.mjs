@@ -229,9 +229,25 @@ export function createBatchLedger({file, repoRoot, projectId, expiresInHours = 2
     enabled_by: null,
     ledger_signature: null,
   };
+  // The parent directory may not exist yet on a first run: create it
+  // before writing the auth key, then re-verify the canonical ledger
+  // path is still outside the repository.
+  mkdirSync(dirname(target), {recursive: true});
+  assertBatchFileOutsideRepo(target, repoRoot);
   const authKey = randomBytes(32);
-  writeFileSync(authKeyPath(target), authKey, {mode: 0o600, flag: 'wx'});
-  writeLedgerAtomic(target, data, authKey);
+  let keyWritten = false;
+  try {
+    writeFileSync(authKeyPath(target), authKey, {mode: 0o600, flag: 'wx'});
+    keyWritten = true;
+    writeLedgerAtomic(target, data, authKey);
+  } catch (error) {
+    // Roll back only the key this call created, and only when no
+    // ledger was produced; never touch a pre-existing ledger or key.
+    if (keyWritten && !existsSync(target)) {
+      try { rmSync(authKeyPath(target), {force: true}); } catch {}
+    }
+    throw error;
+  }
   return data;
 }
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, readFileSync, renameSync, symlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFile} from 'node:child_process';
@@ -36,6 +36,42 @@ test('batch ledger persists scope, limits and never stores secrets', () => {
   assert.ok(!raw.includes('sk-'));
   const reopened = openBatchLedger({file, repoRoot});
   assert.equal(reopened.snapshot().batch_id, created.batch_id);
+});
+
+test('batch creation works in a brand-new user directory and stays inactive', async () => {
+  const base = mkdtempSync(join(tmpdir(), 'phase3b-batch-fresh-'));
+  const file = join(base, 'brand', 'new', 'batch.json');
+  const created = createBatchLedger({file, repoRoot, projectId: 'proj_test12345'});
+  assert.equal(created.status, 'inactive');
+  assert.equal(created.owner_enabled, false);
+  assert.equal(statSync(file).mode & 0o777, 0o600);
+  assert.equal(statSync(file + '.auth-key').mode & 0o777, 0o600);
+  assert.equal(openBatchLedger({file, repoRoot}).snapshot().attempts_used, 0);
+  // Creating again must refuse without disturbing the existing ledger.
+  const before = readFileSync(file, 'utf8');
+  assert.throws(() => createBatchLedger({file, repoRoot, projectId: 'proj_test12345'}),
+    /BATCH_ALREADY_EXISTS|BATCH_AUTH_KEY_EXISTS/);
+  assert.equal(readFileSync(file, 'utf8'), before);
+  // The fresh inactive batch still performs zero HTTP/credential calls.
+  let fetchCalls = 0; let credentialCalls = 0;
+  await assert.rejects(runTrial({
+    mode: 'live', projectId: 'proj_test12345', batchFile: file,
+    credentialProvider: async () => { credentialCalls++; return 'x'; },
+    fetchImpl: async () => { fetchCalls++; }}), /BATCH_NOT_ENABLED/);
+  assert.equal(fetchCalls, 0);
+  assert.equal(credentialCalls, 0);
+});
+
+test('failed creation leaves no partial ledger and never removes a pre-existing key', () => {
+  const base = mkdtempSync(join(tmpdir(), 'phase3b-batch-partial-'));
+  const file = join(base, 'fresh', 'batch.json');
+  // A pre-existing key at the fresh path must block creation and survive.
+  mkdirSync(join(base, 'fresh'), {recursive: true});
+  writeFileSync(file + '.auth-key', 'pre-existing-key-material', {mode: 0o600});
+  assert.throws(() => createBatchLedger({file, repoRoot, projectId: 'proj_test12345'}),
+    /BATCH_AUTH_KEY_EXISTS/);
+  assert.equal(existsSync(file), false);
+  assert.equal(readFileSync(file + '.auth-key', 'utf8'), 'pre-existing-key-material');
 });
 
 test('batch creation refuses repo-internal files and limit expansion', () => {
