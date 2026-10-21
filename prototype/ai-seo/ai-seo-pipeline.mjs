@@ -52,7 +52,8 @@ export const FUNCTION_WORDS = new Set((
   + 'i you he she it we they me him her us them my your his its our their mine yours ours theirs this that these those who whom whose which what when where why how '
   + 'am is are was were be been being do does did doing have has had having can could may might must shall should will would '
   + 'not no nor too very just also only even still already yet more most other others another same such each every any all both few many much own '
-  + 'here there now once again further while during before after above below between through against about because until unless although though since despite toward towards among across behind beyond plus except'
+  + 'here there now once again further while during before after above below between through against about because until unless although though since despite toward towards among across behind beyond plus except '
+  + 'really truly fully actually quite indeed however therefore thus hence instead otherwise rather almost nearly mostly mainly simply literally generally typically'
 ).split(' '));
 const FRAMING_WORDS = new Set((
   'designed design built build made make features feature featuring includes include including offers offer offering provides provide providing '
@@ -89,7 +90,7 @@ function sourceVocabulary(sourceTexts) {
     }
     // Adjacent phrases only count within one sentence of one fact:
     // tokens across a sentence or fact boundary are not a phrase.
-    for (const sentence of sourceText.split(/[.!?…\n;:—()]+/)) {
+    for (const sentence of sourceText.split(/[.!?…\n;:—(),/&"“”]+/)) {
       const parts = wordsOf(sentence).map(w => w.toLowerCase().replace(/'s$/, ''))
         .flatMap(w => w.split('-'));
       for (let i = 0; i + 1 < parts.length; i++) phrases.add(parts[i] + '-' + parts[i + 1]);

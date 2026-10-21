@@ -79,24 +79,24 @@ export function evaluateGeneration({report, suggestions}) {
       .filter(([, v]) => v && typeof v.text === 'string')
       .concat((suggestions?.geo_qa ?? []).map((qa, i) => ['geo_qa[' + i + ']', {text: qa?.answer ?? ''}]));
     const tokenSeq = (s) => String(s).toLowerCase().match(/[a-z0-9]+(?:[.,][0-9]+)?/g) ?? [];
-    // Ordered subsequence: the conflicting value's tokens must all
-    // appear in order, with only function words allowed in between
-    // ("Maple is complete" still presents "Maple complete.").
-    const GAP = FUNCTION_WORDS;
-    const containsSeq = (haystack, needle) => {
-      if (needle.length === 0) return false;
-      let n = 0;
-      for (const token of haystack) {
-        if (token === needle[n]) { n++; if (n === needle.length) return true; }
-        else if (n > 0 && !GAP.has(token)) n = token === needle[0] ? 1 : 0;
-      }
-      return false;
+    // A sentence that contains every content token of a conflicting
+    // value presents that value as settled, whatever function or
+    // degree words sit between them ("Maple really complete.").
+    // Enumerating gap words would never close this class, so the
+    // check is set-based per sentence instead.
+    const presentsValue = (text, needle) => {
+      const content = needle.filter(t => !FUNCTION_WORDS.has(t));
+      if (content.length === 0) return false;
+      return String(text).split(/[.!?…\n]+/).some(sentence => {
+        const tokens = new Set(tokenSeq(sentence));
+        return content.every(t => tokens.has(t));
+      });
     };
     for (const value of conflict.values ?? []) {
       const needle = tokenSeq(value);
       if (needle.length === 0) continue;
       for (const [field, v] of fieldTexts) {
-        if (containsSeq(tokenSeq(v.text), needle)) {
+        if (presentsValue(v.text, needle)) {
           problems.push(field + ': presents UNRESOLVED conflicting value "'
             + value + '" for ' + conflict.fact + ' as settled');
         }

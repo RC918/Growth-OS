@@ -139,7 +139,7 @@ test('conflict values fail regardless of punctuation or cited fact id', () => {
   // non-conflicting fact supplying the same words must not launder it.
   const launderedReport = structuredClone(report);
   launderedReport.facts.title = {value: 'Maple complete board guide', citations: ['s1'], verification: 'source_asserted'};
-  for (const gap of ['very', 'now', 'just', 'also']) {
+  for (const gap of ['very', 'now', 'just', 'also', 'really', 'truly', 'fully', 'actually']) {
     const gapped = structuredClone(settled);
     gapped.description = {text: 'Conflicting Board. Maple ' + gap + ' complete.', used_fact_ids: ['product_name']};
     assert.equal(evaluateGeneration({report: launderedReport, suggestions: gapped}).status,
