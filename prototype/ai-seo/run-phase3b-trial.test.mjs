@@ -66,6 +66,28 @@ test('offline live path uses injected fetch, audits without secrets, then auto-d
   assert.ok(summary.audit.every(a => a.project_id === 'proj_test12345' && !('authorization' in a)));
 });
 
+test('live 401 failure carries one counted attempt and safe diagnostics', async () => {
+  const error = await runTrial({
+    mode: 'live', confirmation: liveConfirmation(), projectId: 'proj_test12345',
+    credentialProvider: async () => 'fake-secret-for-live-test',
+    fetchImpl: async () => ({ok: false, status: 401,
+      headers: {get: (name) => name === 'x-request-id' ? 'req_live_401' : null},
+      json: async () => ({request_id: 'req_live_401', error: {
+        code: 'invalid_api_key', type: 'invalid_request_error',
+        secret: 'must-never-be-recorded'}})}),
+  }).catch(e => e);
+  assert.match(error.message, /HTTP 401/);
+  assert.equal(error.attemptedRequests, 1);
+  assert.equal(error.trialAttempts.length, 1);
+  assert.equal(error.trialAttempts[0].http_status, 401);
+  assert.deepEqual(error.apiError, {
+    http_status: 401, error_type: 'invalid_request_error',
+    error_code: 'invalid_api_key', request_id: 'req_live_401'});
+  assert.ok(!JSON.stringify({apiError: error.apiError, attempts: error.trialAttempts})
+    .includes('must-never-be-recorded'));
+  assert.ok(!JSON.stringify(error.trialAttempts).includes('fake-secret'));
+});
+
 test('owner stop switch halts live path before further requests', async () => {
   let fetchCalls = 0;
   const summary = await runTrial({

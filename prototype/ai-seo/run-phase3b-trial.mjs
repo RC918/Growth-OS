@@ -143,8 +143,17 @@ export async function runTrial({
         facts: known, market: language === 'en' ? 'US' : 'TW', language,
         fields: ['title', 'meta_description', 'description'],
       });
-      const response = await transport({
-        ...request, estimated_input_tokens: 1200, max_output_tokens: 800});
+      let response;
+      try {
+        response = await transport({
+          ...request, estimated_input_tokens: 1200, max_output_tokens: 800});
+      } catch (error) {
+        // Preserve the safe attempt ledger and API diagnostics on the
+        // thrown error so a failed run is never recorded as 0 attempts.
+        error.trialAttempts = trialBudget.attempts;
+        error.attemptedRequests = trialBudget.attempts.length;
+        throw error;
+      }
       const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
       results.push({case: testCase.id, language, status: evaluation.status,
         problems: evaluation.problems, unknown_facts: evaluation.unknown_facts});
@@ -162,7 +171,9 @@ export async function runTrial({
     status: stoppedByOwner ? (mode === 'live' ? 'LIVE_STOPPED' : 'MOCK_STOPPED')
       : failed ? (mode === 'live' ? 'LIVE_FAIL_CLOSED' : 'MOCK_FAIL_CLOSED')
         : (mode === 'live' ? 'LIVE_PASS' : 'MOCK_PASS'),
-    real_api_calls: mode === 'live' ? trialBudget.entries.length : 0,
+    real_api_calls: mode === 'live' ? trialBudget.attempts.length : 0,
+    attempted_requests: trialBudget.attempts.length,
+    attempts: trialBudget.attempts,
     results,
     audit,
     requests: trialBudget.entries.length,
@@ -219,6 +230,9 @@ if (isMain) {
       mode: cli?.mode ?? 'unknown', status: 'REFUSED',
       live_enabled_after_run: false,
       error: String(error.message ?? error),
+      api_error: error.apiError ?? null,
+      attempted_requests: error.attemptedRequests ?? 0,
+      attempts: error.trialAttempts ?? [],
     }));
     process.exit(2);
   }
