@@ -15,8 +15,8 @@
 // only be cleared by the Owner creating a new batch after vendor
 // usage reconciliation.
 
-import {existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
-import {dirname, resolve} from 'node:path';
+import {existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {basename, dirname, resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {OPENAI_MODEL} from './openai-live-gate.mjs';
 
@@ -30,9 +30,19 @@ export const BATCH_LIMITS = Object.freeze({
 
 function fail(message) { throw Error(message); }
 
+function canonicalPath(path) {
+  const absolute = resolve(path);
+  try { return realpathSync(absolute); } catch {}
+  // The file itself may not exist yet: canonicalize its parent (which
+  // resolves symlinks and /tmp vs /private/tmp aliases) and re-append
+  // the basename. A symlinked file that exists is resolved above.
+  try { return resolve(realpathSync(dirname(absolute)), basename(absolute)); } catch {}
+  return absolute;
+}
+
 export function assertBatchFileOutsideRepo(file, repoRoot) {
-  const target = resolve(file);
-  const root = resolve(repoRoot);
+  const target = canonicalPath(file);
+  const root = canonicalPath(repoRoot);
   if (target === root || target.startsWith(root + '/')) {
     fail('BATCH_FILE_INSIDE_REPO: batch ledger must live outside the repository');
   }
@@ -59,6 +69,8 @@ function validateLedgerShape(data) {
   if (!Number.isFinite(Date.parse(data.expires_at))) fail('BATCH_LEDGER_INVALID: expires_at');
   if (!Number.isFinite(data.attempts_used) || data.attempts_used < 0) fail('BATCH_LEDGER_INVALID: attempts_used');
   if (!Number.isFinite(data.known_cost_usd) || data.known_cost_usd < 0) fail('BATCH_LEDGER_INVALID: known_cost_usd');
+  if (data.pending_cost_usd == null) data.pending_cost_usd = 0;
+  if (!Number.isFinite(data.pending_cost_usd) || data.pending_cost_usd < 0) fail('BATCH_LEDGER_INVALID: pending_cost_usd');
   return data;
 }
 
@@ -136,6 +148,7 @@ export function createBatchLedger({file, repoRoot, projectId, expiresInHours = 2
     attempts_used: 0,
     attempts_pending: 0,
     known_cost_usd: 0,
+    pending_cost_usd: 0,
     unknown_cost_attempts: 0,
     status: 'active',
     stop_reason: null,
@@ -165,16 +178,20 @@ export function openBatchLedger({file, repoRoot} = {}) {
       if (caseId != null && !data.cases.includes(caseId)) fail('BATCH_CASE_NOT_ALLOWED: ' + caseId);
       if (language != null && !data.languages.includes(language)) fail('BATCH_LANGUAGE_NOT_ALLOWED: ' + language);
       if (data.attempts_used >= data.max_attempts) fail('BATCH_EXHAUSTED: attempt cap reached');
-      if (data.known_cost_usd >= data.budget_cap_usd) fail('BATCH_EXHAUSTED: budget cap reached');
+      if (data.known_cost_usd + data.pending_cost_usd >= data.budget_cap_usd) fail('BATCH_EXHAUSTED: budget cap reached');
       return data;
     },
-    reserveAttempt() {
+    reserveAttempt({estimatedCostUsd = 0} = {}) {
       return withLedgerLock(target, () => {
         const data = assertUsable(readLedger(target));
         if (data.attempts_used >= data.max_attempts) fail('BATCH_EXHAUSTED: attempt cap reached');
-        if (data.known_cost_usd >= data.budget_cap_usd) fail('BATCH_EXHAUSTED: budget cap reached');
+        const estimate = Number.isFinite(estimatedCostUsd) && estimatedCostUsd > 0 ? estimatedCostUsd : 0;
+        if (data.known_cost_usd + data.pending_cost_usd + estimate > data.budget_cap_usd) {
+          fail('BATCH_EXHAUSTED: budget cap reached');
+        }
         data.attempts_used += 1;
         data.attempts_pending += 1;
+        data.pending_cost_usd = Math.round((data.pending_cost_usd + estimate) * 1e10) / 1e10;
         if (data.attempts_used >= data.max_attempts) data.status = 'exhausted';
         writeLedgerAtomic(target, data);
         return data.attempts_used;
@@ -202,10 +219,14 @@ export function openBatchLedger({file, repoRoot} = {}) {
         return data;
       });
     },
-    settleRun({attemptCount = 0, knownCostDelta = 0, unknownOutcome = false, stopReason = null} = {}) {
+    settleRun({attemptCount = 0, knownCostDelta = 0, reservedCostUsd = 0, unknownOutcome = false, stopReason = null} = {}) {
       return withLedgerLock(target, () => {
         const data = readLedger(target);
         data.attempts_pending = Math.max(0, data.attempts_pending - attemptCount);
+        if (Number.isFinite(reservedCostUsd) && reservedCostUsd > 0) {
+          data.pending_cost_usd = Math.max(0,
+            Math.round((data.pending_cost_usd - reservedCostUsd) * 1e10) / 1e10);
+        }
         if (Number.isFinite(knownCostDelta) && knownCostDelta > 0) {
           data.known_cost_usd = Math.round((data.known_cost_usd + knownCostDelta) * 1e10) / 1e10;
         }

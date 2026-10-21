@@ -110,11 +110,7 @@ export async function runTrial({
   if (mode !== 'mock' && mode !== 'live') throw Error('Unknown mode: ' + mode);
   const useBatch = batchFile != null || batchLedger != null;
   if (useBatch && mode !== 'live') throw Error('BATCH_REQUIRES_LIVE: batch authorization only applies to live mode');
-  // A batch run is bounded by the batch ledger (at most 6 attempts /
-  // US$0.10), which is stricter than the single-run US$5/12 limits.
-  const trialBudget = useBatch
-    ? (budget ?? createTrialBudget({}))
-    : validateLiveBudget(budget ?? createTrialBudget({}));
+  let trialBudget = useBatch ? null : validateLiveBudget(budget ?? createTrialBudget({}));
   let ledger = null;
 
   if (mode === 'live') {
@@ -122,7 +118,19 @@ export async function runTrial({
     if (useBatch) {
       validateProjectId(projectId);
       ledger = batchLedger ?? openBatchLedger({file: batchFile, repoRoot: REPO_ROOT});
-      ledger.validateFor({projectId, caseId, language});
+      const batch = ledger.validateFor({projectId, caseId, language});
+      // The local budget can never widen the batch: an injected budget
+      // above the batch limits is refused, and the default local
+      // budget is created from the batch limits themselves.
+      if (budget) {
+        if (budget.cap > batch.budget_cap_usd || (budget.maxRequests ?? Infinity) > batch.max_attempts) {
+          throw Error('BATCH_BUDGET_EXCEEDS_BATCH_LIMIT: injected budget widens the batch authorization');
+        }
+        trialBudget = budget;
+      } else {
+        trialBudget = createTrialBudget({
+          trialCapUsd: batch.budget_cap_usd, maxRequests: batch.max_attempts});
+      }
     } else {
       consumeLiveConfirmation(confirmation);
       validateProjectId(projectId);
@@ -152,13 +160,22 @@ export async function runTrial({
   // In batch mode every HTTP send (including retries) first reserves
   // an attempt in the persistent ledger; reservation happens inside
   // recordAttempt, immediately before the fetch is issued.
+  let lastPreflightEstimate = 0;
+  let reservedCostUsd = 0;
   const effectiveBudget = ledger ? {
     ...trialBudget,
     entries: trialBudget.entries,
     attempts: trialBudget.attempts,
-    preflight: (args) => trialBudget.preflight(args),
+    preflight: (args) => {
+      lastPreflightEstimate = trialBudget.preflight(args);
+      return lastPreflightEstimate;
+    },
     record: (args) => trialBudget.record(args),
-    recordAttempt: (fields) => { ledger.reserveAttempt(); return trialBudget.recordAttempt(fields); },
+    recordAttempt: (fields) => {
+      ledger.reserveAttempt({estimatedCostUsd: lastPreflightEstimate});
+      reservedCostUsd += lastPreflightEstimate;
+      return trialBudget.recordAttempt(fields);
+    },
     updateAttempt: (attempt, fields) => trialBudget.updateAttempt(attempt, fields),
   } : trialBudget;
   const transport = createOpenAiTransport({
@@ -240,6 +257,7 @@ export async function runTrial({
     const settled = ledger.settleRun({
       attemptCount: trialBudget.attempts.length,
       knownCostDelta: trialBudget.spent(),
+      reservedCostUsd,
       unknownOutcome: trialBudget.attempts.some(a => a.outcome === 'UNKNOWN_OUTCOME'),
       stopReason: stoppedByOwner ? 'owner stop switch activated' : null,
     });

@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, readFileSync, renameSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, readFileSync, renameSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFile} from 'node:child_process';
 import {BATCH_LIMITS, createBatchLedger, openBatchLedger} from './batch-authorization.mjs';
 import {runTrial} from './run-phase3b-trial.mjs';
 
-const repoRoot = '/tmp/growth-takeover/wt';
+import {fileURLToPath} from 'node:url';
+import {dirname, resolve} from 'node:path';
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const makeBatch = (overrides = {}) => {
   const dir = mkdtempSync(join(tmpdir(), 'phase3b-batch-'));
   const file = join(dir, 'batch.json');
@@ -81,7 +83,7 @@ test('expired, stopped and unknown-outcome batches fail closed', () => {
 test('concurrent processes cannot reserve beyond the batch cap', async () => {
   const {file} = makeBatch({maxAttempts: 6});
   const child = `
-    import {openBatchLedger} from ${JSON.stringify(new URL('./batch-authorization.mjs', 'file:///tmp/growth-takeover/wt/prototype/ai-seo/').href)};
+    import {openBatchLedger} from ${JSON.stringify(new URL('./batch-authorization.mjs', import.meta.url).href)};
     const ledger = openBatchLedger({file: ${JSON.stringify(file)}, repoRoot: ${JSON.stringify(repoRoot)}});
     let ok = 0;
     for (let i = 0; i < 5; i++) { try { ledger.reserveAttempt(); ok++; } catch {} }
@@ -135,6 +137,36 @@ test('batch live runs consume persistent attempts and stop on unknown outcome', 
     fetchImpl: async () => { throw Error('must not run'); }}),
     /BATCH_NOT_ACTIVE/);
   assert.equal(credentialCalls, 0);
+});
+
+test('symlinked paths into the repo are rejected by canonical location', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'phase3b-batch-link-'));
+  const link = join(dir, 'repo-link');
+  symlinkSync(repoRoot, link, 'dir');
+  assert.throws(() => createBatchLedger({
+    file: join(link, 'batch.json'), repoRoot, projectId: 'proj_test12345'}),
+    /BATCH_FILE_INSIDE_REPO/);
+});
+
+test('batch budget cannot be widened by injection and stops before overspend', async () => {
+  const {file, ledger} = makeBatch({budgetCapUsd: 0.001});
+  let calls = 0;
+  const summary = await runTrial({
+    mode: 'live', projectId: 'proj_test12345', credentialProvider: mockCredential,
+    batchFile: file, caseId: 'landyachtz-the-clark', language: 'zh-TW',
+    fetchImpl: async () => { calls++; throw Error('must not run'); }});
+  assert.equal(summary.status, 'LIVE_FAILED');
+  assert.equal(calls, 0);
+  assert.equal(ledger.snapshot().attempts_used, 0);
+
+  const wide = makeBatch();
+  const {createTrialBudget} = await import('./openai-live-gate.mjs');
+  await assert.rejects(runTrial({
+    mode: 'live', projectId: 'proj_test12345', credentialProvider: mockCredential,
+    batchFile: wide.file, budget: createTrialBudget({trialCapUsd: 999, maxRequests: 99}),
+    fetchImpl: async () => { throw Error('must not run'); }}),
+    /BATCH_BUDGET_EXCEEDS_BATCH_LIMIT/);
+  assert.equal(wide.ledger.snapshot().attempts_used, 0);
 });
 
 test('batch mode rejects project mismatch without consuming attempts', async () => {
