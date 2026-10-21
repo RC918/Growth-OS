@@ -236,7 +236,13 @@ test('output token cap is synchronized between request, gate and cost preflight'
 });
 
 test('input gate uses actual sent content and never trusts a low caller estimate', async () => {
-  assert.ok(estimateInputTokens({instructions: 'x'.repeat(100), userContent: 'y'.repeat(50)}) >= 150);
+  const withoutSchema = estimateInputTokens({instructions: 'x'.repeat(100), userContent: 'y'.repeat(50)});
+  const withSchema = estimateInputTokens({
+    instructions: 'x'.repeat(100), userContent: 'y'.repeat(50),
+    schemaText: JSON.stringify({type: 'object', properties: {a: {type: 'string'}}}),
+    envelopeText: JSON.stringify({model: 'gpt-5-mini-2025-08-07', input: [{role: 'system'}]})});
+  assert.ok(withSchema > withoutSchema);
+  assert.ok(withoutSchema > 0 && withoutSchema < 150); // estimate, not a byte count
   let calls = 0;
   const transport = createOpenAiTransport({
     enabled: true, credentialProvider: () => 'test-key-not-real',
@@ -244,7 +250,7 @@ test('input gate uses actual sent content and never trusts a low caller estimate
     fetchImpl: async () => { calls++; return okResponse(); }});
   await assert.rejects(transport({
     instructions: 'x', estimated_input_tokens: 1,
-    facts: {blob: 'z'.repeat(3000)}, market: 'TW', language: 'zh-TW'}),
+    facts: {blob: '測'.repeat(2500)}, market: 'TW', language: 'zh-TW'}),
     /TRIAL_INPUT_TOKEN_CAP/);
   assert.equal(calls, 0);
 

@@ -165,15 +165,28 @@ const SUGGESTION_SCHEMA = {
   },
 };
 
-// Conservative input-token estimate for the exact content that will
-// be sent. A token is at least one UTF-8 byte, so the UTF-8 byte
-// length of the system instructions plus the serialized user payload
-// is an upper bound on the input token count; callers may supply a
-// larger estimate, never a smaller one.
-export function estimateInputTokens({instructions = '', userContent = ''} = {}) {
-  const encoder = new TextEncoder();
-  return encoder.encode(String(instructions)).length
-    + encoder.encode(String(userContent)).length;
+// Conservative input-token ESTIMATE (not an exact token count) for
+// everything that shapes the request input: system instructions, the
+// serialized user payload, the strict JSON Schema and the fixed
+// request envelope. Counting method, chosen to stay above typical
+// tokenizer output without pretending to be a tokenizer:
+// - non-Latin-1 code points (including CJK) count as 1 token each;
+// - Latin-1 / ASCII code points count as 1/3 token each (English text
+//   averages roughly 4 characters per token, punctuation denser);
+// - the sum is scaled by 1.25 and padded by 32 tokens for envelope
+//   and tokenizer variance.
+// Callers may supply a larger estimate, never a smaller one.
+export function estimateTokensConservatively(text = '') {
+  let units = 0;
+  for (const ch of String(text)) {
+    units += ch.codePointAt(0) > 0xff ? 1 : 1 / 3;
+  }
+  return Math.ceil(units * 1.25) + 32;
+}
+
+export function estimateInputTokens({instructions = '', userContent = '', schemaText = '', envelopeText = ''} = {}) {
+  return estimateTokensConservatively(
+    String(instructions) + String(userContent) + String(schemaText) + String(envelopeText));
 }
 
 // Parse a raw Responses API payload. The REST response does not
@@ -265,12 +278,20 @@ export function createOpenAiTransport({
       text: {format: {type: 'json_schema', name: 'seo_geo_suggestions', strict: true, schema: SUGGESTION_SCHEMA}},
       max_output_tokens: outputTokens,
     };
-    // The input gate uses the conservative byte-length estimate of the
-    // exact content being sent; a smaller caller estimate is raised,
-    // never trusted.
+    // The input gate uses the conservative estimate over the exact
+    // instructions, user payload, JSON Schema and request envelope
+    // being sent; a smaller caller estimate is raised, never trusted.
+    const envelopeText = JSON.stringify({
+      model: body.model,
+      input: body.input.map(({role}) => ({role, content: ''})),
+      text: {format: {type: body.text.format.type, name: body.text.format.name, strict: body.text.format.strict}},
+      max_output_tokens: body.max_output_tokens,
+    });
     const inputTokens = Math.max(
       request.estimated_input_tokens ?? 0,
-      estimateInputTokens({instructions: request.instructions, userContent}));
+      estimateInputTokens({
+        instructions: request.instructions, userContent,
+        schemaText: JSON.stringify(SUGGESTION_SCHEMA), envelopeText}));
 
     let retried = false;
     for (;;) {
@@ -297,8 +318,11 @@ export function createOpenAiTransport({
         // an automatic retry could double-charge. Never retry here.
         const fields = {outcome: 'UNKNOWN_OUTCOME'};
         budget.updateAttempt(attempt, fields);
-        throw makeApiError(
+        const error = makeApiError(
           'UNKNOWN_OUTCOME: request may have been billed; reconcile before any retry', fields);
+        error.usage = {input_tokens: null, output_tokens: null, cost: null,
+          usage_reported: false, cost_complete: false};
+        throw error;
       } finally {
         clearTimeout(timer);
       }

@@ -106,6 +106,9 @@ test('single case and language ends normally with one attempt and partial scope'
   assert.equal(summary.audit.length, 1);
   assert.equal(summary.attempted_requests, 1);
   assert.equal(summary.requests, 1);
+  assert.equal(summary.cost_complete, true);
+  assert.equal(summary.cost_status, 'COMPLETE');
+  assert.equal(summary.total_cost_usd, summary.known_cost_usd);
 });
 
 test('single-attempt cap blocks a 429 retry from sending twice', async () => {
@@ -148,6 +151,12 @@ test('incomplete and unknown outcomes are failures, never successes, without ret
   assert.match(unknown.failure.error, /UNKNOWN_OUTCOME/);
   assert.equal(calls, 1);
   assert.equal(unknown.attempts[0].outcome, 'UNKNOWN_OUTCOME');
+  // Cost is explicitly incomplete, never presented as a zero total.
+  assert.equal(unknown.total_cost_usd, null);
+  assert.equal(unknown.known_cost_usd, 0);
+  assert.equal(unknown.unknown_cost_attempts, 1);
+  assert.equal(unknown.cost_complete, false);
+  assert.equal(unknown.cost_status, 'PENDING_RECONCILIATION');
 });
 
 test('a later case failure preserves all earlier completed results', async () => {

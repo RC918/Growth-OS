@@ -215,7 +215,13 @@ export async function runTrial({
     results,
     audit,
     requests: trialBudget.entries.length,
-    total_cost_usd: trialBudget.spent(),
+    known_cost_usd: trialBudget.spent(),
+    unknown_cost_attempts: trialBudget.attempts.filter(a => a.outcome === 'UNKNOWN_OUTCOME').length,
+    cost_complete: !trialBudget.attempts.some(a => a.outcome === 'UNKNOWN_OUTCOME'),
+    cost_status: trialBudget.attempts.some(a => a.outcome === 'UNKNOWN_OUTCOME')
+      ? 'PENDING_RECONCILIATION' : 'COMPLETE',
+    total_cost_usd: trialBudget.attempts.some(a => a.outcome === 'UNKNOWN_OUTCOME')
+      ? null : trialBudget.spent(),
     budget_cap_usd: trialBudget.cap,
     token_caps: TRIAL_TOKEN_CAPS,
     stopped: trialBudget.stopped,
