@@ -73,6 +73,22 @@ export function evaluateGeneration({report, suggestions}) {
   // Source conflicts stay unresolved: no generation may present a
   // conflicting fact as settled, and UNKNOWN facts stay UNKNOWN.
   const conflicts = report?.conflicts ?? [];
+  for (const conflict of conflicts) {
+    if (conflict.resolution !== 'UNRESOLVED') continue;
+    const fieldTexts = Object.entries(suggestions ?? {})
+      .filter(([, v]) => v && typeof v.text === 'string')
+      .concat((suggestions?.geo_qa ?? []).map((qa, i) => ['geo_qa[' + i + ']', {text: qa?.answer ?? ''}]));
+    for (const value of conflict.values ?? []) {
+      const needle = String(value).toLowerCase().replace(/\s+/g, ' ').trim();
+      if (!needle) continue;
+      for (const [field, v] of fieldTexts) {
+        if (v.text.toLowerCase().replace(/\s+/g, ' ').includes(needle)) {
+          problems.push(field + ': presents UNRESOLVED conflicting value "'
+            + value + '" for ' + conflict.fact + ' as settled');
+        }
+      }
+    }
+  }
   const unknownFacts = Object.keys(facts).filter(k => !facts[k].value);
   const conflictingUsed = geoQa.concat(Object.values(suggestions ?? {}))
     .flatMap(s => s?.used_fact_ids ?? [])

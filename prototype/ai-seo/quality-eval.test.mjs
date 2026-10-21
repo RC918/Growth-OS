@@ -63,19 +63,52 @@ test('invented facts and invented GEO answers fail closed', () => {
 
 test('negative case preserves UNKNOWN and never settles conflicts', () => {
   const report = byId['conflicting-facts-negative'].report;
+  // Avoiding the conflicting fact entirely is the only passing path:
+  // the conflict stays listed as unresolved and UNKNOWNs stay UNKNOWN.
   const conservative = {
     title: {text: 'Conflicting Board', used_fact_ids: ['product_name']},
-    meta_description: {text: 'Conflicting Board. Maple complete.', used_fact_ids: ['description']},
-    description: {text: 'Conflicting Board. Maple complete.', used_fact_ids: ['description']},
-    geo_qa: [{question: 'What is it?', answer: 'Conflicting Board. Maple complete.', used_fact_ids: ['description']}],
+    meta_description: {text: 'Conflicting Board', used_fact_ids: ['product_name']},
+    description: {text: 'Conflicting Board', used_fact_ids: ['product_name']},
+    geo_qa: [{question: 'What is it?', answer: 'Conflicting Board', used_fact_ids: ['product_name']}],
   };
   const result = evaluateGeneration({report, suggestions: conservative});
   assert.equal(result.status, 'PASS_WITH_UNKNOWNS');
   assert.deepEqual(result.unresolved_conflicts, ['description']);
   assert.ok(result.unknown_facts.includes('meta_description'));
 
+  // Presenting either side of the UNRESOLVED conflict as settled
+  // fact fails closed, with an explicit conflict reason.
+  const settled = structuredClone(conservative);
+  settled.description = {text: 'Conflicting Board. Maple complete.', used_fact_ids: ['description']};
+  const settledResult = evaluateGeneration({report, suggestions: settled});
+  assert.equal(settledResult.status, 'FAIL_CLOSED');
+  assert.ok(settledResult.problems.some(p => p.includes('UNRESOLVED')));
+
   const invented = structuredClone(conservative);
   invented.description = {text: 'Conflicting Board. Carbon complete with lifetime warranty.',
     used_fact_ids: ['description']};
   assert.equal(evaluateGeneration({report, suggestions: invented}).status, 'FAIL_CLOSED');
+});
+
+test('hyphenation and function words are not new facts, unsupported claims still fail', () => {
+  const report = byId['landyachtz-the-clark'].report;
+  const faithful = {
+    title: {text: 'The Clark Twin-Kick Longboard', used_fact_ids: ['product_name', 'description']},
+    meta_description: {text: 'The Clark is a twin-kick longboard with a double-kick shape, designed for skateparks and street skating.',
+      used_fact_ids: ['description']},
+    description: {text: 'The Clark is a 40.2 inch long skateboard built to skate everything, from downhill runs to tricks.',
+      used_fact_ids: ['description']},
+    geo_qa: [{question: 'What is The Clark?', answer: 'The Clark is a twin-kick longboard designed to skate everything.',
+      used_fact_ids: ['description']}],
+  };
+  const ok = evaluateGeneration({report, suggestions: faithful});
+  assert.equal(ok.status, 'PASS_WITH_UNKNOWNS', ok.problems.join('; '));
+
+  const unsupported = structuredClone(faithful);
+  unsupported.description = {text: 'The Clark is a lightweight carbon longboard with a top speed of 30 mph and a lifetime warranty.',
+    used_fact_ids: ['description']};
+  const bad = evaluateGeneration({report, suggestions: unsupported});
+  assert.equal(bad.status, 'FAIL_CLOSED');
+  assert.ok(bad.problems.some(p => p.includes('carbon')));
+  assert.ok(bad.problems.some(p => p.includes('30')));
 });

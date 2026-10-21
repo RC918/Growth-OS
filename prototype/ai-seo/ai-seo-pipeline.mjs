@@ -30,24 +30,97 @@ export function trustedFacts(report) {
   return out;
 }
 
-function factualTokens(text) {
-  // Every Latin word or number in a suggestion is treated as a
-  // factual claim that must be traceable to the source vocabulary.
-  // (CJK copy is bounded by the used_fact_ids declaration instead.)
-  // Numbers inside an alphanumeric code (e.g. BIC00001) belong to
-  // that word token and must not be re-read as standalone numbers.
-  const words = text.match(/[A-Za-z][A-Za-z0-9-]{2,}/g) ?? [];
+// Factual-token verification, by token class rather than by a flat
+// vocabulary match:
+//
+// - Numbers, units and alphanumeric codes (prices, dimensions, model
+//   codes such as BIC00001) are always factual: strict source match.
+// - Content words (materials, specifications, performance or product
+//   claims) are factual: they must appear in the source, allowing
+//   only morphology (plural / -ing / -ed stems) and hyphenation
+//   equivalence ("twin kick" in the source covers "twin-kick", and
+//   vice versa, only as an adjacent source phrase).
+// - Closed-class function words and generic framing verbs (articles,
+//   prepositions, auxiliaries, "designed / featuring / includes"
+//   style scaffolding) carry no product fact by themselves and are
+//   not flagged. This is a linguistic category, not a whitelist of
+//   words observed in one failed output: any other unseen content
+//   word still fails closed.
+// (CJK copy is bounded by the used_fact_ids declaration instead.)
+const FUNCTION_WORDS = new Set((
+  'the a an and or but if then than so as at by for from in into of off on onto out over per to under up upon via with within without '
+  + 'i you he she it we they me him her us them my your his its our their mine yours ours theirs this that these those who whom whose which what when where why how '
+  + 'am is are was were be been being do does did doing have has had having can could may might must shall should will would '
+  + 'not no nor too very just also only even still already yet more most other others another same such each every any all both few many much own '
+  + 'here there now once again further while during before after above below between through against about because until unless although though since despite toward towards among across behind beyond plus except'
+).split(' '));
+const FRAMING_WORDS = new Set((
+  'designed design built build made make features feature featuring includes include including offers offer offering provides provide providing '
+  + 'comes come discover explore learn find get see check enjoy introducing introduction overview guide highlights highlight meets meet brings bring helps help'
+).split(' '));
+
+function stem(word) {
+  if (word.length > 4 && word.endsWith('ies')) return word.slice(0, -3) + 'y';
+  if (word.length > 5 && word.endsWith('ing')) return word.slice(0, -3).replace(/(.)\1$/, '$1');
+  if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2).replace(/(.)\1$/, '$1');
+  if (word.length > 3 && word.endsWith('es')) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('s')) return word.slice(0, -1);
+  return word;
+}
+
+function wordsOf(text) {
+  return text.match(/[A-Za-z][A-Za-z0-9'-]*/g) ?? [];
+}
+
+function sourceVocabulary(sourceText) {
+  const words = wordsOf(sourceText).map(w => w.toLowerCase().replace(/'s$/, ''));
+  const singles = new Set();
+  for (const word of words) {
+    for (const part of word.split('-')) { singles.add(part); singles.add(stem(part)); }
+  }
+  const phrases = new Set();
+  const parts = words.flatMap(w => w.split('-'));
+  for (let i = 0; i + 1 < parts.length; i++) phrases.add(parts[i] + '-' + parts[i + 1]);
+  for (const word of words) if (word.includes('-')) phrases.add(word);
+  const numbers = new Set(
+    sourceText.replace(/[A-Za-z][A-Za-z0-9-]{2,}/g, ' ')
+      .match(/\d+(?:[.,]\d+)?/g) ?? []);
+  return {singles, phrases, numbers};
+}
+
+function unverifiableTokens(text, source) {
+  const problems = [];
   const numbers = text.replace(/[A-Za-z][A-Za-z0-9-]{2,}/g, ' ')
     .match(/\d+(?:[.,]\d+)?/g) ?? [];
-  return new Set([...numbers, ...words]);
+  for (const number of numbers) {
+    if (!source.numbers.has(number)) problems.push(number);
+  }
+  for (const raw of wordsOf(text)) {
+    const word = raw.toLowerCase().replace(/'s$/, '');
+    if (/\d/.test(word)) { // alphanumeric code / model token
+      if (!source.singles.has(word) && !source.phrases.has(word)) problems.push(raw);
+      continue;
+    }
+    if (word.includes('-')) {
+      const parts = word.split('-');
+      if (source.phrases.has(word)
+        || parts.every(p => source.singles.has(p) || source.singles.has(stem(p))
+          || FUNCTION_WORDS.has(p) || FRAMING_WORDS.has(p))) continue;
+      problems.push(raw);
+      continue;
+    }
+    if (word.length < 3) continue;
+    if (source.singles.has(word) || source.singles.has(stem(word))) continue;
+    if (FUNCTION_WORDS.has(word) || FRAMING_WORDS.has(word)) continue;
+    problems.push(raw);
+  }
+  return problems;
 }
 
 export function verifySuggestions(suggestions, facts) {
   const sourceText = Object.values(facts)
     .map(f => f.value ?? '').join(' ');
-  const sourceTokens = new Set(
-    (sourceText.match(/[A-Za-z][A-Za-z0-9-]{2,}|\d+(?:[.,]\d+)?/g) ?? [])
-      .map(t => t.toLowerCase()));
+  const source = sourceVocabulary(sourceText);
   const problems = [];
   for (const field of FIELDS) {
     const suggestion = suggestions?.[field];
@@ -62,12 +135,14 @@ export function verifySuggestions(suggestions, facts) {
     for (const id of suggestion.used_fact_ids) {
       if (!(id in facts) || !facts[id].value) {
         problems.push(field + ': unknown fact id ' + id);
+      } else if (facts[id].verification === 'conflicting') {
+        // An UNRESOLVED conflicting fact may never be cited as the
+        // settled basis of a generated claim.
+        problems.push(field + ': conflicting fact id ' + id + ' is UNRESOLVED');
       }
     }
-    for (const token of factualTokens(suggestion.text)) {
-      if (!sourceTokens.has(token.toLowerCase())) {
-        problems.push(field + ': unverifiable factual token "' + token + '"');
-      }
+    for (const token of unverifiableTokens(suggestion.text, source)) {
+      problems.push(field + ': unverifiable factual token "' + token + '"');
     }
   }
   return problems;

@@ -84,7 +84,12 @@ export function createMockFetch() {
   return async (_url, options) => {
     const body = JSON.parse(options.body);
     const {facts} = JSON.parse(body.input[1].content);
-    const description = facts.description?.value ?? '';
+    // A correct model never cites an UNRESOLVED conflicting fact as
+    // settled: fall back to the non-conflicting product name instead.
+    const conflicted = facts.description?.verification === 'conflicting';
+    const description = conflicted
+      ? (facts.product_name?.value ?? '') : (facts.description?.value ?? '');
+    const descriptionIds = conflicted ? ['product_name'] : ['description'];
     const meta = facts.meta_description?.value ?? description;
     const title = facts.title?.value ?? facts.product_name?.value ?? '';
     return {
@@ -92,9 +97,9 @@ export function createMockFetch() {
       json: async () => ({
         output_text: JSON.stringify({
           title: {text: title, used_fact_ids: ['title']},
-          meta_description: {text: meta, used_fact_ids: [facts.meta_description?.value ? 'meta_description' : 'description']},
-          description: {text: description, used_fact_ids: ['description']},
-          geo_qa: [{question: 'What is it?', answer: description, used_fact_ids: ['description']}],
+          meta_description: {text: meta, used_fact_ids: [facts.meta_description?.value ? 'meta_description' : descriptionIds[0]]},
+          description: {text: description, used_fact_ids: descriptionIds},
+          geo_qa: [{question: 'What is it?', answer: description, used_fact_ids: descriptionIds}],
         }),
         usage: {input_tokens: 1000, output_tokens: 500},
       }),
