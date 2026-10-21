@@ -4,16 +4,18 @@ import {mkdtempSync, readFileSync, renameSync, symlinkSync, writeFileSync} from 
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFile} from 'node:child_process';
-import {BATCH_LIMITS, createBatchLedger, openBatchLedger} from './batch-authorization.mjs';
+import {BATCH_ENABLE_CONFIRMATION, BATCH_LIMITS, BATCH_RECONCILE_CONFIRMATION, createBatchLedger, enableBatchLedger, openBatchLedger, reconcileBatchLedger} from './batch-authorization.mjs';
 import {runTrial} from './run-phase3b-trial.mjs';
 
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const makeBatch = (overrides = {}) => {
+  const {enabled = true, ...createOverrides} = overrides;
   const dir = mkdtempSync(join(tmpdir(), 'phase3b-batch-'));
   const file = join(dir, 'batch.json');
-  const created = createBatchLedger({file, repoRoot, projectId: 'proj_test12345', ...overrides});
+  const created = createBatchLedger({file, repoRoot, projectId: 'proj_test12345', ...createOverrides});
+  if (enabled) enableBatchLedger({file, repoRoot, confirmation: BATCH_ENABLE_CONFIRMATION});
   return {file, created, ledger: openBatchLedger({file, repoRoot})};
 };
 const mockCredential = async () => 'mock-credential-not-real';
@@ -21,7 +23,9 @@ let nonce = 0;
 const confirmation = () => 'PHASE3B-LIVE-ONCE:batch-test-' + (++nonce) + '-abcdefghij';
 
 test('batch ledger persists scope, limits and never stores secrets', () => {
-  const {file, created} = makeBatch();
+  const {file, created} = makeBatch({enabled: false});
+  assert.equal(created.status, 'inactive');
+  assert.equal(created.owner_enabled, false);
   assert.equal(created.model, 'gpt-5-mini-2025-08-07');
   assert.equal(created.max_attempts, 6);
   assert.equal(created.budget_cap_usd, 0.10);
@@ -63,11 +67,10 @@ test('reservations are persistent, capped and settled across reopen', () => {
 
 test('expired, stopped and unknown-outcome batches fail closed', () => {
   const expired = makeBatch({expiresInHours: 1});
-  const raw = JSON.parse(readFileSync(expired.file, 'utf8'));
-  raw.expires_at = new Date(Date.now() - 1000).toISOString();
-  writeFileSync(expired.file + '.tmp', JSON.stringify(raw));
-  renameSync(expired.file + '.tmp', expired.file);
-  assert.throws(() => expired.ledger.reserveAttempt(), /BATCH_EXPIRED/);
+  const realNow = Date.now;
+  Date.now = () => realNow() + 2 * 3600_000;
+  try { assert.throws(() => expired.ledger.reserveAttempt(), /BATCH_EXPIRED/); }
+  finally { Date.now = realNow; }
 
   const stopped = makeBatch();
   stopped.ledger.stop('owner stop');
@@ -86,7 +89,9 @@ test('concurrent processes cannot reserve beyond the batch cap', async () => {
     import {openBatchLedger} from ${JSON.stringify(new URL('./batch-authorization.mjs', import.meta.url).href)};
     const ledger = openBatchLedger({file: ${JSON.stringify(file)}, repoRoot: ${JSON.stringify(repoRoot)}});
     let ok = 0;
-    for (let i = 0; i < 5; i++) { try { ledger.reserveAttempt(); ok++; } catch {} }
+    for (let i = 0; i < 5; i++) {
+      try { ledger.reserveAttempt({estimatedCostUsd: 0.0001}); ledger.settleRun({attemptCount: 1, knownCostDelta: 0.0001, reservedCostUsd: 0.0001}); ok++; } catch {}
+    }
     console.log(ok);
   `;
   const run = () => new Promise((resolve, reject) => {
@@ -167,6 +172,63 @@ test('batch budget cannot be widened by injection and stops before overspend', a
     fetchImpl: async () => { throw Error('must not run'); }}),
     /BATCH_BUDGET_EXCEEDS_BATCH_LIMIT/);
   assert.equal(wide.ledger.snapshot().attempts_used, 0);
+});
+
+test('creation alone authorizes nothing; enable is explicit and not repeatable', async () => {
+  const {file, ledger} = makeBatch({enabled: false});
+  let fetchCalls = 0; let credentialCalls = 0;
+  await assert.rejects(runTrial({
+    mode: 'live', projectId: 'proj_test12345', batchFile: file,
+    credentialProvider: async () => { credentialCalls++; return 'x'; },
+    fetchImpl: async () => { fetchCalls++; }}), /BATCH_NOT_ENABLED/);
+  assert.equal(fetchCalls, 0);
+  assert.equal(credentialCalls, 0);
+  assert.equal(ledger.snapshot().attempts_used, 0);
+
+  assert.throws(() => enableBatchLedger({file, repoRoot, confirmation: 'yes'}),
+    /BATCH_ENABLE_NOT_AUTHORIZED/);
+  enableBatchLedger({file, repoRoot, confirmation: BATCH_ENABLE_CONFIRMATION});
+  assert.throws(() => enableBatchLedger({file, repoRoot, confirmation: BATCH_ENABLE_CONFIRMATION}),
+    /BATCH_ALREADY_ENABLED/);
+});
+
+test('unsettled reservations block recovery until Owner reconciliation, which stays stopped', () => {
+  const {file, ledger} = makeBatch();
+  ledger.reserveAttempt({estimatedCostUsd: 0.001});
+  // Simulate a crash: no settleRun is ever called for this reserve.
+  const reopened = openBatchLedger({file, repoRoot});
+  assert.equal(reopened.snapshot().attempts_pending, 1);
+  assert.throws(() => reopened.validateFor({projectId: 'proj_test12345'}), /BATCH_SETTLEMENT_PENDING/);
+  assert.throws(() => reopened.reserveAttempt(), /BATCH_SETTLEMENT_PENDING/);
+  assert.throws(() => reopened.settleRun({attemptCount: 1}), /BATCH_SETTLEMENT_PENDING/);
+  assert.equal(reopened.snapshot().attempts_pending, 1);
+  // Reconciliation requires the Owner phrase, converts the unsettled
+  // attempt to unknown cost and never reactivates the batch.
+  assert.throws(() => reconcileBatchLedger({file, repoRoot, confirmation: 'yes'}),
+    /BATCH_RECONCILE_NOT_AUTHORIZED/);
+  const reconciled = reconcileBatchLedger({file, repoRoot, confirmation: BATCH_RECONCILE_CONFIRMATION});
+  assert.equal(reconciled.status, 'stopped_unknown_pending');
+  assert.equal(reconciled.unknown_cost_attempts, 1);
+  assert.equal(reconciled.attempts_pending, 0);
+  assert.throws(() => reopened.reserveAttempt(), /BATCH_NOT_ACTIVE/);
+});
+
+test('edited or copied-without-key ledgers are not valid authorization', () => {
+  const {file} = makeBatch();
+  const raw = JSON.parse(readFileSync(file, 'utf8'));
+  raw.attempts_used = 5;
+  raw.budget_cap_usd = 0.10;
+  writeFileSync(file + '.tmp', JSON.stringify(raw));
+  renameSync(file + '.tmp', file);
+  assert.throws(() => openBatchLedger({file, repoRoot}).snapshot(), /BATCH_LEDGER_TAMPERED/);
+
+  const copied = makeBatch();
+  const copyDir = mkdtempSync(join(tmpdir(), 'phase3b-batch-copy-'));
+  const copyFile = join(copyDir, 'batch.json');
+  writeFileSync(copyFile, readFileSync(copied.file, 'utf8'));
+  // The ledger alone, without its separate authorization key, fails.
+  assert.throws(() => openBatchLedger({file: copyFile, repoRoot}).snapshot(),
+    /BATCH_AUTH_KEY_MISSING/);
 });
 
 test('batch mode rejects project mismatch without consuming attempts', async () => {

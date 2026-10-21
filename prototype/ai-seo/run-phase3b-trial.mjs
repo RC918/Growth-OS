@@ -22,7 +22,7 @@ import {createOpenAiTransport, createTrialBudget, OPENAI_MODEL, TRIAL_TOKEN_CAPS
 import {buildSeoRequest} from './model-adapter.mjs';
 import {trustedFacts} from './ai-seo-pipeline.mjs';
 import {evaluateGeneration, validateFixtureBindings} from './quality-eval.mjs';
-import {createBatchLedger, openBatchLedger} from './batch-authorization.mjs';
+import {createBatchLedger, enableBatchLedger, openBatchLedger, reconcileBatchLedger} from './batch-authorization.mjs';
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
 
@@ -207,11 +207,25 @@ export async function runTrial({
         facts: known, market: language === 'en' ? 'US' : 'TW', language,
         fields: ['title', 'meta_description', 'description'],
       });
+      const batchAttemptsBefore = trialBudget.attempts.length;
+      const batchSpentBefore = trialBudget.spent();
+      const batchReservedBefore = reservedCostUsd;
+      const settleBatchRequest = (unknownOutcome) => {
+        if (!ledger) return;
+        ledger.settleRun({
+          attemptCount: trialBudget.attempts.length - batchAttemptsBefore,
+          knownCostDelta: trialBudget.spent() - batchSpentBefore,
+          reservedCostUsd: reservedCostUsd - batchReservedBefore,
+          unknownOutcome});
+      };
       let response;
       try {
         response = await transport({
           ...request, max_output_tokens: TRIAL_TOKEN_CAPS.outputPerRequest});
       } catch (error) {
+        settleBatchRequest(
+          trialBudget.attempts.slice(batchAttemptsBefore)
+            .some(a => a.outcome === 'UNKNOWN_OUTCOME'));
         // Fail closed, but preserve every completed result and the
         // safe diagnostics of the failed request in the summary.
         failure = {
@@ -233,6 +247,7 @@ export async function runTrial({
         });
         break outer;
       }
+      settleBatchRequest(false);
       const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
       results.push({case: testCase.id, language, status: evaluation.status,
         problems: evaluation.problems, unknown_facts: evaluation.unknown_facts,
@@ -254,13 +269,10 @@ export async function runTrial({
   const failed = results.some(r => r.status === 'FAIL_CLOSED');
   let batchState = null;
   if (ledger) {
-    const settled = ledger.settleRun({
-      attemptCount: trialBudget.attempts.length,
-      knownCostDelta: trialBudget.spent(),
-      reservedCostUsd,
-      unknownOutcome: trialBudget.attempts.some(a => a.outcome === 'UNKNOWN_OUTCOME'),
-      stopReason: stoppedByOwner ? 'owner stop switch activated' : null,
-    });
+    // Requests settle individually above; a crash between reserve and
+    // settle therefore leaves pending state that blocks later runs.
+    if (stoppedByOwner) ledger.stop('owner stop switch activated');
+    const settled = ledger.snapshot();
     batchState = {
       batch_id: settled.batch_id, status: settled.status,
       attempts_used: settled.attempts_used, max_attempts: settled.max_attempts,
@@ -330,6 +342,9 @@ export function parseCliArgs(argv) {
     language: get('--language'),
     batchFile: get('--batch-file'),
     createBatch: argv.includes('--create-batch'),
+    enableBatch: argv.includes('--enable-batch'),
+    reconcileBatch: argv.includes('--reconcile-batch'),
+    batchConfirmation: get('--confirm-batch'),
     stopBatch: argv.includes('--stop-batch'),
     batchHours,
     maxRequests,
@@ -342,16 +357,26 @@ if (isMain) {
   let cli;
   try {
     cli = parseCliArgs(process.argv.slice(2));
-    if (cli.createBatch || cli.stopBatch) {
+    if (cli.createBatch || cli.enableBatch || cli.reconcileBatch || cli.stopBatch) {
       if (!cli.batchFile) throw Error('BATCH_FILE_REQUIRED');
       if (cli.createBatch) {
         const created = createBatchLedger({
           file: cli.batchFile, repoRoot: REPO_ROOT,
           projectId: cli.projectId, expiresInHours: cli.batchHours});
-        console.log(JSON.stringify({status: 'BATCH_CREATED', batch_id: created.batch_id,
+        console.log(JSON.stringify({status: 'BATCH_CREATED_INACTIVE', batch_id: created.batch_id,
           project_id: created.project_id, model: created.model,
           max_attempts: created.max_attempts, budget_cap_usd: created.budget_cap_usd,
           expires_at: created.expires_at, batch_file: cli.batchFile}, null, 1));
+      } else if (cli.enableBatch) {
+        const enabled = enableBatchLedger({
+          file: cli.batchFile, repoRoot: REPO_ROOT, confirmation: cli.batchConfirmation});
+        console.log(JSON.stringify({status: 'BATCH_ENABLED', batch_id: enabled.batch_id,
+          batch_status: enabled.status, expires_at: enabled.expires_at}, null, 1));
+      } else if (cli.reconcileBatch) {
+        const reconciled = reconcileBatchLedger({
+          file: cli.batchFile, repoRoot: REPO_ROOT, confirmation: cli.batchConfirmation});
+        console.log(JSON.stringify({status: 'BATCH_RECONCILED_STOPPED', batch_id: reconciled.batch_id,
+          batch_status: reconciled.status, unknown_cost_attempts: reconciled.unknown_cost_attempts}, null, 1));
       } else {
         const stopped = openBatchLedger({file: cli.batchFile, repoRoot: REPO_ROOT})
           .stop('owner stop command');

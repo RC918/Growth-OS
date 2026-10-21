@@ -17,7 +17,7 @@
 
 import {existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {basename, dirname, resolve} from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {createHmac, randomBytes, randomUUID, timingSafeEqual} from 'node:crypto';
 import {OPENAI_MODEL} from './openai-live-gate.mjs';
 
 export const BATCH_LIMITS = Object.freeze({
@@ -69,6 +69,7 @@ function validateLedgerShape(data) {
   if (!Number.isFinite(Date.parse(data.expires_at))) fail('BATCH_LEDGER_INVALID: expires_at');
   if (!Number.isFinite(data.attempts_used) || data.attempts_used < 0) fail('BATCH_LEDGER_INVALID: attempts_used');
   if (!Number.isFinite(data.known_cost_usd) || data.known_cost_usd < 0) fail('BATCH_LEDGER_INVALID: known_cost_usd');
+  if (data.pending_run_id === undefined) data.pending_run_id = null;
   if (data.pending_cost_usd == null) data.pending_cost_usd = 0;
   if (!Number.isFinite(data.pending_cost_usd) || data.pending_cost_usd < 0) fail('BATCH_LEDGER_INVALID: pending_cost_usd');
   return data;
@@ -87,9 +88,62 @@ function readLedger(file) {
   return validateLedgerShape(data);
 }
 
-function writeLedgerAtomic(file, data) {
+export const BATCH_ENABLE_CONFIRMATION = 'ENABLE-PHASE3B-BATCH';
+export const BATCH_RECONCILE_CONFIRMATION = 'RECONCILED-PHASE3B-USAGE';
+
+function authKeyPath(file) { return file + '.auth-key'; }
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    return '{' + Object.keys(value).sort()
+      .map(key => JSON.stringify(key) + ':' + canonicalJson(value[key])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+function signLedger(data, authKey) {
+  const {ledger_signature: _ignored, ...unsigned} = data;
+  return createHmac('sha256', authKey).update(canonicalJson(unsigned)).digest('hex');
+}
+
+function loadAuthKey(file) {
+  const path = authKeyPath(file);
+  if (!existsSync(path)) return null;
+  const key = readFileSync(path);
+  if (key.length < 16) fail('BATCH_AUTH_KEY_INVALID: batch authorization key is too short');
+  return key;
+}
+
+function verifyLedgerIntegrity(file, data) {
+  const enabled = data.owner_enabled === true || data.status !== 'inactive';
+  if (!enabled) {
+    if (data.ledger_signature != null) fail('BATCH_LEDGER_TAMPERED: inactive batch carries a signature');
+    return null;
+  }
+  const key = loadAuthKey(file);
+  if (!key) fail('BATCH_AUTH_KEY_MISSING: enabled batch has no separate authorization key');
+  if (typeof data.ledger_signature !== 'string') fail('BATCH_LEDGER_TAMPERED: missing signature');
+  const expected = signLedger(data, key);
+  const actualBuffer = Buffer.from(data.ledger_signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length
+    || !timingSafeEqual(actualBuffer, expectedBuffer)) {
+    fail('BATCH_LEDGER_TAMPERED: signature does not verify');
+  }
+  return key;
+}
+
+function readVerifiedLedger(file) {
+  const data = readLedger(file);
+  const key = verifyLedgerIntegrity(file, data);
+  return {data, key};
+}
+
+function writeLedgerAtomic(file, data, authKey = null) {
   const dir = dirname(file);
   mkdirSync(dir, {recursive: true});
+  if (authKey) data.ledger_signature = signLedger(data, authKey);
   const tmp = file + '.tmp-' + process.pid + '-' + randomUUID();
   writeFileSync(tmp, JSON.stringify(data, null, 1) + '\n', {mode: 0o600});
   renameSync(tmp, file);
@@ -149,23 +203,81 @@ export function createBatchLedger({file, repoRoot, projectId, expiresInHours = 2
     attempts_pending: 0,
     known_cost_usd: 0,
     pending_cost_usd: 0,
+    pending_run_id: null,
     unknown_cost_attempts: 0,
-    status: 'active',
+    status: 'inactive',
     stop_reason: null,
-    owner_enabled: true,
-    enabled_by: 'owner_local_create_command',
+    owner_enabled: false,
+    enabled_by: null,
+    ledger_signature: null,
   };
   writeLedgerAtomic(target, data);
   return data;
 }
 
+export function enableBatchLedger({file, repoRoot, confirmation} = {}) {
+  const target = assertBatchFileOutsideRepo(file, repoRoot);
+  if (confirmation !== BATCH_ENABLE_CONFIRMATION) {
+    fail('BATCH_ENABLE_NOT_AUTHORIZED: Owner explicit batch enable confirmation required');
+  }
+  return withLedgerLock(target, () => {
+    const {data} = readVerifiedLedger(target);
+    if (data.owner_enabled === true || data.status === 'active') fail('BATCH_ALREADY_ENABLED');
+    if (data.status !== 'inactive') fail('BATCH_NOT_ACTIVE: status is ' + data.status);
+    if (Date.now() > Date.parse(data.expires_at)) fail('BATCH_EXPIRED: batch authorization has expired');
+    const keyPath = authKeyPath(target);
+    if (existsSync(keyPath)) fail('BATCH_AUTH_KEY_EXISTS: refusing to replace an existing authorization key');
+    const authKey = randomBytes(32);
+    writeFileSync(keyPath, authKey, {mode: 0o600, flag: 'wx'});
+    data.owner_enabled = true;
+    data.status = 'active';
+    data.enabled_by = 'owner_local_enable_command';
+    data.enabled_at = new Date().toISOString();
+    writeLedgerAtomic(target, data, authKey);
+    return data;
+  });
+}
+
+export function reconcileBatchLedger({file, repoRoot, confirmation} = {}) {
+  const target = assertBatchFileOutsideRepo(file, repoRoot);
+  if (confirmation !== BATCH_RECONCILE_CONFIRMATION) {
+    fail('BATCH_RECONCILE_NOT_AUTHORIZED: Owner usage reconciliation confirmation required');
+  }
+  return withLedgerLock(target, () => {
+    const {data, key} = readVerifiedLedger(target);
+    // Reconciliation never reactivates a batch and never clears an
+    // UNKNOWN_OUTCOME: unsettled attempts become unknown-cost and
+    // the batch remains stopped for a fresh Owner decision.
+    if (data.attempts_pending > 0) data.unknown_cost_attempts += data.attempts_pending;
+    data.attempts_pending = 0;
+    data.pending_cost_usd = 0;
+    data.status = 'stopped_unknown_pending';
+    data.stop_reason = 'Reconciled by Owner: unsettled attempts treated as unknown cost; batch remains stopped';
+    writeLedgerAtomic(target, data, key);
+    return data;
+  });
+}
+
 export function openBatchLedger({file, repoRoot} = {}) {
   const target = assertBatchFileOutsideRepo(file, repoRoot);
-  const snapshot = () => readLedger(target);
+  const instanceRunId = randomUUID();
+  const snapshot = () => readVerifiedLedger(target).data;
+  const assertUsableForReserve = (data, runId) => {
+    if (data.owner_enabled !== true) fail('BATCH_NOT_ENABLED: owner has not enabled this batch');
+    if (data.status !== 'active' && data.status !== 'exhausted') fail('BATCH_NOT_ACTIVE: status is ' + data.status);
+    if (Date.now() > Date.parse(data.expires_at)) fail('BATCH_EXPIRED: batch authorization has expired');
+    if ((data.attempts_pending > 0 || data.pending_cost_usd > 0) && data.pending_run_id !== runId) {
+      fail('BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden');
+    }
+    return data;
+  };
   const assertUsable = (data) => {
     if (data.owner_enabled !== true) fail('BATCH_NOT_ENABLED: owner has not enabled this batch');
     if (data.status !== 'active') fail('BATCH_NOT_ACTIVE: status is ' + data.status);
     if (Date.now() > Date.parse(data.expires_at)) fail('BATCH_EXPIRED: batch authorization has expired');
+    if (data.attempts_pending > 0 || data.pending_cost_usd > 0) {
+      fail('BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden');
+    }
     if (data.project_id == null) fail('BATCH_LEDGER_INVALID: project_id');
     return data;
   };
@@ -181,9 +293,10 @@ export function openBatchLedger({file, repoRoot} = {}) {
       if (data.known_cost_usd + data.pending_cost_usd >= data.budget_cap_usd) fail('BATCH_EXHAUSTED: budget cap reached');
       return data;
     },
-    reserveAttempt({estimatedCostUsd = 0} = {}) {
+    reserveAttempt({estimatedCostUsd = 0, runId = instanceRunId} = {}) {
       return withLedgerLock(target, () => {
-        const data = assertUsable(readLedger(target));
+        const {data, key} = readVerifiedLedger(target);
+        assertUsableForReserve(data, runId);
         if (data.attempts_used >= data.max_attempts) fail('BATCH_EXHAUSTED: attempt cap reached');
         const estimate = Number.isFinite(estimatedCostUsd) && estimatedCostUsd > 0 ? estimatedCostUsd : 0;
         if (data.known_cost_usd + data.pending_cost_usd + estimate > data.budget_cap_usd) {
@@ -191,37 +304,19 @@ export function openBatchLedger({file, repoRoot} = {}) {
         }
         data.attempts_used += 1;
         data.attempts_pending += 1;
+        data.pending_run_id = runId;
         data.pending_cost_usd = Math.round((data.pending_cost_usd + estimate) * 1e10) / 1e10;
         if (data.attempts_used >= data.max_attempts) data.status = 'exhausted';
-        writeLedgerAtomic(target, data);
+        writeLedgerAtomic(target, data, key);
         return data.attempts_used;
-      });
-    },
-    settle({knownCostDelta = 0, unknownOutcome = false, stopReason = null} = {}) {
-      return withLedgerLock(target, () => {
-        const data = readLedger(target);
-        data.attempts_pending = Math.max(0, data.attempts_pending - 1);
-        if (Number.isFinite(knownCostDelta) && knownCostDelta > 0) {
-          data.known_cost_usd = Math.round((data.known_cost_usd + knownCostDelta) * 1e10) / 1e10;
-        }
-        if (unknownOutcome) {
-          data.unknown_cost_attempts += 1;
-          data.status = 'stopped_unknown_pending';
-          data.stop_reason = 'UNKNOWN_OUTCOME: reconcile vendor usage before any new batch';
-        } else if (stopReason) {
-          data.status = 'stopped';
-          data.stop_reason = String(stopReason).slice(0, 128);
-        } else if (data.status === 'active'
-          && (data.attempts_used >= data.max_attempts || data.known_cost_usd >= data.budget_cap_usd)) {
-          data.status = 'exhausted';
-        }
-        writeLedgerAtomic(target, data);
-        return data;
       });
     },
     settleRun({attemptCount = 0, knownCostDelta = 0, reservedCostUsd = 0, unknownOutcome = false, stopReason = null} = {}) {
       return withLedgerLock(target, () => {
-        const data = readLedger(target);
+        const {data, key} = readVerifiedLedger(target);
+        if (data.attempts_pending > 0 && data.pending_run_id !== instanceRunId) {
+          fail('BATCH_SETTLEMENT_PENDING: only the reserving process may settle; recovery requires Owner reconciliation');
+        }
         data.attempts_pending = Math.max(0, data.attempts_pending - attemptCount);
         if (Number.isFinite(reservedCostUsd) && reservedCostUsd > 0) {
           data.pending_cost_usd = Math.max(0,
@@ -241,16 +336,17 @@ export function openBatchLedger({file, repoRoot} = {}) {
           && (data.attempts_used >= data.max_attempts || data.known_cost_usd >= data.budget_cap_usd)) {
           data.status = 'exhausted';
         }
-        writeLedgerAtomic(target, data);
+        if (data.attempts_pending === 0) data.pending_run_id = null;
+        writeLedgerAtomic(target, data, key);
         return data;
       });
     },
     stop(reason = 'owner stop') {
       return withLedgerLock(target, () => {
-        const data = readLedger(target);
+        const {data, key} = readVerifiedLedger(target);
         data.status = 'stopped';
         data.stop_reason = String(reason).slice(0, 128);
-        writeLedgerAtomic(target, data);
+        writeLedgerAtomic(target, data, key);
         return data;
       });
     },

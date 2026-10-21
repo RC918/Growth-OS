@@ -263,6 +263,11 @@ test('CLI parsing rejects invalid request caps and defaults to mock', () => {
   assert.equal(single.caseId, 'landyachtz-the-clark');
   assert.equal(single.language, 'zh-TW');
   assert.equal(single.maxRequests, 1);
+  const batch = parseCliArgs(['--enable-batch', '--batch-file=/tmp/isolated/batch.json',
+    '--confirm-batch=ENABLE-PHASE3B-BATCH']);
+  assert.equal(batch.enableBatch, true);
+  assert.equal(batch.createBatch, false);
+  assert.equal(batch.batchConfirmation, 'ENABLE-PHASE3B-BATCH');
 });
 
 test('missing credential provider is refused before any request', async () => {
