@@ -18,7 +18,7 @@
 import {readFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {createOpenAiTransport, createTrialBudget, OPENAI_MODEL} from './openai-live-gate.mjs';
+import {createOpenAiTransport, createTrialBudget, OPENAI_MODEL, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
 import {buildSeoRequest} from './model-adapter.mjs';
 import {trustedFacts} from './ai-seo-pipeline.mjs';
 import {evaluateGeneration, validateFixtureBindings} from './quality-eval.mjs';
@@ -146,7 +146,8 @@ export async function runTrial({
       let response;
       try {
         response = await transport({
-          ...request, estimated_input_tokens: 1200, max_output_tokens: 800});
+          ...request, estimated_input_tokens: 1200,
+          max_output_tokens: TRIAL_TOKEN_CAPS.outputPerRequest});
       } catch (error) {
         // Preserve the safe attempt ledger and API diagnostics on the
         // thrown error so a failed run is never recorded as 0 attempts.
@@ -181,6 +182,7 @@ export async function runTrial({
     requests: trialBudget.entries.length,
     total_cost_usd: trialBudget.spent(),
     budget_cap_usd: trialBudget.cap,
+    token_caps: TRIAL_TOKEN_CAPS,
     stopped: trialBudget.stopped,
     live_enabled_after_run: false,
     authorization_consumed: mode === 'live',

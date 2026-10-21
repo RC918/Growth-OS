@@ -57,6 +57,7 @@ test('offline live path uses injected fetch, audits without secrets, then auto-d
     },
   });
   assert.equal(summary.requests, 6);
+  assert.equal(summary.token_caps.outputPerRequest, 3000);
   assert.equal(seenUrl, 'https://api.openai.com/v1/responses');
   assert.equal(seenAuth, 'Bearer ' + 'fake-secret-for-live-test');
   assert.equal(summary.live_enabled_after_run, false);

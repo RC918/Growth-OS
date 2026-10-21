@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAiTransport, createTrialBudget, estimateCost, parseResponsesSuggestions} from './openai-live-gate.mjs';
+import {createOpenAiTransport, createTrialBudget, estimateCost, parseResponsesSuggestions, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
 
 const okResponse = (cost = {}) => ({
   ok: true, status: 200, headers: {get: () => null},
@@ -30,10 +30,10 @@ test('trial budget enforces request, token and spend caps', async () => {
   const transport = createOpenAiTransport({
     enabled: true, credentialProvider: () => 'test-key-not-real',
     fetchImpl: async () => okResponse(), budget});
-  const out = await transport({instructions: 'x', facts: {}, market: 'TW', language: 'zh-TW'});
+  const out = await transport({instructions: 'x', facts: {}, market: 'TW', language: 'zh-TW', max_output_tokens: 800});
   assert.equal(out.usage.cost, estimateCost({inputTokens: 1000, outputTokens: 500}));
   await assert.rejects(
-    transport({instructions: 'x', facts: {}, market: 'TW', language: 'zh-TW'}),
+    transport({instructions: 'x', facts: {}, market: 'TW', language: 'zh-TW', max_output_tokens: 800}),
     /TRIAL_REQUEST_CAP|TRIAL_BUDGET_CAP/);
   const tokenBudget = createTrialBudget({});
   assert.throws(() => tokenBudget.preflight({inputTokens: 99999, outputTokens: 10}),
@@ -199,6 +199,40 @@ test('incomplete, refusal, malformed and missing output fail safely but keep HTT
     assert.equal(budget.attempts[0].outcome, 'parse_failed');
     assert.ok(error.usage.cost > 0);
   }
+});
+
+test('output token cap is synchronized between request, gate and cost preflight', async () => {
+  assert.equal(TRIAL_TOKEN_CAPS.outputPerRequest, 3000);
+  assert.ok(Math.abs(estimateCost({inputTokens: 1200, outputTokens: 3000}) - 0.0063) < 1e-9);
+
+  // A response using more than the old 1000-token gate but within the
+  // new cap now succeeds, and the wire request carries the same cap.
+  let wireBody;
+  const budget = createTrialBudget({});
+  const transport = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real', budget,
+    fetchImpl: async (_url, options) => {
+      wireBody = JSON.parse(options.body);
+      return nativeResponse({
+        id: 'resp_big', status: 'completed',
+        output: [{type: 'message', content: [{type: 'output_text', text: suggestionJson}]}],
+        usage: {input_tokens: 1200, output_tokens: 2400}});
+    }});
+  const out = await transport({instructions: 'x', facts: {}});
+  assert.equal(wireBody.max_output_tokens, 3000);
+  assert.equal(out.usage.output_tokens, 2400);
+  assert.equal(out.usage.cost, estimateCost({inputTokens: 1200, outputTokens: 2400}));
+
+  // Above the shared cap the gate refuses before any HTTP send.
+  let calls = 0;
+  const capped = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real',
+    budget: createTrialBudget({}),
+    fetchImpl: async () => { calls++; return nativeResponse({}); }});
+  await assert.rejects(
+    capped({instructions: 'x', facts: {}, max_output_tokens: 3001}),
+    /TRIAL_OUTPUT_TOKEN_CAP/);
+  assert.equal(calls, 0);
 });
 
 test('non-completed status and null suggestion fields fail explicitly', () => {

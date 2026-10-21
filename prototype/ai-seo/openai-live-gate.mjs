@@ -28,6 +28,19 @@ export const OPENAI_MODEL = {
   checked: '2026-10-20',
 };
 
+// Per-request token caps shared by the API request and the budget
+// gate, so the two can never drift apart. GPT-5 reasoning tokens are
+// billed and counted as output tokens: the previous 800-token output
+// request ended incomplete (max_output_tokens) on a real call before
+// the strict JSON suggestions were finished. 3000 leaves room for
+// reasoning plus the visible JSON (a few hundred tokens), while the
+// preflight worst case stays at 1200 in / 3000 out = US$0.0063 per
+// request, far below the US$5 trial cap even at 12 requests.
+export const TRIAL_TOKEN_CAPS = Object.freeze({
+  inputPerRequest: 2000,
+  outputPerRequest: 3000,
+});
+
 export function estimateCost({inputTokens = 0, outputTokens = 0} = {}) {
   return (inputTokens * OPENAI_MODEL.inputPerMillion
     + outputTokens * OPENAI_MODEL.outputPerMillion) / 1_000_000;
@@ -72,8 +85,8 @@ export function makeApiError(message, fields = {}) {
 export function createTrialBudget({
   trialCapUsd = 5,
   maxRequests = 12,
-  maxInputTokensPerRequest = 2000,
-  maxOutputTokensPerRequest = 1000,
+  maxInputTokensPerRequest = TRIAL_TOKEN_CAPS.inputPerRequest,
+  maxOutputTokensPerRequest = TRIAL_TOKEN_CAPS.outputPerRequest,
 } = {}) {
   const entries = [];
   const attempts = [];
@@ -227,7 +240,7 @@ export function createOpenAiTransport({
     if (!budget) throw Error('TRIAL_BUDGET_REQUIRED');
 
     const inputTokens = request.estimated_input_tokens ?? 1200;
-    const outputTokens = request.max_output_tokens ?? 800;
+    const outputTokens = request.max_output_tokens ?? TRIAL_TOKEN_CAPS.outputPerRequest;
     if (typeof budget.recordAttempt !== 'function' || typeof budget.updateAttempt !== 'function') {
       throw Error('TRIAL_ATTEMPT_LEDGER_REQUIRED');
     }
