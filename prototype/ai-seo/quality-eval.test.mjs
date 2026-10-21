@@ -111,4 +111,23 @@ test('hyphenation and function words are not new facts, unsupported claims still
   assert.equal(bad.status, 'FAIL_CLOSED');
   assert.ok(bad.problems.some(p => p.includes('carbon')));
   assert.ok(bad.problems.some(p => p.includes('30')));
+
+  // Non-adjacent parts do not establish a hyphenated compound, and
+  // a short-unit swap on a sourced number still fails.
+  const swapped = structuredClone(faithful);
+  swapped.description = {text: 'The Clark is a 40.2 cm long skateboard.', used_fact_ids: ['description']};
+  assert.equal(evaluateGeneration({report, suggestions: swapped}).status, 'FAIL_CLOSED');
+});
+
+test('conflict values fail regardless of punctuation or cited fact id', () => {
+  const report = byId['conflicting-facts-negative'].report;
+  const settled = {
+    title: {text: 'Conflicting Board', used_fact_ids: ['product_name']},
+    meta_description: {text: 'Conflicting Board', used_fact_ids: ['product_name']},
+    description: {text: 'Conflicting Board. Maple complete', used_fact_ids: ['product_name']},
+    geo_qa: [{question: 'What is it?', answer: 'Conflicting Board', used_fact_ids: ['product_name']}],
+  };
+  const result = evaluateGeneration({report, suggestions: settled});
+  assert.equal(result.status, 'FAIL_CLOSED');
+  assert.ok(result.problems.some(p => p.includes('UNRESOLVED conflicting value')));
 });

@@ -78,11 +78,14 @@ export function evaluateGeneration({report, suggestions}) {
     const fieldTexts = Object.entries(suggestions ?? {})
       .filter(([, v]) => v && typeof v.text === 'string')
       .concat((suggestions?.geo_qa ?? []).map((qa, i) => ['geo_qa[' + i + ']', {text: qa?.answer ?? ''}]));
+    const tokenSeq = (s) => String(s).toLowerCase().match(/[a-z0-9]+(?:[.,][0-9]+)?/g) ?? [];
+    const containsSeq = (haystack, needle) => needle.length > 0
+      && haystack.some((_, i) => needle.every((t, j) => haystack[i + j] === t));
     for (const value of conflict.values ?? []) {
-      const needle = String(value).toLowerCase().replace(/\s+/g, ' ').trim();
-      if (!needle) continue;
+      const needle = tokenSeq(value);
+      if (needle.length === 0) continue;
       for (const [field, v] of fieldTexts) {
-        if (v.text.toLowerCase().replace(/\s+/g, ' ').includes(needle)) {
+        if (containsSeq(tokenSeq(v.text), needle)) {
           problems.push(field + ': presents UNRESOLVED conflicting value "'
             + value + '" for ' + conflict.fact + ' as settled');
         }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyUserEdits, createCostLedger, runAiSeoPipeline} from './ai-seo-pipeline.mjs';
+import {applyUserEdits, createCostLedger, runAiSeoPipeline, verifySuggestions} from './ai-seo-pipeline.mjs';
 
 const report = {
   page_type: 'product',
@@ -39,6 +39,21 @@ test('zh-TW and en pipelines produce labelled suggestions with citations and cos
     assert.equal(out.cost.input_tokens, 120);
     assert.equal(ledger.spent(), 0.002);
   }
+});
+
+test('hyphenated compounds require an adjacent source phrase', () => {
+  const facts = {
+    product_name: {value: 'Twin board built for street. Riders kick hard.', citations: ['s1'], verification: 'source_asserted'},
+    title: {value: 'Twin board', citations: ['s1'], verification: 'source_asserted'},
+    meta_description: {value: null, citations: [], verification: 'UNKNOWN'},
+    description: {value: 'Twin board built for street. Riders kick hard.', citations: ['s1'], verification: 'source_asserted'},
+  };
+  const problems = verifySuggestions({
+    title: {text: 'Twin-Kick Board', used_fact_ids: ['product_name']},
+    meta_description: {text: 'Twin board', used_fact_ids: ['product_name']},
+    description: {text: 'Twin board', used_fact_ids: ['description']},
+  }, facts);
+  assert.ok(problems.some(p => p.includes('Twin-Kick')));
 });
 
 test('model inventing a price fails closed', async () => {

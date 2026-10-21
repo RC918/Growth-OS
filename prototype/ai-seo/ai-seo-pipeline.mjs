@@ -102,14 +102,21 @@ function unverifiableTokens(text, source) {
       continue;
     }
     if (word.includes('-')) {
-      const parts = word.split('-');
-      if (source.phrases.has(word)
-        || parts.every(p => source.singles.has(p) || source.singles.has(stem(p))
-          || FUNCTION_WORDS.has(p) || FRAMING_WORDS.has(p))) continue;
+      // A hyphenated compound is equivalent to a source phrase only
+      // when that exact phrase occurs adjacently in the source (or
+      // as the same compound); parts scattered across the source do
+      // not establish the compound claim.
+      if (source.phrases.has(word)) continue;
       problems.push(raw);
       continue;
     }
-    if (word.length < 3) continue;
+    if (word.length < 3) {
+      // Short unit tokens are concrete specifications, not syntax:
+      // a unit swap (inch -> cm, inch -> kg) must fail closed.
+      const UNITS = ['cm', 'mm', 'kg', 'km', 'ml', 'lb', 'oz', 'ft', 'in', 'mi', 'g', 'l'];
+      if (UNITS.includes(word) && !source.singles.has(word)) problems.push(raw);
+      continue;
+    }
     if (source.singles.has(word) || source.singles.has(stem(word))) continue;
     if (FUNCTION_WORDS.has(word) || FRAMING_WORDS.has(word)) continue;
     problems.push(raw);
