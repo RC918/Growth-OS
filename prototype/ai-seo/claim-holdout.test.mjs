@@ -23,19 +23,19 @@ test('holdout has 30 independent cases in three balanced groups', () => {
 });
 
 test('holdout sentences are disjoint from the 13 benchmark sentences', () => {
-  const normalize = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
-  const benchTexts = benchmark.entries.map(e => normalize(e.text));
+  // Punctuation-insensitive token comparison: changing only dashes
+  // or full stops does not make a sentence independent.
+  const tokens = (s) => new Set(s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .split(/\s+/).filter(Boolean));
+  const benchTexts = benchmark.entries.map(e => tokens(e.text));
   for (const entry of holdout.entries) {
-    const text = normalize(entry.text);
+    const mine = tokens(entry.text);
     for (const bench of benchTexts) {
-      assert.notEqual(text, bench, entry.id + ' duplicates a benchmark sentence');
-      // A shared product name alone is not a reused sentence; only
-      // substantial containment counts as duplication.
-      const shorter = text.length < bench.length ? text : bench;
-      if (shorter.length >= 25) {
-        assert.ok(!text.includes(bench) && !bench.includes(text),
-          entry.id + ' contains or is contained by a benchmark sentence');
-      }
+      const intersection = [...mine].filter(w => bench.has(w)).length;
+      const union = new Set([...mine, ...bench]).size;
+      const jaccard = union === 0 ? 0 : intersection / union;
+      assert.ok(jaccard < 0.85,
+        entry.id + ' is a punctuation-level duplicate of a benchmark sentence (jaccard ' + jaccard.toFixed(2) + ')');
     }
   }
 });
