@@ -89,6 +89,7 @@ function sourceNumbers(entries) {
       const before = fact.value[m.index - 1] ?? '';
       if (/[A-Za-z]/.test(before)) continue;
       out.push({factId, value: Number(m[1].replace(',', '.')),
+        decimals: (m[1].split('.')[1] ?? '').length,
         unit: m[2] ? UNIT_ALIASES[m[2]] : null, evidence: fact.value});
     }
   }
@@ -103,7 +104,14 @@ function factTrace(factId, facts) {
 function matchClaim(claim, facts, declaredIds) {
   const valued = Object.entries(facts).filter(([, f]) => f.value);
   const conflicting = valued.filter(([, f]) => f.verification === 'conflicting');
-  const usable = valued.filter(([, f]) => f.verification !== 'conflicting');
+  // Only positively trusted facts are evidence: UNKNOWN, conflicting
+  // or unrecognised verification states can never support a claim.
+  const usable = valued.filter(([, f]) => f.verification === 'source_asserted'
+    || f.verification === 'verified');
+  if (claim.negated) {
+    return {status: 'CONTRADICTED', via: 'negated_claim',
+      fact_id: null, citation_ids: [], evidence: null};
+  }
   const inFacts = (needle, entries) => {
     for (const [factId, fact] of entries) {
       const words = latinWords(fact.value).map(w => stem(w.replace(/-.*$/, '')));
@@ -119,9 +127,13 @@ function matchClaim(claim, facts, declaredIds) {
       if (source.unit === claim.unit && source.value === claim.value) {
         return {status: 'SUPPORTED', ...factTrace(source.factId, facts)};
       }
-      if (source.unit && claim.unit && TO_CM[source.unit] && TO_CM[claim.unit]) {
+      if (source.unit && claim.unit && source.unit !== claim.unit
+        && TO_CM[source.unit] && TO_CM[claim.unit]) {
+        // Only rounding equivalence at the source's stated
+        // precision counts as the same measurement.
         const converted = (claim.value * TO_CM[claim.unit]) / TO_CM[source.unit];
-        if (Math.abs(converted - source.value) / source.value < 0.01) {
+        const tolerance = 0.5 * 10 ** -(source.decimals ?? 0);
+        if (Math.abs(converted - source.value) <= tolerance) {
           return {status: 'SUPPORTED', via: 'unit_conversion', ...factTrace(source.factId, facts)};
         }
       }
@@ -134,12 +146,9 @@ function matchClaim(claim, facts, declaredIds) {
   if (claim.type === 'general_rewrite') {
     const declared = declaredIds.find(id => facts[id]?.value && facts[id].verification !== 'conflicting');
     if (!declared) return {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
-    // Latin general copy is bounded by the token verifier class;
-    // CJK paraphrase cannot be token-verified, so it is routed to
-    // human review rather than auto-passed.
-    return /[\u4e00-\u9fff]/.test(claim.span)
-      ? {status: 'REVIEW', via: 'general_rewrite_needs_human_read', ...factTrace(declared, facts)}
-      : {status: 'SUPPORTED', via: 'declared_fact_scope', ...factTrace(declared, facts)};
+    // General rewrite copy is never auto-supported on declaration
+    // alone: it always needs a human read in shadow mode.
+    return {status: 'REVIEW', via: 'general_rewrite_needs_human_read', ...factTrace(declared, facts)};
   }
   if (claim.type === 'purpose' && claim.target) {
     const targetWords = claim.target.split(/[^A-Za-z]+/).filter(w => w.length >= 3 && !FUNCTION_WORDS.has(w));
@@ -150,9 +159,16 @@ function matchClaim(claim, facts, declaredIds) {
         ? {status: 'REVIEW', via: 'cjk_purpose_needs_human_read', ...factTrace(first[0], facts)}
         : {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
     }
+    const targetSeq = targetWords.map(w => stem(w));
     for (const [factId, fact] of usable) {
-      const words = latinWords(fact.value).map(w => stem(w.replace(/-.*$/, '')));
-      if (targetWords.every(w => words.includes(stem(w)))) return {status: 'SUPPORTED', ...factTrace(factId, facts)};
+      // The purpose target must occur as an adjacent content-word
+      // sequence in the evidence (function words may intervene),
+      // not as words scattered across the text.
+      const contentSeq = latinWords(fact.value)
+        .filter(w => !FUNCTION_WORDS.has(w)).map(w => stem(w.replace(/-.*$/, '')));
+      const found = contentSeq.some((_, i) =>
+        targetSeq.every((w, j) => contentSeq[i + j] === w));
+      if (found) return {status: 'SUPPORTED', ...factTrace(factId, facts)};
     }
     return {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
   }
@@ -225,11 +241,18 @@ export function runClaimBenchmark({benchmark, casesById}) {
     rows.push({
       id: entry.id, categories: entry.categories, gold: entry.expected_decision,
       baseline, prototype: prototype.decision,
-      citation_coverage: prototype.claims.filter(c => c.status === 'SUPPORTED')
-        .every(c => (c.citation_ids ?? []).length > 0),
+      citation_coverage: prototype.claims.some(c => c.status === 'SUPPORTED')
+        ? prototype.claims.filter(c => c.status === 'SUPPORTED')
+          .every(c => (c.citation_ids ?? []).length > 0)
+        : null,
       claims: prototype.claims,
     });
   }
+  const exact = {
+    baseline: rows.filter(r => r.baseline === r.gold
+      || (r.gold === 'PASS_WITH_REVIEW' && r.baseline === 'PASS')).length,
+    prototype: rows.filter(r => r.prototype === r.gold).length,
+  };
   const tally = (key) => ({
     false_positive: rows.filter(r => r[key] !== 'FAIL_CLOSED' && r.gold === 'FAIL_CLOSED').length,
     false_negative: rows.filter(r => r[key] === 'FAIL_CLOSED' && r.gold !== 'FAIL_CLOSED').length,
@@ -243,6 +266,7 @@ export function runClaimBenchmark({benchmark, casesById}) {
       entries: rows.length,
       baseline: tally('baseline'),
       prototype: tally('prototype'),
+      exact_decision: exact,
       citation_coverage: supported.length === 0 ? 1
         : supported.filter(c => (c.citation_ids ?? []).length > 0).length / supported.length,
       review_rate: allClaims.length === 0 ? 0

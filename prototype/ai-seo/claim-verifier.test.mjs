@@ -52,6 +52,7 @@ test('benchmark matrix: prototype closes known baseline errors without new ones'
   assert.equal(byId['cb-negation-contradicted'].prototype, 'FAIL_CLOSED');
   assert.equal(result.metrics.prototype.false_positive, 0);
   assert.equal(result.metrics.prototype.false_negative, 0);
+  assert.equal(result.metrics.exact_decision.prototype, result.metrics.entries);
   assert.ok(result.metrics.baseline.false_positive
     + result.metrics.baseline.false_negative > 0);
   assert.ok(result.metrics.review_rate > 0);
@@ -69,6 +70,22 @@ test('prototype never auto-passes unsupported, contradicted or UNKNOWN claims', 
     description: {text: 'The Clark longboard.', used_fact_ids: ['meta_description']}},
     facts: report});
   assert.equal(unknown.decision, 'FAIL_CLOSED');
+});
+
+test('reviewer counterexamples can never auto-pass', () => {
+  const report = casesById['landyachtz-the-clark'].report;
+  const decisionFor = (text, facts = report, ids = ['description']) =>
+    verifyClaims({suggestions: {description: {text, used_fact_ids: ids}}, facts}).decision;
+  assert.equal(decisionFor('The Clark is not a 40.2 inch skateboard.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark is a 40.6 inch skateboard.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark is a 102.9 cm skateboard.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark levitates and teleports riders uphill effortlessly.'), 'PASS_WITH_REVIEW');
+  assert.equal(decisionFor('The Clark is designed for inspiring limits.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark is not designed for skateparks.'), 'FAIL_CLOSED');
+  const untrusted = structuredClone(report);
+  untrusted.facts.description = {value: 'The Clark is a titanium board.',
+    citations: ['s4'], verification: 'UNKNOWN'};
+  assert.equal(decisionFor('The Clark is a titanium board.', untrusted), 'FAIL_CLOSED');
 });
 
 test('baseline verifier is untouched and still gates identically', () => {
