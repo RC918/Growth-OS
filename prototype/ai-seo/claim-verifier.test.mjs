@@ -108,6 +108,15 @@ test('spaced compounds and morphological negation cannot smuggle contradictions'
   assert.equal(decisionFor('The Clark is unsuitable for skateparks.'), 'FAIL_CLOSED');
 });
 
+test('whitespace variants and prefixed-adjective negations cannot smuggle contradictions', () => {
+  const report = casesById['landyachtz-the-clark'].report;
+  const decisionFor = (text) =>
+    verifyClaims({suggestions: {description: {text, used_fact_ids: ['description']}}, facts: report}).decision;
+  assert.equal(decisionFor('The Clark is a twin-kick board. The Clark is not a twin  kick board.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark is unsuited for skateparks.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark is inappropriate for skateparks.'), 'FAIL_CLOSED');
+});
+
 test('baseline verifier is untouched and still gates identically', () => {
   // The prototype must not have loosened the formal verifier: an
   // invented token still fails the Baseline exactly as before.

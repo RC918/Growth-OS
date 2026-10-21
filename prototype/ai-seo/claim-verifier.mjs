@@ -92,18 +92,30 @@ export function extractClaims(text, {field = 'description'} = {}) {
   // The spaced spellings are the same specification claim as the
   // hyphenated ones, extracted per occurrence so a later negated
   // occurrence is judged on its own sentence.
-  for (const m of text.matchAll(/\b(?:twin|double) kick\b/gi)) {
+  for (const m of text.matchAll(/\b(?:twin|double)\s+kick\b/gi)) {
     push('specification', m[0].toLowerCase(),
-      {compound: m[0].toLowerCase().replace(' ', '-')}, m.index);
+      {compound: m[0].toLowerCase().replace(/\s+/, '-')}, m.index);
   }
   // Morphological negation: un-/in-/non- forms of claim adjectives
   // (unstable, unsuitable) are negated claims, not new vocabulary.
   for (const m of text.matchAll(/\b(?:un|in|im|il|ir|non)([a-z]{3,})\b/gi)) {
     const base = stem(m[1].toLowerCase());
     if (PERFORMANCE.has(base) || MATERIAL.has(base) || SPEC_NOUN.has(base)
-      || ['suitable', 'stable', 'safe', 'fit', 'usable'].includes(base)) {
+      || ['suitable', 'suit', 'appropriate', 'proper', 'stable', 'safe', 'fit', 'usable'].includes(base)) {
       push('performance', m[0].toLowerCase(), {negated: true, morphological_negation: m[0]}, m.index);
     }
+  }
+  // Backstop by class, not by word list: an un-/in-/non- prefixed
+  // adjective governing a purpose phrase negates that purpose claim
+  // ("unsuited / inappropriate / unfit for skateparks"), unless the
+  // word is a common non-negative prefix form.
+  const NON_NEGATIVE_PREFIX = new Set(['under', 'until', 'unless', 'into', 'inside', 'include',
+    'including', 'indeed', 'united', 'unique', 'universal', 'unit', 'units', 'input', 'instead',
+    'information', 'industry', 'initial', 'initially', 'instrument', 'internal', 'international']);
+  for (const m of text.matchAll(/\b(?:un|in|im|il|ir|non)[a-z]{3,}\s+for\s+[A-Za-z]/gi)) {
+    const word = m[0].split(/\s+/)[0].toLowerCase();
+    if (NON_NEGATIVE_PREFIX.has(word)) continue;
+    push('purpose', m[0], {target: 'for', negated: true, morphological_negation: word}, m.index);
   }
   for (const m of text.matchAll(/\b(?:for|designed for|built for|ideal for)\s+([A-Za-z][A-Za-z -]{2,30})/gi)) {
     push('purpose', m[0], {target: m[1].trim().toLowerCase()}, m.index);
