@@ -71,11 +71,14 @@ export function extractClaims(rawText, {field = 'description'} = {}) {
     .replace(apostrophes, "'")
     .replace(/\p{Pd}|\u2212|\uFE58|\uFE63/gu, '-')
     .replace(/\p{Cf}/gu, '')
+    // A modifier letter between two letters is an apostrophe by
+    // function (U+02BE, U+02BF, U+A78C, ...), whatever its name.
+    .replace(/(?<=\p{L})\p{Lm}(?=\p{L})/gu, "'")
     .replace(/\u00A0/g, ' ')
     // Contraction repair by form, not by codepoint: any single
     // non-letter mark inside an n't-contraction restores the
     // negation, whatever apostrophe-like character was used.
-    .replace(/\b(isn|aren|doesn|don|can|couldn|shouldn|wouldn|hasn|haven|wasn|weren)[^\p{L}\p{N}\s\-']?t\b/giu,
+    .replace(/\b(isn|aren|doesn|don|can|couldn|shouldn|wouldn|hasn|haven|wasn|weren)[^\s]?t\b/giu,
       "$1't");
   const claims = [];
   // Negation is judged per claim occurrence, from its own sentence:
