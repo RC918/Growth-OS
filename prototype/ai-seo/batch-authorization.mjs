@@ -14,6 +14,16 @@
 // UNKNOWN_OUTCOME settles the batch into a stopped state that can
 // only be cleared by the Owner creating a new batch after vendor
 // usage reconciliation.
+//
+// Threat model (honest scope): "Owner" means the local OS user who
+// can invoke the CLI in a native terminal. The confirmation strings
+// are public constants, not secrets. The separate .auth-key file
+// (0600, generated at creation) provides tamper evidence: a ledger
+// copied or edited without that key is rejected, and any edit made
+// without re-signing is detected. It is NOT an authentication factor
+// against another process running as the same OS user — such a
+// process could equally invoke --enable-batch itself. Do not claim
+// stronger protection than this.
 
 import {existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {basename, dirname, resolve} from 'node:path';
@@ -66,7 +76,17 @@ function validateLedgerShape(data) {
   if (!(data.budget_cap_usd > 0 && data.budget_cap_usd <= BATCH_LIMITS.budgetCapUsd)) {
     fail('BATCH_LEDGER_INVALID: budget_cap_usd exceeds batch limit');
   }
+  if (data.project_id != null
+    && (typeof data.project_id !== 'string'
+      || !/^proj_[A-Za-z0-9][A-Za-z0-9_-]{7,}$/.test(data.project_id))) {
+    fail('BATCH_LEDGER_INVALID: project_id');
+  }
   if (!Number.isFinite(Date.parse(data.expires_at))) fail('BATCH_LEDGER_INVALID: expires_at');
+  if (!Number.isFinite(Date.parse(data.created_at))) fail('BATCH_LEDGER_INVALID: created_at');
+  const windowHours = (Date.parse(data.expires_at) - Date.parse(data.created_at)) / 3600_000;
+  if (!(windowHours >= 1 && windowHours <= 168)) {
+    fail('BATCH_LEDGER_INVALID: expiry window must be 1 to 168 hours');
+  }
   if (!Number.isFinite(data.attempts_used) || data.attempts_used < 0) fail('BATCH_LEDGER_INVALID: attempts_used');
   if (!Number.isFinite(data.known_cost_usd) || data.known_cost_usd < 0) fail('BATCH_LEDGER_INVALID: known_cost_usd');
   if (data.pending_run_id === undefined) data.pending_run_id = null;
@@ -116,13 +136,10 @@ function loadAuthKey(file) {
 }
 
 function verifyLedgerIntegrity(file, data) {
-  const enabled = data.owner_enabled === true || data.status !== 'inactive';
-  if (!enabled) {
-    if (data.ledger_signature != null) fail('BATCH_LEDGER_TAMPERED: inactive batch carries a signature');
-    return null;
-  }
+  // Every ledger is signed at creation, so edits made before the
+  // Owner enable step are detected exactly like edits made after it.
   const key = loadAuthKey(file);
-  if (!key) fail('BATCH_AUTH_KEY_MISSING: enabled batch has no separate authorization key');
+  if (!key) fail('BATCH_AUTH_KEY_MISSING: batch has no separate authorization key');
   if (typeof data.ledger_signature !== 'string') fail('BATCH_LEDGER_TAMPERED: missing signature');
   const expected = signLedger(data, key);
   const actualBuffer = Buffer.from(data.ledger_signature);
@@ -187,6 +204,7 @@ export function createBatchLedger({file, repoRoot, projectId, expiresInHours = 2
     fail('BATCH_BUDGET_LIMIT_EXCEEDS_MAX: at most US$' + BATCH_LIMITS.budgetCapUsd);
   }
   if (existsSync(target)) fail('BATCH_ALREADY_EXISTS: refusing to overwrite an existing batch ledger');
+  if (existsSync(authKeyPath(target))) fail('BATCH_AUTH_KEY_EXISTS: refusing to replace an existing authorization key');
   const now = new Date();
   const data = {
     version: 1,
@@ -211,7 +229,9 @@ export function createBatchLedger({file, repoRoot, projectId, expiresInHours = 2
     enabled_by: null,
     ledger_signature: null,
   };
-  writeLedgerAtomic(target, data);
+  const authKey = randomBytes(32);
+  writeFileSync(authKeyPath(target), authKey, {mode: 0o600, flag: 'wx'});
+  writeLedgerAtomic(target, data, authKey);
   return data;
 }
 
@@ -221,19 +241,15 @@ export function enableBatchLedger({file, repoRoot, confirmation} = {}) {
     fail('BATCH_ENABLE_NOT_AUTHORIZED: Owner explicit batch enable confirmation required');
   }
   return withLedgerLock(target, () => {
-    const {data} = readVerifiedLedger(target);
+    const {data, key} = readVerifiedLedger(target);
     if (data.owner_enabled === true || data.status === 'active') fail('BATCH_ALREADY_ENABLED');
     if (data.status !== 'inactive') fail('BATCH_NOT_ACTIVE: status is ' + data.status);
     if (Date.now() > Date.parse(data.expires_at)) fail('BATCH_EXPIRED: batch authorization has expired');
-    const keyPath = authKeyPath(target);
-    if (existsSync(keyPath)) fail('BATCH_AUTH_KEY_EXISTS: refusing to replace an existing authorization key');
-    const authKey = randomBytes(32);
-    writeFileSync(keyPath, authKey, {mode: 0o600, flag: 'wx'});
     data.owner_enabled = true;
     data.status = 'active';
     data.enabled_by = 'owner_local_enable_command';
     data.enabled_at = new Date().toISOString();
-    writeLedgerAtomic(target, data, authKey);
+    writeLedgerAtomic(target, data, key);
     return data;
   });
 }
@@ -293,10 +309,12 @@ export function openBatchLedger({file, repoRoot} = {}) {
       if (data.known_cost_usd + data.pending_cost_usd >= data.budget_cap_usd) fail('BATCH_EXHAUSTED: budget cap reached');
       return data;
     },
-    reserveAttempt({estimatedCostUsd = 0, runId = instanceRunId} = {}) {
+    reserveAttempt({estimatedCostUsd = 0} = {}) {
       return withLedgerLock(target, () => {
         const {data, key} = readVerifiedLedger(target);
-        assertUsableForReserve(data, runId);
+        // The owning run id comes only from this closure; callers
+        // cannot supply or impersonate another process's run id.
+        assertUsableForReserve(data, instanceRunId);
         if (data.attempts_used >= data.max_attempts) fail('BATCH_EXHAUSTED: attempt cap reached');
         const estimate = Number.isFinite(estimatedCostUsd) && estimatedCostUsd > 0 ? estimatedCostUsd : 0;
         if (data.known_cost_usd + data.pending_cost_usd + estimate > data.budget_cap_usd) {
@@ -304,7 +322,7 @@ export function openBatchLedger({file, repoRoot} = {}) {
         }
         data.attempts_used += 1;
         data.attempts_pending += 1;
-        data.pending_run_id = runId;
+        data.pending_run_id = instanceRunId;
         data.pending_cost_usd = Math.round((data.pending_cost_usd + estimate) * 1e10) / 1e10;
         if (data.attempts_used >= data.max_attempts) data.status = 'exhausted';
         writeLedgerAtomic(target, data, key);

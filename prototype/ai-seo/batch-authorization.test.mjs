@@ -213,6 +213,27 @@ test('unsettled reservations block recovery until Owner reconciliation, which st
   assert.throws(() => reopened.reserveAttempt(), /BATCH_NOT_ACTIVE/);
 });
 
+test('a caller-supplied run id cannot impersonate the reserving process', () => {
+  const {file, ledger} = makeBatch();
+  ledger.reserveAttempt({estimatedCostUsd: 0.001});
+  const other = openBatchLedger({file, repoRoot});
+  const stolen = JSON.parse(readFileSync(file, 'utf8')).pending_run_id;
+  assert.ok(stolen);
+  assert.throws(() => other.reserveAttempt({estimatedCostUsd: 0.001, runId: stolen}),
+    /BATCH_SETTLEMENT_PENDING/);
+  assert.equal(other.snapshot().attempts_used, 1);
+});
+
+test('edits to an inactive ledger are detected before enable', () => {
+  const {file} = makeBatch({enabled: false});
+  const raw = JSON.parse(readFileSync(file, 'utf8'));
+  raw.project_id = 'proj_attacker99';
+  writeFileSync(file + '.tmp', JSON.stringify(raw));
+  renameSync(file + '.tmp', file);
+  assert.throws(() => enableBatchLedger({file, repoRoot, confirmation: BATCH_ENABLE_CONFIRMATION}),
+    /BATCH_LEDGER_TAMPERED|BATCH_LEDGER_INVALID/);
+});
+
 test('edited or copied-without-key ledgers are not valid authorization', () => {
   const {file} = makeBatch();
   const raw = JSON.parse(readFileSync(file, 'utf8'));
