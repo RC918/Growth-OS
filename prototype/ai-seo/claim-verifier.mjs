@@ -1,0 +1,254 @@
+// Phase 3B.1 Claim-Based Verification prototype (offline only).
+//
+// This prototype does NOT replace verifySuggestions and does not
+// gate any release path. It exists to be measured against the
+// existing verifier (the Baseline) on a fixed, labelled benchmark:
+//
+//   Claim Extraction -> Evidence Matching -> Decision
+//
+// Claims are typed (numeric, unit conversion, model code, material,
+// performance, specification, purpose, comparison, general rewrite)
+// and every supported claim must trace to a Fact ID, its Citation
+// IDs and the exact evidence text. A claim with no evidence, with
+// evidence only in an UNKNOWN fact, or contradicted by the source
+// (negation / opposite / UNRESOLVED conflict) can never auto-PASS.
+
+import {FUNCTION_WORDS, trustedFacts, verifySuggestions} from './ai-seo-pipeline.mjs';
+
+const MATERIAL = new Set(['maple', 'carbon', 'bamboo', 'titanium', 'aluminum', 'aluminium',
+  'steel', 'plastic', 'wood', 'wooden', 'leather', 'fiberglass', 'urethane', 'rubber']);
+const PERFORMANCE = new Set(['lightweight', 'durable', 'waterproof', 'fast', 'faster', 'fastest',
+  'slow', 'slower', 'slowest', 'strong', 'stronger', 'strongest', 'stable', 'stability',
+  'speed', 'warranty', 'lifetime', 'premium', 'professional', 'performance']);
+const SPEC_NOUN = new Set(['length', 'width', 'weight', 'wheelbase', 'thickness', 'diameter',
+  'size', 'dimension', 'dimensions', 'concave', 'ply', 'plies', 'hardness']);
+const UNIT_ALIASES = {inch: 'inch', in: 'inch', '"': 'inch', '″': 'inch',
+  cm: 'cm', mm: 'mm', m: 'm', km: 'km', kg: 'kg', g: 'g', lb: 'lb', oz: 'oz',
+  ft: 'ft', mph: 'mph', kph: 'kph', kmh: 'kph'};
+const TO_CM = {inch: 2.54, cm: 1, mm: 0.1, m: 100, ft: 30.48};
+const NEGATION = /\b(not|no|never|without|isn't|aren't|doesn't|non-)\b|[不未無沒]/i;
+const COMPARISON = /\b(more|less|better|worse|than|faster|slower|stronger|larger|smaller|higher|lower)\b|比較|更[快大強輕重]/;
+
+function stem(word) {
+  if (word.length > 4 && word.endsWith('ies')) return word.slice(0, -3) + 'y';
+  if (word.length > 5 && word.endsWith('ing')) return word.slice(0, -3).replace(/(.)\1$/, '$1');
+  if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2).replace(/(.)\1$/, '$1');
+  if (word.length > 3 && word.endsWith('es')) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('s')) return word.slice(0, -1);
+  return word;
+}
+
+function latinWords(text) {
+  return (text.match(/[A-Za-z][A-Za-z0-9'-]*/g) ?? []).map(w => w.toLowerCase());
+}
+
+export function extractClaims(text, {field = 'description'} = {}) {
+  const claims = [];
+  const sentenceOf = (needle) => text.split(/[.!?…\n]+/)
+    .find(s => s.toLowerCase().includes(String(needle).toLowerCase())) ?? text;
+  const push = (type, span, detail = {}) =>
+    claims.push({field, type, span, negated: NEGATION.test(sentenceOf(span)), ...detail});
+  // Numeric claims, with an optional following unit. Digit runs
+  // fused to letters belong to a model code, not a number claim.
+  for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(inch|in|cm|mm|km|kg|mph|kph|ft|oz|lb|m|g|″|")?/g)) {
+    const before = text[m.index - 1] ?? '';
+    const after = text[(m.index ?? 0) + m[0].length] ?? '';
+    if (/[A-Za-z]/.test(before) || /[A-Za-z]/.test(after.replace(/\s/g, '').charAt(0) ?? '')) continue;
+    push('numeric', m[0].trim(), {value: Number(m[1].replace(',', '.')), unit: m[2] ? UNIT_ALIASES[m[2]] : null});
+  }
+  // CJK factual markers map to the same claim categories.
+  for (const [marker, type] of [['碳纖維', 'material'], ['楓木', 'material'], ['鈦合金', 'material'],
+    ['最輕', 'performance'], ['最高時速', 'performance'], ['終身保固', 'performance']]) {
+    if (text.includes(marker)) push(type, marker, {});
+  }
+  // Model / product codes: letters fused with digits.
+  for (const m of text.matchAll(/[A-Za-z]+[0-9][A-Za-z0-9-]*/g)) push('model_code', m[0], {});
+  const words = latinWords(text);
+  for (const word of words) {
+    const base = stem(word.replace(/-.*$/, ''));
+    if (MATERIAL.has(word) || MATERIAL.has(base)) push('material', word, {});
+    else if (PERFORMANCE.has(word) || PERFORMANCE.has(base)) push('performance', word, {});
+    else if (SPEC_NOUN.has(word) || SPEC_NOUN.has(base)) push('specification', word, {});
+  }
+  for (const m of text.matchAll(/twin-kick|double-kick|[A-Za-z]+-[A-Za-z]+/g)) {
+    push('specification', m[0].toLowerCase(), {compound: m[0].toLowerCase()});
+  }
+  const purpose = text.match(/\b(?:for|designed for|built for|ideal for)\s+([A-Za-z][A-Za-z -]{2,30})/i)
+    ?? text.match(/適合(.{2,12})/);
+  if (purpose) push('purpose', purpose[0], {target: purpose[1].trim().toLowerCase()});
+  if (COMPARISON.test(text)) push('comparison', text.slice(0, 80), {});
+  if (claims.length === 0) push('general_rewrite', text.slice(0, 80), {});
+  return claims;
+}
+
+function sourceNumbers(entries) {
+  const out = [];
+  for (const [factId, fact] of entries) {
+    if (!fact.value) continue;
+    for (const m of fact.value.matchAll(/(\d+(?:[.,]\d+)?)\s*(inch|in|cm|mm|km|kg|mph|kph|ft|oz|lb|m|g|″|")?/g)) {
+      const before = fact.value[m.index - 1] ?? '';
+      if (/[A-Za-z]/.test(before)) continue;
+      out.push({factId, value: Number(m[1].replace(',', '.')),
+        unit: m[2] ? UNIT_ALIASES[m[2]] : null, evidence: fact.value});
+    }
+  }
+  return out;
+}
+
+function factTrace(factId, facts) {
+  const fact = facts[factId];
+  return fact ? {fact_id: factId, citation_ids: [...(fact.citations ?? [])], evidence: fact.value} : null;
+}
+
+function matchClaim(claim, facts, declaredIds) {
+  const valued = Object.entries(facts).filter(([, f]) => f.value);
+  const conflicting = valued.filter(([, f]) => f.verification === 'conflicting');
+  const usable = valued.filter(([, f]) => f.verification !== 'conflicting');
+  const inFacts = (needle, entries) => {
+    for (const [factId, fact] of entries) {
+      const words = latinWords(fact.value).map(w => stem(w.replace(/-.*$/, '')));
+      const phrases = fact.value.toLowerCase();
+      if (words.includes(stem(needle)) || phrases.includes(needle.replace('-', ' '))
+        || phrases.includes(needle)) return factTrace(factId, facts);
+    }
+    return null;
+  };
+
+  if (claim.type === 'numeric') {
+    for (const source of sourceNumbers(usable)) {
+      if (source.unit === claim.unit && source.value === claim.value) {
+        return {status: 'SUPPORTED', ...factTrace(source.factId, facts)};
+      }
+      if (source.unit && claim.unit && TO_CM[source.unit] && TO_CM[claim.unit]) {
+        const converted = (claim.value * TO_CM[claim.unit]) / TO_CM[source.unit];
+        if (Math.abs(converted - source.value) / source.value < 0.01) {
+          return {status: 'SUPPORTED', via: 'unit_conversion', ...factTrace(source.factId, facts)};
+        }
+      }
+      if (!claim.unit && source.value === claim.value) {
+        return {status: 'SUPPORTED', ...factTrace(source.factId, facts)};
+      }
+    }
+    return {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
+  }
+  if (claim.type === 'general_rewrite') {
+    const declared = declaredIds.find(id => facts[id]?.value && facts[id].verification !== 'conflicting');
+    if (!declared) return {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
+    // Latin general copy is bounded by the token verifier class;
+    // CJK paraphrase cannot be token-verified, so it is routed to
+    // human review rather than auto-passed.
+    return /[\u4e00-\u9fff]/.test(claim.span)
+      ? {status: 'REVIEW', via: 'general_rewrite_needs_human_read', ...factTrace(declared, facts)}
+      : {status: 'SUPPORTED', via: 'declared_fact_scope', ...factTrace(declared, facts)};
+  }
+  if (claim.type === 'purpose' && claim.target) {
+    const targetWords = claim.target.split(/[^A-Za-z]+/).filter(w => w.length >= 3 && !FUNCTION_WORDS.has(w));
+    if (targetWords.length === 0) {
+      // A CJK purpose claim cannot be token-matched; route to review.
+      const first = usable[0];
+      return first
+        ? {status: 'REVIEW', via: 'cjk_purpose_needs_human_read', ...factTrace(first[0], facts)}
+        : {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
+    }
+    for (const [factId, fact] of usable) {
+      const words = latinWords(fact.value).map(w => stem(w.replace(/-.*$/, '')));
+      if (targetWords.every(w => words.includes(stem(w)))) return {status: 'SUPPORTED', ...factTrace(factId, facts)};
+    }
+    return {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
+  }
+  const needle = (claim.compound ?? claim.span).toLowerCase();
+  const hit = inFacts(needle, usable);
+  if (hit) {
+    if (claim.negated) return {status: 'CONTRADICTED', via: 'negated_supported_claim', ...hit};
+    return {status: 'SUPPORTED', ...hit};
+  }
+  const conflictHit = inFacts(needle, conflicting);
+  if (conflictHit) return {status: 'CONTRADICTED', via: 'unresolved_conflict', ...conflictHit};
+  if (claim.negated) {
+    return {status: 'CONTRADICTED', via: 'negation_without_source_basis',
+      fact_id: null, citation_ids: [], evidence: null};
+  }
+  return {status: 'UNSUPPORTED', fact_id: null, citation_ids: [], evidence: null};
+}
+
+export function verifyClaims({suggestions, facts: rawFacts}) {
+  const facts = rawFacts && rawFacts.product_name && 'value' in rawFacts.product_name
+    ? rawFacts : trustedFacts(rawFacts);
+  const claims = [];
+  const problems = [];
+  for (const [field, suggestion] of Object.entries(suggestions ?? {})) {
+    if (!suggestion || typeof suggestion.text !== 'string') continue;
+    const declared = suggestion.used_fact_ids ?? [];
+    for (const id of declared) {
+      if (!(id in facts) || !facts[id].value) {
+        problems.push(field + ': UNKNOWN fact id ' + id);
+      } else if (facts[id].verification === 'conflicting') {
+        problems.push(field + ': conflicting fact id ' + id + ' is UNRESOLVED');
+      }
+    }
+    for (const claim of extractClaims(suggestion.text, {field})) {
+      const match = matchClaim(claim, facts, declared);
+      claims.push({field, ...claim, ...match});
+      if (match.status === 'UNSUPPORTED') {
+        problems.push(field + ': unsupported ' + claim.type + ' claim "' + claim.span + '"');
+      }
+      if (match.status === 'CONTRADICTED') {
+        problems.push(field + ': contradicted ' + claim.type + ' claim "' + claim.span + '"');
+      }
+    }
+  }
+  const decision = problems.length > 0 ? 'FAIL_CLOSED'
+    : claims.some(c => c.status === 'REVIEW') ? 'PASS_WITH_REVIEW' : 'PASS';
+  return {decision, claims, problems};
+}
+
+export function runClaimBenchmark({benchmark, casesById}) {
+  const rows = [];
+  for (const entry of benchmark.entries) {
+    const testCase = casesById[entry.fact_case];
+    if (!testCase) throw Error('benchmark references unknown fact case: ' + entry.fact_case);
+    const facts = trustedFacts(testCase.report);
+    const suggestions = {description: {text: entry.text, used_fact_ids: entry.used_fact_ids}};
+    if (testCase.report.conflicts) {
+      suggestions.description.used_fact_ids = entry.used_fact_ids;
+    }
+    const baselineProblems = verifySuggestions(
+      {title: {text: 'x', used_fact_ids: ['product_name']},
+       meta_description: {text: 'x', used_fact_ids: ['product_name']},
+       description: suggestions.description},
+      {...facts, ...(testCase.report.conflicts
+        ? {description: {...facts.description, verification: 'conflicting'}} : {})})
+      .filter(p => p.startsWith('description'));
+    const prototype = verifyClaims({suggestions, facts: testCase.report.conflicts
+      ? {...facts, description: {...facts.description, verification: 'conflicting'}} : facts});
+    const baseline = baselineProblems.length > 0 ? 'FAIL_CLOSED' : 'PASS';
+    rows.push({
+      id: entry.id, categories: entry.categories, gold: entry.expected_decision,
+      baseline, prototype: prototype.decision,
+      citation_coverage: prototype.claims.filter(c => c.status === 'SUPPORTED')
+        .every(c => (c.citation_ids ?? []).length > 0),
+      claims: prototype.claims,
+    });
+  }
+  const tally = (key) => ({
+    false_positive: rows.filter(r => r[key] !== 'FAIL_CLOSED' && r.gold === 'FAIL_CLOSED').length,
+    false_negative: rows.filter(r => r[key] === 'FAIL_CLOSED' && r.gold !== 'FAIL_CLOSED').length,
+    correct: rows.filter(r => (r[key] === 'FAIL_CLOSED') === (r.gold === 'FAIL_CLOSED')).length,
+  });
+  const allClaims = rows.flatMap(r => r.claims);
+  const supported = allClaims.filter(c => c.status === 'SUPPORTED');
+  return {
+    rows,
+    metrics: {
+      entries: rows.length,
+      baseline: tally('baseline'),
+      prototype: tally('prototype'),
+      citation_coverage: supported.length === 0 ? 1
+        : supported.filter(c => (c.citation_ids ?? []).length > 0).length / supported.length,
+      review_rate: allClaims.length === 0 ? 0
+        : allClaims.filter(c => c.status === 'REVIEW').length / allClaims.length,
+    },
+  };
+}
+
+export {FUNCTION_WORDS};
