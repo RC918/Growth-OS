@@ -72,19 +72,26 @@ function wordsOf(text) {
   return text.match(/[A-Za-z][A-Za-z0-9'-]*/g) ?? [];
 }
 
-function sourceVocabulary(sourceText) {
-  const words = wordsOf(sourceText).map(w => w.toLowerCase().replace(/'s$/, ''));
+function sourceVocabulary(sourceTexts) {
   const singles = new Set();
-  for (const word of words) {
-    for (const part of word.split('-')) { singles.add(part); singles.add(stem(part)); }
-  }
   const phrases = new Set();
-  const parts = words.flatMap(w => w.split('-'));
-  for (let i = 0; i + 1 < parts.length; i++) phrases.add(parts[i] + '-' + parts[i + 1]);
-  for (const word of words) if (word.includes('-')) phrases.add(word);
-  const numbers = new Set(
-    sourceText.replace(/[A-Za-z][A-Za-z0-9-]{2,}/g, ' ')
-      .match(/\d+(?:[.,]\d+)?/g) ?? []);
+  const numbers = new Set();
+  for (const sourceText of sourceTexts) {
+    const words = wordsOf(sourceText).map(w => w.toLowerCase().replace(/'s$/, ''));
+    for (const word of words) {
+      for (const part of word.split('-')) { singles.add(part); singles.add(stem(part)); }
+      if (word.includes('-')) phrases.add(word);
+    }
+    // Adjacent phrases only count within one sentence of one fact:
+    // tokens across a sentence or fact boundary are not a phrase.
+    for (const sentence of sourceText.split(/[.!?…\n]+/)) {
+      const parts = wordsOf(sentence).map(w => w.toLowerCase().replace(/'s$/, ''))
+        .flatMap(w => w.split('-'));
+      for (let i = 0; i + 1 < parts.length; i++) phrases.add(parts[i] + '-' + parts[i + 1]);
+    }
+    for (const n of sourceText.replace(/[A-Za-z][A-Za-z0-9-]{2,}/g, ' ')
+      .match(/\d+(?:[.,]\d+)?/g) ?? []) numbers.add(n);
+  }
   return {singles, phrases, numbers};
 }
 
@@ -111,10 +118,12 @@ function unverifiableTokens(text, source) {
       continue;
     }
     if (word.length < 3) {
-      // Short unit tokens are concrete specifications, not syntax:
-      // a unit swap (inch -> cm, inch -> kg) must fail closed.
-      const UNITS = ['cm', 'mm', 'kg', 'km', 'ml', 'lb', 'oz', 'ft', 'in', 'mi', 'g', 'l'];
-      if (UNITS.includes(word) && !source.singles.has(word)) problems.push(raw);
+      // Short tokens fail closed by default: units (cm, yd, m),
+      // size codes (XL) and acronyms are concrete claims. Only a
+      // short token present in the source, or a closed-class
+      // function word, passes.
+      if (source.singles.has(word) || FUNCTION_WORDS.has(word)) continue;
+      problems.push(raw);
       continue;
     }
     if (source.singles.has(word) || source.singles.has(stem(word))) continue;
@@ -125,9 +134,11 @@ function unverifiableTokens(text, source) {
 }
 
 export function verifySuggestions(suggestions, facts) {
-  const sourceText = Object.values(facts)
-    .map(f => f.value ?? '').join(' ');
-  const source = sourceVocabulary(sourceText);
+  // A conflicting fact's own text is not trusted vocabulary: citing
+  // another fact while rewording the conflict must still fail.
+  const source = sourceVocabulary(Object.values(facts)
+    .filter(f => f.verification !== 'conflicting')
+    .map(f => f.value ?? ''));
   const problems = [];
   for (const field of FIELDS) {
     const suggestion = suggestions?.[field];

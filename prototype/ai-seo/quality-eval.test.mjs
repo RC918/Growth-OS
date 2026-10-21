@@ -130,4 +130,23 @@ test('conflict values fail regardless of punctuation or cited fact id', () => {
   const result = evaluateGeneration({report, suggestions: settled});
   assert.equal(result.status, 'FAIL_CLOSED');
   assert.ok(result.problems.some(p => p.includes('UNRESOLVED conflicting value')));
+
+  const reworded = structuredClone(settled);
+  reworded.description = {text: 'Conflicting Board. Maple is complete.', used_fact_ids: ['product_name']};
+  assert.equal(evaluateGeneration({report, suggestions: reworded}).status, 'FAIL_CLOSED');
+});
+
+test('unlisted short units and size codes fail closed by default', () => {
+  const report = byId['landyachtz-the-clark'].report;
+  for (const text of ['The Clark is a 40.2 yd long skateboard.',
+    'The Clark is a 40.2 m long skateboard.',
+    'The Clark XL Longboard']) {
+    const suggestions = {
+      title: {text: 'The Clark', used_fact_ids: ['product_name']},
+      meta_description: {text: 'The Clark', used_fact_ids: ['product_name']},
+      description: {text, used_fact_ids: ['description']},
+      geo_qa: [{question: 'What is it?', answer: 'The Clark', used_fact_ids: ['product_name']}],
+    };
+    assert.equal(evaluateGeneration({report, suggestions}).status, 'FAIL_CLOSED', text);
+  }
 });

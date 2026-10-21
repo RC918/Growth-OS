@@ -79,8 +79,19 @@ export function evaluateGeneration({report, suggestions}) {
       .filter(([, v]) => v && typeof v.text === 'string')
       .concat((suggestions?.geo_qa ?? []).map((qa, i) => ['geo_qa[' + i + ']', {text: qa?.answer ?? ''}]));
     const tokenSeq = (s) => String(s).toLowerCase().match(/[a-z0-9]+(?:[.,][0-9]+)?/g) ?? [];
-    const containsSeq = (haystack, needle) => needle.length > 0
-      && haystack.some((_, i) => needle.every((t, j) => haystack[i + j] === t));
+    // Ordered subsequence: the conflicting value's tokens must all
+    // appear in order, with only function words allowed in between
+    // ("Maple is complete" still presents "Maple complete.").
+    const GAP = new Set(['is', 'are', 'was', 'were', 'be', 'been', 'the', 'a', 'an', 'of', 'to', 'and', 'or']);
+    const containsSeq = (haystack, needle) => {
+      if (needle.length === 0) return false;
+      let n = 0;
+      for (const token of haystack) {
+        if (token === needle[n]) { n++; if (n === needle.length) return true; }
+        else if (n > 0 && !GAP.has(token)) n = token === needle[0] ? 1 : 0;
+      }
+      return false;
+    };
     for (const value of conflict.values ?? []) {
       const needle = tokenSeq(value);
       if (needle.length === 0) continue;
