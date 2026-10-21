@@ -201,6 +201,24 @@ test('incomplete, refusal, malformed and missing output fail safely but keep HTT
   }
 });
 
+test('non-completed status and null suggestion fields fail explicitly', () => {
+  for (const status of ['in_progress', 'queued']) {
+    const error = (() => { try {
+      parseResponsesSuggestions({status, output_text: suggestionJson});
+      return null;
+    } catch (e) { return e; } })();
+    assert.match(error.message, /OPENAI_RESPONSE_NOT_COMPLETED/);
+    assert.equal(error.apiError.http_status, 200);
+  }
+  const nullFields = (() => { try {
+    parseResponsesSuggestions({status: 'completed', output_text: JSON.stringify({
+      title: null, meta_description: null, description: null, geo_qa: null})});
+    return null;
+  } catch (e) { return e; } })();
+  assert.match(nullFields.message, /missing field title/);
+  assert.equal(nullFields.apiError.error_code, 'missing_field_title');
+});
+
 test('rate-limit 429 retries once; timeout never retries', async () => {
   let calls = 0; const sleeps = [];
   const transport = createOpenAiTransport({

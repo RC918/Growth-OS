@@ -167,7 +167,7 @@ export function parseResponsesSuggestions(data) {
       {...base, error_type: 'incomplete',
         error_code: data.incomplete_details?.reason ?? 'incomplete'});
   }
-  if (data.status && data.status !== 'completed' && data.status !== 'in_progress') {
+  if (data.status && data.status !== 'completed') {
     throw makeApiError('OPENAI_RESPONSE_NOT_COMPLETED: status ' + String(data.status).slice(0, 32),
       {...base, error_type: typeof data.error?.type === 'string' ? data.error.type : 'response_status',
         error_code: typeof data.error?.code === 'string' ? data.error.code : String(data.status).slice(0, 32)});
@@ -197,11 +197,16 @@ export function parseResponsesSuggestions(data) {
     throw makeApiError('OPENAI_FORMAT: output text is not valid JSON',
       {...base, error_type: 'format_error', error_code: 'invalid_json'});
   }
-  for (const field of ['title', 'meta_description', 'description', 'geo_qa']) {
-    if (!parsed || typeof parsed !== 'object' || !(field in parsed)) {
+  for (const field of ['title', 'meta_description', 'description']) {
+    if (!parsed || typeof parsed !== 'object'
+      || !parsed[field] || typeof parsed[field] !== 'object') {
       throw makeApiError('OPENAI_FORMAT: suggestions missing field ' + field,
         {...base, error_type: 'format_error', error_code: 'missing_field_' + field});
     }
+  }
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.geo_qa)) {
+    throw makeApiError('OPENAI_FORMAT: suggestions missing field geo_qa',
+      {...base, error_type: 'format_error', error_code: 'missing_field_geo_qa'});
   }
   return parsed;
 }
