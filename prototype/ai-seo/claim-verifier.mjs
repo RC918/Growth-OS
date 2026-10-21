@@ -75,8 +75,8 @@ export function extractClaims(rawText, {field = 'description'} = {}) {
     // Contraction repair by form, not by codepoint: any single
     // non-letter mark inside an n't-contraction restores the
     // negation, whatever apostrophe-like character was used.
-    .replace(/\b(isn|aren|doesn|don|can|couldn|shouldn|wouldn|hasn|haven|wasn|weren)[^\p{L}\p{N}\s-]?t\b/giu,
-      "$1n't");
+    .replace(/\b(isn|aren|doesn|don|can|couldn|shouldn|wouldn|hasn|haven|wasn|weren)[^\p{L}\p{N}\s\-']?t\b/giu,
+      "$1't");
   const claims = [];
   // Negation is judged per claim occurrence, from its own sentence:
   // an affirmative first sentence must not mask a later negation.
