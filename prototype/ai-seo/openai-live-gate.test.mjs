@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpenAiTransport, createTrialBudget, estimateCost} from './openai-live-gate.mjs';
+import {createOpenAiTransport, createTrialBudget, estimateCost, parseResponsesSuggestions} from './openai-live-gate.mjs';
 
 const okResponse = (cost = {}) => ({
   ok: true, status: 200, headers: {get: () => null},
@@ -139,6 +139,66 @@ test('timeout records an UNKNOWN_OUTCOME attempt', async () => {
   assert.equal(budget.attempts.length, 1);
   assert.equal(budget.attempts[0].outcome, 'UNKNOWN_OUTCOME');
   assert.equal(budget.entries.length, 0);
+});
+
+const suggestionJson = JSON.stringify({
+  title: {text: 'The Clark', used_fact_ids: ['product_name']},
+  meta_description: {text: 'Maple complete skateboard', used_fact_ids: ['meta_description']},
+  description: {text: 'The Clark. Maple complete with 54mm wheels.', used_fact_ids: ['description']},
+  geo_qa: [{question: 'What is The Clark?', answer: 'The Clark.', used_fact_ids: ['description']}]});
+const nativeResponse = (payload) => ({
+  ok: true, status: 200, headers: {get: () => null},
+  json: async () => payload,
+});
+
+test('native Responses output array is parsed without output_text', async () => {
+  const budget = createTrialBudget({});
+  const transport = createOpenAiTransport({
+    enabled: true, credentialProvider: () => 'test-key-not-real', budget,
+    fetchImpl: async () => nativeResponse({
+      id: 'resp_native_1', status: 'completed',
+      output: [{type: 'message', content: [{type: 'output_text', text: suggestionJson}]}],
+      usage: {input_tokens: 100, output_tokens: 50}})});
+  const out = await transport({instructions: 'x', facts: {}, market: 'TW', language: 'zh-TW'});
+  assert.equal(out.suggestions.title.text, 'The Clark');
+  assert.equal(budget.entries.length, 1);
+  assert.equal(budget.attempts[0].outcome, 'success');
+  assert.equal(parseResponsesSuggestions({
+    status: 'completed',
+    output: [{content: [{type: 'output_text', text: suggestionJson}]}]}).geo_qa.length, 1);
+});
+
+test('incomplete, refusal, malformed and missing output fail safely but keep HTTP accounting', async () => {
+  const scenarios = [
+    [{id: 'resp_inc', status: 'incomplete', incomplete_details: {reason: 'max_output_tokens'},
+      output: [], usage: {input_tokens: 10, output_tokens: 5}}, /OPENAI_INCOMPLETE/, 'max_output_tokens'],
+    [{id: 'resp_ref', status: 'completed',
+      output: [{type: 'message', content: [{type: 'refusal', refusal: 'no'}]}],
+      usage: {input_tokens: 10, output_tokens: 5}}, /OPENAI_REFUSAL/, 'refusal'],
+    [{id: 'resp_bad', status: 'completed',
+      output: [{type: 'message', content: [{type: 'output_text', text: 'not-json'}]}],
+      usage: {input_tokens: 10, output_tokens: 5}}, /not valid JSON/, 'invalid_json'],
+    [{id: 'resp_empty', status: 'completed', output: [],
+      usage: {input_tokens: 10, output_tokens: 5}}, /no output text/, 'missing_output_text'],
+    [{id: 'resp_partial', status: 'completed', output_text: JSON.stringify({title: {}}),
+      usage: {input_tokens: 10, output_tokens: 5}}, /missing field/, 'missing_field_meta_description'],
+  ];
+  for (const [payload, pattern, code] of scenarios) {
+    const budget = createTrialBudget({});
+    const transport = createOpenAiTransport({
+      enabled: true, credentialProvider: () => 'test-key-not-real', budget,
+      fetchImpl: async () => nativeResponse(payload)});
+    const error = await transport({instructions: 'x', facts: {}}).catch(e => e);
+    assert.match(error.message, pattern);
+    assert.equal(error.apiError.error_code, code);
+    assert.equal(error.apiError.http_status, 200);
+    // The HTTP request succeeded and may be billed: its cost entry and
+    // attempt survive the parse failure.
+    assert.equal(budget.entries.length, 1);
+    assert.equal(budget.attempts.length, 1);
+    assert.equal(budget.attempts[0].outcome, 'parse_failed');
+    assert.ok(error.usage.cost > 0);
+  }
 });
 
 test('rate-limit 429 retries once; timeout never retries', async () => {

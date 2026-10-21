@@ -152,6 +152,8 @@ export async function runTrial({
         // thrown error so a failed run is never recorded as 0 attempts.
         error.trialAttempts = trialBudget.attempts;
         error.attemptedRequests = trialBudget.attempts.length;
+        error.trialEntries = trialBudget.entries;
+        error.totalCostUsd = trialBudget.spent();
         throw error;
       }
       const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
@@ -233,6 +235,7 @@ if (isMain) {
       api_error: error.apiError ?? null,
       attempted_requests: error.attemptedRequests ?? 0,
       attempts: error.trialAttempts ?? [],
+      total_cost_usd: error.totalCostUsd ?? 0,
     }));
     process.exit(2);
   }

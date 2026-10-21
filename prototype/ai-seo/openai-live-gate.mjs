@@ -150,6 +150,62 @@ const SUGGESTION_SCHEMA = {
   },
 };
 
+// Parse a raw Responses API payload. The REST response does not
+// guarantee a top-level output_text helper field: the text lives in
+// output[].content[] parts of type output_text. Refusals, incomplete
+// runs and malformed content are explicit failures, never parsed as
+// the literal string "undefined".
+export function parseResponsesSuggestions(data) {
+  const requestId = typeof data?.id === 'string' ? data.id : null;
+  const base = {http_status: 200, request_id: requestId};
+  if (!data || typeof data !== 'object') {
+    throw makeApiError('OPENAI_FORMAT: response body is not an object',
+      {...base, error_type: 'format_error', error_code: 'missing_output_text'});
+  }
+  if (data.status === 'incomplete') {
+    throw makeApiError('OPENAI_INCOMPLETE: response did not complete',
+      {...base, error_type: 'incomplete',
+        error_code: data.incomplete_details?.reason ?? 'incomplete'});
+  }
+  if (data.status && data.status !== 'completed' && data.status !== 'in_progress') {
+    throw makeApiError('OPENAI_RESPONSE_NOT_COMPLETED: status ' + String(data.status).slice(0, 32),
+      {...base, error_type: typeof data.error?.type === 'string' ? data.error.type : 'response_status',
+        error_code: typeof data.error?.code === 'string' ? data.error.code : String(data.status).slice(0, 32)});
+  }
+  const parts = [];
+  let refusal = null;
+  for (const item of Array.isArray(data.output) ? data.output : []) {
+    for (const content of Array.isArray(item?.content) ? item.content : []) {
+      if (content?.type === 'output_text' && typeof content.text === 'string') parts.push(content.text);
+      if (content?.type === 'refusal') refusal = content.refusal ?? 'refused';
+    }
+  }
+  if (refusal != null) {
+    throw makeApiError('OPENAI_REFUSAL: model refused the request',
+      {...base, error_type: 'refusal', error_code: 'refusal'});
+  }
+  const text = typeof data.output_text === 'string' && data.output_text.length > 0
+    ? data.output_text : parts.join('');
+  if (!text) {
+    throw makeApiError('OPENAI_FORMAT: response contains no output text',
+      {...base, error_type: 'format_error', error_code: 'missing_output_text'});
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw makeApiError('OPENAI_FORMAT: output text is not valid JSON',
+      {...base, error_type: 'format_error', error_code: 'invalid_json'});
+  }
+  for (const field of ['title', 'meta_description', 'description', 'geo_qa']) {
+    if (!parsed || typeof parsed !== 'object' || !(field in parsed)) {
+      throw makeApiError('OPENAI_FORMAT: suggestions missing field ' + field,
+        {...base, error_type: 'format_error', error_code: 'missing_field_' + field});
+    }
+  }
+  return parsed;
+}
+
 export function createOpenAiTransport({
   enabled = false,
   credentialProvider = null,
@@ -214,13 +270,30 @@ export function createOpenAiTransport({
           http_status: response.status, outcome: 'success',
           request_id: response.headers?.get?.('x-request-id') ?? null,
         });
-        const data = await response.json();
-        const usage = data.usage ?? {};
+        const data = await response.json().catch(() => null);
+        const usage = data?.usage ?? {};
+        // The HTTP request succeeded and may be billed, so record its
+        // cost before parsing; a parse failure must not erase it.
         const cost = budget.record({
           inputTokens: usage.input_tokens ?? inputTokens,
           outputTokens: usage.output_tokens ?? outputTokens,
         });
-        return {suggestions: JSON.parse(data.output_text), usage: {
+        let suggestions;
+        try {
+          suggestions = parseResponsesSuggestions(data);
+        } catch (error) {
+          budget.updateAttempt(attempt, {
+            ...(error.apiError ?? {}), outcome: 'parse_failed'});
+          if (error.apiError && !error.apiError.request_id) {
+            budget.updateAttempt(attempt, {
+              request_id: response.headers?.get?.('x-request-id') ?? null});
+          }
+          error.usage = {
+            input_tokens: usage.input_tokens ?? null,
+            output_tokens: usage.output_tokens ?? null, cost};
+          throw error;
+        }
+        return {suggestions, usage: {
           input_tokens: usage.input_tokens ?? null,
           output_tokens: usage.output_tokens ?? null, cost}};
       }
