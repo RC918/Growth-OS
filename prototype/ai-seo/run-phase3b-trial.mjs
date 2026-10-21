@@ -22,6 +22,11 @@ import {createOpenAiTransport, createTrialBudget, OPENAI_MODEL, TRIAL_TOKEN_CAPS
 import {buildSeoRequest} from './model-adapter.mjs';
 import {trustedFacts} from './ai-seo-pipeline.mjs';
 import {evaluateGeneration, validateFixtureBindings} from './quality-eval.mjs';
+import {createBatchLedger, openBatchLedger} from './batch-authorization.mjs';
+import {fileURLToPath} from 'node:url';
+import {dirname, resolve} from 'node:path';
+
+export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 export const KEYCHAIN_IDENTITY = {account: 'growth-os-phase3b', service: 'openai-project-key'};
 export const LIVE_CONFIRMATION_PREFIX = 'PHASE3B-LIVE-ONCE:';
@@ -100,14 +105,28 @@ export function createMockFetch() {
 export async function runTrial({
   mode = 'mock', credentialProvider, fetchImpl, budget,
   confirmation, projectId, shouldStop, caseId, language,
+  batchFile, batchLedger,
 } = {}) {
   if (mode !== 'mock' && mode !== 'live') throw Error('Unknown mode: ' + mode);
-  const trialBudget = validateLiveBudget(budget ?? createTrialBudget({}));
+  const useBatch = batchFile != null || batchLedger != null;
+  if (useBatch && mode !== 'live') throw Error('BATCH_REQUIRES_LIVE: batch authorization only applies to live mode');
+  // A batch run is bounded by the batch ledger (at most 6 attempts /
+  // US$0.10), which is stricter than the single-run US$5/12 limits.
+  const trialBudget = useBatch
+    ? (budget ?? createTrialBudget({}))
+    : validateLiveBudget(budget ?? createTrialBudget({}));
+  let ledger = null;
 
   if (mode === 'live') {
     // All authorization checks run before any credential or fetch use.
-    consumeLiveConfirmation(confirmation);
-    validateProjectId(projectId);
+    if (useBatch) {
+      validateProjectId(projectId);
+      ledger = batchLedger ?? openBatchLedger({file: batchFile, repoRoot: REPO_ROOT});
+      ledger.validateFor({projectId, caseId, language});
+    } else {
+      consumeLiveConfirmation(confirmation);
+      validateProjectId(projectId);
+    }
     if (typeof credentialProvider !== 'function') throw Error('CREDENTIAL_PROVIDER_REQUIRED');
   }
   if (mode === 'mock' && typeof credentialProvider !== 'function') {
@@ -129,11 +148,24 @@ export async function runTrial({
   const isPartialScope = selectedCases.length !== allCases.cases.length
     || selectedLanguages.length !== 2;
   const cases = {cases: selectedCases};
+  if (ledger) ledger.validateFor({projectId, caseId, language});
+  // In batch mode every HTTP send (including retries) first reserves
+  // an attempt in the persistent ledger; reservation happens inside
+  // recordAttempt, immediately before the fetch is issued.
+  const effectiveBudget = ledger ? {
+    ...trialBudget,
+    entries: trialBudget.entries,
+    attempts: trialBudget.attempts,
+    preflight: (args) => trialBudget.preflight(args),
+    record: (args) => trialBudget.record(args),
+    recordAttempt: (fields) => { ledger.reserveAttempt(); return trialBudget.recordAttempt(fields); },
+    updateAttempt: (attempt, fields) => trialBudget.updateAttempt(attempt, fields),
+  } : trialBudget;
   const transport = createOpenAiTransport({
     enabled: true, // gate open only around the injected/controlled fetch
     credentialProvider,
     fetchImpl: fetchImpl ?? (mode === 'mock' ? createMockFetch() : globalThis.fetch),
-    budget: trialBudget,
+    budget: effectiveBudget,
   });
 
   const results = [];
@@ -203,6 +235,22 @@ export async function runTrial({
     }
   }
   const failed = results.some(r => r.status === 'FAIL_CLOSED');
+  let batchState = null;
+  if (ledger) {
+    const settled = ledger.settleRun({
+      attemptCount: trialBudget.attempts.length,
+      knownCostDelta: trialBudget.spent(),
+      unknownOutcome: trialBudget.attempts.some(a => a.outcome === 'UNKNOWN_OUTCOME'),
+      stopReason: stoppedByOwner ? 'owner stop switch activated' : null,
+    });
+    batchState = {
+      batch_id: settled.batch_id, status: settled.status,
+      attempts_used: settled.attempts_used, max_attempts: settled.max_attempts,
+      known_cost_usd: settled.known_cost_usd, budget_cap_usd: settled.budget_cap_usd,
+      unknown_cost_attempts: settled.unknown_cost_attempts,
+      expires_at: settled.expires_at,
+    };
+  }
   return {
     mode,
     status: failure ? (mode === 'live' ? 'LIVE_FAILED' : 'MOCK_FAILED')
@@ -232,7 +280,8 @@ export async function runTrial({
     token_caps: TRIAL_TOKEN_CAPS,
     stopped: trialBudget.stopped,
     live_enabled_after_run: false,
-    authorization_consumed: mode === 'live',
+    batch: batchState,
+    authorization_consumed: mode === 'live' && !ledger,
     model_permission_evidence: mode === 'live'
       ? 'first API response or API error for the pinned model; not verified offline'
       : 'not applicable in mock mode',
@@ -249,6 +298,11 @@ export function parseCliArgs(argv) {
   if (maxRequests !== undefined && (!Number.isInteger(maxRequests) || maxRequests < 1 || maxRequests > 12)) {
     throw Error('INVALID_MAX_REQUESTS: must be an integer from 1 to 12');
   }
+  const batchHoursRaw = get('--batch-hours');
+  const batchHours = batchHoursRaw === undefined ? 24 : Number(batchHoursRaw);
+  if (!Number.isFinite(batchHours) || batchHours < 1 || batchHours > 168) {
+    throw Error('INVALID_BATCH_HOURS: must be from 1 to 168');
+  }
   return {
     mode: argv.includes('--live') ? 'live' : 'mock',
     projectId: get('--project-id'),
@@ -256,6 +310,10 @@ export function parseCliArgs(argv) {
     stopFile: get('--stop-file'),
     caseId: get('--case'),
     language: get('--language'),
+    batchFile: get('--batch-file'),
+    createBatch: argv.includes('--create-batch'),
+    stopBatch: argv.includes('--stop-batch'),
+    batchHours,
     maxRequests,
   };
 }
@@ -266,12 +324,31 @@ if (isMain) {
   let cli;
   try {
     cli = parseCliArgs(process.argv.slice(2));
+    if (cli.createBatch || cli.stopBatch) {
+      if (!cli.batchFile) throw Error('BATCH_FILE_REQUIRED');
+      if (cli.createBatch) {
+        const created = createBatchLedger({
+          file: cli.batchFile, repoRoot: REPO_ROOT,
+          projectId: cli.projectId, expiresInHours: cli.batchHours});
+        console.log(JSON.stringify({status: 'BATCH_CREATED', batch_id: created.batch_id,
+          project_id: created.project_id, model: created.model,
+          max_attempts: created.max_attempts, budget_cap_usd: created.budget_cap_usd,
+          expires_at: created.expires_at, batch_file: cli.batchFile}, null, 1));
+      } else {
+        const stopped = openBatchLedger({file: cli.batchFile, repoRoot: REPO_ROOT})
+          .stop('owner stop command');
+        console.log(JSON.stringify({status: 'BATCH_STOPPED', batch_id: stopped.batch_id,
+          batch_status: stopped.status}, null, 1));
+      }
+      process.exit(0);
+    }
     const summary = await runTrial({
       mode: cli.mode,
       projectId: cli.projectId,
       confirmation: cli.confirmation,
       caseId: cli.caseId,
       language: cli.language,
+      batchFile: cli.batchFile,
       budget: cli.maxRequests ? createTrialBudget({maxRequests: cli.maxRequests}) : undefined,
       shouldStop: cli.stopFile ? () => existsSync(cli.stopFile) : undefined,
       credentialProvider: cli.mode === 'live'
