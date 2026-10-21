@@ -135,6 +135,16 @@ test('unicode apostrophe and dash variants cannot hide a negation, solo or paire
   assert.equal(decisionFor('The Clark is a 40.2 inch longboard. It is not a twin－kick board.'), 'FAIL_CLOSED');
 });
 
+test('acute, prime and word-joiner variants cannot hide a negation', () => {
+  const report = casesById['landyachtz-the-clark'].report;
+  const decisionFor = (text) =>
+    verifyClaims({suggestions: {description: {text, used_fact_ids: ['description']}}, facts: report}).decision;
+  assert.equal(decisionFor('The Clark isn´t a twin-kick board.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark isn′t a twin-kick board.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark isn⁠t a twin-kick board.'), 'FAIL_CLOSED');
+  assert.equal(decisionFor('The Clark is a 40.2 inch longboard. It isn´t a twin-kick board.'), 'FAIL_CLOSED');
+});
+
 test('baseline verifier is untouched and still gates identically', () => {
   // The prototype must not have loosened the formal verifier: an
   // invented token still fails the Baseline exactly as before.

@@ -64,10 +64,13 @@ export function extractClaims(rawText, {field = 'description'} = {}) {
   // than by enumerating codepoints: NFKC folds fullwidth forms,
   // every apostrophe-like modifier/quote becomes ', every dash or
   // minus sign becomes -, and zero-width/format characters vanish.
-  const text = String(rawText).normalize('NFKC')
-    .replace(/[\u02B9\u02BB\u02BC\u02BE\u2018\u2019\u201B\u00B4\uFF07]/g, "'")
-    .replace(/\p{Pd}|\u2212|\uFE58|\uFE63|\u00AD/gu, '-')
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+  const apostrophes = /[\u02B9\u02BB\u02BC\u02BE\u2018\u2019\u201B\u00B4\u2032\u2033\u2035\u2036\uFF07]/g;
+  const text = String(rawText)
+    .replace(apostrophes, "'")
+    .normalize('NFKC')
+    .replace(apostrophes, "'")
+    .replace(/\p{Pd}|\u2212|\uFE58|\uFE63/gu, '-')
+    .replace(/\p{Cf}/gu, '')
     .replace(/\u00A0/g, ' ');
   const claims = [];
   // Negation is judged per claim occurrence, from its own sentence:
