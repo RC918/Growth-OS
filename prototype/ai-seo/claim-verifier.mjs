@@ -89,6 +89,22 @@ export function extractClaims(text, {field = 'description'} = {}) {
   for (const m of text.matchAll(/twin-kick|double-kick|[A-Za-z]+-[A-Za-z]+/g)) {
     push('specification', m[0].toLowerCase(), {compound: m[0].toLowerCase()}, m.index);
   }
+  // The spaced spellings are the same specification claim as the
+  // hyphenated ones, extracted per occurrence so a later negated
+  // occurrence is judged on its own sentence.
+  for (const m of text.matchAll(/\b(?:twin|double) kick\b/gi)) {
+    push('specification', m[0].toLowerCase(),
+      {compound: m[0].toLowerCase().replace(' ', '-')}, m.index);
+  }
+  // Morphological negation: un-/in-/non- forms of claim adjectives
+  // (unstable, unsuitable) are negated claims, not new vocabulary.
+  for (const m of text.matchAll(/\b(?:un|in|im|il|ir|non)([a-z]{3,})\b/gi)) {
+    const base = stem(m[1].toLowerCase());
+    if (PERFORMANCE.has(base) || MATERIAL.has(base) || SPEC_NOUN.has(base)
+      || ['suitable', 'stable', 'safe', 'fit', 'usable'].includes(base)) {
+      push('performance', m[0].toLowerCase(), {negated: true, morphological_negation: m[0]}, m.index);
+    }
+  }
   for (const m of text.matchAll(/\b(?:for|designed for|built for|ideal for)\s+([A-Za-z][A-Za-z -]{2,30})/gi)) {
     push('purpose', m[0], {target: m[1].trim().toLowerCase()}, m.index);
   }
