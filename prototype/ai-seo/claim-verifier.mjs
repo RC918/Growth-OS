@@ -26,7 +26,7 @@ const UNIT_ALIASES = {inch: 'inch', in: 'inch', '"': 'inch', '″': 'inch',
   cm: 'cm', mm: 'mm', m: 'm', km: 'km', kg: 'kg', g: 'g', lb: 'lb', oz: 'oz',
   ft: 'ft', mph: 'mph', kph: 'kph', kmh: 'kph'};
 const TO_CM = {inch: 2.54, cm: 1, mm: 0.1, m: 100, ft: 30.48};
-const NEGATION = /\b(not|no|never|without|isn't|aren't|doesn't|non-)\b|[不未無沒]/i;
+const NEGATION = /\b(not|no|never|without|isn't|aren't|doesn't|isnt|arent|doesnt|dont|can't|cant|couldn't|shouldn't|wouldn't|hasn't|haven't|wasn't|weren't|non-)\b|[不未無沒]/i;
 const COMPARISON = /\b(more|less|better|worse|than|faster|slower|stronger|larger|smaller|higher|lower)\b|比較|更[快大強輕重]/;
 
 function stem(word) {
@@ -58,7 +58,13 @@ function sentenceAt(text, index) {
   return text.slice(start, end);
 }
 
-export function extractClaims(text, {field = 'description'} = {}) {
+export function extractClaims(rawText, {field = 'description'} = {}) {
+  // Typographic variants are the same characters as their ASCII
+  // forms for claim purposes: curly apostrophes ("isn’t" negates
+  // exactly like "isn't"), Unicode dashes and non-breaking spaces
+  // must not hide a compound or a negation.
+  const text = String(rawText).replace(/[‘’]/g, "'")
+    .replace(/[‐-―]/g, '-').replace(/ /g, ' ');
   const claims = [];
   // Negation is judged per claim occurrence, from its own sentence:
   // an affirmative first sentence must not mask a later negation.
