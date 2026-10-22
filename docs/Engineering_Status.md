@@ -8,14 +8,14 @@
 ## 最新快照（固定格式）
 
 ```text
-head: 5c724ce514fee4e6b1b98db9f5df330cb1f967e0
+head: e70bab0b8eadc829dc6fd74aaf086aa54e6e5e1c
 branch: takeover/muse-primary-20261016
 pr: #31
 pr_state: OPEN
 pr_draft: true
 pr_head_matches: true
 ci: SUCCESS
-reviewer: APPROVE (bound 5c724ce, bilingual review page)
+reviewer: APPROVE (bound e70bab0, handover entry and status generator)
 worktree: dirty entries exist from another executor; do not overwrite, delete or commit them
 updated_utc: 2026-10-22
 ```
