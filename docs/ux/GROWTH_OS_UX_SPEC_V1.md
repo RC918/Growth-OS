@@ -109,3 +109,45 @@ These families are a design **target**, not evidence that Figma already has comp
 ## GitHub integration policy
 
 This file is **design documentation**, not implementation authorization. Keep as **Draft PR** until Owner approves the completed Figma interactive prototype, UX acceptance and Dot's platform-capability gap assessment. Blueprint contains strategy and should link to this spec once approved. Do not merge this PR automatically or start implementation merely because it exists.
+
+## UX continuation checkpoint — 2026-10-23 (Asia/Taipei)
+
+**Owner pre-authorization, limited to UX work:** continue refining Figma, interactive prototype and this docs-only Draft PR without interrupting engineering; no authority to merge the PR, change product source, deploy, connect production accounts, or publish customer content.
+
+### Progress evidenced in Figma
+
+- Premium concept screens exist for entry, growth report, review, automation control center, recovery and outcomes (Figma file above).
+- Six seed components exist in `12 · Shared UI Components v1`, but complete variants, tokens and responsive behavior remain open.
+- Shared guidance-panel component instances were applied to five premium screens; the entry screen's guidance panel still needs convergence to a shared component.
+- Six-screen navigation reactions were created. A navigation-button placement problem was found and revised; further screenshot-based QA is pending.
+- The prototype remains a **navigable walkthrough, not functional grant/publish/restore simulation**.
+
+### Current blocker
+
+Figma MCP reported **Starter plan tool-call limit reached** on 2026-10-23. No further Figma mutations or validation can be claimed until access resumes or the plan/access issue is resolved. Preserve existing work; do not recreate the file or bypass this restriction.
+
+### Resume priority and concrete exit criteria
+
+1. Audit CTA bounds and overlaps on all six screens at desktop dimensions; ensure no CTA overlays legal/status copy and every CTA lies inside its owning card. Capture visual proof.
+2. Replace remaining duplicated assistant, button, status and card layers with actual Figma instances. Confirm instance counts and component references.
+3. Complete state variants for buttons, URL field, grant scope, publish verification, paused/blocked/unknown outcomes and restore-conflict dialogs.
+4. Build the WordPress and YouTube permission-specific branches. Ensure draft approval is never equivalent to publish authorization.
+5. Add narrow desktop and mobile responsive frames and test Chinese line wraps.
+6. Validate interactive paths for review-first, bounded autonomy, permission expiry, unknown remote result, and conflict-aware restoration.
+7. Compare each screen with **Growth-OS Visual Design Reference v1** against spacing, legibility, hierarchy, colors, density and consistent assistant guidance; record findings as pass/fail.
+8. Submit Owner-reviewable design screenshots + prototype link + UX test matrix. Only after design acceptance and Dot's platform audit should integration tasks begin.
+
+### QA checklist for the next session
+
+| Check | Passing requirement |
+|---|---|
+| Button geometry | No clipping or overlap at documented viewports; clickable within expected container |
+| Text spacing | Traditional Chinese titles, subtitles and long guidance text do not collide |
+| Shared components | Screen instances link to reusable library components, not copied primitives |
+| Prototype actions | No impossible transitions from no-grant directly to verified publishing |
+| Error states | Failed/unknown writes remain blocked until remote readback |
+| Rollback | User edits / revision conflicts block silent restoration |
+| Claims | Prototype/mocks do not imply live YouTube or WordPress integrations |
+| Visual fidelity | Screenshot-based comparison against approved reference, gaps documented |
+
+**Do not close this checkpoint or mark UI/UX complete until all corresponding validation artifacts exist.**
