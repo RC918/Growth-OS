@@ -127,10 +127,10 @@ function render() {
   card.querySelector('.claim.en').textContent = '待判斷文案（英文原文）：' + c.text;
   const area = card.querySelector('textarea'); area.value = saved.reason || '';
   card.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => {
-    state[c.id] = {decision: r.value, reason: area.value}; save(); progress();
+    state[c.id] = {decision: r.value, reason: area.value}; save(); invalidatePreview(); progress();
   }));
   area.addEventListener('input', () => {
-    state[c.id] = {decision: (state[c.id] || {}).decision || '', reason: area.value}; save(); progress();
+    state[c.id] = {decision: (state[c.id] || {}).decision || '', reason: area.value}; save(); invalidatePreview(); progress();
   });
   root.appendChild(card);
   document.getElementById('posLabel').textContent = '第 ' + (pos + 1) + ' / ' + CASES.length + ' 題';
@@ -159,30 +159,48 @@ function download(name, text, type) {
   a.download = name; a.click(); URL.revokeObjectURL(a.href);
 }
 const csvCell = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-function downloadCsv() {
+const escapeHtml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// The preview freezes a snapshot; the confirm button downloads exactly
+// that snapshot, and any later edit invalidates the preview instead of
+// silently downloading something different from what was shown.
+let previewSnapshot = null;
+function invalidatePreview() {
+  previewSnapshot = null;
+  document.getElementById('exportPreview').innerHTML = '';
+}
+function downloadCsv(snapshotRows) {
   const lines = ['case_id,annotator_code,decision,reason'];
-  rows().forEach(r => lines.push([r.case_id, r.annotator_code, r.decision, r.reason].map(csvCell).join(',')));
+  snapshotRows.forEach(r => lines.push([r.case_id, r.annotator_code, r.decision, r.reason].map(csvCell).join(',')));
   download('review-' + (activeCode || 'anon') + '.csv', lines.join('\n'), 'text/csv');
 }
-document.getElementById('exportCsv').addEventListener('click', () => {
-  const box = document.getElementById('exportPreview');
-  const list = rows().map(r => '<tr><td>' + r.case_id + '</td><td>' + (r.decision || '（未填）')
-    + '</td><td>' + (r.reason || '') + '</td></tr>').join('');
-  box.innerHTML = '<div class="guide"><strong>匯出前確認</strong>：以下就是即將匯出的內容'
-    + '（代號：' + (activeCode || '未填') + '，題目版本：' + PACKAGE_VERSION + '）。'
-    + '若與畫面上的選擇不同，請先回到該題修正，不要下載。'
-    + '<table><tr><th>題號</th><th>判定</th><th>理由</th></tr>' + list + '</table>'
-    + '<button class="primary" id="exportCsvConfirm">確認無誤，下載 CSV</button></div>';
-  document.getElementById('exportCsvConfirm').addEventListener('click', downloadCsv);
-});
-document.getElementById('exportJson').addEventListener('click', () => {
+function downloadJson(snapshotRows) {
   download('review-' + (activeCode || 'anon') + '.json',
     JSON.stringify({package_version: PACKAGE_VERSION, annotator_code: activeCode,
-      exported_from: 'ui-state', rows: rows()}, null, 2), 'application/json');
-});
+      exported_from: 'ui-state', rows: snapshotRows}, null, 2), 'application/json');
+}
+function showPreview(kind) {
+  previewSnapshot = {kind, rows: JSON.parse(JSON.stringify(rows()))};
+  const box = document.getElementById('exportPreview');
+  const list = previewSnapshot.rows.map(r => '<tr><td>' + escapeHtml(r.case_id) + '</td><td>'
+    + escapeHtml(r.decision || '（未填）') + '</td><td>' + escapeHtml(r.reason || '') + '</td></tr>').join('');
+  box.innerHTML = '<div class="guide"><strong>匯出前確認</strong>：以下就是即將匯出的內容'
+    + '（代號：' + escapeHtml(activeCode || '未填') + '，題目版本：' + PACKAGE_VERSION + '）。'
+    + '若與畫面上的選擇不同，請先回到該題修正，不要下載。'
+    + '<table><tr><th>題號</th><th>判定</th><th>理由</th></tr>' + list + '</table>'
+    + '<button class="primary" id="exportConfirm">確認無誤，下載 ' + kind + '</button></div>';
+  document.getElementById('exportConfirm').addEventListener('click', () => {
+    if (!previewSnapshot) return;
+    if (previewSnapshot.kind === 'CSV') downloadCsv(previewSnapshot.rows);
+    else downloadJson(previewSnapshot.rows);
+  });
+}
+document.getElementById('exportCsv').addEventListener('click', () => showPreview('CSV'));
+document.getElementById('exportJson').addEventListener('click', () => showPreview('JSON'));
 annotatorInput.addEventListener('change', () => {
   activeCode = annotatorInput.value.trim();
   state = loadFor(activeCode);
+  invalidatePreview();
   render();
 });
 document.getElementById('exportBackup').addEventListener('click', () => {
@@ -200,6 +218,7 @@ document.getElementById('importBackup').addEventListener('change', async (event)
     activeCode = annotatorInput.value.trim();
     state = data.answers;
     save();
+    invalidatePreview();
     render();
   } catch { alert('進度檔無法讀取，請確認檔案是否正確。'); }
 });

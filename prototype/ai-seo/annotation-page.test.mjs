@@ -116,7 +116,7 @@ test('CSV export includes every case id with its decision and reason', () => {
   first.radios.find(r => r.value === '正確').listeners.change.forEach(f => f());
   byId['exportCsv'].fire('click');
   assert.ok(byId['exportPreview'].innerHTML.includes('正確'), 'export preview must show the displayed decision');
-  byId['exportCsvConfirm'].fire('click');
+  byId['exportConfirm'].fire('click');
   const lines = byId.__downloads.at(-1).split('\n');
   assert.equal(lines[0], 'case_id,annotator_code,decision,reason');
   assert.equal(lines.length, 31);
@@ -191,10 +191,11 @@ test('h16/h18/h21/h25/h29: last selection wins across navigation, reload and exp
   byId = loadPage(storage);
   byId['exportCsv'].fire('click');
   const preview = byId['exportPreview'].innerHTML;
-  byId['exportCsvConfirm'].fire('click');
+  byId['exportConfirm'].fire('click');
   const csv = Object.fromEntries(byId.__downloads.at(-1).split('\n').slice(1)
     .map(l => { const m = l.match(/"([^"]*)","([^"]*)","([^"]*)","([^"]*)"/); return m ? [m[1], {decision: m[3], reason: m[4]}] : [l, {}]; }));
   byId['exportJson'].fire('click');
+  byId['exportConfirm'].fire('click');
   const json = Object.fromEntries(JSON.parse(byId.__downloads.at(-1)).rows.map(r => [r.case_id, r]));
   for (const [id, decision] of Object.entries(finals)) {
     assert.ok(preview.includes(decision), id + ': preview missing final decision');
@@ -216,13 +217,31 @@ test('typing a new code without committing cannot silently switch the export buc
   byId['annotator'].value = 'OTHER';
   byId['annotator'].fire('input');
   byId['exportCsv'].fire('click');
-  byId['exportCsvConfirm'].fire('click');
+  byId['exportConfirm'].fire('click');
   const first = byId.__downloads.at(-1).split('\n')[1];
   assert.ok(first.includes('"TEST"') && first.includes('"正確"') && first.includes('"畫面上的答案"'),
     'export must match the displayed answers until the code is committed: ' + first);
   // Committing the code visibly switches to that code's own empty bucket.
   byId['annotator'].fire('change');
   assert.ok(byId['progress'].textContent.includes('0 / 30'));
+});
+
+test('editing after the preview invalidates it, and preview text is HTML-escaped', () => {
+  const storage = makeStorage();
+  const byId = loadPage(storage);
+  byId['annotator'].value = 'TEST';
+  byId['annotator'].fire('change');
+  const card = byId['cases'].children[0];
+  card.area.value = '理由含 <b>標籤</b>';
+  card.radios.find(r => r.value === '正確').listeners.change.forEach(f => f());
+  byId['exportCsv'].fire('click');
+  const preview = byId['exportPreview'].innerHTML;
+  assert.ok(preview.includes('&lt;b&gt;'), 'preview must escape annotator text');
+  assert.ok(!preview.includes('<b>標籤</b>'), 'preview must not inject raw HTML');
+  // Changing an answer after the preview must clear the stale preview,
+  // so the confirm button can never download unseen content.
+  card.radios.find(r => r.value === '錯誤').listeners.change.forEach(f => f());
+  assert.equal(byId['exportPreview'].innerHTML, '');
 });
 
 test('review page offers the three plain-language decisions and per-annotator export', () => {
