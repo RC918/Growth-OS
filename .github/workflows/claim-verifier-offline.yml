@@ -1,0 +1,35 @@
+name: Claim verifier offline regression
+
+on:
+  push:
+    branches: [codex/claim-verifier-v3-20261022]
+  pull_request:
+    branches: [takeover/muse-primary-20261016]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  claim-verifier-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the exact branch or PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Run all claim verifier offline regressions
+        run: >-
+          node --test --test-reporter=tap
+          prototype/ai-seo/ai-seo-pipeline.test.mjs
+          prototype/ai-seo/claim-verifier.test.mjs
+          prototype/ai-seo/claim-semantic-regression.test.mjs
+          prototype/ai-seo/claim-reviewer-regression.test.mjs
+          prototype/ai-seo/claim-stock-regression.test.mjs
