@@ -56,7 +56,7 @@ function loadPage(localStorageStub) {
   };
   const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
   const downloads = [];
-  vm.runInNewContext(js, {document, localStorage: localStorageStub,
+  vm.runInNewContext(js, {document, localStorage: localStorageStub, location: {pathname: '/review.html'},
     Blob: class { constructor(parts) { this.parts = parts; } },
     URL: {createObjectURL: (blob) => { downloads.push(blob.parts.join('')); return 'blob:x'; },
       revokeObjectURL() {}}, alert() {}});
@@ -242,6 +242,24 @@ test('editing after the preview invalidates it, and preview text is HTML-escaped
   // so the confirm button can never download unseen content.
   card.radios.find(r => r.value === '錯誤').listeners.change.forEach(f => f());
   assert.equal(byId['exportPreview'].innerHTML, '');
+});
+
+test('page shows its version and offers a read-only diagnostic comparison download', () => {
+  assert.ok(html.includes('頁面版本：phase3b2-claim-holdout-blind-v2'));
+  assert.ok(html.includes('exportDiag'));
+  const storage = makeStorage();
+  const byId = loadPage(storage);
+  byId['annotator'].value = 'TEST';
+  byId['annotator'].fire('change');
+  const card = byId['cases'].children[0];
+  card.area.value = '診斷用';
+  card.radios.find(r => r.value === '正確').listeners.change.forEach(f => f());
+  byId['exportDiag'].fire('click');
+  const report = JSON.parse(byId.__downloads.at(-1));
+  assert.equal(report.page_version, 'phase3b2-claim-holdout-blind-v2');
+  assert.equal(report.active_code, 'TEST');
+  assert.equal(report.stored_buckets.TEST.h01.decision, '正確');
+  assert.equal(report.displayed_and_exported_rows.find(r => r.case_id === 'h01').decision, '正確');
 });
 
 test('review page offers the three plain-language decisions and per-annotator export', () => {

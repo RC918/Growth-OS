@@ -35,6 +35,7 @@
 <header>
   <h1>文案證據審閱</h1>
   <p>請逐題閱讀「來源證據」與「待判斷文案」，判斷文案是否符合證據。不需要任何技術背景。畫面以繁體中文為主，英文原文收在每題下方的「英文原文（參考）」中，需要時再展開核對。</p>
+  <p>頁面版本：phase3b2-claim-holdout-blind-v2</p>
 </header>
 <main>
   <div class="guide">
@@ -53,6 +54,10 @@
       <label>還原進度檔：<input type="file" id="importBackup" accept=".json"></label>
     </div>
     <p>若瀏覽器或開啟方式不保存進度，請用「備份進度檔」把進度存成檔案，下次用「還原進度檔」載入即可繼續，內容與代號都會一起還原。</p>
+    <div>
+      <button id="exportDiag">下載診斷對照報告（只讀）</button>
+    </div>
+    <p>若畫面上的判定與匯出結果不同，請按此鈕下載診斷報告交回，不需重新填寫；報告只含版本、代號與各題判定對照，不含任何帳號或金鑰。</p>
     <span id="progress"></span>
     <div>
       <button class="primary" id="exportCsv">匯出前確認並下載 CSV</button>
@@ -195,6 +200,34 @@ function showPreview(kind) {
     else downloadJson(previewSnapshot.rows);
   });
 }
+document.getElementById('exportDiag').addEventListener('click', () => {
+  const bucketCodes = new Set([activeCode]);
+  try {
+    const storedCode = localStorage.getItem(CODE_KEY);
+    if (storedCode) bucketCodes.add(storedCode);
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('growthos-review-') && k !== CODE_KEY && k !== POS_KEY) {
+        bucketCodes.add(k.slice('growthos-review-'.length));
+      }
+    }
+  } catch {}
+  const buckets = {};
+  for (const code of bucketCodes) {
+    const answers = loadFor(code);
+    buckets[code || 'anon'] = Object.fromEntries(Object.entries(answers)
+      .map(([id, a]) => [id, {decision: a.decision || '', reason: a.reason || ''}]));
+  }
+  const report = {
+    page_version: PACKAGE_VERSION,
+    page_path: location.pathname || '',
+    active_code: activeCode,
+    displayed_and_exported_rows: rows(),
+    stored_buckets: buckets,
+  };
+  download('review-diagnostic-' + (activeCode || 'anon') + '.json',
+    JSON.stringify(report, null, 2), 'application/json');
+});
 document.getElementById('exportCsv').addEventListener('click', () => showPreview('CSV'));
 document.getElementById('exportJson').addEventListener('click', () => showPreview('JSON'));
 annotatorInput.addEventListener('change', () => {
