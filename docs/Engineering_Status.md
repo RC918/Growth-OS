@@ -8,14 +8,14 @@
 ## 最新快照（固定格式）
 
 ```text
-head: e70bab0b8eadc829dc6fd74aaf086aa54e6e5e1c
+head: 89caea52c8b3ad14ebc67c435058aacd9e6d5f72
 branch: takeover/muse-primary-20261016
 pr: #31
 pr_state: OPEN
 pr_draft: true
 pr_head_matches: true
 ci: SUCCESS
-reviewer: APPROVE (bound e70bab0, handover entry and status generator)
+reviewer: APPROVE (bound 89caea5, review page v2)
 worktree: dirty entries exist from another executor; do not overwrite, delete or commit them
 updated_utc: 2026-10-22
 ```
@@ -25,9 +25,10 @@ updated_utc: 2026-10-22
 - Phase 1～2B：已驗收封存，不重做。
 - Phase 3A／3B／3B.1：離線與小額 Live 試驗已封存；Claim-Based 原型維持
   Shadow Mode，不接正式發布閘門。
-- Phase 3B.2：30 筆獨立保留測試集與盲審頁面完成；繁體中文對照版
-  `review.html` 已通過離線測試 94/94、Reviewer APPROVE、CI 4/4 SUCCESS。
-  真人標註尚未開始（human-labelled = 0）。
+- Phase 3B.2：30 筆獨立保留測試集與盲審頁面完成；審閱頁 v2
+  （中文為主、一次一題、證據補全為逐字完整句子）已通過離線測試
+  95/95、Reviewer APPROVE、CI 4/4 SUCCESS。審閱者 B 已回收 v1
+  標註並保留；第二位審閱者與裁決者尚未指派。
 
 ## 授權邊界（摘要，完整以治理文件為準）
 
@@ -40,8 +41,9 @@ updated_utc: 2026-10-22
 
 ## 未完成事項與下一步
 
-1. Owner 指派兩位非開發者審閱者與一位裁決者，使用
-   `prototype/ai-seo/annotation/review.html` 完成 30 筆真人標註後回收 CSV。
+1. Owner 指派第二位非開發者審閱者（使用 v2 頁面）與一位裁決者，
+   回收 CSV 後依裁決流程處理；B 的 v1 標註與 v2 結果合併裁決時
+   須註明題目版本差異。
 2. 標註凍結前，不得以保留測試集調整 Claim 原型，也不得執行新 Live。
 3. 其他 Phase 3B.2 後續（裁決、比較矩陣）依
    `docs/Phase3B2_Annotation_Return_And_Adjudication_2026-10-21.md`。
