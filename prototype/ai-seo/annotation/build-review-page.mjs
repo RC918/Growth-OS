@@ -44,6 +44,11 @@ const html = `<!doctype html>
 <main>
   <div class="bar">
     <label>審閱者代號：<input id="annotator" placeholder="例如 A 或 B"></label>
+    <div>
+      <button id="exportBackup">備份進度檔</button>
+      <label>還原進度檔：<input type="file" id="importBackup" accept=".json"></label>
+    </div>
+    <p>若瀏覽器或開啟方式不保存進度，請用「備份進度檔」把進度存成檔案，下次用「還原進度檔」載入即可繼續，內容與代號都會一起還原。</p>
     <span id="progress"></span>
     <div>
       <button class="primary" id="exportCsv">下載我的審閱結果 (CSV)</button>
@@ -65,9 +70,19 @@ const html = `<!doctype html>
 const CASES = ${JSON.stringify(data)};
 const root = document.getElementById('cases');
 const annotatorInput = document.getElementById('annotator');
+// The annotator code itself is persisted first: without it, a
+// reload would look up the anonymous bucket and the saved answers
+// would appear lost even though they are still stored.
+const CODE_KEY = 'growthos-review-annotator-code';
+try { annotatorInput.value = localStorage.getItem(CODE_KEY) || ''; } catch {}
 const storeKey = () => 'growthos-review-' + (annotatorInput.value.trim() || 'anon');
 const load = () => { try { return JSON.parse(localStorage.getItem(storeKey()) || '{}'); } catch { return {}; } };
-const save = (state) => localStorage.setItem(storeKey(), JSON.stringify(state));
+const save = (state) => {
+  try {
+    localStorage.setItem(CODE_KEY, annotatorInput.value.trim());
+    localStorage.setItem(storeKey(), JSON.stringify(state));
+  } catch {}
+};
 function render() {
   const state = load();
   root.innerHTML = '';
@@ -120,7 +135,26 @@ document.getElementById('exportJson').addEventListener('click', () => {
   download('review-' + (annotatorInput.value.trim() || 'anon') + '.json',
     JSON.stringify(rows(), null, 2), 'application/json');
 });
+annotatorInput.addEventListener('input', () => {
+  try { localStorage.setItem(CODE_KEY, annotatorInput.value.trim()); } catch {}
+});
 annotatorInput.addEventListener('change', render);
+document.getElementById('exportBackup').addEventListener('click', () => {
+  download('review-progress-' + (annotatorInput.value.trim() || 'anon') + '.json',
+    JSON.stringify({annotator_code: annotatorInput.value.trim(), answers: load()}, null, 2),
+    'application/json');
+});
+document.getElementById('importBackup').addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || typeof data.answers !== 'object') throw new Error('bad backup');
+    annotatorInput.value = data.annotator_code || '';
+    save(data.answers);
+    render();
+  } catch { alert('進度檔無法讀取，請確認檔案是否正確。'); }
+});
 let adjRows = [];
 function parseCsv(text) {
   const lines = text.trim().split(/\\r?\\n/).slice(1);
