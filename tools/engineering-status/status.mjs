@@ -75,14 +75,19 @@ export function formatStatus({ git, github, reviewer = 'UNKNOWN', now = new Date
   return lines.join('\n') + '\n';
 }
 
-// The committed doc is a snapshot, not a source of truth: --check compares
-// its recorded HEAD with the live worktree HEAD and fails closed on drift.
-export function checkDocFreshness(docText, liveHead) {
+// The committed doc records the last verified HEAD (CI + Reviewer passed),
+// not the live HEAD: the doc's own update commit must not make it stale.
+// --check therefore verifies the recorded HEAD is in live history
+// (ancestor-or-equal). A recorded HEAD outside history (rewritten or
+// invented) fails closed; the number of commits the live HEAD is ahead is
+// reported so readers know the snapshot basis without chasing every commit.
+export function checkDocFreshness(docText, liveHead, isAncestor = () => false) {
   const match = docText.match(/^head:\s*([0-9a-f]{40})\s*$/m);
   if (!match) return { fresh: false, reason: 'doc has no head field' };
-  return match[1] === liveHead
-    ? { fresh: true, reason: 'doc HEAD matches live HEAD' }
-    : { fresh: false, reason: `doc HEAD ${match[1]} != live HEAD ${liveHead}` };
+  if (match[1] === liveHead) return { fresh: true, reason: 'doc HEAD is the live HEAD' };
+  return isAncestor(match[1], liveHead)
+    ? { fresh: true, reason: `doc HEAD ${match[1].slice(0, 7)} is in live history; live HEAD has moved on` }
+    : { fresh: false, reason: `doc HEAD ${match[1]} is not in live history` };
 }
 
 export function main(argv = process.argv.slice(2)) {
@@ -91,7 +96,13 @@ export function main(argv = process.argv.slice(2)) {
   const checkIndex = argv.indexOf('--check');
   if (checkIndex >= 0) {
     const doc = readFileSync(argv[checkIndex + 1], 'utf8');
-    const result = checkDocFreshness(doc, git.head);
+    const isAncestor = (ancestor, descendant) => {
+      try {
+        execFileSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], { timeout: 30_000 });
+        return true;
+      } catch { return false; }
+    };
+    const result = checkDocFreshness(doc, git.head, isAncestor);
     console.log((result.fresh ? 'FRESH: ' : 'STALE: ') + result.reason);
     return result.fresh ? 0 : 1;
   }

@@ -51,7 +51,9 @@ updated_utc: 2026-10-22
 1. 中斷恢復時先執行 `node tools/engineering-status/status.mjs`，以實際
    工作樹與 GitHub 單次查詢為準；不得直接信任本檔快照。
 2. `node tools/engineering-status/status.mjs --check docs/Engineering_Status.md`
-   可驗證本檔 HEAD 是否過期；STALE 時以實跑輸出為準並原地更新本檔。
+   可驗證本檔記錄的已驗收 HEAD 是否仍在實際歷史中；本檔快照記錄的是
+   最後通過 CI＋Reviewer 的 HEAD，不追逐文件自身的提交。STALE 時以
+   實跑輸出為準並原地更新本檔。
 3. 僅在實質里程碑（新 HEAD 通過 CI＋Reviewer、任務狀態改變、阻塞解除）
    時更新本檔並隨該里程碑 Commit 提交；禁止逐次巡檢附加補記。
 4. 本檔與產生器不得記錄 API Key、Token、密碼或任何憑證內容。

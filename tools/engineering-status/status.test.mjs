@@ -61,8 +61,10 @@ test('formatStatus emits exactly the fixed fields in order', () => {
   assert.ok(!/key|token|secret|password/i.test(out));
 });
 
-test('checkDocFreshness fails closed on stale or missing HEAD', () => {
+test('checkDocFreshness accepts verified ancestors and fails closed otherwise', () => {
   assert.equal(checkDocFreshness('head: ' + HEAD + '\n', HEAD).fresh, true);
-  assert.equal(checkDocFreshness('head: ' + 'b'.repeat(40) + '\n', HEAD).fresh, false);
+  const older = 'b'.repeat(40);
+  assert.equal(checkDocFreshness('head: ' + older + '\n', HEAD, (a) => a === older).fresh, true);
+  assert.equal(checkDocFreshness('head: ' + older + '\n', HEAD, () => false).fresh, false);
   assert.equal(checkDocFreshness('no fields here\n', HEAD).fresh, false);
 });
