@@ -151,3 +151,8 @@ Figma MCP reported **Starter plan tool-call limit reached** on 2026-10-23. No fu
 | Visual fidelity | Screenshot-based comparison against approved reference, gaps documented |
 
 **Do not close this checkpoint or mark UI/UX complete until all corresponding validation artifacts exist.**
+
+
+## Current UX evidence — 2026-10-23
+
+The earlier Starter-plan quota blocker is historical: the Owner subsequently upgraded Figma to Professional Full, and Figma edits resumed. During the latest audit, a transient HTTP 429 appeared; it is not evidence that the Starter-plan blocker remains. For newer verification results and the outstanding high-priority UX issues, see [UX_INTERACTION_CONTRACT_V1.md](UX_INTERACTION_CONTRACT_V1.md) and [UX_QA_MATRIX_2026-10-23.md](UX_QA_MATRIX_2026-10-23.md). Keep this PR Draft; do not claim full interaction testing or production integration.
