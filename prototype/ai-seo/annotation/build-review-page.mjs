@@ -1,13 +1,15 @@
 // Builds the standalone annotator review page from the blind
-// holdout package. Only blind fields are embedded: the labelled
-// holdout, engineering pre-labels and prototype outputs are never
-// read here. Run offline: node prototype/ai-seo/annotation/build-review-page.mjs
+// holdout package (v2: evidence completed to full verbatim source
+// sentences). Only blind fields are embedded: the labelled holdout,
+// engineering pre-labels and prototype outputs are never read here.
+// Run offline: node prototype/ai-seo/annotation/build-review-page.mjs
 import {readFile, writeFile} from 'node:fs/promises';
 
-const blind = JSON.parse(await readFile(new URL('../fixtures/claim-holdout-blind-v1.json', import.meta.url)));
-// Translation aid only: Traditional Chinese renderings shown
-// under each English original. It is never an annotation or a hint.
-const translations = JSON.parse(await readFile(new URL('../fixtures/claim-holdout-translations.json', import.meta.url)));
+const blind = JSON.parse(await readFile(new URL('../fixtures/claim-holdout-blind-v2.json', import.meta.url)));
+// Translation aid only: Traditional Chinese is the primary reading
+// text; the English original stays available as a collapsed reference.
+// Translations are never an annotation or a hint.
+const translations = JSON.parse(await readFile(new URL('../fixtures/claim-holdout-translations-v2.json', import.meta.url)));
 const data = blind.entries.map(e => {
   const tr = translations.translations[e.id] ?? {};
   return {id: e.id, language: e.language, text: e.text,
@@ -29,27 +31,41 @@ const html = `<!doctype html>
   header h1 { margin: 0 0 6px; font-size: 22px; }
   header p { margin: 0; opacity: .85; }
   main { max-width: 860px; margin: 0 auto; padding: 20px 16px 64px; }
-  .bar { background: #fff; border: 1px solid #d8e0e8; padding: 14px 16px; margin-bottom: 16px; }
+  .bar, .guide { background: #fff; border: 1px solid #d8e0e8; padding: 14px 16px; margin-bottom: 16px; }
+  .guide { border-left: 6px solid #17324f; line-height: 1.7; }
   .bar input { font-size: 16px; padding: 6px 8px; }
   .card { background: #fff; border: 1px solid #d8e0e8; padding: 18px; margin-bottom: 16px; }
   .card h2 { font-size: 15px; margin: 0 0 10px; color: #52616e; }
-  .evidence { background: #eef4ea; border: 1px solid #cfdec6; padding: 10px 12px; white-space: pre-wrap; }
-  .claim { font-size: 18px; line-height: 1.6; margin: 14px 0; }
+  .evidence { background: #eef4ea; border: 1px solid #cfdec6; padding: 10px 12px; white-space: pre-wrap; line-height: 1.7; }
+  .claim { font-size: 19px; line-height: 1.7; margin: 14px 0; }
   .choices label { display: inline-block; margin: 4px 10px 4px 0; font-size: 16px; }
   textarea { width: 100%; min-height: 52px; font-size: 15px; }
   button { font-size: 16px; padding: 10px 16px; margin: 6px 8px 6px 0; cursor: pointer; }
   .primary { background: #17324f; color: #fff; border: 0; }
   #progress { font-weight: 600; }
-  details { background: #fff; border: 1px solid #d8e0e8; padding: 14px 16px; }
+  .nav { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .nav .pos { font-weight: 600; }
+  details.ref { background: #fafbfc; border: 1px dashed #b9c6d2; padding: 10px 12px; margin-top: 10px; }
+  details.ref .evidence { background: #f2f4f6; border-color: #d8e0e8; }
+  details.adj { background: #fff; border: 1px solid #d8e0e8; padding: 14px 16px; }
   table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #d8e0e8; padding: 6px; text-align: left; }
 </style>
 </head>
 <body>
 <header>
   <h1>文案證據審閱</h1>
-  <p>請逐題閱讀「來源證據」與「待判斷文案」，判斷文案是否符合證據。不需要任何技術背景。每題附中文翻譯僅協助理解，判定請以證據內容為準。</p>
+  <p>請逐題閱讀「來源證據」與「待判斷文案」，判斷文案是否符合證據。不需要任何技術背景。畫面以繁體中文為主，英文原文收在每題下方的「英文原文（參考）」中，需要時再展開核對。</p>
 </header>
 <main>
+  <div class="guide">
+    <strong>判斷準則（請先讀完再開始）：</strong>
+    <ol>
+      <li>比較的是<strong>語意</strong>，不是字串是否一模一樣：換句話說但意思相同，仍可判為正確。</li>
+      <li>來源證據<strong>沒有支持</strong>的商品主張（例如規格、材質、保固、價格、性能），不得視為正確。</li>
+      <li>文案與證據<strong>互相矛盾</strong>時，判為錯誤；證據不足以判斷時，請選「無法判定」，不要猜測。</li>
+      <li>文案的每一個主張都要有證據支持，只要有一部分不符合，整題就不能判為正確。</li>
+    </ol>
+  </div>
   <div class="bar">
     <label>審閱者代號：<input id="annotator" placeholder="例如 A 或 B"></label>
     <div>
@@ -62,10 +78,15 @@ const html = `<!doctype html>
       <button class="primary" id="exportCsv">下載我的審閱結果 (CSV)</button>
       <button id="exportJson">下載 JSON</button>
     </div>
-    <p>每位審閱者請各自填寫並下載自己的檔案，不要互相討論答案。進度會自動保存在這台裝置的瀏覽器中。</p>
+    <p>每位審閱者請各自填寫並下載自己的檔案，不要互相討論答案。進度會自動保存在這台裝置的瀏覽器中。新版頁面會自動接續你在舊版已填寫的答案，不會遺失。</p>
+  </div>
+  <div class="nav">
+    <button id="prevBtn">← 上一題</button>
+    <span class="pos" id="posLabel"></span>
+    <button id="nextBtn">下一題 →</button>
   </div>
   <div id="cases"></div>
-  <details>
+  <details class="adj">
     <summary>裁決者專用：比對兩位審閱者</summary>
     <p>依序選取兩位審閱者的 CSV 檔案，系統只列出判定不同的題目。裁決者選定最終判定後，可下載裁決紀錄。</p>
     <input type="file" id="fileA" accept=".csv">
@@ -76,12 +97,14 @@ const html = `<!doctype html>
 </main>
 <script>
 const CASES = ${JSON.stringify(data)};
+const PACKAGE_VERSION = 'phase3b2-claim-holdout-blind-v2';
 const root = document.getElementById('cases');
 const annotatorInput = document.getElementById('annotator');
 // The annotator code itself is persisted first: without it, a
 // reload would look up the anonymous bucket and the saved answers
 // would appear lost even though they are still stored.
 const CODE_KEY = 'growthos-review-annotator-code';
+const POS_KEY = 'growthos-review-position';
 try { annotatorInput.value = localStorage.getItem(CODE_KEY) || ''; } catch {}
 const storeKey = () => 'growthos-review-' + (annotatorInput.value.trim() || 'anon');
 const load = () => { try { return JSON.parse(localStorage.getItem(storeKey()) || '{}'); } catch { return {}; } };
@@ -91,37 +114,50 @@ const save = (state) => {
     localStorage.setItem(storeKey(), JSON.stringify(state));
   } catch {}
 };
+let pos = 0;
+try { pos = Math.min(Math.max(parseInt(localStorage.getItem(POS_KEY) || '0', 10) || 0, 0), CASES.length - 1); } catch {}
 function render() {
   const state = load();
   root.innerHTML = '';
-  CASES.forEach((c, i) => {
-    const card = document.createElement('section'); card.className = 'card';
-    const saved = state[c.id] || {};
-    card.innerHTML = '<h2>第 ' + (i + 1) + ' 題（共 ' + CASES.length + ' 題）</h2>'
-      + '<div>來源證據（英文原文）：</div><div class="evidence"></div>'
-      + '<div>來源證據（中文翻譯，僅協助理解）：</div><div class="evidence zh"></div>'
-      + '<div class="claim"></div><div class="claim zh"></div>'
-      + '<div class="choices">'
-      + ['正確', '錯誤', '無法判定'].map(v =>
-          '<label><input type="radio" name="' + c.id + '" value="' + v + '"'
-          + (saved.decision === v ? ' checked' : '') + '> ' + v + '</label>').join('')
-      + '</div>'
-      + '<label>理由（必填，一句話即可）<textarea data-reason="' + c.id + '"></textarea></label>';
-    card.querySelector('.evidence').textContent = c.evidence.map(e => e.excerpt).join('\\n---\\n');
-    card.querySelector('.evidence.zh').textContent = c.evidence.map(e => e.excerpt_zh).join('\\n---\\n');
-    card.querySelector('.claim').textContent = '待判斷文案（英文原文）：' + c.text;
-    card.querySelector('.claim.zh').textContent = '待判斷文案（中文翻譯，僅協助理解）：' + c.text_zh;
-    const area = card.querySelector('textarea'); area.value = saved.reason || '';
-    card.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => {
-      const s = load(); s[c.id] = {decision: r.value, reason: area.value}; save(s); progress();
-    }));
-    area.addEventListener('input', () => {
-      const s = load(); s[c.id] = {decision: (s[c.id] || {}).decision || '', reason: area.value}; save(s); progress();
-    });
-    root.appendChild(card);
+  const c = CASES[pos];
+  const saved = state[c.id] || {};
+  const card = document.createElement('section'); card.className = 'card';
+  card.innerHTML = '<h2>第 ' + (pos + 1) + ' 題（共 ' + CASES.length + ' 題）</h2>'
+    + '<div>來源證據：</div><div class="evidence zh"></div>'
+    + '<div class="claim zh"></div>'
+    + '<div class="choices">'
+    + ['正確', '錯誤', '無法判定'].map(v =>
+        '<label><input type="radio" name="' + c.id + '" value="' + v + '"'
+        + (saved.decision === v ? ' checked' : '') + '> ' + v + '</label>').join('')
+    + '</div>'
+    + '<label>理由（必填，一句話即可）<textarea data-reason="' + c.id + '"></textarea></label>'
+    + '<details class="ref"><summary>英文原文（參考）</summary>'
+    + '<div>來源證據（英文原文）：</div><div class="evidence en"></div>'
+    + '<div class="claim en"></div></details>';
+  card.querySelector('.evidence.zh').textContent = c.evidence.map(e => e.excerpt_zh).join('\\n---\\n');
+  card.querySelector('.claim.zh').textContent = '待判斷文案：' + c.text_zh;
+  card.querySelector('.evidence.en').textContent = c.evidence.map(e => e.excerpt).join('\\n---\\n');
+  card.querySelector('.claim.en').textContent = '待判斷文案（英文原文）：' + c.text;
+  const area = card.querySelector('textarea'); area.value = saved.reason || '';
+  card.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => {
+    const s = load(); s[c.id] = {decision: r.value, reason: area.value}; save(s); progress();
+  }));
+  area.addEventListener('input', () => {
+    const s = load(); s[c.id] = {decision: (s[c.id] || {}).decision || '', reason: area.value}; save(s); progress();
   });
+  root.appendChild(card);
+  document.getElementById('posLabel').textContent = '第 ' + (pos + 1) + ' / ' + CASES.length + ' 題';
+  document.getElementById('prevBtn').disabled = pos === 0;
+  document.getElementById('nextBtn').disabled = pos === CASES.length - 1;
   progress();
 }
+function go(delta) {
+  pos = Math.min(Math.max(pos + delta, 0), CASES.length - 1);
+  try { localStorage.setItem(POS_KEY, String(pos)); } catch {}
+  render();
+}
+document.getElementById('prevBtn').addEventListener('click', () => go(-1));
+document.getElementById('nextBtn').addEventListener('click', () => go(1));
 function rows() {
   const state = load();
   return CASES.map(c => ({case_id: c.id, annotator_code: annotatorInput.value.trim(),
@@ -144,7 +180,7 @@ document.getElementById('exportCsv').addEventListener('click', () => {
 });
 document.getElementById('exportJson').addEventListener('click', () => {
   download('review-' + (annotatorInput.value.trim() || 'anon') + '.json',
-    JSON.stringify(rows(), null, 2), 'application/json');
+    JSON.stringify({package_version: PACKAGE_VERSION, rows: rows()}, null, 2), 'application/json');
 });
 annotatorInput.addEventListener('input', () => {
   try { localStorage.setItem(CODE_KEY, annotatorInput.value.trim()); } catch {}
@@ -152,7 +188,7 @@ annotatorInput.addEventListener('input', () => {
 annotatorInput.addEventListener('change', render);
 document.getElementById('exportBackup').addEventListener('click', () => {
   download('review-progress-' + (annotatorInput.value.trim() || 'anon') + '.json',
-    JSON.stringify({annotator_code: annotatorInput.value.trim(), answers: load()}, null, 2),
+    JSON.stringify({annotator_code: annotatorInput.value.trim(), package_version: PACKAGE_VERSION, answers: load()}, null, 2),
     'application/json');
 });
 document.getElementById('importBackup').addEventListener('change', async (event) => {

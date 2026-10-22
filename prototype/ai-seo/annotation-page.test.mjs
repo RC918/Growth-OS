@@ -4,8 +4,10 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
 const html = await readFile(new URL('./annotation/review.html', import.meta.url), 'utf8');
-const blind = JSON.parse(await readFile(new URL('./fixtures/claim-holdout-blind-v1.json', import.meta.url)));
-const translationsJson = await readFile(new URL('./fixtures/claim-holdout-translations.json', import.meta.url), 'utf8');
+const blind = JSON.parse(await readFile(new URL('./fixtures/claim-holdout-blind-v2.json', import.meta.url)));
+const blindV1 = JSON.parse(await readFile(new URL('./fixtures/claim-holdout-blind-v1.json', import.meta.url)));
+const translationsJson = await readFile(new URL('./fixtures/claim-holdout-translations-v2.json', import.meta.url), 'utf8');
+const phaseCases = JSON.parse(await readFile(new URL('./fixtures/phase3b-cases.json', import.meta.url)));
 
 test('review page embeds exactly the 30 blind cases and no labels', () => {
   for (const entry of blind.entries) {
@@ -73,12 +75,14 @@ test('progress survives a reload for the same code and stays isolated per code',
   let byId = loadPage(storage);
   byId['annotator'].value = 'TEST';
   byId['annotator'].fire('input');
-  // Answer the first two cases through the page's own handlers.
+  // One case at a time: answer the first, navigate, answer the second.
   const casesEl = byId['cases'];
+  assert.equal(casesEl.children.length, 1, 'page must show one case at a time');
   const first = casesEl.children[0];
   first.area.value = '證據支持';
   first.radios.find(r => r.value === '正確').listeners.change.forEach(f => f());
-  const second = casesEl.children[1];
+  byId['nextBtn'].fire('click');
+  const second = byId['cases'].children[0];
   second.area.value = '與證據不符';
   second.radios.find(r => r.value === '錯誤').listeners.change.forEach(f => f());
   assert.ok(byId['progress'].textContent.includes('2 / 30'));
@@ -88,8 +92,9 @@ test('progress survives a reload for the same code and stays isolated per code',
   byId = loadPage(storage);
   assert.equal(byId['annotator'].value, 'TEST');
   assert.ok(byId['progress'].textContent.includes('2 / 30'));
+  assert.equal(byId['cases'].children[0].area.value, '與證據不符');
+  byId['prevBtn'].fire('click');
   assert.equal(byId['cases'].children[0].area.value, '證據支持');
-  assert.equal(byId['cases'].children[1].area.value, '與證據不符');
 
   // A different code sees an empty, isolated workspace.
   byId['annotator'].value = 'OTHER';
@@ -130,7 +135,31 @@ test('every case shows a Traditional Chinese translation aid without changing En
       assert.ok(tr.text_zh.includes(token), entry.id + ': number changed in translation: ' + token);
     }
   }
-  assert.ok(html.includes('中文翻譯，僅協助理解'));
+  assert.ok(html.includes('英文原文（參考）'), 'English original must stay available collapsed');
+  assert.ok(html.includes('比較的是'), 'semantic-comparison guidance missing');
+  assert.ok(html.includes('不得視為正確'), 'unsupported-claim guidance missing');
+});
+
+test('v2 evidence is completed verbatim from trusted sources and v1 is preserved', () => {
+  const quotes = new Set();
+  for (const c of phaseCases.cases) {
+    for (const cit of c.snapshot?.citations ?? []) quotes.add(cit.quote);
+    for (const f of Object.values(c.report?.facts ?? {})) if (f.value) quotes.add(f.value);
+    for (const cf of c.report?.conflicts ?? []) cf.values.forEach(v => quotes.add(v));
+  }
+  assert.equal(blind.version, 'phase3b2-claim-holdout-blind-v2');
+  assert.equal(blindV1.version, 'phase3b2-claim-holdout-blind-v1');
+  for (const entry of blind.entries) {
+    const v1 = blindV1.entries.find(e => e.id === entry.id);
+    assert.equal(entry.text, v1.text, entry.id + ': claim text changed');
+    for (const ev of entry.evidence) {
+      assert.ok([...quotes].some(q => q.includes(ev.quote_excerpt)),
+        entry.id + ': excerpt not verbatim in trusted sources: ' + ev.quote_excerpt);
+    }
+  }
+  // h01 v1 excerpt lacked the long/stable-platform support; v2 shows it.
+  const h01v2 = blind.entries.find(e => e.id === 'h01');
+  assert.ok(h01v2.evidence.some(ev => ev.quote_excerpt.includes('long, stable platform')));
 });
 
 test('review page offers the three plain-language decisions and per-annotator export', () => {
