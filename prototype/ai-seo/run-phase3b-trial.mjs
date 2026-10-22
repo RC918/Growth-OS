@@ -21,7 +21,8 @@ import {existsSync} from 'node:fs';
 import {createOpenAiTransport, createTrialBudget, OPENAI_MODEL, TRIAL_TOKEN_CAPS} from './openai-live-gate.mjs';
 import {buildSeoRequest} from './model-adapter.mjs';
 import {trustedFacts} from './ai-seo-pipeline.mjs';
-import {evaluateGeneration, validateFixtureBindings} from './quality-eval.mjs';
+import {validateFixtureBindings} from './quality-eval.mjs';
+import {evaluateTrialGeneration} from './trial-claim-gate.mjs';
 import {createBatchLedger, enableBatchLedger, openBatchLedger, reconcileBatchLedger} from './batch-authorization.mjs';
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
@@ -253,9 +254,11 @@ export async function runTrial({
         break outer;
       }
       settleBatchRequest(false);
-      const evaluation = evaluateGeneration({report: testCase.report, suggestions: response.suggestions});
+      const evaluation = evaluateTrialGeneration({report: testCase.report, suggestions: response.suggestions});
       results.push({case: testCase.id, language, status: evaluation.status,
         problems: evaluation.problems, unknown_facts: evaluation.unknown_facts,
+        human_rubric_required: evaluation.human_rubric_required,
+        claim_gate: evaluation.claim_gate,
         used_fact_ids: Object.fromEntries(
           Object.entries(response.suggestions ?? {})
             .filter(([, v]) => v && typeof v === 'object' && 'used_fact_ids' in v)
