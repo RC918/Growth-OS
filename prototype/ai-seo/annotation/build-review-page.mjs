@@ -5,8 +5,16 @@
 import {readFile, writeFile} from 'node:fs/promises';
 
 const blind = JSON.parse(await readFile(new URL('../fixtures/claim-holdout-blind-v1.json', import.meta.url)));
-const data = blind.entries.map(e => ({id: e.id, language: e.language, text: e.text,
-  evidence: e.evidence.map(ev => ({excerpt: ev.quote_excerpt}))}));
+// Translation aid only: Traditional Chinese renderings shown
+// under each English original. It is never an annotation or a hint.
+const translations = JSON.parse(await readFile(new URL('../fixtures/claim-holdout-translations.json', import.meta.url)));
+const data = blind.entries.map(e => {
+  const tr = translations.translations[e.id] ?? {};
+  return {id: e.id, language: e.language, text: e.text,
+    text_zh: tr.text_zh ?? '',
+    evidence: e.evidence.map((ev, i) => ({excerpt: ev.quote_excerpt,
+      excerpt_zh: (tr.evidence_zh ?? [])[i] ?? ''}))};
+});
 
 const html = `<!doctype html>
 <html lang="zh-Hant">
@@ -39,7 +47,7 @@ const html = `<!doctype html>
 <body>
 <header>
   <h1>文案證據審閱</h1>
-  <p>請逐題閱讀「來源證據」與「待判斷文案」，判斷文案是否符合證據。不需要任何技術背景。</p>
+  <p>請逐題閱讀「來源證據」與「待判斷文案」，判斷文案是否符合證據。不需要任何技術背景。每題附中文翻譯僅協助理解，判定請以證據內容為準。</p>
 </header>
 <main>
   <div class="bar">
@@ -90,8 +98,9 @@ function render() {
     const card = document.createElement('section'); card.className = 'card';
     const saved = state[c.id] || {};
     card.innerHTML = '<h2>第 ' + (i + 1) + ' 題（共 ' + CASES.length + ' 題）</h2>'
-      + '<div>來源證據：</div><div class="evidence"></div>'
-      + '<div class="claim"></div>'
+      + '<div>來源證據（英文原文）：</div><div class="evidence"></div>'
+      + '<div>來源證據（中文翻譯，僅協助理解）：</div><div class="evidence zh"></div>'
+      + '<div class="claim"></div><div class="claim zh"></div>'
       + '<div class="choices">'
       + ['正確', '錯誤', '無法判定'].map(v =>
           '<label><input type="radio" name="' + c.id + '" value="' + v + '"'
@@ -99,7 +108,9 @@ function render() {
       + '</div>'
       + '<label>理由（必填，一句話即可）<textarea data-reason="' + c.id + '"></textarea></label>';
     card.querySelector('.evidence').textContent = c.evidence.map(e => e.excerpt).join('\\n---\\n');
-    card.querySelector('.claim').textContent = '待判斷文案：' + c.text;
+    card.querySelector('.evidence.zh').textContent = c.evidence.map(e => e.excerpt_zh).join('\\n---\\n');
+    card.querySelector('.claim').textContent = '待判斷文案（英文原文）：' + c.text;
+    card.querySelector('.claim.zh').textContent = '待判斷文案（中文翻譯，僅協助理解）：' + c.text_zh;
     const area = card.querySelector('textarea'); area.value = saved.reason || '';
     card.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => {
       const s = load(); s[c.id] = {decision: r.value, reason: area.value}; save(s); progress();

@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const html = await readFile(new URL('./annotation/review.html', import.meta.url), 'utf8');
 const blind = JSON.parse(await readFile(new URL('./fixtures/claim-holdout-blind-v1.json', import.meta.url)));
+const translationsJson = await readFile(new URL('./fixtures/claim-holdout-translations.json', import.meta.url), 'utf8');
 
 test('review page embeds exactly the 30 blind cases and no labels', () => {
   for (const entry of blind.entries) {
@@ -114,6 +115,22 @@ test('CSV export includes every case id with its decision and reason', () => {
   assert.equal(lines.length, 31);
   assert.ok(lines[1].includes('"h01"') && lines[1].includes('"TEST"')
     && lines[1].includes('"正確"') && lines[1].includes('"理由甲"'));
+});
+
+test('every case shows a Traditional Chinese translation aid without changing English or ids', () => {
+  const translations = JSON.parse(translationsJson);
+  assert.equal(translations.human_annotation, false);
+  for (const entry of blind.entries) {
+    const tr = translations.translations[entry.id];
+    assert.ok(tr, entry.id + ': missing translation');
+    assert.ok(html.includes(tr.text_zh), entry.id + ': claim translation not rendered');
+    for (const zh of tr.evidence_zh) assert.ok(html.includes(zh), entry.id + ': evidence translation not rendered');
+    // Numbers and units must survive translation unchanged.
+    for (const token of entry.text.match(/\d+(?:\.\d+)?/g) ?? []) {
+      assert.ok(tr.text_zh.includes(token), entry.id + ': number changed in translation: ' + token);
+    }
+  }
+  assert.ok(html.includes('中文翻譯，僅協助理解'));
 });
 
 test('review page offers the three plain-language decisions and per-annotator export', () => {
