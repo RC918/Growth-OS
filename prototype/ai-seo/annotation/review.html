@@ -55,9 +55,10 @@
     <p>若瀏覽器或開啟方式不保存進度，請用「備份進度檔」把進度存成檔案，下次用「還原進度檔」載入即可繼續，內容與代號都會一起還原。</p>
     <span id="progress"></span>
     <div>
-      <button class="primary" id="exportCsv">下載我的審閱結果 (CSV)</button>
+      <button class="primary" id="exportCsv">匯出前確認並下載 CSV</button>
       <button id="exportJson">下載 JSON</button>
     </div>
+    <div id="exportPreview"></div>
     <p>每位審閱者請各自填寫並下載自己的檔案，不要互相討論答案。進度會自動保存在這台裝置的瀏覽器中。新版頁面會自動接續你在舊版已填寫的答案，不會遺失。</p>
   </div>
   <div class="nav">
@@ -86,18 +87,24 @@ const annotatorInput = document.getElementById('annotator');
 const CODE_KEY = 'growthos-review-annotator-code';
 const POS_KEY = 'growthos-review-position';
 try { annotatorInput.value = localStorage.getItem(CODE_KEY) || ''; } catch {}
-const storeKey = () => 'growthos-review-' + (annotatorInput.value.trim() || 'anon');
-const load = () => { try { return JSON.parse(localStorage.getItem(storeKey()) || '{}'); } catch { return {}; } };
-const save = (state) => {
+// Single source of truth: the in-memory state object below is what
+// the screen renders and what exports serialize. It is bound to
+// the active annotator code; typing in the code field does not switch buckets
+// until the field is committed (change), so the displayed answers
+// can never be silently re-read from a different bucket at export.
+let activeCode = annotatorInput.value.trim();
+const storeKeyFor = (code) => 'growthos-review-' + (code || 'anon');
+const loadFor = (code) => { try { return JSON.parse(localStorage.getItem(storeKeyFor(code)) || '{}'); } catch { return {}; } };
+let state = loadFor(activeCode);
+const save = () => {
   try {
-    localStorage.setItem(CODE_KEY, annotatorInput.value.trim());
-    localStorage.setItem(storeKey(), JSON.stringify(state));
+    localStorage.setItem(CODE_KEY, activeCode);
+    localStorage.setItem(storeKeyFor(activeCode), JSON.stringify(state));
   } catch {}
 };
 let pos = 0;
 try { pos = Math.min(Math.max(parseInt(localStorage.getItem(POS_KEY) || '0', 10) || 0, 0), CASES.length - 1); } catch {}
 function render() {
-  const state = load();
   root.innerHTML = '';
   const c = CASES[pos];
   const saved = state[c.id] || {};
@@ -120,10 +127,10 @@ function render() {
   card.querySelector('.claim.en').textContent = '待判斷文案（英文原文）：' + c.text;
   const area = card.querySelector('textarea'); area.value = saved.reason || '';
   card.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => {
-    const s = load(); s[c.id] = {decision: r.value, reason: area.value}; save(s); progress();
+    state[c.id] = {decision: r.value, reason: area.value}; save(); progress();
   }));
   area.addEventListener('input', () => {
-    const s = load(); s[c.id] = {decision: (s[c.id] || {}).decision || '', reason: area.value}; save(s); progress();
+    state[c.id] = {decision: (state[c.id] || {}).decision || '', reason: area.value}; save(); progress();
   });
   root.appendChild(card);
   document.getElementById('posLabel').textContent = '第 ' + (pos + 1) + ' / ' + CASES.length + ' 題';
@@ -139,13 +146,12 @@ function go(delta) {
 document.getElementById('prevBtn').addEventListener('click', () => go(-1));
 document.getElementById('nextBtn').addEventListener('click', () => go(1));
 function rows() {
-  const state = load();
-  return CASES.map(c => ({case_id: c.id, annotator_code: annotatorInput.value.trim(),
+  return CASES.map(c => ({case_id: c.id, annotator_code: activeCode,
     decision: (state[c.id] || {}).decision || '', reason: (state[c.id] || {}).reason || ''}));
 }
 function progress() {
   const done = rows().filter(r => r.decision && r.reason.trim()).length;
-  document.getElementById('progress').textContent = ' 已完成 ' + done + ' / ' + CASES.length + ' 題';
+  document.getElementById('progress').textContent = ' 已完成 ' + done + ' / ' + CASES.length + ' 題（代號：' + (activeCode || '未填') + '）';
 }
 function download(name, text, type) {
   const a = document.createElement('a');
@@ -153,22 +159,35 @@ function download(name, text, type) {
   a.download = name; a.click(); URL.revokeObjectURL(a.href);
 }
 const csvCell = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-document.getElementById('exportCsv').addEventListener('click', () => {
+function downloadCsv() {
   const lines = ['case_id,annotator_code,decision,reason'];
   rows().forEach(r => lines.push([r.case_id, r.annotator_code, r.decision, r.reason].map(csvCell).join(',')));
-  download('review-' + (annotatorInput.value.trim() || 'anon') + '.csv', lines.join('\n'), 'text/csv');
+  download('review-' + (activeCode || 'anon') + '.csv', lines.join('\n'), 'text/csv');
+}
+document.getElementById('exportCsv').addEventListener('click', () => {
+  const box = document.getElementById('exportPreview');
+  const list = rows().map(r => '<tr><td>' + r.case_id + '</td><td>' + (r.decision || '（未填）')
+    + '</td><td>' + (r.reason || '') + '</td></tr>').join('');
+  box.innerHTML = '<div class="guide"><strong>匯出前確認</strong>：以下就是即將匯出的內容'
+    + '（代號：' + (activeCode || '未填') + '，題目版本：' + PACKAGE_VERSION + '）。'
+    + '若與畫面上的選擇不同，請先回到該題修正，不要下載。'
+    + '<table><tr><th>題號</th><th>判定</th><th>理由</th></tr>' + list + '</table>'
+    + '<button class="primary" id="exportCsvConfirm">確認無誤，下載 CSV</button></div>';
+  document.getElementById('exportCsvConfirm').addEventListener('click', downloadCsv);
 });
 document.getElementById('exportJson').addEventListener('click', () => {
-  download('review-' + (annotatorInput.value.trim() || 'anon') + '.json',
-    JSON.stringify({package_version: PACKAGE_VERSION, rows: rows()}, null, 2), 'application/json');
+  download('review-' + (activeCode || 'anon') + '.json',
+    JSON.stringify({package_version: PACKAGE_VERSION, annotator_code: activeCode,
+      exported_from: 'ui-state', rows: rows()}, null, 2), 'application/json');
 });
-annotatorInput.addEventListener('input', () => {
-  try { localStorage.setItem(CODE_KEY, annotatorInput.value.trim()); } catch {}
+annotatorInput.addEventListener('change', () => {
+  activeCode = annotatorInput.value.trim();
+  state = loadFor(activeCode);
+  render();
 });
-annotatorInput.addEventListener('change', render);
 document.getElementById('exportBackup').addEventListener('click', () => {
-  download('review-progress-' + (annotatorInput.value.trim() || 'anon') + '.json',
-    JSON.stringify({annotator_code: annotatorInput.value.trim(), package_version: PACKAGE_VERSION, answers: load()}, null, 2),
+  download('review-progress-' + (activeCode || 'anon') + '.json',
+    JSON.stringify({annotator_code: activeCode, package_version: PACKAGE_VERSION, answers: state}, null, 2),
     'application/json');
 });
 document.getElementById('importBackup').addEventListener('change', async (event) => {
@@ -178,7 +197,9 @@ document.getElementById('importBackup').addEventListener('change', async (event)
     const data = JSON.parse(await file.text());
     if (!data || typeof data.answers !== 'object') throw new Error('bad backup');
     annotatorInput.value = data.annotator_code || '';
-    save(data.answers);
+    activeCode = annotatorInput.value.trim();
+    state = data.answers;
+    save();
     render();
   } catch { alert('進度檔無法讀取，請確認檔案是否正確。'); }
 });
