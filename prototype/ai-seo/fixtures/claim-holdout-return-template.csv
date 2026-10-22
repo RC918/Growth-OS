@@ -1,0 +1,2 @@
+case_id,annotator_code,decision,reason,confidence,annotated_on
+h01,,PASS|PASS_WITH_REVIEW|FAIL_CLOSED|REVIEW_ADJUDICATION,,high|medium|low,

@@ -49,9 +49,11 @@ def process(scan_id: str, url: str):
     try:
         result = audit(url)
     except ScanError as exc:
+        from error_classify import classified_detail
+
         with connect() as db:
             db.execute("update scans set status='failed',error_code=?,error_detail=?,completed_at=? where id=?",
-                       (exc.code, str(exc), now(), scan_id))
+                       (exc.code, classified_detail(exc), now(), scan_id))
     except Exception:
         with connect() as db:
             db.execute("update scans set status='failed',error_code='internal_error',error_detail=?,completed_at=? where id=?",

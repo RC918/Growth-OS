@@ -9,7 +9,7 @@
   "baseline_head": "c4ae4ec34df52a1271a059db0301adc905b54a1f",
   "baseline_ci": 37187566457,
   "proposal_sha256": "6039feb2f8e8932d10ef7bd01c26058b8f4724b56c8bab04f46e61d817ec568e",
-  "expected_save_prosrc_sha256": "e7c41525d87e0bc0b6b5d25d73e319df16054bb05155a821ddd15f7d9bb054e1",
+  "expected_save_prosrc_sha256": "3966372346e8d063278b3ef59ba7c8e68349a0b0a5b00f3e8188e357e79e1f6b",
   "runtime_closed_sha256": "fe8bfa6ea7070d89059fa591ed68aec11624a4b4553b380589071473f0bcf38b",
   "historical_migration_count": 23,
   "installation_history_count": 24,
@@ -45,9 +45,9 @@
       "pg": "17.6",
       "migration_count": 23,
       "last_migration": "20261004050737 url_revision_bound_close_v2",
-      "save_entries_effective_execute": "all four closed for anon/authenticated/service_role",
-      "url_save_body": "matches expected_save_prosrc_sha256",
-      "url_review_rpc": "absent",
+      "save_entries_effective_execute": "URL pair authenticated-open (Phase 1 general, deployed); first-result pair closed (pending hosted verification)",
+      "url_save_body": "general impl matches url_result/proposal.sql and expected_save_prosrc_sha256 (revised 2026-10-18)",
+      "url_review_rpc": "present from bounded era and closed; execution-time exact-schema reconciliation required, never replay install blindly",
       "full_history_and_catalog_preservation": "pending execution-time exact snapshot"
     },
     "exact_deployment_id": null,
@@ -92,7 +92,7 @@
       "severity": "P2 Blocking; no evidence of exploitation or data loss"
     },
     "table_write_grants_added": [],
-    "save": "CLOSED throughout",
+    "save": "GENERAL OPEN throughout (Phase 1 deployed); Review artifacts must not change Save ACL",
     "parent_inserts": 0,
     "version_inserts": 0,
     "publish": false
@@ -103,6 +103,7 @@
     "remote_authorization": null
   },
   "operations": [
+    "execution-time state.sql reconciliation of installed Review schema, history rows and Save ACL (read-only, before any step)",
     "readonly hosted identity/isolation/population/Auth and exact DB baseline verification",
     "separate Owner approval of artifacts, deployment identity and action window",
     "capture preservation/state; separately approved tracked combined authority/audit revoke (history 23→24), verify exact ACL allowlist and effective writes false",

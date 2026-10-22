@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Growth-OS 引導流程原型（Phase 2A）</title>
+<style>
+  :root { --ink:#1c2430; --mut:#5b6572; --line:#d8dde3; --ok:#1f7a4d; --warn:#9a6a00; --bad:#b3362b; --accent:#0f5f8f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Noto Sans TC", system-ui, sans-serif; color:var(--ink); background:#f2f4f6; }
+  header { padding:20px 28px 8px; }
+  header h1 { font-size:22px; margin:0 0 4px; }
+  header p { margin:0; color:var(--mut); font-size:14px; }
+  main { display:grid; grid-template-columns: 300px 1fr; gap:20px; padding:16px 28px 28px; align-items:start; }
+  .steps { background:#fff; border:1px solid var(--line); border-radius:6px; padding:14px; }
+  .step { display:flex; gap:10px; padding:10px 8px; border-radius:6px; }
+  .step[data-state="current"] { background:#eef4f8; }
+  .dot { width:22px; height:22px; border-radius:50%; border:2px solid var(--mut); flex:none; text-align:center; font-size:12px; line-height:19px; background:#fff; }
+  .step[data-state="done"] .dot { border-color:var(--ok); color:var(--ok); }
+  .step[data-state="blocked"] .dot { border-color:var(--bad); color:var(--bad); }
+  .step b { display:block; font-size:14px; }
+  .step span { font-size:12px; color:var(--mut); }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:6px; padding:20px; }
+  .panel h2 { margin:0 0 6px; font-size:18px; }
+  .status { font-size:13px; margin:0 0 14px; }
+  .status b[data-s="ok"] { color:var(--ok); } .status b[data-s="warn"] { color:var(--warn); } .status b[data-s="bad"] { color:var(--bad); }
+  label { display:block; font-size:13px; margin:12px 0 4px; }
+  input[type="url"] { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+  button { margin-top:14px; padding:9px 16px; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:6px; font-size:14px; cursor:pointer; }
+  button.secondary { background:#fff; color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .need { border:1px solid var(--line); border-left:4px solid var(--warn); padding:10px 12px; margin-top:14px; font-size:13px; }
+  .fact { font-size:13px; color:var(--mut); margin-top:10px; white-space:pre-line; }
+  .demo { margin-top:18px; border-top:1px dashed var(--line); padding-top:10px; font-size:12px; color:var(--mut); }
+</style>
+</head>
+<body>
+<header>
+  <h1>從一條網址開始</h1>
+  <p>只需要先貼上網址。右側會逐步告訴你目前狀態、需要你決定的事，以及下一步。原型使用示範狀態，不連線、不發布。</p>
+</header>
+<main>
+  <nav class="steps" id="steps" aria-label="流程進度"></nav>
+  <section class="panel">
+    <h2 id="panelTitle"></h2>
+    <p class="status" id="panelStatus"></p>
+    <div id="panelBody"></div>
+    <div class="need" id="panelNeed" hidden></div>
+    <p class="fact" id="panelFact"></p>
+    <div>
+      <button id="nextBtn"></button>
+      <button id="resetBtn" class="secondary">重新開始（示範）</button>
+    </div>
+    <p class="demo">示範操作：依序按主要按鈕走完整流程；「發布」在本原型不會真的寫入任何網站。</p>
+  </section>
+</main>
+<script>
+const FLOW = [
+  { id:'url',     name:'貼上網址',       hint:'只需要一條網址',     title:'貼上產品或服務頁網址',
+    status:['warn','尚未開始'], need:'你只需要提供一條網址，其餘由系統判讀。',
+    body:'<label for="u">網址</label><input id="u" type="url" value="https://landyachtz.com/shop/all/skate/boards/all-skate-boards/the-clark/">',
+    next:'讀取並產生第一份成果' },
+  { id:'result',  name:'第一份成果',     hint:'來源可追溯',         title:'第一份成果已產生',
+    status:['ok','PASS · declared_product_dom'], need:'請核對標題、敘述與來源是否屬於同一商品；不一致時回報，不要自行改寫事實。',
+    fact:'來源：Landyachtz The Clark\n事實皆為來源自述，附引用與快照 SHA；未知欄位會明確標示未知。',
+    next:'確認並送交審核' },
+  { id:'review',  name:'審核確認',       hint:'人工確認不是發布授權', title:'審核已確認版本',
+    status:['ok','PASS · 已確認、未發布'], need:'確認只代表內容可進入待發布佇列，不代表授權發布。',
+    fact:'內容版本與 Review 紀錄已保存，重新登入可讀回。',
+    next:'產生發布預覽' },
+  { id:'publish', name:'發布',           hint:'預覽 → 授權 → 寫入 → 讀回', title:'發布預覽（隔離測試站）',
+    status:['warn','等待你的發布授權'], need:'決定：是否把這個已確認版本發布到隔離測試站？正式網站不在本流程授權內。',
+    fact:'發布後會以 HTTP 讀回核對；失敗可 Rollback 回復原內容。未核准、過期或他人租戶的版本會被拒絕。',
+    next:'授權發布到測試站（示範）' },
+  { id:'measure', name:'量測',           hint:'UNKNOWN 不是零',    title:'發布後量測',
+    status:['warn','UNKNOWN · 尚無真實觀測資料'], need:'目前只記錄發布版本與公開網址的對應和讀回時間；搜尋曝光與點擊需連接 Search Console 後才會有實際數值。',
+    fact:'狀態語意：UNKNOWN（尚未知）／ NOT_CONNECTED（未連接）／ NO_DATA（已連接無資料）／ 實際數值。四者不會互相冒充。',
+    next:'完成（示範）' },
+];
+let idx = 0;
+const $ = id => document.getElementById(id);
+function render() {
+  $('steps').innerHTML = FLOW.map((s, i) =>
+    `<div class="step" data-state="${i < idx ? 'done' : i === idx ? 'current' : 'todo'}">
+       <div class="dot">${i < idx ? '✓' : i + 1}</div>
+       <div><b>${s.name}</b><span>${s.hint}</span></div></div>`).join('');
+  const s = FLOW[idx];
+  $('panelTitle').textContent = s.title;
+  $('panelStatus').innerHTML = '目前狀態：<b data-s="' + s.status[0] + '">' + s.status[1] + '</b>';
+  $('panelBody').innerHTML = s.body || '';
+  $('panelNeed').hidden = false;
+  $('panelNeed').textContent = '需要你決定／確認：' + s.need;
+  $('panelFact').textContent = s.fact || '';
+  const btn = $('nextBtn');
+  btn.textContent = '下一步：' + s.next;
+  btn.disabled = idx >= FLOW.length;
+  if (idx >= FLOW.length) {
+    $('panelTitle').textContent = '流程完成（示範）';
+    $('panelStatus').innerHTML = '目前狀態：<b data-s="ok">已走完五個階段</b>';
+    $('panelBody').innerHTML = '';
+    $('panelNeed').textContent = '需要你決定：是否進入第一個真實受控測試站發布（需 Owner 決策包核准）。';
+    $('panelFact').textContent = '';
+    btn.textContent = '已完成';
+  }
+}
+$('nextBtn').addEventListener('click', () => { idx = Math.min(idx + 1, FLOW.length); render(); });
+$('resetBtn').addEventListener('click', () => { idx = 0; render(); });
+render();
+</script>
+</body>
+</html>

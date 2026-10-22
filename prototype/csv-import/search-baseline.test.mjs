@@ -92,3 +92,30 @@ test('summary prioritizes missing data before comparison and never labels sample
  const actual=growthReport(a,b,{a:false,b:false}); assert.match(actual.summary.provenance,/尚未向 Google 核實/);
  assert.doesNotMatch(actual.summary.label,/成功|有效|已成長/);
 });
+
+import {assessPilotReadiness} from './pilot-preflight.mjs';
+test('pilot preflight: complete synthetic export is workspace-save ready only',()=>{
+ const r=assessPilotReadiness(full,meta,{sample:true});
+ assert.equal(r.state,'ready'); assert.equal(r.workspace_save_ready,true); assert.equal(r.real_pilot_ready,false);
+ assert.equal(r.data_kind,'synthetic_declared');
+ assert.deepEqual(r.authority,{snapshot:'workspace_persistent',local_store:'cache_only_not_authoritative',local_caches_are_authoritative:false});
+ assert.equal(r.workspace_snapshot.format,'growth-os-search-baseline'); assert.equal(r.workspace_snapshot.version,2);
+ assert.equal(r.workspace_snapshot.a.sample,true); assert.equal(r.workspace_snapshot.b,null);
+ assert.equal(r.google_verified,false); assert.equal(r.traffic_verified,false); assert.equal(r.causal_claim,false); assert.equal(r.indexing_status,'unknown');
+ assert.deepEqual(r.pending_external_authorization,['real_gsc_account_authorization','real_site_write_permission']);
+ assert.match(r.unknowns.join(' '),/尚未向 Google 核實/);
+});
+test('pilot preflight: missing dates block baseline without zero filling',()=>{
+ const r=assessPilotReadiness('date,clicks,impressions\n2026-09-01,2,10\n2026-09-03,0,0',meta,{sample:true});
+ assert.equal(r.state,'not_ready'); assert.equal(r.workspace_save_ready,false); assert.equal(r.workspace_snapshot,null);
+ assert.equal(r.blockers[0].code,'missing_dates'); assert.deepEqual(r.blockers[0].dates,['2026-09-02']);
+ assert.match(r.unknowns.join(' '),/缺少日期：2026-09-02/);
+});
+test('pilot preflight: sample declaration is required and provider data stays unverified',()=>{
+ assert.throws(()=>assessPilotReadiness(full,meta,{}),/Declare sample/);
+ assert.throws(()=>assessPilotReadiness(full,meta,{sample:'yes'}),/Declare sample/);
+ const r=assessPilotReadiness(full,meta,{sample:false});
+ assert.equal(r.data_kind,'provider_asserted_unverified'); assert.equal(r.workspace_snapshot.a.sample,false);
+ assert.equal(r.google_verified,false); assert.equal(r.real_pilot_ready,false);
+ assert.throws(()=>assessPilotReadiness(full,{...meta,origin:'http://shop.example'},{sample:true}));
+});

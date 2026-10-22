@@ -1,0 +1,429 @@
+{
+  "version": "phase3b2-claim-holdout-blind-v1",
+  "status": "FOR_INDEPENDENT_ANNOTATION",
+  "instructions": "Judge each sentence only against its quoted source evidence. Do not seek or accept the engineering pre-labels, prototype outputs, or group information: none are included in this file.",
+  "annotation_package": "docs/Phase3B2_Holdout_Annotation_Package_2026-10-21.md",
+  "return_process": "docs/Phase3B2_Annotation_Return_And_Adjudication_2026-10-21.md",
+  "entries": [
+    {
+      "id": "h01",
+      "language": "en",
+      "text": "Built for fast freeriding and downhill runs, The Clark keeps a long, stable platform.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "from fast freeriding and downhill runs"
+        }
+      ]
+    },
+    {
+      "id": "h11",
+      "language": "en",
+      "text": "The Clark is a carbon fiber shortboard weighing 2 kg.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "long skateboard"
+        }
+      ]
+    },
+    {
+      "id": "h21",
+      "language": "en",
+      "text": "The Clark is not a shortboard; it is a 40.2 inch long skateboard.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2 inch long skateboard"
+        }
+      ]
+    },
+    {
+      "id": "h02",
+      "language": "en",
+      "text": "The Clark bridges the gap between a traditional skateboard and a longboard.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4",
+            "s5"
+          ],
+          "quote_excerpt": "bridges the gap between a traditional skateboard and a longboard"
+        }
+      ]
+    },
+    {
+      "id": "h12",
+      "language": "en",
+      "text": "The Clark comes with a lifetime warranty and free replacements.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "built to skate everything"
+        }
+      ]
+    },
+    {
+      "id": "h22",
+      "language": "en",
+      "text": "The Clark is not a twin kick longboard.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "twin kick longboard"
+        }
+      ]
+    },
+    {
+      "id": "h03",
+      "language": "zh-TW",
+      "text": "The Clark 適合快速下坡與滑板公園。",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "skating park"
+        }
+      ]
+    },
+    {
+      "id": "h13",
+      "language": "en",
+      "text": "BIC00001 is a carbon road bike with 22 gears.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "Downhill Bike – Sunday Team"
+        }
+      ]
+    },
+    {
+      "id": "h23",
+      "language": "en",
+      "text": "The Clark measures 102.1 centimeters from nose to tail.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2 inch"
+        }
+      ]
+    },
+    {
+      "id": "h04",
+      "language": "en",
+      "text": "Designed to handle tricks, skateparks, and street skating, The Clark is a twin kick longboard.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "to tricks, skateparks, and street skating"
+        }
+      ]
+    },
+    {
+      "id": "h14",
+      "language": "en",
+      "text": "The Clark reaches 45 mph and climbs any hill without pushing.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "bombing hills"
+        }
+      ]
+    },
+    {
+      "id": "h24",
+      "language": "en",
+      "text": "The Clark measures 102.1 inches from nose to tail.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2 inch"
+        }
+      ]
+    },
+    {
+      "id": "h05",
+      "language": "en",
+      "text": "From the woocommerce Demo line: BIC00001, the Downhill Bike – Sunday Team.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4",
+            "s5"
+          ],
+          "quote_excerpt": "Downhill Bike – Sunday Team"
+        }
+      ]
+    },
+    {
+      "id": "h15",
+      "language": "en",
+      "text": "The Clark is made of maple and bamboo with a 32 inch wheelbase.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2″ long skateboard"
+        }
+      ]
+    },
+    {
+      "id": "h25",
+      "language": "en",
+      "text": "The Clark, the versatile pro model by Clark Patrick, available now.",
+      "evidence": [
+        {
+          "fact_id": "meta_description",
+          "citation_ids": [],
+          "quote_excerpt": "UNKNOWN"
+        }
+      ]
+    },
+    {
+      "id": "h06",
+      "language": "en",
+      "text": "At 40.2 inches long, The Clark is built to skate everything.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2 inch long skateboard is built to keep up"
+        }
+      ]
+    },
+    {
+      "id": "h16",
+      "language": "zh-TW",
+      "text": "The Clark 是鈦合金短板，長度只有 80 公分。",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2 inch long skateboard"
+        }
+      ]
+    },
+    {
+      "id": "h26",
+      "language": "en",
+      "text": "Conflicting Board, presented without its disputed description.",
+      "evidence": [
+        {
+          "fact_id": "product_name",
+          "citation_ids": [
+            "s1"
+          ],
+          "quote_excerpt": "Conflicting Board"
+        }
+      ]
+    },
+    {
+      "id": "h07",
+      "language": "en",
+      "text": "Versatility was the priority when this pro model was designed.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "versatility was the priority"
+        }
+      ]
+    },
+    {
+      "id": "h17",
+      "language": "en",
+      "text": "The Clark is the cheapest pro model and is on sale now.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "his pro model"
+        }
+      ]
+    },
+    {
+      "id": "h27",
+      "language": "zh-TW",
+      "text": "Conflicting Board 是楓木完整的板。",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s3"
+          ],
+          "quote_excerpt": "Maple complete."
+        }
+      ]
+    },
+    {
+      "id": "h08",
+      "language": "zh-TW",
+      "text": "這張長板有雙向板尾，適合街頭滑行。",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "double kick shape"
+        }
+      ]
+    },
+    {
+      "id": "h18",
+      "language": "en",
+      "text": "Conflicting Board. Carbon complete with lifetime warranty.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s3"
+          ],
+          "quote_excerpt": "Conflicting Board. Maple complete."
+        }
+      ]
+    },
+    {
+      "id": "h28",
+      "language": "en",
+      "text": "The Clark is slower and less stable than a traditional skateboard.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "long, stable platform"
+        }
+      ]
+    },
+    {
+      "id": "h09",
+      "language": "en",
+      "text": "Bombing hills and slashing curbs are both in The Clark's brief.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s5"
+          ],
+          "quote_excerpt": "bombing hills, slashing curbs"
+        }
+      ]
+    },
+    {
+      "id": "h19",
+      "language": "en",
+      "text": "BIC00001 – Sunday Team helmet with MIPS protection.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "Downhill Bike – Sunday Team"
+        }
+      ]
+    },
+    {
+      "id": "h29",
+      "language": "zh-TW",
+      "text": "The Clark 不是一張短板，而是一張 40.2 吋長的長板。",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "40.2 inch long skateboard"
+        }
+      ]
+    },
+    {
+      "id": "h10",
+      "language": "en",
+      "text": "What is The Clark? A twin kick longboard designed to handle it all.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "twin kick longboard designed to handle it all"
+        }
+      ]
+    },
+    {
+      "id": "h20",
+      "language": "en",
+      "text": "The Clark is designed exclusively for indoor racing on ice.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "street skating"
+        }
+      ]
+    },
+    {
+      "id": "h30",
+      "language": "en",
+      "text": "The Clark is a twin kick longboard with carbon trucks.",
+      "evidence": [
+        {
+          "fact_id": "description",
+          "citation_ids": [
+            "s4"
+          ],
+          "quote_excerpt": "twin kick longboard"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+name: Handoff bridge tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Frozen change preflight (last commit)
+        run: |
+          node --test tools/frozen-preflight.test.mjs
+          node tools/frozen-preflight.mjs --base HEAD~1
+      - name: Handoff bridge and review flag tests
+        run: node --test delivery/web-preview/handoff-bridge.test.mjs delivery/web-preview/review-flag.test.mjs
+      - name: Auto-handoff config guard tests
+        run: node --test supabase/tests/auto_handoff_config.test.mjs
+      - name: Install isolated UI test browser
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Phase 2A reviewed URL-result publication contracts
+        run: node --test prototype/wordpress-publish/url-result-publish.test.mjs prototype/wordpress-publish/url-result-authority.test.mjs prototype/phase2a-measure/observe.test.mjs prototype/phase2a-measure/from-publication.test.mjs prototype/wordpress-publish/url-result-chain.test.mjs prototype/ai-seo/ai-seo-pipeline.test.mjs prototype/ai-seo/model-adapter.test.mjs prototype/growth-engine/engine.test.mjs prototype/phase3a-flow/flow.test.mjs prototype/phase3a-flow/to-publish-preview.test.mjs prototype/phase3a-flow/authority-from-reviewed.test.mjs prototype/ai-seo/openai-live-gate.test.mjs prototype/ai-seo/quality-eval.test.mjs prototype/ai-seo/run-phase3b-trial.test.mjs prototype/ai-seo/batch-authorization.test.mjs prototype/ai-seo/claim-verifier.test.mjs prototype/ai-seo/claim-holdout.test.mjs prototype/ai-seo/claim-holdout-blind.test.mjs prototype/ai-seo/annotation-page.test.mjs
+      - name: Pull pinned disposable WordPress images
+        run: |
+          docker pull wordpress:6.8.3-php8.3-apache@sha256:30bff39330d1693b0ce13d32fc9b7bb67193064f040b7d60d3494e136fa599d4
+          docker pull mariadb:11.4.8@sha256:bc474f00629f0123c10f9e1bca193a45d18af15a274cf0656acda64f1086c3b6
+      - name: Phase 2B disposable WordPress publish/rollback acceptance
+        timeout-minutes: 10
+        run: node prototype/wordpress-publish/phase2b-regression.mjs --mode growth-os-isolated-regression
+      - name: Isolated browser handoff bridge acceptance (synthetic transport)
+        timeout-minutes: 6
+        run: node supabase/tests/auto_handoff_isolated.mjs
+      - name: Pull pinned native stack images (ephemeral, job-local)
+        run: |
+          docker pull postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+          docker pull supabase/gotrue:v2.196.0@sha256:c0c25187a6b835e65a6f6e6c6b39d090e832d40e6de5186f2c038e0411944232
+          docker pull postgrest/postgrest:v14.17@sha256:c9dc201e555f5d8e37e7f39cdd4df0229774996e213bfd7de8d10ac609030f2c
+      - name: Native-stack browser handoff acceptance (ephemeral GoTrue/PostgREST/PostgreSQL)
+        timeout-minutes: 12
+        run: node supabase/tests/auto_handoff_native.mjs
+      - name: Declared-product claim and Save/Review contract (synthetic transport)
+        run: node --test supabase/tests/declared_product_contract.test.mjs
+      - name: Landyachtz adapter-to-native-stack browser acceptance (real adapter, ephemeral DB)
+        timeout-minutes: 12
+        run: node supabase/tests/auto_handoff_native.mjs
+        env:
+          HANDOFF_VARIANT: landyachtz

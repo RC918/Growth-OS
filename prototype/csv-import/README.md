@@ -24,6 +24,10 @@ date,clicks,impressions
 
 Search Console 官方參考：[報表匯出限制](https://support.google.com/webmasters/answer/12917991)、[成效報表指標與彙總方式](https://support.google.com/webmasters/answer/7576553)。
 
+## 試點／GSC 前置就緒檢查（離線）
+
+`pilot_preflight.py` 只做不需要真實帳號、站點寫入權限或 Google 連線的前置檢查：以既有驗證器核對標準化每日 CSV 與來源聲明，完整且明確標記 `sample` 時才產出可交既有 Workspace 保存路徑的 snapshot v2；缺日列為阻塞且不填零。權威保存是既有 Workspace 持久保存，本機 SQLite 與 First Result 100 筆保留上限都只是暫存／原型，不得當作權威來源。此檢查永遠回報 `google_verified=false`、`traffic_verified=false`、`causal_claim=false`、索引狀態未知；真實試點仍需真實 GSC 帳號授權與站點寫入權限兩項外部授權，未取得前 `real_pilot_ready=false`。
+
 ## 瀏覽器工具
 
 `apps/web/search-baseline.html` 提供分頁內的 CSV 選檔、貼上預覽與兩段期間比較；不連接 API、不使用儲存空間，也不將內容傳出分頁。瀏覽器版接受三欄未加引號的標準化資料，數值與加總必須在 JavaScript 安全整數範圍內。修改欄位後，舊結果與比較立即失效；錯誤顯示在送出按鈕旁。範例與下載範本皆為合成資料。
