@@ -2,9 +2,9 @@ name: Claim verifier offline regression
 
 on:
   push:
-    branches: [codex/claim-verifier-v3-20261022]
+    branches: [codex/claim-verifier-v3-20261022, codex/phase3b-claim-gate-20261023]
   pull_request:
-    branches: [takeover/muse-primary-20261016]
+    branches: [takeover/muse-primary-20261016, codex/claim-verifier-v3-20261022]
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
@@ -33,3 +33,7 @@ jobs:
           prototype/ai-seo/claim-semantic-regression.test.mjs
           prototype/ai-seo/claim-reviewer-regression.test.mjs
           prototype/ai-seo/claim-stock-regression.test.mjs
+          prototype/ai-seo/quality-eval.test.mjs
+          prototype/ai-seo/run-phase3b-trial.test.mjs
+          prototype/ai-seo/trial-claim-gate.test.mjs
+          prototype/ai-seo/trial-claim-runner.test.mjs

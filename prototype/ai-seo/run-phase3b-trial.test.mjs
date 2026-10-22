@@ -237,7 +237,8 @@ test('unknown fact IDs in GEO Q&A fail closed; conflicting facts stay unresolved
   const conflict = await runTrial({
     mode: 'mock', credentialProvider: mockCredential,
     caseId: 'conflicting-facts-negative', language: 'zh-TW'});
-  assert.equal(conflict.results[0].status, 'PASS_WITH_UNKNOWNS');
+  assert.equal(conflict.results[0].status, 'FAIL_CLOSED');
+  assert.equal(conflict.results[0].claim_gate.legacy_status, 'PASS_WITH_UNKNOWNS');
   assert.ok(conflict.results[0].unknown_facts.includes('meta_description'));
 });
 
@@ -274,14 +275,16 @@ test('missing credential provider is refused before any request', async () => {
   await assert.rejects(runTrial({mode: 'mock'}), /CREDENTIAL_PROVIDER_REQUIRED/);
 });
 
-test('mock trial runs all fixtures in both languages with zero real calls', async () => {
+test('mock trial conservatively rejects original report conflicts with zero real calls', async () => {
   const summary = await runTrial({mode: 'mock', credentialProvider: mockCredential});
-  assert.equal(summary.status, 'MOCK_PASS');
+  assert.equal(summary.status, 'MOCK_FAIL_CLOSED');
   assert.equal(summary.real_api_calls, 0);
   assert.equal(summary.results.length, 6); // 3 cases x zh-TW/en
   assert.equal(summary.requests, 6);
   assert.ok(summary.total_cost_usd > 0 && summary.total_cost_usd <= 5);
-  assert.ok(summary.results.every(r => r.status !== 'FAIL_CLOSED'));
+  assert.equal(summary.results.filter(r => r.status === 'FAIL_CLOSED').length, 2);
+  assert.ok(summary.results.filter(r => r.status === 'FAIL_CLOSED')
+    .every(r => r.case === 'conflicting-facts-negative'));
   assert.ok(!JSON.stringify(summary).includes('mock-credential'));
 });
 
