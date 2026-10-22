@@ -8,14 +8,14 @@
 ## 最新快照（固定格式）
 
 ```text
-head: 6447d5ba12cfad7d73dd09963dd4a3d209aae396
+head: 5f75f8a027dca0d44aabae8616862d3c5889e09c
 branch: takeover/muse-primary-20261016
 pr: #31
 pr_state: OPEN
 pr_draft: true
 pr_head_matches: true
 ci: SUCCESS
-reviewer: APPROVE (bound 6447d5b, export consistency fix)
+reviewer: APPROVE (bound 5f75f8a, diagnostic and real-browser E2E)
 worktree: dirty entries exist from another executor; do not overwrite, delete or commit them
 updated_utc: 2026-10-22
 ```
@@ -30,7 +30,10 @@ updated_utc: 2026-10-22
   95/95、Reviewer APPROVE、CI 4/4 SUCCESS。審閱者 B 已回收 v1
   標註並保留；第二位審閱者與裁決者尚未指派。審閱頁匯出一致性
   缺陷（畫面與 CSV／JSON 分區錯位）已於 6447d5b 修復並驗收：
-  畫面與匯出共用同一狀態、附匯出前確認清單。
+  畫面與匯出共用同一狀態、附匯出前確認清單。Owner 端仍回報
+  不一致；真實 Chrome 端到端測試（5f75f8a）於乾淨設定檔四方
+  一致，頁面已加只讀診斷對照，待 Owner 一次下載診斷報告後
+  定位其瀏覽器分區差異。
 
 ## 授權邊界（摘要，完整以治理文件為準）
 
