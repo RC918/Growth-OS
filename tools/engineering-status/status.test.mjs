@@ -56,8 +56,7 @@ test('formatStatus emits exactly the fixed fields in order', () => {
     now: new Date('2026-10-22T00:00:00Z'),
   });
   const keys = out.trim().split('\n').map((l) => l.split(':')[0]);
-  assert.deepEqual(keys.slice(0, 8), ['head', 'branch', 'pr', 'pr_state', 'pr_draft', 'pr_head_matches', 'ci', 'reviewer']);
-  assert.ok(STATUS_FIELDS.includes('ci'));
+  assert.deepEqual(keys, STATUS_FIELDS);
   assert.ok(!/key|token|secret|password/i.test(out));
 });
 

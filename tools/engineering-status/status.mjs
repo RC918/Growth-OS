@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 export const STATUS_FIELDS = [
-  'head', 'branch', 'pr', 'pr_state', 'pr_draft',
+  'head', 'branch', 'pr', 'pr_state', 'pr_draft', 'pr_head_matches',
   'ci', 'reviewer', 'worktree', 'updated_utc',
 ];
 
