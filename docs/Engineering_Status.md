@@ -8,14 +8,14 @@
 ## 最新快照（固定格式）
 
 ```text
-head: 89caea52c8b3ad14ebc67c435058aacd9e6d5f72
+head: 6447d5ba12cfad7d73dd09963dd4a3d209aae396
 branch: takeover/muse-primary-20261016
 pr: #31
 pr_state: OPEN
 pr_draft: true
 pr_head_matches: true
 ci: SUCCESS
-reviewer: APPROVE (bound 89caea5, review page v2)
+reviewer: APPROVE (bound 6447d5b, export consistency fix)
 worktree: dirty entries exist from another executor; do not overwrite, delete or commit them
 updated_utc: 2026-10-22
 ```
@@ -28,7 +28,9 @@ updated_utc: 2026-10-22
 - Phase 3B.2：30 筆獨立保留測試集與盲審頁面完成；審閱頁 v2
   （中文為主、一次一題、證據補全為逐字完整句子）已通過離線測試
   95/95、Reviewer APPROVE、CI 4/4 SUCCESS。審閱者 B 已回收 v1
-  標註並保留；第二位審閱者與裁決者尚未指派。
+  標註並保留；第二位審閱者與裁決者尚未指派。審閱頁匯出一致性
+  缺陷（畫面與 CSV／JSON 分區錯位）已於 6447d5b 修復並驗收：
+  畫面與匯出共用同一狀態、附匯出前確認清單。
 
 ## 授權邊界（摘要，完整以治理文件為準）
 
