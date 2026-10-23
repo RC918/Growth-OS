@@ -104,6 +104,9 @@ def wait_for_startup(invoke, state, *, timeout=30, clock=time.monotonic, sleep=t
             # Only this first closed-gate readiness request is retried, in the same container.
             return invoke(min(15, remaining))
         except (subprocess.CalledProcessError, EmptyResponse) as error:
+            # A received response must never be hidden by a transport exit failure.
+            if isinstance(error, subprocess.CalledProcessError) and error.stdout:
+                raise
             current = state()
             if not current.get('Running') or current.get('Restarting'):
                 raise RuntimeError('Edge Runtime stopped during startup: ' + json.dumps(current)) from error

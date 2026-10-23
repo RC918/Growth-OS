@@ -79,6 +79,19 @@ class RuntimeSupportTests(unittest.TestCase):
             self.assertEqual(Path(directory, 'transport-001.stdout.bin').read_bytes(), b'HTTP/1.1')
             self.assertTrue(json.loads(Path(directory, 'transport-001.json').read_text())['timeout'])
 
+    def test_nonzero_exit_with_any_response_is_terminal_and_keeps_raw_evidence(self):
+        for raw in [b'HTTP/1.1 503 incomplete', response(500, b'{"code":"EDGE_BOOT_FAILED"}'), response()]:
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as directory:
+                proof = Evidence(directory)
+                completed = subprocess.CompletedProcess(['docker'], 42, raw, b'transport failure')
+                with patch('edge_runtime_support.subprocess.run', return_value=completed) as runner:
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        wait_for_startup(lambda timeout: proof.transport(['docker'], timeout),
+                                         lambda: self.fail('nonzero exit with response must not retry'))
+                self.assertEqual(runner.call_count, 1)
+                self.assertEqual(Path(directory, 'transport-001.stdout.bin').read_bytes(), raw)
+                self.assertEqual(json.loads(Path(directory, 'transport-001.json').read_text())['returncode'], 42)
+
     def test_nonzero_exit_records_stderr_and_exit_code(self):
         with tempfile.TemporaryDirectory() as directory:
             proof = Evidence(directory)

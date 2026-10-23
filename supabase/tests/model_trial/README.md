@@ -57,10 +57,10 @@ Owner 在桌面主責聊天正式授權接手 PR42、處理 Edge Runtime，普�
 本包只改測試／取證／既有 CI：
 - 每筆 transport 保存原始 stdout/stderr bytes、退出碼或 timeout；容器不再 `--rm`，清理前保存 `.State`（含 ExitCode/OOMKilled）、日誌、收集錯誤及清理回條。CI 無論成功或失敗均上傳 `edge-runtime-evidence`，保存七天。
 - 空 EOF 不再直接以 tuple-unpack ValueError 結束。只有首次 closed-gate POST 的啟動等待可在原 30 秒期限內，對仍 Running 且非 Restarting 的同一容器繼續檢查；沿用既有非零 transport 啟動等待，加入空 EOF 分類。**不重啟容器，不重試完整 CI，不重試 provider／hosted 操作。**
-- 死容器立即失敗，保留退出資訊；非空不完整 HTTP、壞 JSON、transport timeout 不重試。完整 HTTP500 仍交原斷言失敗，不算 readiness。原 POST503/TRIAL_NOT_READY/no-store/loaded 與 GET405/POST_REQUIRED/loaded 斷言全部保留；GET 不重試。
+- 死容器立即失敗，保留退出資訊；非零退出只要帶有任何非空stdout也立即失敗，避免把完整500或畸形回應藏進啟動重試；非空不完整 HTTP、壞 JSON、transport timeout 不重試。完整 HTTP500 仍交原斷言失敗，不算 readiness。原 POST503/TRIAL_NOT_READY/no-store/loaded 與 GET405/POST_REQUIRED/loaded 斷言全部保留；GET 不重試。
 - 固定映像 digest、七份產品來源、dispatcher、network=none、無 host ports／worker env／provider key、Auth／SQL／gate／115 frozen sources／部署設定均不變。helper 只在 host 測試執行，不掛入 worker。
 
-驗證：11 項無 Docker／網路的回歸覆蓋 exit0 空回應原始證據、EOF→拒連→成功、期限、死容器、HTTP500、畸形回應／JSON、timeout、非零退出、chunked／plain 與截斷、失敗日誌取證。修後真正固定 Edge Runtime 的產品 imports、POST503與GET405在本機通過；受控新合成容器 SIGKILL 得 ExitCode137，測試正確拒絕並在刪除前保存狀態／transport／日誌檔。此受控故障不是原 CI 故障根因。
+驗證：12 項無 Docker／網路的回歸覆蓋 exit0 空回應原始證據、EOF→拒連→成功、期限、死容器、HTTP500、畸形回應／JSON、timeout、非零退出、chunked／plain 與截斷、失敗日誌取證，以及非零退出搭配畸形／500／503回應的組合。這個組合由原獨立Reviewer指出後補強。修後真正固定 Edge Runtime 的產品 imports、POST503與GET405在本機通過；受控新合成容器 SIGKILL 得 ExitCode137，測試正確拒絕並在刪除前保存狀態／transport／日誌檔。此受控故障不是原 CI 故障根因。
 
 本機原始回條在接手工作區 `evidence/edge-runtime/`（repo 外），不提交私人環境設定；新同 HEAD CI 與既有 Reviewer 裁決另見 PR42。一次診斷試用 `Deno.exit` 得 runtime 不支援的 HTTP500，已保留其原始失敗，未改產品來適應診斷；後改為由 host 對本任務新容器 SIGKILL。沒有模型／雲端 DB／真 Auth／瀏覽器／SAVE／發布新驗收，不能外推 hosted Beta。保持 Draft，作者不自行批准。
 
