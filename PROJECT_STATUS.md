@@ -1,8 +1,28 @@
 # Growth OS｜專案進度
 
-更新：2026-10-11（UTC；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
+更新：2026-10-23（台灣；歷史段落保留原時區）。本頁是工程證據快照；產品路線唯一依據為 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)。[舊進度快照](PROJECT_STATUS_歷史_2026-10-02.md)完整保留，其舊 next step／帳號狀態不作目前判斷。
 
-## 當前授權與基準
+
+## 2026-10-23 Beta 最新查核與文件交付
+
+本節為 2026-10-23（台灣）文件快照，優先於下方歷史 checkpoint 的當前狀態語句；不表示已重跑產品實測或有人背景施工。產品路線仍只依據 [執行藍圖 v2.0](docs/AI_Company_Growth_OS_執行藍圖_v1.md)，Beta 工作集中 [Issue #39](https://github.com/RC918/Growth-OS/issues/39)。[完整優化報告](docs/reports/Growth-OS_Optimization_Report_2026-10-23.html) 保留報告當時觀測，本節記後續提交時的新查核，不改舊證據。
+
+| 項目 | 已實作／已測試 | 已部署 | 目前可用／限制 |
+|---|---|---|---|
+| #38 `73c0df6e813fe8feea1a586adb8e03abd470a6ce` | PR 差異把 Console 核稿交接接至 Workspace 保存／修訂／審核；PR 記隔離合成 session、JSON store 及桌機／手機測試；本輪未重跑 | 該提交 Vercel status success／[Ready 回報](https://vercel.com/morning-ai/growth-os-preview/8q6irjjEnvSLrATfnyao95EbpQ54) | 仍 Draft，未合併；不證明真 Auth／PostgreSQL RLS／模型品質／服務端 guard／公開發布或受邀 Beta |
+| #38 可見 PR workflows | 本次查詢 [Handoff](https://github.com/RC918/Growth-OS/actions/runs/39917263029)、[Python](https://github.com/RC918/Growth-OS/actions/runs/39917263164) 均 completed/success | 不適用 | 原報告「Python 執行中」為較早快照；本輪未逐步讀 logs，不外推完整產品驗收 |
+| #35 `91de687e52d996a07e85663db54ce6b88add19c9` | 設計／互動契約與 QA 文件：記錄 11 桌面、6 手機畫面；負向點擊、完整斷點／無障礙及視覺比對仍待驗 | 本輪未操作 Figma 或產品部署 | Draft 設計不是平台能力；當期只採 WordPress 必要流程，YouTube／限定自治後續 |
+| 本次文件包 | 完整報告、v2.0 路線增量、本頁與 Issue #39；文件範圍／連結核對 | 未手動部署；PR/push 可能觸發既有自動 CI／Preview，結果另列 | 不是產品 milestone；未改 runtime、SQL、Auth、開關、Secrets、付費或網站內容，未啟動排程 |
+
+**目前最小產品缺口：**同一候選託管版本完成真來源／真模型建議 → 修改保存 → Logout／關舊 context／fresh login → 完整同版讀回 → 確切版核准；再接單頁 WordPress 授權／發布／讀回／恢復及量測回訪。先核 WooCommerce／SEO 外掛與欄位能力，重用既有保存、權限與發布資產，不重建框架。
+
+**路線：**10/31 單平台完整受邀 Beta（條件式）→ 連續兩輪持續工作／重啟接續 → YouTube／批量／多渠道。精緻、可操作桌機與手機 UX 為當期品質要求，不以畫面數、CI 或 Preview Ready 放行。
+
+**交接與驗收：**Dot 核既有執行者後統一派工，Reviewer 同版獨立取證；具體執行者／task 回條目前未確認。本次僅 Owner 授權的文件提交，Primary 未自行批准產品或啟動下一工程。BUILD／瀏覽器／Auth／DB／Save／發布實測對純文件修改不適用；沒有獨立 Reviewer 本輪審查結果，維持 Draft 待審。
+
+---
+
+## 當前授權與基準（歷史 checkpoint；現況以頁首 2026-10-23 查核為準）
 
 ### 2026-10-11 真來源 Console 本機回放 checkpoint（已獨審，非 live API）
 
