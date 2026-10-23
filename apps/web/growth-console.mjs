@@ -1,5 +1,6 @@
 import {createConsoleTask,failureText} from './growth-console-task.mjs';
 import {reviewFields} from './first-result-review.mjs';
+import {createResultHandoff} from './first-result-handoff.mjs';
 const $=id=>document.getElementById(id),make=(tag,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
 const names={title:'頁面標題',meta_description:'搜尋摘要',description:'產品描述'};
 let viewName='overview',rendered=null,guideTarget=null,demo=null,sceneTicket=0,renderedClaims=null;
@@ -8,6 +9,7 @@ const task=createConsoleTask({load:async(url,signal)=>{
  let data;try{data=await response.json();}catch{throw Error('backend_unavailable');}
  if(!response.ok)throw Error([404,405].includes(response.status)?'backend_unavailable':data.code||'backend_unavailable');return data;
 },changed:render});
+const handoff=createResultHandoff({button:$('workspace-handoff'),cancelButton:$('handoff-cancel'),getReview:()=>task.getHandoffReview(),isBusy:()=>task.view().busy,report:text=>setText($('handoff-feedback'),text)});
 const setText=(el,text)=>{if(el.textContent!==text)el.textContent=text;};
 function selected(){const s=task.view();
  for(const [name,id] of [['overview','overview-panel'],['result','result-panel'],['sources','sources-panel'],['measure','measure-panel']])$(id).hidden=viewName!==name||(name!=='measure'&&!s.report);
@@ -83,6 +85,8 @@ function guidance(s){const v=s.review;
  return {owner:'本頁內容確認已完成',reason:'已取得來源並確認本頁版本；尚未保存、未取得工作區核准、未發布。搜尋效果未知。',label:'查看目前成果',target:'result-heading',view:'result'};
 }
 function render(s){
+ handoff.invalidate();
+ $('workspace-handoff').disabled=$('export-result').disabled=!task.getHandoffReview();
  const v=s.review,r=s.report;
  $('mode-banner').classList.toggle('synthetic',s.synthetic);
  setText($('mode-banner'),s.synthetic?'合成互動原型 · 非真網址成果 · 無真背景任務／保存／發布':'真網址模式 · 來源摘錄，不呼叫模型 · 尚未保存或發布');
@@ -114,6 +118,13 @@ function render(s){
 $('source-form').addEventListener('submit',e=>{e.preventDefault();task.start();});
 $('source-url').addEventListener('input',()=>task.setURL($('source-url').value));$('source-cancel').onclick=()=>task.cancel();
 $('review-confirm').onclick=()=>task.confirm();$('later').onclick=()=>{task.revisit();$('return-result').focus();};$('return-result').onclick=()=>{select('result');$('result-heading').focus();};
+$('export-result').onclick=async()=>{
+ try{
+  const payload=await task.exportHandoff(),url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+  const link=make('a');link.href=url;link.download='growth-os-reviewed-result.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),0);
+  setText($('handoff-feedback'),'已匯出目前確認版；請在工作區匯入並核對保存。匯出不代表已保存或發布。');
+ }catch{setText($('handoff-feedback'),'成果已變更或尚未確認；請重新核對目前版本。');}
+};
 $('claim-recheck').onclick=()=>task.checkClaims();$('claim-cancel').onclick=()=>task.cancelClaimCheck();
 $('guide-action').onclick=()=>{const g=guideTarget;if(g.action==='demo-review'){showScenario('review');return;}if(g.view)select(g.view);$(g.target)?.focus();};
 function guide(open,returnFocus=false){if(open){$('site-nav').classList.remove('open');$('nav-toggle').setAttribute('aria-expanded','false');}$('guidance').hidden=!open;$('guide-toggle').setAttribute('aria-expanded',String(open));if(returnFocus)$('guide-toggle').focus();else if(open)$('guide-heading').focus();}
