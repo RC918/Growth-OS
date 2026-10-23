@@ -2,7 +2,7 @@ import {createConsoleTask,failureText} from './growth-console-task.mjs';
 import {reviewFields} from './first-result-review.mjs';
 const $=id=>document.getElementById(id),make=(tag,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
 const names={title:'頁面標題',meta_description:'搜尋摘要',description:'產品描述'};
-let viewName='overview',rendered=null,guideTarget=null,demo=null,sceneTicket=0;
+let viewName='overview',rendered=null,guideTarget=null,demo=null,sceneTicket=0,renderedClaims=null;
 const task=createConsoleTask({load:async(url,signal)=>{
  const response=await fetch('/api/product-source',{method:'POST',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({url}),signal});
  let data;try{data=await response.json();}catch{throw Error('backend_unavailable');}
@@ -30,11 +30,42 @@ function fields(r,v){
   const compare=make('div');compare.className='comparison';const original=make('div'),edit=make('div');
   original.append(make('strong','原文'));const text=make('p',f.original||'來源未提供');text.className='original';original.append(text);
   const label=make('label','建議／目前編輯');label.htmlFor='field-'+key;const input=make('textarea');input.id=label.htmlFor;input.value=v.fields[key];input.maxLength=2000;input.setAttribute('aria-describedby','field-note-'+key+' field-error-'+key);
+  input.setAttribute('aria-describedby',input.getAttribute('aria-describedby')+' claim-field-'+key);
   input.addEventListener('input',()=>task.edit(key,input.value));
   const note=make('p');note.id='field-note-'+key;const error=make('p');error.id='field-error-'+key;error.className='field-error';
   const checkLabel=make('label');checkLabel.className='fact-check';const check=make('input');check.type='checkbox';check.id='check-'+key;check.addEventListener('change',()=>task.check(key,check.checked));
   checkLabel.append(check,make('span','已核對'+names[key]+'的內容與相關事實'));
-  edit.append(label,input,note,error,checkLabel);compare.append(original,edit);article.append(compare,make('p','原建議理由：'+f.reason),make('p','來源依據：'+f.citations.join('、')));box.append(article);
+  edit.append(label,input,note,error,checkLabel);compare.append(original,edit);const claims=make('div');claims.id='claim-field-'+key;claims.className='claim-field';article.append(compare,make('p','原建議理由：'+f.reason),make('p','來源依據：'+f.citations.join('、')),claims);box.append(article);
+ }
+ renderedClaims=null;
+ const raw=$('claim-report');raw.textContent=JSON.stringify(r,null,2);
+}
+function claimDetails(s){
+ const check=s.claimReview,result=check.result,signature=JSON.stringify(check);
+ const status=check.status==='CHECKING'?'正在檢查目前版本…':check.status==='ERROR'?'UNKNOWN · 檢查失敗，不能確認；可重新檢查。':check.status==='STALE'?'UNKNOWN · 舊檢查已失效；目前版本尚未檢查，不能確認。':result?.decision==='FAIL_CLOSED'?'檢查未通過 · 來源矛盾、缺證據或映射不明，不能確認。':result?.decision==='PASS_WITH_REVIEW'?'REVIEW · 偵測宣稱仍需人工讀核；請逐欄閱讀完整來源並勾選。':'偵測宣稱檢查完成 · 仍需人工核對，並非完整事實查核。';
+ setText($('claim-status'),status);
+ $('claim-recheck').disabled=s.busy||!s.sourceCurrent||check.status==='CHECKING';
+ $('claim-recheck').setAttribute('aria-busy',String(check.status==='CHECKING'));
+ $('claim-cancel').hidden=check.status!=='CHECKING';
+ if(signature===renderedClaims)return;renderedClaims=signature;
+ for(const key of reviewFields){
+  const box=$('claim-field-'+key),field=result?.fields?.find(f=>f.field===key);box.replaceChildren();
+  if(!field){box.append(make('p',status));for(const problem of result?.problems||[])box.append(make('p','UNKNOWN · '+problem));continue;}
+  box.append(make('p','來源上下文宣告（摘錄規則核對，非模型 used_fact_ids）：'+field.declared_source_ids.join('、')));
+  for(const claim of field.claims){
+   const label={SUPPORTED:'偵測宣稱有來源（非完整支持）',REVIEW:'需人工讀核',UNSUPPORTED:'UNKNOWN／缺少已宣告的支持',CONTRADICTED:'與來源相反',SOURCE_CONFLICT:'來源互有衝突'}[claim.status]||'UNKNOWN';
+   box.append(make('p',claim.status+' · '+label+' · 「'+claim.span+'」'));
+   if(claim.fact_id)box.append(make('p','事實：'+claim.fact_id+'；引用：'+claim.citation_ids.join('、')+'；完整原文：「'+claim.evidence+'」'));
+  }
+  for(const problem of field.problems)box.append(make('p','問題：'+problem));
+ }
+ const context=$('claim-context');context.replaceChildren();
+ for(const fact of result?.source_context||[]){
+  const item=make('article');item.append(make('h4',fact.fact_id),make('p','完整原文：'+fact.value),make('p','引用：'+fact.citation_ids.join('、')),
+   make('p','來源版本：'+fact.source_version+'；快照：'+fact.snapshot_id));
+  if(fact.product_scope)item.append(make('p','產品範圍：'+JSON.stringify(fact.product_scope)));
+  for(const c of fact.citation_records)item.append(make('p',c.id+' · '+c.locator+' · 「'+c.quote+'」'));
+  context.append(item);
  }
 }
 function guidance(s){const v=s.review;
@@ -45,6 +76,7 @@ function guidance(s){const v=s.review;
  if(!s.sourceCurrent)return {owner:'需要你核對來源',reason:'網址已修改或本次讀取未完成，保留舊成果但不能以新網址確認舊版。',label:'前往核對網址',target:'source-url',view:'overview'};
  const invalid=reviewFields.find(k=>!v.fields[k].trim()||v.fields[k].length>2000);
  if(invalid)return {owner:'需要你修正一欄',reason:names[invalid]+'需有1–2000字，否則無法綁定有效版本。其他編輯保留。',label:'查看'+names[invalid],target:'field-'+invalid,view:'result'};
+ if(s.claimReview.status!=='CHECKED'||s.claimReview.result?.decision==='FAIL_CLOSED')return {owner:'需要先完成宣稱檢查',reason:'來源矛盾、缺證據或映射不明時不能確認。修改文字會重新檢查；完整來源可在成果旁展開。',label:'查看宣稱檢查',target:'claim-status',view:'result'};
  const next=reviewFields.find(k=>v.edited[k]&&!v.fact_checks[k])||reviewFields.find(k=>!v.fact_checks[k]);
  if(next)return {owner:'需要你核對一項內容',reason:'先核對'+names[next]+'涉及的事實。'+(v.edited[next]?'你已修改文字，原來源不會自動支持新增宣稱。':'只需確認成果實際用到的資訊。')+' 可稍後處理，內容保留在本頁且不會發布。',label:'查看並核對'+names[next],target:'check-'+next,view:'result'};
  if(!v.receipt)return {owner:'由你確認版本',reason:'三欄均已自行核對；下一步只確認本頁確切版本，不保存、不發布。',label:'前往版本確認',target:'review-confirm',view:'result'};
@@ -67,7 +99,8 @@ function render(s){
   setText($('result-binding'),(s.sourceCurrent?'成果來源：':'保留的舊成果來源（不屬於新輸入）：')+r.snapshot.final_url+' · 本頁第 '+v.revision+' 版');
   setText($('version-detail'),'來源版本：'+v.binding.source_version+'；內容版本：'+v.revision+'；確認範圍：僅本頁。');
   setText($('review-feedback'),v.pending?'正在核對確切版本…':v.receipt?'已完成本頁版本確認。重新整理會失去本頁編輯與確認。':s.sourceCurrent?'修改後舊確認失效；可稍後處理，未保存內容只在本頁。':'來源已變動或未讀完；舊成果保留，請先核對網址並重新讀取。');
-  $('review-confirm').disabled=s.busy||v.pending||!v.canConfirm||!!v.receipt||!s.sourceCurrent;$('review-confirm').setAttribute('aria-busy',String(v.pending));
+  claimDetails(s);
+  $('review-confirm').disabled=s.busy||v.pending||!v.canConfirm||!!v.receipt||!s.sourceCurrent||s.claimReview.status!=='CHECKED'||!['PASS','PASS_WITH_REVIEW'].includes(s.claimReview.result?.decision);$('review-confirm').setAttribute('aria-busy',String(v.pending));
   setText($('summary-done'),v.receipt?'已取得來源，完成本頁第 '+v.revision+' 版確認；未保存。':'已取得有來源文本，本頁編輯仍待確認。');setText($('summary-decision'),v.receipt?'沒有新的內容決策；保存與發布尚未開放。':'接續核對目前版本；不重問已在本頁核對且未變更的欄位。');
  }
  const g=guidance(s);guideTarget=g;setText($('guide-owner'),g.owner);setText($('guide-reason'),g.reason);setText($('guide-action'),g.label||'請稍候');$('guide-action').hidden=!g.label;
@@ -81,6 +114,7 @@ function render(s){
 $('source-form').addEventListener('submit',e=>{e.preventDefault();task.start();});
 $('source-url').addEventListener('input',()=>task.setURL($('source-url').value));$('source-cancel').onclick=()=>task.cancel();
 $('review-confirm').onclick=()=>task.confirm();$('later').onclick=()=>{task.revisit();$('return-result').focus();};$('return-result').onclick=()=>{select('result');$('result-heading').focus();};
+$('claim-recheck').onclick=()=>task.checkClaims();$('claim-cancel').onclick=()=>task.cancelClaimCheck();
 $('guide-action').onclick=()=>{const g=guideTarget;if(g.action==='demo-review'){showScenario('review');return;}if(g.view)select(g.view);$(g.target)?.focus();};
 function guide(open,returnFocus=false){if(open){$('site-nav').classList.remove('open');$('nav-toggle').setAttribute('aria-expanded','false');}$('guidance').hidden=!open;$('guide-toggle').setAttribute('aria-expanded',String(open));if(returnFocus)$('guide-toggle').focus();else if(open)$('guide-heading').focus();}
 $('guide-toggle').onclick=()=>guide($('guidance').hidden);$('guide-close').onclick=()=>guide(false,true);

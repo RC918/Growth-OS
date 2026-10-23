@@ -3,12 +3,14 @@
   "api": "/api/product-source",
   "api_included": false,
   "files": {
-    "growth-console.html": "697316a6a8d08ea461bb7e43dcbdc94939986e21cadf85f0dc56a0615ec00b71",
-    "growth-console.css": "b4171fe7eedc8e8c8a423648ba485c9feddc53ca5fa9b07644fcbb29aee5ae77",
-    "growth-console.mjs": "4cdb90de82ae18441cc3f96d630c5e02ccb600bb8f26b82f370e4b32d21975f6",
-    "growth-console-task.mjs": "16710eeb7e27d56eeb40c8c0c2fbd0144f6b000a9b78f92090502763b9964726",
+    "growth-console.html": "5735e2891e81bc3fde58fad4ff42e5c24bc4ce484f3c1b4a583766c0069cf7e5",
+    "growth-console.css": "64f5acb0426fd7fdeddb57ea3b5819eccc31e257f775c9d0b96c25cfa0a4eafb",
+    "growth-console.mjs": "84ad6b754907268eeec4b6f503866e5380457057300d720cddb09ed6d8b45d2b",
+    "growth-console-task.mjs": "13043213ee567daff359ac2d606b582feeeb2091976b5cdc8c632a17179d2cec",
     "growth-console-demo.json": "29c680ec0ac1f373590d287c6b7f40543e551cabef5934c302d7a30ff89b463d",
     "first-result-review.mjs": "ce65f2c321b2eda65d3a9bc2d9687579ceaf63c9bf7b4a45b1274518498c5e72",
-    "first-result-payload.mjs": "3c3ee22192c3ae11b51f5ebf86afef0b46a8d4db514f295500a5387352d9750b"
+    "first-result-payload.mjs": "bc17a364a5496ad14ea252199d0fbc60c5ed202bcca8becc96687a915d09ca1c",
+    "console-claim-review.mjs": "0ba48e60a036925ef6a129f31466e87aed9903886d028425cc3699839648ae71",
+    "console-claim-engine.mjs": "9fdc27f4e64b11ce280e7850950a9d3d2211b4963db6b752a33cccdeb408f128"
   }
 }

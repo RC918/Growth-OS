@@ -145,8 +145,10 @@ jobs:
       - name: Console six-state prototype and existing URL Review integration
         run: |
           node delivery/growth-console/build.mjs
-          node --test delivery/growth-console/task.test.mjs
+          node --test delivery/growth-console/task.test.mjs delivery/growth-console/claim-review.test.mjs
           node delivery/growth-console/console.e2e.mjs
+          node delivery/growth-console/claim-gate.blocker.e2e.mjs
+          node delivery/growth-console/claim-console.e2e.mjs
       - name: Preserve console interaction evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -155,6 +157,7 @@ jobs:
           path: |
             /tmp/growth-console-*.png
             delivery/growth-console/SHA256.json
+            /tmp/growth-console-claims-evidence.json
       - name: Preserve review navigation evidence
         if: always()
         uses: actions/upload-artifact@v4
