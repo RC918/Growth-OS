@@ -38,7 +38,7 @@ open('${reportPath}', 'w').write(json.dumps(report))
 const report = JSON.parse(readFileSync(reportPath, 'utf8'));
 const {createResultReview, reviewFields} = await import('../../apps/web/first-result-review.mjs');
 const {validateReport} = await import('../../apps/web/first-result-payload.mjs');
-const {createWorkspaceApi} = await import('../../apps/web/workspace-api.mjs');
+const {createWorkspaceApi} = await import('../../apps/web/claim-guarded-workspace-api.mjs');
 
 const USER = '11111111-1111-4111-8111-111111111111';
 const ORG = '22222222-2222-4222-8222-222222222222';
@@ -113,4 +113,28 @@ test('declared-product report passes claim validation and isolated Save/Review c
   const readback = await api.readUrlReview(reconciled, {isCurrent: () => true});
   assert.equal(readback.id, REVIEW);
   assert.equal(readback.decision, 'approved');
+});
+
+
+test('declared-product aggregate keeps every paragraph citation and exact payload through guard',async()=>{
+ const {assertSavedClaims}=await import('../../apps/web/saved-claim-context.mjs');
+ const review=createResultReview(report);for(const key of reviewFields)review.check(key,true);await review.confirm();
+ const payload=await review.export(),before=JSON.stringify(payload);
+ assert.ok(report.facts.description.citations.length>2,'recorded source has supplemental paragraph');
+ const result=await assertSavedClaims(payload);assert.equal(result.mapping_status,'PROVEN_EXTRACTIVE_CONTEXT');
+ assert.equal(JSON.stringify(payload),before);
+});
+test('declared-product supplemental paragraphs cannot replace full evidence or add unrelated support',async()=>{
+ const {createConsoleSourceContext}=await import('../../apps/web/console-claim-review.mjs');
+ const description=report.facts.description,nameIds=report.facts.product_name.citations;
+ const ids=description.citations.filter(id=>!nameIds.includes(id));assert.ok(ids.length>1);
+ const corruptions=[
+  r=>r.snapshot.citations.find(c=>c.id===ids[1]).quote='Unrelated claim.',
+  r=>r.facts.description.citations=r.facts.description.citations.filter(id=>id!==ids[0]),
+  r=>r.snapshot.citations.find(c=>c.id===ids[0]).quote='Partial quote.',
+  r=>r.snapshot.citations.find(c=>c.id===ids[1]).locator=r.snapshot.citations.find(c=>c.id===ids[0]).locator,
+  r=>r.facts.description.citations=[ids[1],ids[0],...nameIds],
+  r=>r.facts.description.citations=r.facts.description.citations.filter(id=>!nameIds.includes(id)),
+ ];
+ for(const corrupt of corruptions){const r=structuredClone(report);corrupt(r);assert.throws(()=>createConsoleSourceContext(r));}
 });

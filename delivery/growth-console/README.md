@@ -1,5 +1,14 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 新證據：declared-product 多段引用相容性
+
+`aaf2d46` 的 Handoff push `39932053241`／job `120342467586`：原 step 11、native step 13、declared contract step 14 已 PASS；最後 Landyachtz step 15 被 guard 拒絕，整體仍 FAIL，未重跑。離線重現新根因：unchanged declared_product producer 為 description 保留完整 695 字 aggregate quote，另保留後一段 318 字 supplemental quote 與產品名。guard 原要求每個引用只能等於完整 fact 或產品名，誤將合法的補充段落判 UNKNOWN。這與前次手寫假引用根因不同，有新 log 與原 parser 取證，屬當前受支援來源保存路徑的必要 Blocking 修復。
+
+有界修正僅於非 frozen console sidecar：declared_product_dom 的 description 仍必須保留完整 fact quotation；額外段落只可出現在完整 aggregate 之後，locator 必須為遞增的 p[index]，且全部文字依序構成完整 fact 的精確後綴、剩餘首段非空。它們不新增獨立正向 support，完整 source_context／citation_records 原樣保留，其他方法與欄位仍用原 exact-full-fact 規則。沒有刪引用、放行 UNKNOWN、改 producer／schema／來源 bytes／模型或 DB。
+
+驗證：既有 declared-product Save/Review contract 改用實際 guarded API，PASS；另驗原 payload bytes 不變，並拒絕無關段落、缺完整 aggregate、partial aggregate、重複／逆序 locator、缺產品名綁定共六種反例。3 declared tests＋44 既有 claim/integration/fixture/build tests PASS，115 frozen hashes 不變；新版 browser/native CI 待新 HEAD。保留兩次不同根因失敗，Primary 不自我驗收。此處的細部 guard 相容性規則須交既有獨立 Reviewer 同版本評估。
+
+
 ## 2026-10-23 #42 Handoff fixture 根因修復
 
 基準 `740970103ffb4914d4edc54fb3abf6d80829797d`；Python push `39928779534`／PR `39928817998` 已 success。Handoff PR `39928817921`／job `120331717736` step 11 FAIL，登入前隔離與 synthetic owner 登入 PASS，之後等待 `#url-save-preview` 30 秒逾時，無 Save RPC。未重跑原失敗或修改三／九模組修正。
