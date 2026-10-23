@@ -66,3 +66,20 @@ test('vendor graph exactly matches pinned upstream and every import is local',as
   for(const match of source.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g)){assert.ok(match[1].startsWith('./source-html-'));assert.ok(expected.has(match[1].slice(2)));}
  }
 });
+
+test('real localhost Console server serves the complete pinned HTML module graph',async t=>{
+ const {spawn}=await import('node:child_process');const {mkdtemp,rm}=await import('node:fs/promises');
+ const dir=await mkdtemp('/tmp/dom-http-closure-');
+ const server=spawn('python3',['-B','prototype/public-audit/product_ui_fixture.py',dir+'/sources.sqlite3'],{stdio:['ignore','pipe','pipe']});
+ t.after(async()=>{server.kill();await new Promise(resolve=>server.once('exit',resolve));await rm(dir,{recursive:true,force:true});});
+ const port=await new Promise((resolve,reject)=>{server.stdout.once('data',bytes=>resolve(Number(bytes.toString().trim())));server.once('exit',code=>reject(Error('fixture exited '+code)));});
+ const visited=new Set();
+ async function visit(name){if(visited.has(name))return;visited.add(name);
+  const response=await fetch('http://127.0.0.1:'+port+'/'+name);assert.equal(response.status,200,name);assert.match(response.headers.get('content-type'),/javascript/);
+  const source=await response.text();assert.equal(source,await readFile('apps/web/'+name,'utf8'));
+  for(const match of source.matchAll(/\b(?:from\s*|import\s*)['"]([^'"]+)['"]/g)){assert.match(match[1],/^\.\/[a-zA-Z0-9.-]+\.mjs$/);await visit(match[1].slice(2));}
+ }
+ await visit('console-claim-review.mjs');assert.ok(visited.has('snapshot-html-evidence.mjs'));
+ for(const name of (await htmlParserSources()).keys())if(name.endsWith('.mjs'))assert.ok(visited.has(name),name);
+ for(const path of ['/package.json','/app.py','/../app.py','/source-html-not-allowed.mjs'])assert.equal((await fetch('http://127.0.0.1:'+port+path)).status,404,path);
+});

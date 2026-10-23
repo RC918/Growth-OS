@@ -19,6 +19,8 @@
 
 **保證邊界：只核對引用與隨報告保存 HTML 的一致性。** 不證明外站資訊真實、不證明 HTML 來自可信網站、不認證 producer；重算 hash 不能提供這些保證。這是靜態 HTML DOM／文字語義，不執行 JavaScript 或計算 CSS。Client guard 可阻止產品 UI/API layer 的不一致來源，不是資料庫權限或直接 REST 寫入的伺服器來源認證；本包未改 SQL/RLS/Secrets。可自洽地捏造整份 HTML 及報告仍在此保證外。
 
+新 CI 失敗紀錄：`69752cd` Python push `39946217333`／PR `39946223037` 在 Console E2E Enter 操作逾時，後續保存瀏覽器步驟 skipped，不能稱四綠。直接對同 localhost server 取證：既有 console-claim-review HTTP200，但新 snapshot-html-evidence／parse5 entry 都 HTTP404。根因為原非 frozen `app.py` 靜態資產白名單未包含新增 module closure，頁面主 module 因相依404未執行；Vercel Preview 則已逐檔200且 exact source。最小修補僅把18個具名JS依賴加入現有白名單，不用萬用路徑、不改部署設定；新增真 localhost HTTP module-graph exact-byte 測試與404範圍守衛。保留原兩次FAIL，不人工rerun，以新HEAD CI重驗。
+
 本機測試與後續精確 HEAD/tree／四CI／Preview部署證據記於 PR #42 新交審評論。保留本輪本機失敗原因：初版未處理 BOM／entity／同名標題與 cluster 所有權；Woo full evidence 引用差異；曾嘗試新增 direct devDependencies，但 frozen preflight 攔下後已完整還原；跨 test files 並行重建同一 dist 造成 ENOTEMPTY，依既有 CI 順序分開驗證後處理。這些都不是 hosted 產品驗收；不重試本端已失敗 Chromium 下載。未新增排程、費用、付費 Live、Production、Merge 或部署設定。保持 Draft，作者不自批，也不宣稱 hosted Beta。
 
 
