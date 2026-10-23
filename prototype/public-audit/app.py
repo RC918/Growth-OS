@@ -89,7 +89,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result-handoff.mjs", "/first-result.css", "/first-result-payload.mjs", "/growth-console.html", "/growth-console.mjs", "/growth-console-task.mjs", "/growth-console.css", "/growth-console-demo.json", "/console-claim-review.mjs", "/console-claim-engine.mjs"):
+        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result-handoff.mjs", "/first-result.css", "/first-result-payload.mjs", "/growth-console.html", "/growth-console.mjs", "/growth-console-task.mjs", "/growth-console.css", "/growth-console-demo.json", "/console-claim-review.mjs", "/console-claim-engine.mjs", "/snapshot-html-evidence.mjs", "/source-html-entities-decode-codepoint.mjs", "/source-html-entities-decode.mjs", "/source-html-entities-generated-decode-data-html.mjs", "/source-html-entities-generated-decode-data-xml.mjs", "/source-html-parse5-common-doctype.mjs", "/source-html-parse5-common-error-codes.mjs", "/source-html-parse5-common-foreign-content.mjs", "/source-html-parse5-common-html.mjs", "/source-html-parse5-common-token.mjs", "/source-html-parse5-common-unicode.mjs", "/source-html-parse5-parser-formatting-element-list.mjs", "/source-html-parse5-parser-index.mjs", "/source-html-parse5-parser-open-element-stack.mjs", "/source-html-parse5-tokenizer-index.mjs", "/source-html-parse5-tokenizer-preprocessor.mjs", "/source-html-parse5-tree-adapters-default.mjs"):
             static = Path(__file__).resolve().parents[2] / "apps" / "web" / path.lstrip("/")
             body = static.read_bytes()
             self.send_response(200)

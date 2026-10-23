@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {execFile} from 'node:child_process';
+import {spawn} from 'node:child_process';
 import {BATCH_ENABLE_CONFIRMATION, BATCH_LIMITS, BATCH_RECONCILE_CONFIRMATION, createBatchLedger, enableBatchLedger, openBatchLedger, reconcileBatchLedger} from './batch-authorization.mjs';
 import {runTrial} from './run-phase3b-trial.mjs';
 
@@ -119,24 +119,84 @@ test('expired, stopped and unknown-outcome batches fail closed', () => {
   assert.throws(() => unknown.ledger.reserveAttempt(), /BATCH_NOT_ACTIVE/);
 });
 
-test('concurrent processes cannot reserve beyond the batch cap', async () => {
-  const {file} = makeBatch({maxAttempts: 6});
-  const child = `
-    import {openBatchLedger} from ${JSON.stringify(new URL('./batch-authorization.mjs', import.meta.url).href)};
-    const ledger = openBatchLedger({file: ${JSON.stringify(file)}, repoRoot: ${JSON.stringify(repoRoot)}});
-    let ok = 0;
-    for (let i = 0; i < 5; i++) {
-      try { ledger.reserveAttempt({estimatedCostUsd: 0.0001}); ledger.settleRun({attemptCount: 1, knownCostDelta: 0.0001, reservedCostUsd: 0.0001}); ok++; } catch {}
-    }
-    console.log(ok);
-  `;
-  const run = () => new Promise((resolve, reject) => {
-    execFile(process.execPath, ['--input-type=module', '-e', child],
-      (error, stdout) => error ? reject(error) : resolve(Number(stdout.trim())));
-  });
-  const counts = await Promise.all([run(), run(), run()]);
-  assert.equal(counts.reduce((a, b) => a + b, 0), 6);
-  assert.equal(openBatchLedger({file, repoRoot}).snapshot().attempts_used, 6);
+// IPC barriers control only test scheduling; production locks/gates are unchanged.
+function batchWorker(t,file){
+ const child=spawn(process.execPath,[fileURLToPath(new URL('./batch-concurrency.test-worker.mjs',import.meta.url)),file,repoRoot],
+  {stdio:['ignore','pipe','pipe','ipc'],env:{PATH:process.env.PATH,LANG:'C.UTF-8'}});
+ const pending=new Map(),events=[];let next=0,stdout='',stderr='',spawnError=null,readyResolve,readyReject;
+ const ready=new Promise((resolve,reject)=>{readyResolve=resolve;readyReject=reject;});
+ child.stdout.on('data',s=>stdout+=s);child.stderr.on('data',s=>stderr+=s);
+ child.on('message',m=>{if(m.ready){readyResolve();return;}events.push(m);const waiter=pending.get(m.id);if(waiter){pending.delete(m.id);waiter.resolve(m);}});
+ child.on('error',error=>{spawnError={name:error.name,message:error.message,stack:error.stack};readyReject(error);});
+ const closed=new Promise(resolve=>child.on('close',(exit_code,signal)=>{
+  const record={exit_code,signal,stdout,stderr,spawn_error:spawnError,events};
+  const error=Error('Batch worker closed before response: '+JSON.stringify(record));readyReject(error);
+  for(const waiter of pending.values())waiter.reject(error);pending.clear();resolve(record);
+ }));
+ t.after(async()=>{if(child.connected)child.send({operation:'close'});if(child.exitCode===null&&child.signalCode===null)await closed;});
+ return {ready,events,command(operation){return new Promise((resolve,reject)=>{
+  const id=++next;pending.set(id,{resolve,reject});child.send({id,operation},error=>{if(error){pending.delete(id);reject(error);}});
+ });},async finish(){child.send({operation:'close'});const record=await closed;
+  assert.equal(record.exit_code,0,JSON.stringify(record));assert.equal(record.signal,null,JSON.stringify(record));
+  assert.equal(record.stderr,'',JSON.stringify(record));assert.equal(record.stdout,'',JSON.stringify(record));
+  assert.equal(record.spawn_error,null,JSON.stringify(record));return record;
+ }};
+}
+const success=response=>{assert.equal(response.ok,true,JSON.stringify(response));return response;};
+const refusal=(response,code)=>{assert.equal(response.ok,false,JSON.stringify(response));
+ assert.equal(response.error.name,'Error');assert.ok(response.error.message.startsWith(code+':'),JSON.stringify(response));
+ assert.ok(response.error.stack.includes(response.error.message));return response;
+};
+const workersFor=(t,file)=>{const workers=Array.from({length:3},()=>batchWorker(t,file));
+ // Close workers before removing only this test's disposable ledger/key directory.
+ t.after(()=>rmSync(dirname(file),{recursive:true,force:true}));return workers;
+};
+
+test('concurrent processes cannot reserve beyond the batch cap', {timeout:15000},async t=>{
+ const {file,ledger}=makeBatch({maxAttempts:6});
+ // Seed five real, fully settled reservations. Exactly one slot remains, so the
+ // race tests the cap boundary without assuming fair scheduling or auto-retry.
+ for(let i=0;i<5;i++){ledger.reserveAttempt({estimatedCostUsd:0.0001});ledger.settleRun({attemptCount:1,knownCostDelta:0.0001,reservedCostUsd:0.0001});}
+ const workers=workersFor(t,file);await Promise.all(workers.map(w=>w.ready));
+ const responses=await Promise.all(workers.map(w=>w.command('reserve')));
+ const winners=responses.flatMap((r,i)=>r.ok?[i]:[]);assert.equal(winners.length,1,JSON.stringify(responses));
+ responses.filter(r=>!r.ok).forEach(r=>refusal(r,'BATCH_SETTLEMENT_PENDING'));
+ const held=ledger.snapshot();assert.equal(held.attempts_used,6);assert.equal(held.attempts_pending,1);
+ assert.equal(held.pending_cost_usd,0.0001);assert.equal(held.known_cost_usd,0.0005);
+ // Retain the exact six-success and six-used assertions: five settled seeds
+ // plus one process wins. Refusals do not become successful reservations.
+ const counts=[5,...responses.map(r=>Number(r.ok))];
+ assert.equal(counts.reduce((a,b)=>a+b,0),6);
+ assert.equal(openBatchLedger({file,repoRoot}).snapshot().attempts_used,6);
+ success(await workers[winners[0]].command('settle'));
+ const settled=ledger.snapshot();assert.equal(settled.status,'exhausted');
+ assert.equal(settled.attempts_pending,0);assert.equal(settled.pending_cost_usd,0);
+ assert.equal(settled.known_cost_usd,0.0006);assert.equal(settled.unknown_cost_attempts,0);
+ const exhausted=await Promise.all(workers.map(w=>w.command('reserve')));
+ for(const r of exhausted){refusal(r,'BATCH_EXHAUSTED');assert.deepEqual(r.after,r.before);}
+ assert.deepEqual(ledger.snapshot(),settled);
+ const children=await Promise.all(workers.map(w=>w.finish()));
+ t.diagnostic('BATCH_CONCURRENCY_CAP '+JSON.stringify({counts,children,final:exhausted[0].after}));
+});
+
+test('original five-iteration schedule can yield five successes while all safety gates hold', {timeout:15000},async t=>{
+ const {file,ledger}=makeBatch({maxAttempts:6}),workers=workersFor(t,file);
+ await Promise.all(workers.map(w=>w.ready));const held=success(await workers[0].command('reserve')).after;
+ // Hold the original first reservation until both other processes have used
+ // all five of their original iterations. No sleeps, polling, or retry loop.
+ const rejected=await Promise.all(workers.slice(1).map(async w=>{
+  const responses=[];for(let i=0;i<5;i++){const r=refusal(await w.command('reserve'),'BATCH_SETTLEMENT_PENDING');
+   assert.deepEqual(r.before,held);assert.deepEqual(r.after,held);responses.push(r);}
+  return responses;
+ }));
+ assert.equal(ledger.snapshot().attempts_used,1);assert.equal(ledger.snapshot().attempts_pending,1);
+ success(await workers[0].command('settle'));
+ for(let i=1;i<5;i++){success(await workers[0].command('reserve'));success(await workers[0].command('settle'));}
+ const final=ledger.snapshot();assert.equal(final.attempts_used,5);assert.equal(final.attempts_pending,0);
+ assert.equal(final.known_cost_usd,0.0005);assert.equal(final.pending_cost_usd,0);assert.equal(final.status,'active');
+ const children=await Promise.all(workers.map(w=>w.finish()));
+ t.diagnostic('BATCH_CONCURRENCY_ORIGINAL_SCHEDULE '+JSON.stringify({original_expected:6,actual:final.attempts_used,
+  rejected_count:rejected.flat().length,children,final:children[0].events.at(-1).after}));
 });
 
 test('batch live runs consume persistent attempts and stop on unknown outcome', async () => {

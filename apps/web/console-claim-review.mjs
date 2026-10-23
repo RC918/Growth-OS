@@ -1,5 +1,6 @@
 // Console-only source-context sidecar. This is NOT model used_fact_ids or an
 // addition to the exported report/Review schema. Preserve full source facts.
+import {assertSnapshotHTMLSource} from './snapshot-html-evidence.mjs';
 import {verifyClaims} from './console-claim-engine.mjs';
 const fields = ['title', 'meta_description', 'description'];
 const copy = value => structuredClone(value);
@@ -23,6 +24,7 @@ export function createConsoleSourceContext(report) {
         || c.url !== s.final_url || !c.locator || typeof c.quote !== 'string' || !c.quote) fail('引用缺失或跨來源版本');
     citations.set(c.id, c);
   }
+  assertSnapshotHTMLSource(report);
   const context = [];
   function add(path, fact, scoped = false) {
     if (fact === null && !scoped && path !== '/facts/product_name') return;
@@ -34,9 +36,30 @@ export function createConsoleSourceContext(report) {
         || !f.product_name.citations.every(id => fact.citations.includes(id)))) fail('來源混入其他產品：' + path);
     // Every full fact is represented by its original literal quotation(s),
     // plus product-name citations for scoped facts. No snippet-only support.
+    // The declared-product producer retains one full aggregate quotation,
+    // followed by the later paragraph quotations and product-name citations.
+    // These supplemental paragraphs may only be the exact ordered suffix of
+    // that full fact. They never supply independent positive claim support.
+    const evidence = fact.citations.filter(id => !(scoped && f.product_name.citations.includes(id)));
+    const supplemental = new Set();
+    if (report.extraction.method === 'declared_product_dom' && path === '/facts/description'
+        && evidence.length > 1 && citations.get(evidence[0]).quote === fact.value) {
+      const records = evidence.map(id => citations.get(id));
+      const indexes = records.map(c => /^p\[(\d+)\]$/.exec(c.locator)?.[1]).map(n => n === undefined ? NaN : Number(n));
+      let remaining = fact.value;
+      const ordered = indexes.every((n,i) => Number.isSafeInteger(n) && (i === 0 || n > indexes[i-1]));
+      if (ordered) {
+        for (let i = records.length-1; i > 0; i--) {
+          const suffix = ' ' + records[i].quote;
+          if (!remaining.endsWith(suffix)) {remaining = ''; break;}
+          remaining = remaining.slice(0,-suffix.length);
+        }
+        if (remaining.trim()) for (const id of evidence.slice(1)) supplemental.add(id);
+      }
+    }
     if (!fact.citations.some(id => citations.get(id).quote === fact.value)
         || !fact.citations.every(id => citations.get(id).quote === fact.value
-          || (scoped && f.product_name.citations.includes(id)))) fail('引用未保留完整事實原文：' + path);
+          || (scoped && f.product_name.citations.includes(id)) || supplemental.has(id))) fail('引用未保留完整事實原文：' + path);
     context.push({fact_id: path, ...copy(fact), citation_ids: [...fact.citations],
       snapshot_id: s.id, source_version: s.version, source_url: s.final_url,
       citation_records: fact.citations.map(id => copy(citations.get(id)))});

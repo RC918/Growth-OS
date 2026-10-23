@@ -48,6 +48,22 @@ CLI本身**不關閉 terminal echo，也不偵測 raw mode**。操作端須在�
 
 離線證據：handler 13 tests、PGlite SQL 13 groups、handler→SQL integration 2 groups、所有 migrations 編譯／既有 goal SQL 9 groups。Auth/provider 是 doubles，PGlite PG18.3 不代表 native concurrency。CI 新增 postgres:17.6 一次性容器測試：network=none、Unix socket、無 TCP／密碼／cloud，A/B/C 真實獨立 PID、B Lock blocker=A、僅一筆預留成功、失敗交易整笔回退；本機 Docker daemon 不運行，結果以該 head CI 實際輸出為準。部署／live模型費／UI／真實Auth未驗收，M1不放行。
 
+### 2026-10-23 PR42 Edge Runtime 接手與阻塞處理
+
+Owner 在桌面主責聊天正式授權接手 PR42、處理 Edge Runtime，普通工程自主推進；付費、正式環境或發布另確認。固定起點 HEAD `f58514763d063fcc4dbb6b6b7720a6d6c37e4cd7`／tree `de9a5bcb5af8002942093096888d0845481a0e77`，原分支 `codex/preview-claim-guard-20261023`、base PR41 `15fa201`。既有 DOM／批次包與限域獨審保留。
+
+原 Python push [39954550427/job120417005885](https://github.com/RC918/Growth-OS/actions/runs/39954550427/job/120417005885) step43 的 HTTP 分隔解包 ValueError 保留。原 CI 沒保存回應 bytes／容器退出狀態，且 `--rm` 使死容器日誌不可得，**原容器退出原因仍未知，不能宣稱已還原或已證實 flake／啟動競態**。本機 ARM64 Colima 的固定同 digest 原版 smoke 通過；另一次純觀測診斷僅停用自動刪除及記錄 subprocess 輸出，原斷言亦通過；這不是歷史 Linux x86 runner 的重現。
+
+本包只改測試／取證／既有 CI：
+- 每筆 transport 保存原始 stdout/stderr bytes、退出碼或 timeout；容器不再 `--rm`，清理前保存 `.State`（含 ExitCode/OOMKilled）、日誌、收集錯誤及清理回條。CI 無論成功或失敗均上傳 `edge-runtime-evidence`，保存七天。
+- 空 EOF 不再直接以 tuple-unpack ValueError 結束。只有首次 closed-gate POST 的啟動等待可在原 30 秒期限內，對仍 Running 且非 Restarting 的同一容器繼續檢查；沿用既有非零 transport 啟動等待，加入空 EOF 分類。**不重啟容器，不重試完整 CI，不重試 provider／hosted 操作。**
+- 死容器立即失敗，保留退出資訊；非零退出只要帶有任何非空stdout也立即失敗，避免把完整500或畸形回應藏進啟動重試；非空不完整 HTTP、壞 JSON、transport timeout 不重試。完整 HTTP500 仍交原斷言失敗，不算 readiness。原 POST503/TRIAL_NOT_READY/no-store/loaded 與 GET405/POST_REQUIRED/loaded 斷言全部保留；GET 不重試。
+- 固定映像 digest、七份產品來源、dispatcher、network=none、無 host ports／worker env／provider key、Auth／SQL／gate／115 frozen sources／部署設定均不變。helper 只在 host 測試執行，不掛入 worker。
+
+驗證：12 項無 Docker／網路的回歸覆蓋 exit0 空回應原始證據、EOF→拒連→成功、期限、死容器、HTTP500、畸形回應／JSON、timeout、非零退出、chunked／plain 與截斷、失敗日誌取證，以及非零退出搭配畸形／500／503回應的組合。這個組合由原獨立Reviewer指出後補強。修後真正固定 Edge Runtime 的產品 imports、POST503與GET405在本機通過；受控新合成容器 SIGKILL 得 ExitCode137，測試正確拒絕並在刪除前保存狀態／transport／日誌檔。此受控故障不是原 CI 故障根因。
+
+本機原始回條在接手工作區 `evidence/edge-runtime/`（repo 外），不提交私人環境設定；新同 HEAD CI 與既有 Reviewer 裁決另見 PR42。一次診斷試用 `Deno.exit` 得 runtime 不支援的 HTTP500，已保留其原始失敗，未改產品來適應診斷；後改為由 host 對本任務新容器 SIGKILL。沒有模型／雲端 DB／真 Auth／瀏覽器／SAVE／發布新驗收，不能外推 hosted Beta。保持 Draft，作者不自行批准。
+
 ### 真正Edge Runtime離線驗證範圍
 
 `edge_runtime.py`／`edge_harness/index.ts`以官方 [self-host compose](https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml) 的固定 `supabase/edge-runtime:v1.76.2`啟動main dispatcher，再由 `EdgeRuntime.userWorkers.create`載入真正production index.js及所有相對imports／Web Crypto。worker envVars=[]、無provider key、無平台secrets、network=none／無host ports。只把明列7份程式複製至臨時目錄唯讀掛載，不掛checkout／home／env檔／Docker socket。HTTP在容器內loopback呼叫，gate未啟用必須503 TRIAL_NOT_READY與no-store、GET405；boot/import錯誤只能500 EDGE_BOOT_FAILED，不會假算503成功。測後移除容器與臨時程式。CI記錄image digest与複製程式hash；本機Docker未運行，不以Python／Deno語法冒充runtime成功。

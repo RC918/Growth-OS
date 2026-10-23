@@ -2,15 +2,16 @@
 // database, Postgres JSONB digest, or RLS claims are made by this synthetic service.
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {readFile,writeFile,mkdir,rename,mkdtemp} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,rename,mkdtemp,cp} from 'node:fs/promises';
 import {spawn,execFileSync} from 'node:child_process';
 import {randomUUID,createHash} from 'node:crypto';
 import {appendFileSync,writeFileSync,realpathSync,readlinkSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {canonical,validateReport} from '../../apps/web/first-result-payload.mjs';
-import {buildClaimIntegration} from '../web-preview/claim-integration.mjs';
-import {buildConsole} from './build.mjs';
+import {build} from '../web-preview/build.mjs';
+import {applyHandoffBridge} from '../web-preview/handoff-bridge.mjs';
+import {applyReviewFlag} from '../web-preview/review-flag.mjs';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 let dispatchTrace=null;
 const traceDispatch=event=>{if(dispatchTrace)appendFileSync(dispatchTrace,JSON.stringify(event)+'\n');};
@@ -150,13 +151,27 @@ export async function waitForDevTools(launch,userData,{timeoutMs=30000}={}){
  throw Error('Chromium DevTools readiness deadline exceeded');
 }
 
+export async function buildPreviewAcceptance({directory,evidence}){
+ // Same frontend pipeline as Vercel; the test service still replaces Auth,
+ // backend and UI flags. The final hashes include post-build bridge changes.
+ const config=JSON.parse(await readFile(new URL('../../vercel.json',import.meta.url)));
+ assert.equal(config.buildCommand,'node delivery/web-preview/build.mjs && node delivery/web-preview/handoff-bridge.mjs && node delivery/web-preview/review-flag.mjs');
+ const dist=new URL('../web-preview/dist/',import.meta.url);
+ const manifest=await build();await applyHandoffBridge(dist);await applyReviewFlag(dist,{});
+ await cp(dist,directory,{recursive:true});
+ for(const name of Object.keys(manifest.files)){const entry=manifest.files[name];entry.output_sha256=createHash('sha256').update(await readFile(directory+'/'+name)).digest('hex');entry.derived=entry.source_sha256!==entry.output_sha256;}
+ manifest.kind='preview-acceptance-after-handoff-bridge';
+ await writeFile(evidence+'/preview-build-manifest.json',JSON.stringify(manifest,null,2));
+ return manifest;
+}
+
 async function browserRun(){
  // Use the repository's pinned Playwright browser, as the other Console
  // suites do. A preinstalled /usr/bin/chromium is unrelated to that install.
  const executable=process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||createRequire(import.meta.url)('playwright').chromium.executablePath();
  const evidence=process.argv[2]||await mkdtemp('/tmp/gos-beta-e2e-');await mkdir(evidence,{recursive:true});
  dispatchTrace=evidence+'/browser-dispatch.jsonl';
- const directory=evidence+'/site';await buildClaimIntegration({directory});await buildConsole({directory,manifestPath:evidence+'/console-manifest.json'});
+ const directory=evidence+'/site';await buildPreviewAcceptance({directory,evidence});
  const report=producerReport(),service=await startTestService({storePath:evidence+'/test-only-store.json',directory,report});
  const userData=evidence+'/chromium-profile';const launch=observeChromiumLaunch({executable,args:['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+userData,'about:blank'],evidence});
  let cdp;const results=[];try{
@@ -242,7 +257,7 @@ async function browserRun(){
   }
   const errors=cdp.events.filter(e=>e.method==='Runtime.exceptionThrown');assert.deepEqual(errors,[]);
   const remote=cdp.events.filter(e=>e.method==='Network.requestWillBeSent'&&/^https?:/.test(e.params.request.url)&&!e.params.request.url.startsWith(service.origin));assert.deepEqual(remote,[]);
-  await writeFile(evidence+'/browser-receipt.json',JSON.stringify({test_only:true,results,external_requests:0,uncaught_browser_errors:0},null,2));
+  await writeFile(evidence+'/browser-receipt.json',JSON.stringify({test_only:true,frontend:'configured-preview-build-with-handoff-bridge',backend:'synthetic-json-service',ui_flags:'test-only-override',results,external_requests:0,uncaught_browser_errors:0},null,2));
   console.log(JSON.stringify(results,null,2));
  }catch(error){
   console.error('Chromium startup diagnostics: '+JSON.stringify(launch.snapshot()));

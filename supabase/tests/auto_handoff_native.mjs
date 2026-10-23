@@ -28,7 +28,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {execFileSync, spawn} from 'node:child_process';
-import {randomBytes, randomUUID, createHmac, createHash} from 'node:crypto';
+import {randomBytes, randomUUID, createHmac} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {build} from '../../delivery/web-preview/build.mjs';
@@ -52,34 +52,11 @@ const ORIGIN = 'http://127.0.0.1:4321';
 const SUPABASE_ORIGIN = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
 const fields = ['title', 'meta_description', 'description'];
 
-// Same fully valid producer-shaped fixture as the isolated acceptance.
-const SNAP_ID = '55555555-5555-4555-8555-555555555555';
-const fixture = () => {
-  const html = `<!doctype html><html><head><title>${TITLE}</title></head><body><h1>${TITLE}</h1><p>NATIVE product description</p></body></html>`;
-  const bytes = Buffer.from(html, 'utf8');
-  const version = createHash('sha256').update(bytes).digest('hex');
-  const fact = (value, scoped = false) => scoped
-    ? {kind: 'fact', verification: 'source_asserted', value, citations: ['s1'], product_scope: {locator: 'h1', name_locator: 'h1', product_name: TITLE}}
-    : {kind: 'fact', verification: 'source_asserted', value, citations: ['s1']};
-  const facts = {product_name: fact(TITLE), title: fact(TITLE), meta_description: fact('NATIVE meta'),
-    description: fact('NATIVE product description', true), features: [fact('NATIVE feature', true)], use: fact('NATIVE use')};
-  const missing = ['specifications', 'price', 'certifications', 'performance', 'comparisons', 'guarantees'];
-  const field = (key, suggested) => ({original: facts[key].value, suggested, reason: '隔離測試來源', citations: ['s1']});
-  return {
-    snapshot: {schema_version: 1, id: SNAP_ID, version, original_url: 'https://example.invalid/native',
-      final_url: 'https://example.invalid/native', fetched_at: new Date().toISOString(),
-      content_base64: bytes.toString('base64'), content_fingerprint: 'sha256:' + version,
-      encoding: 'utf-8-with-replacement', html,
-      citations: [{id: 's1', snapshot_id: SNAP_ID, source_version: version, url: 'https://example.invalid/native', locator: 'h1', quote: TITLE}],
-      limitations: ['NATIVE limitation']},
-    page_type: 'product', extraction: {method: 'explicit_product_microdata', limitations: ['NATIVE limitation']},
-    facts, inferences: [{kind: 'inference', value: 'NATIVE inference', basis: 'NATIVE basis', citations: ['s1']}], missing,
-    preview: {source_snapshot_id: SNAP_ID, source_version: version, published: false, generation: 'extractive_rules',
-      status: 'awaiting_review',
-      pending_confirmation: ['Confirm source assertions and suitability before applying.', ...missing],
-      fields: {title: field('title', TITLE), meta_description: field('meta_description', '候選 meta_description'), description: field('description', '候選 description')}},
-  };
-};
+// Shared real producer, synthetic source bytes; no network or model calls.
+import {handoffSourceFixture} from './handoff-source-fixture.mjs';
+import {assertSavedClaims} from '../../apps/web/saved-claim-context.mjs';
+const sourceReport=handoffSourceFixture(TITLE,SOURCE_URL);
+const fixture=()=>structuredClone(sourceReport);
 
 // ---- Ephemeral native stack (pattern reused from
 // prototype/internal-rc/native-http-regression.mjs) ----
@@ -252,6 +229,8 @@ try {
   step('workspace tab opened same-origin', popup.url().startsWith(ORIGIN + '/workspace.html'), popup.url());
   await popup.close();
   const stash = await first.evaluate(() => JSON.parse(localStorage.getItem('growth-os:pending-handoff:v1') || 'null'));
+  await assertSavedClaims(stash?.payload);
+  step('confirmed fixture satisfies unchanged saved-claim guard', true);
   step('bridge stash written with one-time nonce', !!stash && stash.payload?.preview?.fields?.title?.suggested === TITLE);
   if (LANDY) step('adapter provenance is declared_product_dom', stash?.payload?.extraction?.method === 'declared_product_dom', stash?.payload?.extraction?.method);
 
@@ -358,15 +337,61 @@ try {
   step('denied writes left DB unchanged', versionCount() === 1);
 
   if (LANDY) {
-    stage = 'DB validator negatives (declared-product candidate)';
-    const evilMethod = fixture(); evilMethod.extraction.method = 'unregistered_method';
-    const evil = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
-      p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: evilMethod}});
-    step('unregistered extraction method still rejected by DB validator', evil.status >= 400, 'HTTP ' + evil.status);
-    const forged = fixture(); forged.snapshot.version = '0'.repeat(64);
-    const forgedResult = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
-      p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: forged}});
-    step('forged source version/digest still rejected by DB validator', forgedResult.status >= 400, 'HTTP ' + forgedResult.status);
+    stage = 'DB validator negatives (recorded confirmed Landyachtz baseline)';
+    // Use the exact confirmed/export payload that the real adapter and browser
+    // already saved, not the unrelated raw synthetic producer report.
+    const baseline = structuredClone(stash.payload);
+    assert.equal(baseline.extraction.method, 'declared_product_dom');
+    assert.ok(baseline.review.confirmation);
+    await assertSavedClaims(baseline);
+    assert.deepEqual(saved.data[0].first_result_payload, baseline);
+    const validateBaseline = () => {
+      const delimiter = '$baseline_' + randomUUID().replaceAll('-', '') + '$';
+      const text = JSON.stringify(baseline);
+      assert.ok(!text.includes(delimiter));
+      assert.equal(sql('select private.fr_valid_payload(' + delimiter + text + delimiter + '::jsonb);'), 't');
+    };
+    const counts = () => JSON.parse(sql(`select jsonb_build_object(
+      'growth_opportunities',(select count(*) from public.growth_opportunities),
+      'content_versions',(select count(*) from public.content_versions),
+      'content_reviews',(select count(*) from public.content_reviews),
+      'audit_events',(select count(*) from public.audit_events));`));
+    validateBaseline();
+    const controlBefore = counts();
+    // Replay the successful envelope as a positive authenticated RPC control.
+    // An identical request is idempotent; it must not add rows.
+    const control = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
+      p_organization_id: ids.org, p_opportunity_id: saved.data[0].opportunity_id,
+      p_request_id: saved.data[0].first_result_request_id,
+      p_expected_version: saved.data[0].first_result_expected_version, p_payload: baseline}});
+    assert.equal(control.status, 200);assert.equal(control.data, versionId);
+    assert.deepEqual(counts(), controlBefore);
+    step('recorded confirmed baseline valid in guard, SQL validator and authenticated RPC replay', true);
+    for (const scenario of [
+      {name: 'unregistered extraction method', object: 'extraction', key: 'method', value: 'unregistered_method', message: 'INVALID_EVIDENCE_SCHEMA'},
+      {name: 'forged source version', object: 'snapshot', key: 'version', value: '0'.repeat(64), message: 'SOURCE_HASH_MISMATCH'},
+    ]) {
+      validateBaseline(); // each negative starts from a proven legal baseline
+      const payload = structuredClone(baseline);
+      payload[scenario.object][scenario.key] = scenario.value;
+      const restored = structuredClone(payload);
+      restored[scenario.object][scenario.key] = baseline[scenario.object][scenario.key];
+      assert.deepEqual(restored, baseline, 'only one payload leaf may differ');
+      assert.notEqual(payload[scenario.object][scenario.key], baseline[scenario.object][scenario.key]);
+      const before = counts();
+      // Fresh request/parent avoids the replay-conflict branch masking validation.
+      const result = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
+        p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(),
+        p_expected_version: 0, p_payload: payload}});
+      const after = counts();
+      console.log('VALIDATOR_NEGATIVE ' + JSON.stringify({case: scenario.name,
+        changed_path: '/' + scenario.object + '/' + scenario.key, baseline_sql_valid: true,
+        http_status: result.status, sqlstate: result.data?.code, message: result.data?.message, before, after}));
+      assert.equal(result.status, 400);assert.equal(result.data?.code, '22023');
+      assert.equal(result.data?.message, scenario.message);
+      assert.deepEqual(after, before, 'all affected public tables must have zero row increment');
+      step(scenario.name + ' rejected by exact SQLSTATE/message with zero table increments', true);
+    }
     step('validator negatives left DB unchanged', versionCount() === 1);
   }
 } catch (error) {

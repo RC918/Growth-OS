@@ -1,10 +1,12 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {buildHTMLParser} from './build-html-parser.mjs';
 import {buildClaimEngine} from './build-claim-engine.mjs';
 import {fileURLToPath} from 'node:url';
 export async function buildConsole({directory='delivery/growth-console/dist',manifestPath='delivery/growth-console/SHA256.json'}={}){
  await buildClaimEngine();
- const names=['growth-console.html','growth-console.css','growth-console.mjs','growth-console-task.mjs','growth-console-demo.json','first-result-review.mjs','first-result-payload.mjs','console-claim-review.mjs','console-claim-engine.mjs','first-result-handoff.mjs','saved-claim-context.mjs'];
+ const parserFiles=await buildHTMLParser();
+ const names=['growth-console.html','growth-console.css','growth-console.mjs','growth-console-task.mjs','growth-console-demo.json','first-result-review.mjs','first-result-payload.mjs','console-claim-review.mjs','console-claim-engine.mjs','first-result-handoff.mjs','saved-claim-context.mjs','snapshot-html-evidence.mjs',...parserFiles];
  await mkdir(directory,{recursive:true});const manifest={route:'/growth-console',api:'/api/product-source',api_included:false,workspace_included:false,files:{}};
  for(const name of names){let bytes=await readFile('apps/web/'+name);if(name.endsWith('.html'))bytes=Buffer.from(bytes.toString().replaceAll('./growth-console','/console-assets/growth-console'));await writeFile(directory+'/'+name,bytes);manifest.files[name]=createHash('sha256').update(bytes).digest('hex');}
  await writeFile(manifestPath,JSON.stringify(manifest,null,2)+'\n');return manifest;

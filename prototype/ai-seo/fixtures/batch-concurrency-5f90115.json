@@ -1,0 +1,589 @@
+{
+  "baseline_head": "5f90115abe253f291b2c46b4821d1b2f4f2770bf",
+  "original_ci": {
+    "run": 39947170828,
+    "job": 120392542163,
+    "step": 8,
+    "expected": 6,
+    "actual": 5
+  },
+  "transport": "offline filesystem only; no credential/provider call",
+  "schedule": "hold first owner reservation; both contenders exhaust original five iterations; release owner",
+  "held": {
+    "status": "active",
+    "max_attempts": 6,
+    "budget_cap_usd": 0.1,
+    "attempts_used": 1,
+    "attempts_pending": 1,
+    "known_cost_usd": 0,
+    "pending_cost_usd": 0.0001,
+    "unknown_cost_attempts": 0
+  },
+  "afterRejected": {
+    "status": "active",
+    "max_attempts": 6,
+    "budget_cap_usd": 0.1,
+    "attempts_used": 1,
+    "attempts_pending": 1,
+    "known_cost_usd": 0,
+    "pending_cost_usd": 0.0001,
+    "unknown_cost_attempts": 0
+  },
+  "final": {
+    "status": "active",
+    "max_attempts": 6,
+    "budget_cap_usd": 0.1,
+    "attempts_used": 5,
+    "attempts_pending": 0,
+    "known_cost_usd": 0.0005,
+    "pending_cost_usd": 0,
+    "unknown_cost_attempts": 0
+  },
+  "children": [
+    {
+      "role": "hold",
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "messages": [
+        {
+          "type": "holding"
+        },
+        {
+          "type": "finished",
+          "events": [
+            {
+              "iteration": 0,
+              "phase": "reserve",
+              "result": "reserved",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 0,
+                "attempts_pending": 0,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 0,
+              "phase": "settle",
+              "result": "settled",
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0001,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 1,
+              "phase": "reserve",
+              "result": "reserved",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0001,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 2,
+                "attempts_pending": 1,
+                "known_cost_usd": 0.0001,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 1,
+              "phase": "settle",
+              "result": "settled",
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 2,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0002,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 2,
+              "phase": "reserve",
+              "result": "reserved",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 2,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0002,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 3,
+                "attempts_pending": 1,
+                "known_cost_usd": 0.0002,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 2,
+              "phase": "settle",
+              "result": "settled",
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 3,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0003,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 3,
+              "phase": "reserve",
+              "result": "reserved",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 3,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0003,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 4,
+                "attempts_pending": 1,
+                "known_cost_usd": 0.0003,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 3,
+              "phase": "settle",
+              "result": "settled",
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 4,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0004,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 4,
+              "phase": "reserve",
+              "result": "reserved",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 4,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0004,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 5,
+                "attempts_pending": 1,
+                "known_cost_usd": 0.0004,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              }
+            },
+            {
+              "iteration": 4,
+              "phase": "settle",
+              "result": "settled",
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 5,
+                "attempts_pending": 0,
+                "known_cost_usd": 0.0005,
+                "pending_cost_usd": 0,
+                "unknown_cost_attempts": 0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contender-1",
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "messages": [
+        {
+          "type": "finished",
+          "events": [
+            {
+              "iteration": 0,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 1,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 2,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 3,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 4,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "contender-2",
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "messages": [
+        {
+          "type": "finished",
+          "events": [
+            {
+              "iteration": 0,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 1,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 2,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 3,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            },
+            {
+              "iteration": 4,
+              "phase": "reserve",
+              "result": "rejected",
+              "before": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "after": {
+                "status": "active",
+                "max_attempts": 6,
+                "budget_cap_usd": 0.1,
+                "attempts_used": 1,
+                "attempts_pending": 1,
+                "known_cost_usd": 0,
+                "pending_cost_usd": 0.0001,
+                "unknown_cost_attempts": 0
+              },
+              "error": {
+                "name": "Error",
+                "message": "BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden",
+                "stack": "Error: BATCH_SETTLEMENT_PENDING: unsettled reserved attempts must be reconciled by the Owner; automatic retry is forbidden\n    at fail (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:41:32)\n    at assertUsableForReserve (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:302:7)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:333:9\n    at withLedgerLock (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:190:16)\n    at Object.reserveAttempt (file:///workspace/scratch/3d891e490576/Growth-OS/prototype/ai-seo/batch-authorization.mjs:329:14)\n    at file:///workspace/scratch/3d891e490576/Growth-OS/[eval1]:7:13\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async node:internal/modules/esm/loader:224:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:221:20)"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

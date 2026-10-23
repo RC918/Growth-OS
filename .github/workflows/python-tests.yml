@@ -128,8 +128,20 @@ jobs:
       - name: Bound URL PG17 deadline locks and single-request concurrency
         timeout-minutes: 3
         run: node supabase/drafts/url_result/bound/native.mjs
+      - name: Edge Runtime startup and evidence regressions (no Docker or network)
+        run: python3 -B -m unittest discover -s supabase/tests/model_trial -p test_edge_runtime_support.py -v
       - name: Supabase Edge Runtime closed-gate user worker (no network or keys)
+        env:
+          EDGE_RUNTIME_EVIDENCE_DIR: ${{ runner.temp }}/growth-edge-runtime-evidence
         run: python3 -B supabase/tests/model_trial/edge_runtime.py
+      - name: Preserve raw Edge Runtime transport and container evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-runtime-evidence
+          path: ${{ runner.temp }}/growth-edge-runtime-evidence/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Offline probe boundary checks (PGlite only)
         run: node supabase/tests/goal_lock_probe/test.mjs
       - name: Offline probe controller and DCL operator checks
