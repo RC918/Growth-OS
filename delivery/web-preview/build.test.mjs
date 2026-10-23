@@ -35,6 +35,9 @@ test('deployed API rejects contradictory claims and preserves exact saved payloa
  const intent=payload=>({organization_id:ids.org,opportunity_id:randomUUID(),request_id:randomUUID(),expected_version:0,payload});
  const api=client();await login(api);
  await assert.rejects(api.saveUrlResult(intent(await exported('Not made of steel.')),{isCurrent:()=>true}),/宣稱/);
+ const forged=await exported('Made of steel.');
+ forged.snapshot.citations.find(c=>c.id===forged.facts.description.citations[0]).locator='p[1000000]';
+ await assert.rejects(api.saveUrlResult(intent(forged),{isCurrent:()=>true}),/宣稱/);
  assert.equal(service.requests.filter(r=>r.method==='POST').length,0);
  const request=intent(await exported('Made of steel.'));
  const id=await api.saveUrlResult(request,{isCurrent:()=>true});await api.reconcileUrlResult(request,id);api.signOut();

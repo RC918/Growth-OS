@@ -1,4 +1,4 @@
-// Characterization of trusted-producer declarations; NOT an HTML/DOM parser test.
+// Saved HTML verification closes the prior trusted-producer-only boundary.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -49,18 +49,10 @@ const negatives={
  'other field feature':r=>{r.facts.features=[structuredClone(r.facts.description)];},
 };
 for(const [name,mutate]of Object.entries(negatives))test(name+' is rejected',()=>{const r=structuredClone(base);mutate(r);assert.throws(()=>createConsoleSourceContext(r));});
-test('nonexistent numeric locators are ACCEPTED: declaration consistency is not actual DOM binding',async()=>{
- const r=structuredClone(base);const refs=evidence(r);refs.forEach((id,i)=>{r.snapshot.citations.find(c=>c.id===id).locator='p['+(1000000+i)+']';});
- const unchangedHTML=r.snapshot.html;
- const sidecar=createConsoleSourceContext(r);assert.ok(sidecar);
- const review=createResultReview(r);for(const k of ['title','meta_description','description'])review.check(k,true);await review.confirm();
- assert.equal((await assertSavedClaims(await review.export())).mapping_status,'PROVEN_EXTRACTIVE_CONTEXT');
- assert.equal(r.snapshot.html,unchangedHTML);
- console.log('SCOPE_LIMIT: increasing numeric locator labels are not resolved against snapshot HTML; no DOM binding claim.');
+test('nonexistent numeric locators are rejected against unchanged saved HTML',()=>{
+ const r=structuredClone(base);evidence(r).forEach((id,i)=>{r.snapshot.citations.find(c=>c.id===id).locator='p['+(1000000+i)+']';});
+ assert.throws(()=>createConsoleSourceContext(r));assert.equal(r.snapshot.html,base.snapshot.html);
 });
-
-test('single full quotation accepts a nonempty malformed locator: supplemental syntax rule is conditional',()=>{
- const r=reportFor(1);record(r,0).locator='not-a-DOM-locator';
- assert.ok(createConsoleSourceContext(r));
- console.log('SCOPE_LIMIT: a single full-fact quotation only requires a nonempty locator label.');
+test('single full quotation with malformed locator is rejected',()=>{
+ const r=reportFor(1);record(r,0).locator='not-a-DOM-locator';assert.throws(()=>createConsoleSourceContext(r));
 });

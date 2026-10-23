@@ -1,5 +1,27 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 Ryan 11:04 限定產品修補：保存 HTML 一致性
+
+本輪承接 `1f7b943377d96cb733605cc9f6a696337ed2feca`／tree `6cb3c3d23a9c0f820aad8baefefa193c864070fe`。開工核對遠端 HEAD 相同、原工作目錄乾淨，未見衝突作者。Dot 代傳既有 Reviewer APPROVE **僅限該版本補證包**，實際 DOM 要求仍 BLOCKED；以下是 Ryan 新核准的產品修補，尚待新 HEAD 獨立審查。下方歷史段落保留當時結果，不能當成本輪現況。
+
+`console-claim-review` 在建立任何正向 context 前呼叫新 `snapshot-html-evidence`，獨立解析保存的 `snapshot.html`。使用既有 lockfile 的 parse5 7.3.0／entities 6.0.1，保留授權，以 deterministic generator 複製原 ESM 僅改平面 import 路徑與 source-map 註解；無 runtime npm／外部載入／腳本執行。package.json、lockfile 與原 115 frozen hashes 不變。
+
+| 要求 | 實作／證據 |
+|---|---|
+| 明確 locator 語義 | `tag[index]` 的 index 是保存 HTML start-tag token 的全域一基序號，包含 head/script 等標籤，不是 CSS nth-child。HTML5 parser 以 source location 對照實際節點；被忽略、隱含、錯標籤、畸形或不存在位置不支持正向判定。只忽略開頭編碼 BOM，不修改保存字串或 bytes。title／meta 使用既有專用 locator，要求唯一實際來源。 |
+| 原文與 aggregate | 依實際 HTML 重建 facts，再逐項核對完整 value、引用數、順序、每筆 locator／quote。declared description 的第一個 p locator 指向整組連續 paragraph aggregate，後續 p 則逐段核對。沿既有 producer entry 規則（h1/p/li/a/name）重建 cluster，不把 JSON 自稱 method 當證據。 |
+| 產品歸屬 | 從實際 microdata Product scope／Woo main#main→product-N→summary／declared `.product` 祖先重建，核 name node、scope node、產品名。排除 hidden/aria-hidden、script/template/nav/footer/aside 等及跨 itemscope；declared 段落須在同一最近 product root。Woo short/tab 不一致、跨產品、來源不完整均拒絕。 |
+| 不支援時拒絕 | 未知 method、缺 HTML／必要 citation、矛盾產品身分／原文、混合 scope、相關被引用節點無明確結束標籤／解析歧義、非 HTML namespace、HTML 大於1,048,576 UTF-16 code units／20,000 tokens／128層／25,000元素等不作正向支持。介面明示保存 HTML 無法核對並請重新取得來源。 |
+| R1 保留 | `auto_handoff_native.mjs` 原合法 confirmed/export 基準、每案一欄變異、精確22023/message及四表零增量不改，由同 HEAD 原 native CI 再驗。 |
+| R2 舊反例 | 保留舊 commit／評論的 ACCEPT 證據，本輪兩個測試改要求不存在遞增 locator／單段畸形 locator **拒絕**，不刪反例。合法1/2/3/4段及原16種邊界負例保留。 |
+| 新正負案例 | `snapshot-html-evidence.test.mjs` 從 unchanged Python producer 生成合法微資料、含其他產品區塊、Woo／Woo+micro baselines；覆蓋偽造位置、in-range錯節點、錯scope/name、同文錯產品、JSON整組捏造、HTML文字不符、隱藏／混scope、缺來源、缺feature、method謊稱、metadata／身分衝突、parser limits；另核 vendor import closure 與 exact source。 |
+| 實際寫入／建置 | 新保存測試確認三條 guarded mutation 在 locator/quote/scope 偽造時零POST。原 Preview build→bridge→flag 接線與 exact payload 保存／新 session 讀回測試保留；build.test 直接 import 派生 Workspace API，新增不存在 locator 拒絕。Console build 同步包含 parser closure，不新增部署設定。 |
+
+**保證邊界：只核對引用與隨報告保存 HTML 的一致性。** 不證明外站資訊真實、不證明 HTML 來自可信網站、不認證 producer；重算 hash 不能提供這些保證。這是靜態 HTML DOM／文字語義，不執行 JavaScript 或計算 CSS。Client guard 可阻止產品 UI/API layer 的不一致來源，不是資料庫權限或直接 REST 寫入的伺服器來源認證；本包未改 SQL/RLS/Secrets。可自洽地捏造整份 HTML 及報告仍在此保證外。
+
+本機測試與後續精確 HEAD/tree／四CI／Preview部署證據記於 PR #42 新交審評論。保留本輪本機失敗原因：初版未處理 BOM／entity／同名標題與 cluster 所有權；Woo full evidence 引用差異；曾嘗試新增 direct devDependencies，但 frozen preflight 攔下後已完整還原；跨 test files 並行重建同一 dist 造成 ENOTEMPTY，依既有 CI 順序分開驗證後處理。這些都不是 hosted 產品驗收；不重試本端已失敗 Chromium 下載。未新增排程、費用、付費 Live、Production、Merge 或部署設定。保持 Draft，作者不自批，也不宣稱 hosted Beta。
+
+
 ## 2026-10-23 Reviewer BLOCKED 後限定補證（產品規則不變）
 
 依 Dot 代傳 Ryan 10:29 核准，本包基準 HEAD `955c14764ab97ee248f4aa879619e8125fa55333`／tree `60dac4d8477383f32f0edb9a22e7fa1499ecf650`；遠端一致、working tree clean，未見其他作者同包提交。獨立 Reviewer 的 BLOCKED 由本次指示傳達，理由為必要證據不足；GitHub reviews 未見正式提交，不能把未取得的原始 review 內容說成已讀。保留原四筆綠 CI 與全部舊失敗，不重修產品接線。

@@ -66,6 +66,21 @@ test('all three guarded mutations fail closed for contradictory/missing evidence
  await assert.rejects(api.confirmUrlReview({first_result_payload:bad},{},live),/宣稱/);
  assert.equal(mutations(service).length,0);
 });
+test('HTML locator/quote/scope forgeries reject all three mutations with zero POST',async t=>{
+ const {service}=await setup(t),api=client(service);await login(api,service.session());
+ const legal=await exported();await assertSavedClaims(legal);
+ const corruptions=[
+  r=>r.snapshot.citations.find(c=>c.id===r.facts.description.citations[0]).locator='p[1000000]',
+  r=>r.snapshot.citations.find(c=>c.id===r.facts.description.citations[0]).quote='Fabricated source paragraph.',
+  r=>r.facts.description.product_scope.locator='main[999]',
+ ];
+ for(const corrupt of corruptions){const bad=structuredClone(legal);corrupt(bad);
+  await assert.rejects(api.saveUrlResult(intent(bad),live));
+  await assert.rejects(api.saveUrlRevision({binding:{},request:{payload:bad}},live));
+  await assert.rejects(api.confirmUrlReview({first_result_payload:bad},{},live));
+  assert.equal(mutations(service).length,0);
+ }
+});
 test('epoch/source/cancel/session drift during validation and duplicate operations cannot POST',async t=>{
  const {service}=await setup(t),api=client(service);await login(api,service.session());const request=intent(await exported());
  let current=true;const stale=api.saveUrlResult(request,{isCurrent:()=>current});current=false;await assert.rejects(stale);assert.equal(mutations(service).length,0);

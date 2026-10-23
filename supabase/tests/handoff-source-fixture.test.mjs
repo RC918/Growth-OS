@@ -21,7 +21,7 @@ test('legacy-shaped title-only citation is schema-valid but rejected before brid
  report.facts.meta_description.citations=[...report.facts.product_name.citations];
  const payload=await confirm(report);await validateReport(payload);
  const fields=Object.fromEntries(Object.entries(report.preview.fields).map(([k,v])=>[k,v.suggested]));
- assert.deepEqual(evaluateConsoleClaims({report,fields}).problems,['引用未保留完整事實原文：/facts/meta_description']);
+ assert.deepEqual(evaluateConsoleClaims({report,fields}).problems,['保存的 HTML 無法核對完整引用與產品歸屬；請重新取得來源並核對。']);
  await assert.rejects(assertSavedClaims(payload),/宣稱檢查/);
 });
 test('invented producer suggestions and contradictory saved edits remain refused',async()=>{

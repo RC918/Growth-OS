@@ -1,5 +1,6 @@
 // Console-only source-context sidecar. This is NOT model used_fact_ids or an
 // addition to the exported report/Review schema. Preserve full source facts.
+import {assertSnapshotHTMLSource} from './snapshot-html-evidence.mjs';
 import {verifyClaims} from './console-claim-engine.mjs';
 const fields = ['title', 'meta_description', 'description'];
 const copy = value => structuredClone(value);
@@ -23,6 +24,7 @@ export function createConsoleSourceContext(report) {
         || c.url !== s.final_url || !c.locator || typeof c.quote !== 'string' || !c.quote) fail('引用缺失或跨來源版本');
     citations.set(c.id, c);
   }
+  assertSnapshotHTMLSource(report);
   const context = [];
   function add(path, fact, scoped = false) {
     if (fact === null && !scoped && path !== '/facts/product_name') return;
