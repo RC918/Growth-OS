@@ -1,5 +1,20 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 接手：乾淨環境驗收與來源函式打包
+
+Owner 在原對話確認已交代 Dot 交接並授權本端直接開始。接手固定基準為 PR #38 `ffe45632a127a1561868d8ca4e108460d85a8f51`，使用獨立 `codex/beta-primary-20261023` 分支；未修改原工程分支、PR #35/#40、未合併或手動部署。公開 Issue #39 是 Beta 追蹤入口，具體私人交接回條未出現在 repo，不宣稱已讀到不存在的回條。
+
+本包處理兩項接線／交接缺口：
+
+- 乾淨 checkout 實跑 `node --test delivery/growth-console/persistence-integration.test.mjs` 為 11 PASS／1 FAIL：唯一失敗為讀取前位作者固定 `/workspace/.../pristine/.../workspace.mjs` 路徑不存在。改為直接核對原 CI 已固定的 SHA256 `9ba67576e59dc06479c0c0a48c00c0165d80e0f04631da1a090cc9100dd1ab06`，並移除 CI 的 sudo 複製步驟。不是複製當前檔案自比，也不修改 115 個 frozen 檔案或 hash。
+- 原 `vercel.json` 顯式 includeFiles 不含商品 handler 必需的 `first_result_api`／`robots_policy`／`error_classify` 等依賴，服務 handler 也缺 `error_classify`。只把原 includeFiles 匹配檔案與 API 入口複製到空目錄、用 Python `-I -B` 新程序執行，分別重現缺模組。補為 9 個具名 runtime 模組，涵蓋原服務與 declared-product 分支；沒有全目錄 wildcard、測試或秘密檔案。新增打包測試已接既有 CI，執行 GET readiness、錯誤 POST 415、合成來源抽取，並拒絕任何 socket 操作。這證明明列依賴可獨立執行，**不是已證實 Vercel 線上必定缺檔**：平台自動追蹤是否曾補入其他檔案，本輪未取得部署內容，保留未知。
+
+修後驗證：12 整合契約＋2 既有 Preview build 契約 PASS；兩個 source-bundle 測試（含兩個 handler 正例與移除依賴反例）PASS；39 個既有 first-result/service/product API 回歸 PASS；git diff --check PASS。新 bundle 測試不讀原 checkout 模組，無外網／模型／租戶資料操作。既有 localhost HTTP 回歸使用原 synthetic source。此包沒有 UI／Auth／資料庫／保存契約行為修改，未重跑桌機手機瀏覽器，不能冒稱本輪完整產品驗收。
+
+接手時原 #38 CI 的新增整合契約與 fresh-session 瀏覽器步驟已通過，整體 Python workflow 尚在執行，不重跑或改寫原失敗。官方 Vercel protected URL 工具針對現行 Preview 的存取，於 read_protection_bypass 階段收到 403 forbidden（project/team scope），未進入應用 API；沒有重試或換 route。線上驗收須恢復既有連接器對 Morning-Ai／growth-os-preview 的適當存取；不要求私人 Token、不修改 Deployment Protection。
+
+四層狀態：本包已實作、上述本機驗證已通過；新提交 CI／Preview 結果另核；未手動部署、未驗線上可用。獨立 Reviewer 本輪取證尚未完成，保持 Draft、不自行 APPROVE。下一產品主線仍是真模型／來源、真持久保存及同版託管流程，不把此必要打包修正算完整 Beta，也不新增永久排程或費用。
+
 Owner 2026-10-11 10:52:28 UTC 批准；沿 `feat/private-host-bootstrap`／PR28、原Primary與Reviewer。基準 `2dfc699e2143f2c7b23b71b4f20ecd95256f8f24` clean。兩份Library來源已以read/full完整讀取：
 
 - `Growth_OS_Web_UI_Spec_2026-10-11.md`，libfile_b6149ddb49bc8191bd12ee3bd53276c7，18,149 bytes／230行。

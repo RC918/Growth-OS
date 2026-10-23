@@ -140,6 +140,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Derived first-result review navigation and frozen identity
         run: |
+          python3 -B delivery/web-preview/source-bundle.test.py -v
           node --test delivery/web-preview/build.test.mjs
           node delivery/web-preview/navigation.e2e.mjs
       - name: Console six-state prototype and existing URL Review integration
@@ -152,9 +153,6 @@ jobs:
       - name: Console persistence integration contracts (offline only)
         shell: bash
         run: |
-          # Provide the test's fixed pristine path only after matching the reviewed frozen baseline.
-          printf '%s  %s\n' '9ba67576e59dc06479c0c0a48c00c0165d80e0f04631da1a090cc9100dd1ab06' 'apps/web/workspace.mjs' | sha256sum --check --strict
-          sudo install -D -m 644 apps/web/workspace.mjs /workspace/growth-source-receipt-20261023/pristine/source/apps/web/workspace.mjs
           node --test delivery/growth-console/persistence-integration.test.mjs
       - name: Console persistence fresh-session browser acceptance (offline only)
         timeout-minutes: 3

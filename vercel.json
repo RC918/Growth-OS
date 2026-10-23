@@ -4,11 +4,11 @@
   "outputDirectory": "delivery/web-preview/dist",
   "functions": {
     "api/product-source.py": {
-      "includeFiles": "prototype/public-audit/{scanner,product_source,product_api}.py",
+      "includeFiles": "prototype/public-audit/{scanner,product_source,product_api,first_result_api,robots_policy,error_classify,service_source,service_api,declared_product}.py",
       "maxDuration": 60
     },
     "api/service-source.py": {
-      "includeFiles": "prototype/public-audit/{scanner,product_source,product_api,service_source,service_api}.py",
+      "includeFiles": "prototype/public-audit/{scanner,product_source,product_api,first_result_api,robots_policy,error_classify,service_source,service_api,declared_product}.py",
       "maxDuration": 60
     }
   }

@@ -105,7 +105,9 @@ test('derived integration rejects absent/duplicate anchors, verifies 115 frozen 
  }
  const dir=await mkdtemp('/tmp/gos-claim-build-');t.after(()=>rm(dir,{recursive:true,force:true}));const result=await buildClaimIntegration({directory:dir});assert.equal(result.frozen_files_verified,115);
  for(const [name,identity]of Object.entries(result.files))assert.equal(createHash('sha256').update(await readFile(dir+'/'+name)).digest('hex'),identity.output_sha256);
- assert.equal(await readFile('apps/web/workspace.mjs','utf8'),await readFile('/workspace/growth-source-receipt-20261023/pristine/source/apps/web/workspace.mjs','utf8'));
+ // Compare with the independently recorded baseline, not a copy provisioned
+ // from the very file under test on one author's machine.
+ assert.equal(createHash('sha256').update(await readFile('apps/web/workspace.mjs')).digest('hex'),'9ba67576e59dc06479c0c0a48c00c0165d80e0f04631da1a090cc9100dd1ab06');
 });
 test('response-stage loss marker follows durable commit without changing RPC payload or causing socket loss',async t=>{
  const {service}=await setup(t),token=service.session(),request=intent(await exported());
