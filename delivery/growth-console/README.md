@@ -1,5 +1,20 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 離線批次並行測試限定修補
+
+本包依 Ryan 經 Dot 轉達的新限定核准，承接 `5f90115abe253f291b2c46b4821d1b2f4f2770bf`／tree `2f52be97771f339ebb710662e6340b6a24cc90fd`；local/remote 同版、working tree clean、原四 CI 已結束，沒有其他本端工程作者。既有 Reviewer 的 APPROVE 由本次訊息傳達，**僅限保存 HTML 一致性的 DOM 修補**，不是本包或 hosted Beta 的批准。原 DOM bytes 與原失敗保留。
+
+**原始失敗與可知界線：**[Handoff PR run39947170828/job120392542163](https://github.com/RC918/Growth-OS/actions/runs/39947170828/job/120392542163) step8，`batch-authorization.test.mjs:138` expected6/actual5。原測試每個子程序只跑五輪，並用空白 `catch {}` 吞掉 reserve/settle 例外；CI只留下成功數，無法事後補回該次被吞掉的退出碼、原始例外或 ledger。因此不聲稱取到了原 CI 當時未記錄的資料，也不拿一次重跑 PASS 解釋根因。
+
+**先取證、再修測試：**在產品程式未改的5f90115上，使用真 filesystem ledger／合成 project，保留一個子程序的首筆 reservation，讓另兩個子程序各完成原本五輪，再放行持有者。三子程序 exit_code=0、signal=null、stderr空；十筆拒絕皆為 `BATCH_SETTLEMENT_PENDING`，附原始name/message/stack及每次before/after。拒絕期間ledger維持 used1/pending1、known0/pending0.0001；持有者五次結清後 used5/pending0、known0.0005/pending0，仍active。完整非秘密取證為 `prototype/ai-seo/fixtures/batch-concurrency-5f90115.json`，原始完整ledger與auth-key未提交。這證明同產品規則下存在合法排程得到5；原測試要求有限嘗試必然填滿6的假設錯誤。對歷史CI的具體排程仍只能作此機制解釋，不能冒稱原例外已回復。
+
+**最小測試修正：**不改 `batch-authorization.mjs` 或任何產品規則。測試先以真API取得並結清5筆，只剩一個名額時三個子程序同時reserve；IPC讓唯一勝者保留pending直到另兩個拒絕，嚴格核唯一成功、精確pending拒絕、總成功6／ledger used6。勝者結清後三子程序再挑戰，各須精確 `BATCH_EXHAUSTED`，before/after與總ledger完全不變。保留原兩個「等於6」斷言，未以<=6或刪斷言求綠。
+
+另新增受控原五輪排程回歸，固定重現5與十個pending拒絕／零增量，不假定排程公平、不加sleep或自動重試。test-only IPC worker逐操作回傳原始例外與必要ledger欄位；parent明確核預期錯誤，未知例外／錯誤階段／非零退出／signal／stderr／spawn失敗皆使測試失敗。每次原始例外與退出結果輸出 `BATCH_CONCURRENCY_CAP`／`BATCH_CONCURRENCY_ORIGINAL_SCHEDULE` 診斷；只清理各測試自己建立的暫存ledger/key目錄。
+
+本機17項批次授權測試PASS；原失敗step8的完整command另驗，結果與最終精確HEAD/tree/四CI在PR42交審評論。不盲重跑舊整條CI；必要修正提交後沿原流程產生新SHA的CI，不改workflow或部署設定。PLAN/測試CODE/真child-process與filesystem RUN適用；產品BUILD、瀏覽器/桌機手機、DB/Auth、SAVE/logout/fresh-session/tenant等本包未改、不作新PASS主張，DOM包既有同版證據保留，不能外推hosted驗收。只涉及測試與驗收說明，批次上限6／預算0.10、pending/unknown gate、Live產品能力、frozen/SQL/Secrets/Production均不改。沒有真provider呼叫、費用、購買升級、發布/Merge或新排程。交既有獨立Reviewer同版本審查，作者不自批。
+
+
 ## 2026-10-23 Ryan 11:04 限定產品修補：保存 HTML 一致性
 
 本輪承接 `1f7b943377d96cb733605cc9f6a696337ed2feca`／tree `6cb3c3d23a9c0f820aad8baefefa193c864070fe`。開工核對遠端 HEAD 相同、原工作目錄乾淨，未見衝突作者。Dot 代傳既有 Reviewer APPROVE **僅限該版本補證包**，實際 DOM 要求仍 BLOCKED；以下是 Ryan 新核准的產品修補，尚待新 HEAD 獨立審查。下方歷史段落保留當時結果，不能當成本輪現況。
