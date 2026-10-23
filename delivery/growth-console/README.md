@@ -2,6 +2,16 @@
 
 ## 2026-10-23 接手：乾淨環境驗收與來源函式打包
 
+### 後續 CI 失敗與有界修復（保留原失敗）
+
+PR #41 原 HEAD `1506a7961eee4d41e6e7b403ba6ac976d2eadc0b` 的 Python PR run `39923961309`／job `120315684229` 失敗於 fresh-session browser step；bundle、build 與 12 整合契約均已先通過。直接讀取實際 log：spawn 無錯、程序未退出，10 秒截止時 DevTools 檔仍未就緒；`/usr/bin/chromium` 指向 runner 預裝 `/usr/local/share/chromium/chrome-linux/chrome`，原 workflow 只在該路徑不存在時才改連 Playwright，故先前安裝的專案瀏覽器不一定被使用。stderr 有 DBus 訊息，但不足以斷定它就是根因，不盲目重跑求綠燈。
+
+同 PR 的有界修復：採用專案 Playwright 套件解析的固定瀏覽器（仍保留明確的 executable override），不再依賴 runner 預裝 binary 或 sudo symlink；就緒檢查在 30 秒內要求完整有效的 DevTools port／browser path，程序先退出立即失敗，不重啟瀏覽器或跳過任何產品斷言。新增缺半行 endpoint／正常就緒／無效 port 截止／程序退出反例。CI 固定保存啟動 stderr、狀態、requests 與驗收回條，避免失敗暫存遺失。原 run 仍為 FAIL，不宣稱已證實舊 Chromium 根因全解。
+
+本機更新後 13 integration＋2 build contracts PASS、diff check PASS。本環境 Playwright browser 下載未取得有效 ZIP，沒有重試或更換下載路徑，因此完整新瀏覽器驗收留待同版 GitHub CI，不能稱已本機驗過。
+
+另 Owner 已完成 Vercel 官方 device 授權（成功截圖），但本端 CLI 的後續憑證交換被執行環境政策阻擋：Network access to https://api.vercel.com:443 was blocked by policy。未取得本端成功登入回條、不重啟登入或換路繞過；這與連接器 project/team 403 分開，無需 Owner 重複授權同一代碼。
+
 Owner 在原對話確認已交代 Dot 交接並授權本端直接開始。接手固定基準為 PR #38 `ffe45632a127a1561868d8ca4e108460d85a8f51`，使用獨立 `codex/beta-primary-20261023` 分支；未修改原工程分支、PR #35/#40、未合併或手動部署。公開 Issue #39 是 Beta 追蹤入口，具體私人交接回條未出現在 repo，不宣稱已讀到不存在的回條。
 
 本包處理兩項接線／交接缺口：

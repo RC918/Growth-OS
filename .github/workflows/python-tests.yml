@@ -158,13 +158,19 @@ jobs:
         timeout-minutes: 3
         shell: bash
         run: |
-          # The frozen test uses /usr/bin/chromium; reuse the existing Playwright install.
-          if [ ! -x /usr/bin/chromium ]; then
-            chromium_path="$(node -e "process.stdout.write(require('playwright').chromium.executablePath())")"
-            test -x "$chromium_path"
-            sudo ln -s "$chromium_path" /usr/bin/chromium
-          fi
-          node delivery/growth-console/persistence-integration.e2e.mjs
+          node delivery/growth-console/persistence-integration.e2e.mjs "${RUNNER_TEMP}/gos-console-persistence"
+      - name: Preserve persistence browser diagnostics and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-persistence-evidence
+          path: |
+            ${{ runner.temp }}/gos-console-persistence/*.json
+            ${{ runner.temp }}/gos-console-persistence/*.jsonl
+            ${{ runner.temp }}/gos-console-persistence/*.log
+            ${{ runner.temp }}/gos-console-persistence/*.png
+          retention-days: 7
+          if-no-files-found: warn
       - name: Preserve console interaction evidence
         if: always()
         uses: actions/upload-artifact@v4

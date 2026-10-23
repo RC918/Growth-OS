@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import {createConsoleTask} from '../../apps/web/growth-console-task.mjs';
 import {createResultReview,restoreResultReview} from '../../apps/web/first-result-review.mjs';
@@ -9,7 +9,7 @@ import {createWorkspaceApi} from '../../apps/web/claim-guarded-workspace-api.mjs
 import {canonical} from '../../apps/web/first-result-payload.mjs';
 import {createRevisionMarker} from '../../apps/web/url-result-trial-marker.mjs';
 import {deriveClaim,buildClaimIntegration} from '../web-preview/claim-integration.mjs';
-import {startTestService,producerReport,testOrigin,ids,captureFailure,observeChromiumLaunch} from './persistence-integration.e2e.mjs';
+import {startTestService,producerReport,testOrigin,ids,captureFailure,observeChromiumLaunch,waitForDevTools} from './persistence-integration.e2e.mjs';
 const report=producerReport(),keys=['title','meta_description','description'];
 async function exported(change='Made of steel.'){
  const review=createResultReview(report);review.edit('description',change);for(const k of keys)review.check(k,true);await review.confirm();return review.export();
@@ -129,4 +129,15 @@ test('startup diagnosis retains actual stderr/exit and missing-executable spawn 
  await new Promise(resolve=>failed.child.once('close',resolve));await failed.stop();
  const exit=JSON.parse(await readFile(dir+'/chromium-startup.json'));assert.equal(exit.exit_code,17);assert.equal(exit.signal,null);assert.equal(exit.ready,false);assert.match(await readFile(dir+'/chromium-stderr.log','utf8'),/TEST_ONLY_STARTUP_FAILURE/);assert.equal(exit.executable,process.execPath);
  const absent=observeChromiumLaunch({executable:dir+'/missing-executable',args:[],evidence:dir});await new Promise(resolve=>absent.child.once('close',resolve));await absent.stop();const error=JSON.parse(await readFile(dir+'/chromium-startup.json'));assert.equal(error.spawn_error.code,'ENOENT');assert.equal(error.ready,false);assert.equal(error.finished,true);
+});
+test('DevTools readiness waits for a complete endpoint and rejects exit or bounded timeout',async t=>{
+ const dir=await mkdtemp('/tmp/gos-ready-test-');t.after(()=>rm(dir,{recursive:true,force:true}));
+ let ready=0;const launch={snapshot:()=>({finished:false}),markReady:()=>ready++};
+ await writeFile(dir+'/DevToolsActivePort','9222\n');
+ const writing=setTimeout(()=>{void writeFile(dir+'/DevToolsActivePort','9222\n/devtools/browser/test-id\n');},75);
+ t.after(()=>clearTimeout(writing));
+ assert.deepEqual(await waitForDevTools(launch,dir,{timeoutMs:2000}),['9222','/devtools/browser/test-id']);assert.equal(ready,1);
+ await writeFile(dir+'/DevToolsActivePort','0\n/devtools/browser/test-id\n');
+ await assert.rejects(waitForDevTools(launch,dir,{timeoutMs:100}),/deadline/);assert.equal(ready,1);
+ await assert.rejects(waitForDevTools({...launch,snapshot:()=>({finished:true})},dir,{timeoutMs:1000}),/exited/);assert.equal(ready,1);
 });
