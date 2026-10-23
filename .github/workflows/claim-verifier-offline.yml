@@ -2,9 +2,9 @@ name: Claim verifier offline regression
 
 on:
   push:
-    branches: [codex/claim-verifier-v3-20261022, codex/phase3b-claim-gate-20261023]
+    branches: [codex/claim-verifier-v3-20261022, codex/phase3b-claim-gate-20261023, codex/console-claim-review-20261023]
   pull_request:
-    branches: [takeover/muse-primary-20261016, codex/claim-verifier-v3-20261022]
+    branches: [takeover/muse-primary-20261016, codex/claim-verifier-v3-20261022, codex/phase3b-claim-gate-20261023]
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
@@ -37,3 +37,5 @@ jobs:
           prototype/ai-seo/run-phase3b-trial.test.mjs
           prototype/ai-seo/trial-claim-gate.test.mjs
           prototype/ai-seo/trial-claim-runner.test.mjs
+      - name: Console-only source declaration and stale-result contracts
+        run: node --test delivery/growth-console/claim-review.test.mjs

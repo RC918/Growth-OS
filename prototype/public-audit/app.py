@@ -89,7 +89,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result-handoff.mjs", "/first-result.css", "/first-result-payload.mjs", "/growth-console.html", "/growth-console.mjs", "/growth-console-task.mjs", "/growth-console.css", "/growth-console-demo.json"):
+        if path in ("/first-result.html", "/first-result.mjs", "/first-result-review.mjs", "/first-result-handoff.mjs", "/first-result.css", "/first-result-payload.mjs", "/growth-console.html", "/growth-console.mjs", "/growth-console-task.mjs", "/growth-console.css", "/growth-console-demo.json", "/console-claim-review.mjs", "/console-claim-engine.mjs"):
             static = Path(__file__).resolve().parents[2] / "apps" / "web" / path.lstrip("/")
             body = static.read_bytes()
             self.send_response(200)
