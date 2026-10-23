@@ -1,0 +1,5 @@
+# Growth-OS UX — explicit WordPress consent review checkpoint (2026-10-23)
+
+Figma `jOfuk31i2BrJmMvXs25B59`: added distinct 390×844 review frame `85:99`, named `WP · Explicit consent review (simulation)`, from existing single-use scope state `82:99`. The frame displays example account, asset, allowed fields, single-use boundary, and an explicit warning that draft confirmation does not authorize public publishing. Existing source text node `82:111` now has `ON_CLICK → 85:99`; return frame `85:112` has `ON_CLICK → 82:99`. Both routes were read back. No real account connection or writes.
+
+**P0 remains open:** this is a review step, not an affirmative grant action or saved consent state. Future work must implement explicit affirmative confirmation with scoped consent details and choice, expiry/revocation, YouTube equivalent, and visual plus T01–T12 acceptance. The screen is synthetic; it must not imply a real OAuth grant or publication. Changes were limited to Figma and this docs-only branch. PR #35 remains Draft; no product code, merge, deployment or production credentials.
