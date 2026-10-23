@@ -28,7 +28,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {execFileSync, spawn} from 'node:child_process';
-import {randomBytes, randomUUID, createHmac, createHash} from 'node:crypto';
+import {randomBytes, randomUUID, createHmac} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {build} from '../../delivery/web-preview/build.mjs';
@@ -52,34 +52,11 @@ const ORIGIN = 'http://127.0.0.1:4321';
 const SUPABASE_ORIGIN = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
 const fields = ['title', 'meta_description', 'description'];
 
-// Same fully valid producer-shaped fixture as the isolated acceptance.
-const SNAP_ID = '55555555-5555-4555-8555-555555555555';
-const fixture = () => {
-  const html = `<!doctype html><html><head><title>${TITLE}</title></head><body><h1>${TITLE}</h1><p>NATIVE product description</p></body></html>`;
-  const bytes = Buffer.from(html, 'utf8');
-  const version = createHash('sha256').update(bytes).digest('hex');
-  const fact = (value, scoped = false) => scoped
-    ? {kind: 'fact', verification: 'source_asserted', value, citations: ['s1'], product_scope: {locator: 'h1', name_locator: 'h1', product_name: TITLE}}
-    : {kind: 'fact', verification: 'source_asserted', value, citations: ['s1']};
-  const facts = {product_name: fact(TITLE), title: fact(TITLE), meta_description: fact('NATIVE meta'),
-    description: fact('NATIVE product description', true), features: [fact('NATIVE feature', true)], use: fact('NATIVE use')};
-  const missing = ['specifications', 'price', 'certifications', 'performance', 'comparisons', 'guarantees'];
-  const field = (key, suggested) => ({original: facts[key].value, suggested, reason: '隔離測試來源', citations: ['s1']});
-  return {
-    snapshot: {schema_version: 1, id: SNAP_ID, version, original_url: 'https://example.invalid/native',
-      final_url: 'https://example.invalid/native', fetched_at: new Date().toISOString(),
-      content_base64: bytes.toString('base64'), content_fingerprint: 'sha256:' + version,
-      encoding: 'utf-8-with-replacement', html,
-      citations: [{id: 's1', snapshot_id: SNAP_ID, source_version: version, url: 'https://example.invalid/native', locator: 'h1', quote: TITLE}],
-      limitations: ['NATIVE limitation']},
-    page_type: 'product', extraction: {method: 'explicit_product_microdata', limitations: ['NATIVE limitation']},
-    facts, inferences: [{kind: 'inference', value: 'NATIVE inference', basis: 'NATIVE basis', citations: ['s1']}], missing,
-    preview: {source_snapshot_id: SNAP_ID, source_version: version, published: false, generation: 'extractive_rules',
-      status: 'awaiting_review',
-      pending_confirmation: ['Confirm source assertions and suitability before applying.', ...missing],
-      fields: {title: field('title', TITLE), meta_description: field('meta_description', '候選 meta_description'), description: field('description', '候選 description')}},
-  };
-};
+// Shared real producer, synthetic source bytes; no network or model calls.
+import {handoffSourceFixture} from './handoff-source-fixture.mjs';
+import {assertSavedClaims} from '../../apps/web/saved-claim-context.mjs';
+const sourceReport=handoffSourceFixture(TITLE,SOURCE_URL);
+const fixture=()=>structuredClone(sourceReport);
 
 // ---- Ephemeral native stack (pattern reused from
 // prototype/internal-rc/native-http-regression.mjs) ----
@@ -252,6 +229,8 @@ try {
   step('workspace tab opened same-origin', popup.url().startsWith(ORIGIN + '/workspace.html'), popup.url());
   await popup.close();
   const stash = await first.evaluate(() => JSON.parse(localStorage.getItem('growth-os:pending-handoff:v1') || 'null'));
+  await assertSavedClaims(stash?.payload);
+  step('confirmed fixture satisfies unchanged saved-claim guard', true);
   step('bridge stash written with one-time nonce', !!stash && stash.payload?.preview?.fields?.title?.suggested === TITLE);
   if (LANDY) step('adapter provenance is declared_product_dom', stash?.payload?.extraction?.method === 'declared_product_dom', stash?.payload?.extraction?.method);
 

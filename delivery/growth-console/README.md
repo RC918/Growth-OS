@@ -1,5 +1,16 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 #42 Handoff fixture 根因修復
+
+基準 `740970103ffb4914d4edc54fb3abf6d80829797d`；Python push `39928779534`／PR `39928817998` 已 success。Handoff PR `39928817921`／job `120331717736` step 11 FAIL，登入前隔離與 synthetic owner 登入 PASS，之後等待 `#url-save-preview` 30 秒逾時，無 Save RPC。未重跑原失敗或修改三／九模組修正。
+
+直接讀取原 log 後，以原 isolated fixture 執行 review.confirm/export → assertSavedClaims，重現 UNKNOWN，原因「引用未保留完整事實原文：/facts/meta_description」。原 fixture 把 meta／description／feature／use 都引用到只有產品名的 h1，preview suggested 也是無法重現的手寫文字；格式驗證本來會過，但新 guard 正確拒絕。native suite 複製同模式，屬相同根因，非新 Auth 或產品 guard 失效。
+
+本次只修 test fixture：isolated/native 共用 unchanged product_source.build_snapshot，輸入具 Product 標記的 synthetic HTML，注入 fetch 並禁止所有 socket，不呼叫真網站／模型／hosted DB。保留既有瀏覽器、登入前不領取／不洩露、不送 RPC、保存、讀回與 tenant 斷言；沒有放寬 guard 或改 apps/web。保存回條的 draft_body 跟隨真 producer payload。新增四項 contracts：兩套合法 fixture 確認後可通 guard；舊型引用雖 schema-valid 仍拒絕；虛構 producer suggestion／矛盾文字仍拒絕。CI 在瀏覽器前跑這四項，stash 也先直接驗 guard，避免再只得到等候逾時；失敗時輸出 save feedback，無 token。
+
+PLAN／RCA／CODE／fixture contracts PASS；同版本 browser／native CI 待新提交取證。本端無可用 Chromium，不重試失敗下載或冒稱本機 E2E PASS。原失敗 run 保留；獨立 Reviewer 尚未同版本審查，保持 Draft，不自我通過。產品前端及 API bytes 本次不變，真 hosted 全流程仍待驗。
+
+
 ## 2026-10-23 Preview 核稿檢查接入實際建置（獨立 Draft）
 
 Owner 要求直接接續已授權工程；本次 Core：Console 匯出的成果進 Workspace 時，實際 Preview 也必須檢查目前文字與來源證據，再允許保存。基準為 PR #41 `15fa2011bf0208f76498e6ce831882e9aea33558`，新分支 `codex/preview-claim-guard-20261023`，不修改 Dot 原分支或正式環境。

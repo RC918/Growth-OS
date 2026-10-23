@@ -21,37 +21,11 @@ const ORIGIN = 'http://127.0.0.1:4321';
 const SUPABASE_ORIGIN = 'https://vhzryhibmpvglzcmfnaa.supabase.co';
 const TITLE = 'ISO-HANDOFF-001';
 const fields = ['title', 'meta_description', 'description'];
-// A fully valid producer-shaped report: the Workspace save panel runs
-// the complete validateReport() on claim, so the fixture snapshot must
-// carry real content bytes whose SHA-256 is the source version.
-import {createHash} from 'node:crypto';
-const SNAP_ID = '44444444-4444-4444-8444-444444444444';
-const fixture = () => {
-  const html = `<!doctype html><html><head><title>${TITLE}</title></head><body><h1>${TITLE}</h1><p>ISO product description</p></body></html>`;
-  const bytes = Buffer.from(html, 'utf8');
-  const version = createHash('sha256').update(bytes).digest('hex');
-  const fact = (value, scoped = false) => scoped
-    ? {kind: 'fact', verification: 'source_asserted', value, citations: ['s1'], product_scope: {locator: 'h1', name_locator: 'h1', product_name: TITLE}}
-    : {kind: 'fact', verification: 'source_asserted', value, citations: ['s1']};
-  const facts = {product_name: fact(TITLE), title: fact(TITLE), meta_description: fact('ISO meta'),
-    description: fact('ISO product description', true), features: [fact('ISO feature', true)], use: fact('ISO use')};
-  const missing = ['specifications', 'price', 'certifications', 'performance', 'comparisons', 'guarantees'];
-  const field = (key, suggested) => ({original: facts[key].value, suggested, reason: '隔離測試來源', citations: ['s1']});
-  return {
-    snapshot: {schema_version: 1, id: SNAP_ID, version, original_url: 'https://example.invalid/iso',
-      final_url: 'https://example.invalid/iso', fetched_at: new Date().toISOString(),
-      content_base64: bytes.toString('base64'), content_fingerprint: 'sha256:' + version,
-      encoding: 'utf-8-with-replacement', html,
-      citations: [{id: 's1', snapshot_id: SNAP_ID, source_version: version, url: 'https://example.invalid/iso', locator: 'h1', quote: TITLE}],
-      limitations: ['ISO limitation']},
-    page_type: 'product', extraction: {method: 'explicit_product_microdata', limitations: ['ISO limitation']},
-    facts, inferences: [{kind: 'inference', value: 'ISO inference', basis: 'ISO basis', citations: ['s1']}], missing,
-    preview: {source_snapshot_id: SNAP_ID, source_version: version, published: false, generation: 'extractive_rules',
-      status: 'awaiting_review',
-      pending_confirmation: ['Confirm source assertions and suitability before applying.', ...missing],
-      fields: {title: field('title', TITLE), meta_description: field('meta_description', '候選 meta_description'), description: field('description', '候選 description')}},
-  };
-};
+// Use the unchanged producer to bind every full fact and suggested field.
+import {handoffSourceFixture} from './handoff-source-fixture.mjs';
+import {assertSavedClaims} from '../../apps/web/saved-claim-context.mjs';
+const sourceReport=handoffSourceFixture(TITLE,'https://example.invalid/iso');
+const fixture=()=>structuredClone(sourceReport);
 
 const results = [];
 const step = (name, ok, detail = '') => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' ' + detail : '')); };
@@ -69,7 +43,7 @@ try {
   const VERSION = '33333333-3333-4333-8333-333333333333';
   let authed = false, saveBody = null;
   const savedRow = () => ({organization_id: ORG, id: VERSION, opportunity_id: saveBody.p_opportunity_id,
-    version_number: 1, title: TITLE, draft_body: '候選 description', status: 'draft',
+    version_number: 1, title: TITLE, draft_body: saveBody.p_payload.preview.fields.description.suggested, status: 'draft',
     created_at: new Date().toISOString(), first_result_request_id: saveBody.p_request_id,
     first_result_expected_version: saveBody.p_expected_version,
     first_result_request_digest: 'pg-jsonb-sha256:' + 'a'.repeat(64), first_result_payload: saveBody.p_payload});
@@ -120,6 +94,8 @@ try {
   await popup.close();
 
   const stash = await first.evaluate(() => JSON.parse(localStorage.getItem('growth-os:pending-handoff:v1') || 'null'));
+  await assertSavedClaims(stash?.payload);
+  step('confirmed fixture satisfies unchanged saved-claim guard', true);
   step('bridge stash written with one-time nonce', !!stash && typeof stash.nonce === 'string' && stash.nonce.length >= 8 && Number.isFinite(stash.saved_at) && Date.now() - stash.saved_at < 30 * 60 * 1000);
   step('stash payload carries confirmed fixture', stash?.payload?.preview?.fields?.title?.suggested === TITLE);
 
@@ -150,6 +126,7 @@ try {
   step('save RPC request shape (org, expected version, payload)', !!saveBody && saveBody.p_organization_id === ORG && saveBody.p_expected_version === 0 && saveBody.p_payload?.preview?.fields?.title?.suggested === TITLE);
 } catch (error) {
   step('isolated acceptance aborted', false, String(error?.message || error).slice(0, 240));
+  for(const page of browser?.contexts().flatMap(c=>c.pages())??[])console.log('DIAG saveFeedback='+await page.locator('#url-save-feedback').textContent({timeout:1000}).catch(()=>'(not mounted)'));
   console.log('DIAG supabaseCalls=' + supabaseCalls.join(',').slice(0, 400));
 } finally {
   await browser?.close().catch(() => {});
