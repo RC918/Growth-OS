@@ -1,5 +1,24 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 Reviewer BLOCKED 後限定補證（產品規則不變）
+
+依 Dot 代傳 Ryan 10:29 核准，本包基準 HEAD `955c14764ab97ee248f4aa879619e8125fa55333`／tree `60dac4d8477383f32f0edb9a22e7fa1499ecf650`；遠端一致、working tree clean，未見其他作者同包提交。獨立 Reviewer 的 BLOCKED 由本次指示傳達，理由為必要證據不足；GitHub reviews 未見正式提交，不能把未取得的原始 review 內容說成已讀。保留原四筆綠 CI 與全部舊失敗，不重修產品接線。
+
+| Reviewer 問題 | 本包證據 | 判讀界線 |
+|---|---|---|
+| SQL 負例基準不合法 | native LANDY 分支改複製實際 adapter→browser confirmed/export→已保存的 stash.payload，完整比對 DB payload；先經原 guard、private.fr_valid_payload=true 及 owner authenticated RPC 的同 request idempotent replay，控制組 HTTP200／同 version／四表零增量 | 不再拿 unrelated raw synthetic report 的其他格式錯誤冒充防偽成功 |
+| 每個負例只變一欄 | 每案先重驗 baseline SQL 合法，再只改 extraction.method 或 snapshot.version；還原該 leaf 後必須 deepEqual baseline。使用 fresh request/parent ID 避免先撞 replay-conflict | method 預期 HTTP400／22023／INVALID_EVIDENCE_SCHEMA；version 預期 HTTP400／22023／SOURCE_HASH_MISMATCH |
+| 拒絕不得留副作用 | 每案前後查 growth_opportunities、content_versions、content_reviews、audit_events 全表 row counts，精確 deepEqual；log 記 baseline、changed_path、SQLSTATE/message 及 before/after | 這四表覆蓋 URL save 的 parent/version/audit 寫入及 review 表；是隔離 stack 證據，非 hosted mutation |
+| Supplemental 邊界不足 | 新 supplemental-boundaries tests 使用 unchanged real producer 從 synthetic HTML 產生一／二／三／四段報告，核完整引用保留與 confirmed/export guard；負例覆蓋缺 aggregate、錯序、錯誤後綴、畸形／重複／遞減／不安全整數／缺 locator、缺 citation record、其他 extraction method 及 title/meta/use/feature 欄位 | CI 接原 Handoff contract 步驟；不修改 guard、parser 或 frozen 契約 |
+| 宣稱精確 DOM 綁定不成立 | 測試保留同一 snapshot HTML，把 paragraph locator 改成不存在的遞增 p[1000000...]，createConsoleSourceContext 及 confirmed/export assertSavedClaims 仍 ACCEPT；單筆完整引用的非空畸形 locator 亦 ACCEPT | **現況只是假定 producer 可信下的宣告文字一致性；無 DOM 解析、實際 locator 存在／節點歸屬驗證，也沒有 producer 身份驗證。PROVEN_EXTRACTIVE_CONTEXT 是現有 enum，不是 DOM 綁定證明。** |
+
+先前「精確段落綁定」須解讀／更正為完整 fact quotation 與 supplemental quote 的字串後綴、順序及部分 locator 形式檢查，不能外推 DOM 節點存在或來源權威防偽。不存在 locator 的接受反例不是本輪改動引入，並不自動等於已證實可利用的安全漏洞；它足以推翻「目前已實作精確 DOM 綁定」的主張。
+
+若產品放行要求實際 DOM 綁定，最小後續方案是使用與 producer 相同定位語義，獨立解析同一 snapshot HTML，重建 product scope／連續段落 cluster，核對每個 locator 實際存在、原文及產品歸屬，再給正向判定。這屬產品規則修改，**本包未實作，須 Ryan 決策後另行授權**；不以新增測試掩蓋差距。若本里程碑僅接受 trusted-producer declaration consistency，仍須 Reviewer 明確接受此邊界，作者不自行放行。
+
+本端無 Docker／Chromium，因此 native SQL/HTTP/browser 新斷言須由新 HEAD 的隔離 CI 實跑；語法與本機契約驗證另列。新證據尚未複審前保持 Draft／BLOCKED，不自批、不宣稱 hosted 全流程或 Beta 完成。未改 Secrets、費用、Production、發布、Merge、部署設定；不新增排程。
+
+
 ## 2026-10-23 新證據：declared-product 多段引用相容性
 
 `aaf2d46` 的 Handoff push `39932053241`／job `120342467586`：原 step 11、native step 13、declared contract step 14 已 PASS；最後 Landyachtz step 15 被 guard 拒絕，整體仍 FAIL，未重跑。離線重現新根因：unchanged declared_product producer 為 description 保留完整 695 字 aggregate quote，另保留後一段 318 字 supplemental quote 與產品名。guard 原要求每個引用只能等於完整 fact 或產品名，誤將合法的補充段落判 UNKNOWN。這與前次手寫假引用根因不同，有新 log 與原 parser 取證，屬當前受支援來源保存路徑的必要 Blocking 修復。

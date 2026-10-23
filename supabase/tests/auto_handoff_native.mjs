@@ -337,15 +337,61 @@ try {
   step('denied writes left DB unchanged', versionCount() === 1);
 
   if (LANDY) {
-    stage = 'DB validator negatives (declared-product candidate)';
-    const evilMethod = fixture(); evilMethod.extraction.method = 'unregistered_method';
-    const evil = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
-      p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: evilMethod}});
-    step('unregistered extraction method still rejected by DB validator', evil.status >= 400, 'HTTP ' + evil.status);
-    const forged = fixture(); forged.snapshot.version = '0'.repeat(64);
-    const forgedResult = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
-      p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(), p_expected_version: 0, p_payload: forged}});
-    step('forged source version/digest still rejected by DB validator', forgedResult.status >= 400, 'HTTP ' + forgedResult.status);
+    stage = 'DB validator negatives (recorded confirmed Landyachtz baseline)';
+    // Use the exact confirmed/export payload that the real adapter and browser
+    // already saved, not the unrelated raw synthetic producer report.
+    const baseline = structuredClone(stash.payload);
+    assert.equal(baseline.extraction.method, 'declared_product_dom');
+    assert.ok(baseline.review.confirmation);
+    await assertSavedClaims(baseline);
+    assert.deepEqual(saved.data[0].first_result_payload, baseline);
+    const validateBaseline = () => {
+      const delimiter = '$baseline_' + randomUUID().replaceAll('-', '') + '$';
+      const text = JSON.stringify(baseline);
+      assert.ok(!text.includes(delimiter));
+      assert.equal(sql('select private.fr_valid_payload(' + delimiter + text + delimiter + '::jsonb);'), 't');
+    };
+    const counts = () => JSON.parse(sql(`select jsonb_build_object(
+      'growth_opportunities',(select count(*) from public.growth_opportunities),
+      'content_versions',(select count(*) from public.content_versions),
+      'content_reviews',(select count(*) from public.content_reviews),
+      'audit_events',(select count(*) from public.audit_events));`));
+    validateBaseline();
+    const controlBefore = counts();
+    // Replay the successful envelope as a positive authenticated RPC control.
+    // An identical request is idempotent; it must not add rows.
+    const control = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
+      p_organization_id: ids.org, p_opportunity_id: saved.data[0].opportunity_id,
+      p_request_id: saved.data[0].first_result_request_id,
+      p_expected_version: saved.data[0].first_result_expected_version, p_payload: baseline}});
+    assert.equal(control.status, 200);assert.equal(control.data, versionId);
+    assert.deepEqual(counts(), controlBefore);
+    step('recorded confirmed baseline valid in guard, SQL validator and authenticated RPC replay', true);
+    for (const scenario of [
+      {name: 'unregistered extraction method', object: 'extraction', key: 'method', value: 'unregistered_method', message: 'INVALID_EVIDENCE_SCHEMA'},
+      {name: 'forged source version', object: 'snapshot', key: 'version', value: '0'.repeat(64), message: 'SOURCE_HASH_MISMATCH'},
+    ]) {
+      validateBaseline(); // each negative starts from a proven legal baseline
+      const payload = structuredClone(baseline);
+      payload[scenario.object][scenario.key] = scenario.value;
+      const restored = structuredClone(payload);
+      restored[scenario.object][scenario.key] = baseline[scenario.object][scenario.key];
+      assert.deepEqual(restored, baseline, 'only one payload leaf may differ');
+      assert.notEqual(payload[scenario.object][scenario.key], baseline[scenario.object][scenario.key]);
+      const before = counts();
+      // Fresh request/parent avoids the replay-conflict branch masking validation.
+      const result = await restCall('/rpc/save_url_result_draft', ownerSession.access_token, {method: 'POST', body: {
+        p_organization_id: ids.org, p_opportunity_id: randomUUID(), p_request_id: randomUUID(),
+        p_expected_version: 0, p_payload: payload}});
+      const after = counts();
+      console.log('VALIDATOR_NEGATIVE ' + JSON.stringify({case: scenario.name,
+        changed_path: '/' + scenario.object + '/' + scenario.key, baseline_sql_valid: true,
+        http_status: result.status, sqlstate: result.data?.code, message: result.data?.message, before, after}));
+      assert.equal(result.status, 400);assert.equal(result.data?.code, '22023');
+      assert.equal(result.data?.message, scenario.message);
+      assert.deepEqual(after, before, 'all affected public tables must have zero row increment');
+      step(scenario.name + ' rejected by exact SQLSTATE/message with zero table increments', true);
+    }
     step('validator negatives left DB unchanged', versionCount() === 1);
   }
 } catch (error) {
