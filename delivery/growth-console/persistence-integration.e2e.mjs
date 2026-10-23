@@ -7,6 +7,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {randomUUID,createHash} from 'node:crypto';
 import {appendFileSync,writeFileSync,realpathSync,readlinkSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
 import {canonical,validateReport} from '../../apps/web/first-result-payload.mjs';
 import {buildClaimIntegration} from '../web-preview/claim-integration.mjs';
 import {buildConsole} from './build.mjs';
@@ -132,16 +133,34 @@ export function observeChromiumLaunch({executable,args,evidence}){
  return {child,snapshot:()=>structuredClone(state),markReady(){state.ready=true;state.runtime_executable=resolve(()=>readlinkSync('/proc/'+child.pid+'/exe'));save();},async stop(){if(!closed){child.kill('SIGTERM');let timer;try{await Promise.race([closedPromise,new Promise(resolve=>{timer=setTimeout(resolve,2000);})]);}finally{clearTimeout(timer);}if(!closed){child.kill('SIGKILL');await bounded(closedPromise,'Chromium close');}}}};
 }
 
+export async function waitForDevTools(launch,userData,{timeoutMs=30000}={}){
+ const started=Date.now();
+ while(Date.now()-started<timeoutMs){
+  try{
+   const lines=(await readFile(userData+'/DevToolsActivePort','utf8')).trim().split('\n');
+   const port=Number(lines[0]);
+   if(/^\d+$/.test(lines[0])&&port>0&&port<=65535&&/^\/devtools\/browser\/[A-Za-z0-9-]+$/.test(lines[1])){
+    launch.markReady();return lines;
+   }
+  }catch(error){if(error.code!=='ENOENT')throw error;}
+  const state=launch.snapshot();
+  if(state.finished)throw Error('Chromium exited before DevTools became ready');
+  await delay(50);
+ }
+ throw Error('Chromium DevTools readiness deadline exceeded');
+}
+
 async function browserRun(){
+ // Use the repository's pinned Playwright browser, as the other Console
+ // suites do. A preinstalled /usr/bin/chromium is unrelated to that install.
+ const executable=process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||createRequire(import.meta.url)('playwright').chromium.executablePath();
  const evidence=process.argv[2]||await mkdtemp('/tmp/gos-beta-e2e-');await mkdir(evidence,{recursive:true});
  dispatchTrace=evidence+'/browser-dispatch.jsonl';
  const directory=evidence+'/site';await buildClaimIntegration({directory});await buildConsole({directory,manifestPath:evidence+'/console-manifest.json'});
  const report=producerReport(),service=await startTestService({storePath:evidence+'/test-only-store.json',directory,report});
- const userData=evidence+'/chromium-profile';const launch=observeChromiumLaunch({executable:'/usr/bin/chromium',args:['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+userData,'about:blank'],evidence});
+ const userData=evidence+'/chromium-profile';const launch=observeChromiumLaunch({executable,args:['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+userData,'about:blank'],evidence});
  let cdp;const results=[];try{
-  let port;for(let n=0;n<200;n++){try{port=(await readFile(userData+'/DevToolsActivePort','utf8')).split('\n');break;}catch{if(launch.snapshot().finished)break;await delay(50);}}
-  if(port)launch.markReady();else console.error('Chromium startup diagnostics: '+JSON.stringify(launch.snapshot()));
-  assert.ok(port,'Chromium DevTools started');cdp=await CDP.connect('ws://127.0.0.1:'+port[0]+port[1]);
+  const port=await waitForDevTools(launch,userData);cdp=await CDP.connect('ws://127.0.0.1:'+port[0]+port[1]);
   for(const width of [1280,390]){
    const {browserContextId}=await cdp.send('Target.createBrowserContext',{disposeOnDetach:true});
    const {targetId}=await cdp.send('Target.createTarget',{url:'about:blank',browserContextId});const page=await cdp.tab(targetId);
@@ -226,6 +245,7 @@ async function browserRun(){
   await writeFile(evidence+'/browser-receipt.json',JSON.stringify({test_only:true,results,external_requests:0,uncaught_browser_errors:0},null,2));
   console.log(JSON.stringify(results,null,2));
  }catch(error){
+  console.error('Chromium startup diagnostics: '+JSON.stringify(launch.snapshot()));
   await captureFailure(error,{cdp,service,evidence});
   throw error;
  }finally{await writeFile(evidence+'/rpc-requests.json',JSON.stringify(service.requests,null,2));cdp?.ws.close();await launch.stop();await bounded(service.close(),'service close');}

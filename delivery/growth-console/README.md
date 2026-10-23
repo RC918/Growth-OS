@@ -1,5 +1,30 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 接手：乾淨環境驗收與來源函式打包
+
+### 後續 CI 失敗與有界修復（保留原失敗）
+
+PR #41 原 HEAD `1506a7961eee4d41e6e7b403ba6ac976d2eadc0b` 的 Python PR run `39923961309`／job `120315684229` 失敗於 fresh-session browser step；bundle、build 與 12 整合契約均已先通過。直接讀取實際 log：spawn 無錯、程序未退出，10 秒截止時 DevTools 檔仍未就緒；`/usr/bin/chromium` 指向 runner 預裝 `/usr/local/share/chromium/chrome-linux/chrome`，原 workflow 只在該路徑不存在時才改連 Playwright，故先前安裝的專案瀏覽器不一定被使用。stderr 有 DBus 訊息，但不足以斷定它就是根因，不盲目重跑求綠燈。
+
+同 PR 的有界修復：採用專案 Playwright 套件解析的固定瀏覽器（仍保留明確的 executable override），不再依賴 runner 預裝 binary 或 sudo symlink；就緒檢查在 30 秒內要求完整有效的 DevTools port／browser path，程序先退出立即失敗，不重啟瀏覽器或跳過任何產品斷言。新增缺半行 endpoint／正常就緒／無效 port 截止／程序退出反例。CI 固定保存啟動 stderr、狀態、requests 與驗收回條，避免失敗暫存遺失。原 run 仍為 FAIL，不宣稱已證實舊 Chromium 根因全解。
+
+本機更新後 13 integration＋2 build contracts PASS、diff check PASS。本環境 Playwright browser 下載未取得有效 ZIP，沒有重試或更換下載路徑，因此完整新瀏覽器驗收留待同版 GitHub CI，不能稱已本機驗過。
+
+另 Owner 已完成 Vercel 官方 device 授權（成功截圖），但本端 CLI 的後續憑證交換被執行環境政策阻擋：Network access to https://api.vercel.com:443 was blocked by policy。未取得本端成功登入回條、不重啟登入或換路繞過；這與連接器 project/team 403 分開，無需 Owner 重複授權同一代碼。
+
+Owner 在原對話確認已交代 Dot 交接並授權本端直接開始。接手固定基準為 PR #38 `ffe45632a127a1561868d8ca4e108460d85a8f51`，使用獨立 `codex/beta-primary-20261023` 分支；未修改原工程分支、PR #35/#40、未合併或手動部署。公開 Issue #39 是 Beta 追蹤入口，具體私人交接回條未出現在 repo，不宣稱已讀到不存在的回條。
+
+本包處理兩項接線／交接缺口：
+
+- 乾淨 checkout 實跑 `node --test delivery/growth-console/persistence-integration.test.mjs` 為 11 PASS／1 FAIL：唯一失敗為讀取前位作者固定 `/workspace/.../pristine/.../workspace.mjs` 路徑不存在。改為直接核對原 CI 已固定的 SHA256 `9ba67576e59dc06479c0c0a48c00c0165d80e0f04631da1a090cc9100dd1ab06`，並移除 CI 的 sudo 複製步驟。不是複製當前檔案自比，也不修改 115 個 frozen 檔案或 hash。
+- 原 `vercel.json` 顯式 includeFiles 不含商品 handler 必需的 `first_result_api`／`robots_policy`／`error_classify` 等依賴，服務 handler 也缺 `error_classify`。只把原 includeFiles 匹配檔案與 API 入口複製到空目錄、用 Python `-I -B` 新程序執行，分別重現缺模組。補為 9 個具名 runtime 模組，涵蓋原服務與 declared-product 分支；沒有全目錄 wildcard、測試或秘密檔案。新增打包測試已接既有 CI，執行 GET readiness、錯誤 POST 415、合成來源抽取，並拒絕任何 socket 操作。這證明明列依賴可獨立執行，**不是已證實 Vercel 線上必定缺檔**：平台自動追蹤是否曾補入其他檔案，本輪未取得部署內容，保留未知。
+
+修後驗證：12 整合契約＋2 既有 Preview build 契約 PASS；兩個 source-bundle 測試（含兩個 handler 正例與移除依賴反例）PASS；39 個既有 first-result/service/product API 回歸 PASS；git diff --check PASS。新 bundle 測試不讀原 checkout 模組，無外網／模型／租戶資料操作。既有 localhost HTTP 回歸使用原 synthetic source。此包沒有 UI／Auth／資料庫／保存契約行為修改，未重跑桌機手機瀏覽器，不能冒稱本輪完整產品驗收。
+
+接手時原 #38 CI 的新增整合契約與 fresh-session 瀏覽器步驟已通過，整體 Python workflow 尚在執行，不重跑或改寫原失敗。官方 Vercel protected URL 工具針對現行 Preview 的存取，於 read_protection_bypass 階段收到 403 forbidden（project/team scope），未進入應用 API；沒有重試或換 route。線上驗收須恢復既有連接器對 Morning-Ai／growth-os-preview 的適當存取；不要求私人 Token、不修改 Deployment Protection。
+
+四層狀態：本包已實作、上述本機驗證已通過；新提交 CI／Preview 結果另核；未手動部署、未驗線上可用。獨立 Reviewer 本輪取證尚未完成，保持 Draft、不自行 APPROVE。下一產品主線仍是真模型／來源、真持久保存及同版託管流程，不把此必要打包修正算完整 Beta，也不新增永久排程或費用。
+
 Owner 2026-10-11 10:52:28 UTC 批准；沿 `feat/private-host-bootstrap`／PR28、原Primary與Reviewer。基準 `2dfc699e2143f2c7b23b71b4f20ecd95256f8f24` clean。兩份Library來源已以read/full完整讀取：
 
 - `Growth_OS_Web_UI_Spec_2026-10-11.md`，libfile_b6149ddb49bc8191bd12ee3bd53276c7，18,149 bytes／230行。
