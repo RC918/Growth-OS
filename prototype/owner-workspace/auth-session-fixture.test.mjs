@@ -52,8 +52,9 @@ test('deployment output/import closure excludes test-only fixture and bypass ent
   const text=await readFile(path,'utf8');assert.doesNotMatch(text,/createSessionRig|createAuthTransport|synthetic-session-|growth-os-isolated-regression/);
   if(path.endsWith('.mjs'))for(const match of text.matchAll(/(?:from\s+|import\s*\()(['"])([^'"]+)\1/g)){if(match[2].startsWith('.'))assert.ok(resolve(path,'..',match[2]).startsWith(resolve(config.outputDirectory)+'/'),'deployed JS imports only deployed directory');}
  }
- assert.equal(config.functions['api/product-source.py'].includeFiles,'prototype/public-audit/{scanner,product_source,product_api}.py');
- for(const p of ['scanner','product_source','product_api'])assert.doesNotMatch(await readFile('prototype/public-audit/'+p+'.py','utf8'),/auth-session|createSessionRig|synthetic-session-/);
+ const runtimeModules=['scanner','product_source','product_api','first_result_api','robots_policy','error_classify','service_source','service_api','declared_product'];
+ for(const endpoint of ['api/product-source.py','api/service-source.py'])assert.equal(config.functions[endpoint].includeFiles,'prototype/public-audit/{'+runtimeModules.join(',')+'}.py');
+ for(const p of runtimeModules)assert.doesNotMatch(await readFile('prototype/public-audit/'+p+'.py','utf8'),/auth-session|createSessionRig|synthetic-session-/);
  const workflow=await readFile('.github/workflows/python-tests.yml','utf8'),entry=await readFile('prototype/owner-workspace/auth-session-regression.e2e.mjs','utf8');
  const command='node prototype/owner-workspace/auth-session-regression.e2e.mjs --mode growth-os-isolated-regression --target http://127.0.0.1:8791';assert.equal(workflow.split(command).length,6);for(const mode of ['--wordpress','--pilot','--gsc','--host','--wiring'])assert.equal(workflow.split(command+' '+mode).length,2);assert.ok(workflow.indexOf(command)>workflow.indexOf('python3 -B supabase/tests/model_trial/native_ledger.py'));assert.ok(workflow.indexOf(command)>workflow.indexOf('npx playwright install --with-deps chromium'));assert.ok(entry.includes("run(['supabase/drafts/url_result/native.mjs'])"),'existing native suite is included, not skipped');
  const client=await readFile('apps/web/workspace-api.mjs','utf8');assert.match(client,/await request\('\/auth\/v1\/user'\)/);assert.match(client,/await select\('organization_members'/);

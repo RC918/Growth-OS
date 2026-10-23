@@ -2,6 +2,7 @@ import {readFile,writeFile,mkdir,readdir,rm,lstat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
+import {deriveClaim} from './claim-transform.mjs';
 const root=new URL('../../',import.meta.url),output=new URL('./dist/',import.meta.url);
 const hash=b=>createHash('sha256').update(b).digest('hex');
 export function derive(name,text){
@@ -27,9 +28,9 @@ export async function build(){
  await mkdir(output,{recursive:true});const manifest={kind:'derived-first-result-navigation',source_directory:'apps/web',files:{}};
  for(const entry of (await readdir(new URL('apps/web/',root),{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){
   assert.ok(entry.isFile()&&/\.(html|css|mjs|js|json|md|txt|csv)$/.test(entry.name),'Unexpected web source: '+entry.name);
-  const source=await readFile(new URL('apps/web/'+entry.name,root)),derived=['first-result.html','first-result.mjs','url-result-config.mjs'].includes(entry.name),bytes=derived?Buffer.from(derive(entry.name,source.toString('utf8'))):source;
+  const source=await readFile(new URL('apps/web/'+entry.name,root)),derived=['first-result.html','first-result.mjs','url-result-config.mjs','url-result-save.mjs','workspace.mjs'].includes(entry.name),bytes=derived?Buffer.from(deriveClaim(entry.name,derive(entry.name,source.toString('utf8')))):source;
   await writeFile(new URL(entry.name,output),bytes);manifest.files[entry.name]={source_sha256:hash(source),output_sha256:hash(bytes),derived};
  }
  await writeFile(new URL('./manifest.json',import.meta.url),JSON.stringify(manifest,null,2)+'\n');return manifest;
 }
-if(process.argv[1]===fileURLToPath(import.meta.url)){const m=await build();console.log('Derived preview built; '+Object.keys(m.files).length+' files, three derived files (two presentation, one Phase 1 save gate).');}
+if(process.argv[1]===fileURLToPath(import.meta.url)){const m=await build();console.log('Derived preview built; '+Object.keys(m.files).length+' files, five derived files (navigation, Phase 1 save gate, claim validation).');}

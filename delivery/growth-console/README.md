@@ -1,5 +1,18 @@
 # Growth OS Console 增量原型／URL 接線
 
+## 2026-10-23 Preview 核稿檢查接入實際建置（獨立 Draft）
+
+Owner 要求直接接續已授權工程；本次 Core：Console 匯出的成果進 Workspace 時，實際 Preview 也必須檢查目前文字與來源證據，再允許保存。基準為 PR #41 `15fa2011bf0208f76498e6ce831882e9aea33558`，新分支 `codex/preview-claim-guard-20261023`，不修改 Dot 原分支或正式環境。
+
+已核對該基準 immutable Preview 的 `/workspace.mjs` 仍 import `workspace-api.mjs`，只在獨立 candidate 中使用的 claim guard 未進部署流程。現在共用 fail-closed transform，實際 build 將 Workspace 接至 `claim-guarded-workspace-api.mjs`，並在 handoff／檔案匯入 accept 時檢查 saved claim context；凍結的 apps/web 與 115 個 hash 不變。Review flag 保持預設關閉；client 檢查不能代替 server enforcement／RLS，也尚不接受缺少可驗證 provenance 的模型輸出。
+
+驗證：26 項 Node contracts，包括實際產物拒絕矛盾宣稱且零 POST、合法 full payload 保存／登出／新測試 session exact readback、tenant／權限、unknown GET-only、bridge／flag／打包隔離。瀏覽器 harness 改走 configured Preview build → bridge → flag，不再用獨立 Console overlay；回條明列 synthetic backend／UI flag override，另保存最終產物 hashes。更新後桌機／手機瀏覽器執行交同版 CI；本端瀏覽器下載限制未解除，沒有重試下載或冒稱本機 E2E PASS。
+
+基準 PR #41 run `39925972989` 的 Console browser step 已 PASS，整體 FAIL 是後續 auth-session fixture 測試仍固定舊三模組 includeFiles。本次同步更新為具名九模組，涵蓋 product／service 兩入口，保留並擴及所有模組的 fixture/bypass 禁入檢查；不跳過測試。這是同一打包修正的過期斷言，非真 Auth 失敗。
+
+Verification loop：PLAN/CODE/contracts/build PASS；browser/desktop/mobile 新版待 CI；synthetic Save→logout→fresh session→readback／permissions PASS；真 hosted Auth／DB／模型／發布未驗，不宣稱 Beta 完成。Vercel connector 存取已於重新連線後恢復，先前 403 是歷史阻礙。獨立 Reviewer 待交審，本次保持 Draft，不自我 APPROVE；沒有 merge、手動 deploy、修改 secret／付費模型操作。
+
+
 ## 2026-10-23 接手：乾淨環境驗收與來源函式打包
 
 ### 後續 CI 失敗與有界修復（保留原失敗）
