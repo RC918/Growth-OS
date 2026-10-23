@@ -5,7 +5,7 @@ import {createServer} from 'node:http';
 import {readFile,writeFile,mkdir,rename,mkdtemp} from 'node:fs/promises';
 import {spawn,execFileSync} from 'node:child_process';
 import {randomUUID,createHash} from 'node:crypto';
-import {appendFileSync} from 'node:fs';
+import {appendFileSync,writeFileSync,realpathSync,readlinkSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {canonical,validateReport} from '../../apps/web/first-result-payload.mjs';
 import {buildClaimIntegration} from '../web-preview/claim-integration.mjs';
@@ -118,14 +118,29 @@ export async function captureFailure(error,{cdp,service,evidence}){
   if(cdp){try{const {targetInfos}=await cdp.send('Target.getTargets');const tabs=[];for(const target of targetInfos.filter(t=>t.type==='page')){try{const tab=await cdp.tab(target.targetId);failure.pages.push({url:target.url.split('#')[0],text:await tab.evaluate('document.body?.innerText'),inputs:await tab.evaluate("Array.from(document.querySelectorAll('input')).map(n=>({id:n.id,value:n.type==='checkbox'?n.checked:n.value}))")});tabs.push(tab);}catch(capture){failure.capture_errors.push({stage:'DOM',error:capture.message});}await save();}for(const tab of tabs){try{await tab.screenshot(evidence+'/failure-'+tab.id+'.png');}catch(capture){failure.capture_errors.push({stage:'screenshot',target_id:tab.id,error:capture.message});await save();}}}catch(capture){failure.capture_errors.push({stage:'targets',error:capture.message});}await save();}
 }
 
+export function observeChromiumLaunch({executable,args,evidence}){
+ const resolve=fn=>{try{return fn();}catch{return null;}};
+ const state={executable,realpath:resolve(()=>realpathSync(executable)),argv:[executable,...args],node:process.version,platform:process.platform,arch:process.arch,pid:null,runtime_executable:null,spawn_error:null,exit_code:null,signal:null,finished:false,ready:false,stderr_tail:''};
+ const save=()=>writeFileSync(evidence+'/chromium-startup.json',JSON.stringify(state,null,2));
+ writeFileSync(evidence+'/chromium-stderr.log','');save();
+ const child=spawn(executable,args,{stdio:['ignore','ignore','pipe']});let closed=false;
+ const closedPromise=new Promise(resolve=>child.once('close',()=>{closed=true;save();resolve();}));
+ child.once('spawn',()=>{state.pid=child.pid;state.runtime_executable=resolve(()=>readlinkSync('/proc/'+child.pid+'/exe'));save();});
+ child.stderr?.on('data',data=>{appendFileSync(evidence+'/chromium-stderr.log',data);state.stderr_tail=(state.stderr_tail+data.toString()).slice(-32768);save();});
+ child.once('error',error=>{state.spawn_error=Object.fromEntries(['name','message','code','errno','syscall'].map(k=>[k,error[k]??null]));state.finished=true;save();});
+ child.once('exit',(code,signal)=>{state.exit_code=code;state.signal=signal;state.finished=true;save();});
+ return {child,snapshot:()=>structuredClone(state),markReady(){state.ready=true;state.runtime_executable=resolve(()=>readlinkSync('/proc/'+child.pid+'/exe'));save();},async stop(){if(!closed){child.kill('SIGTERM');let timer;try{await Promise.race([closedPromise,new Promise(resolve=>{timer=setTimeout(resolve,2000);})]);}finally{clearTimeout(timer);}if(!closed){child.kill('SIGKILL');await bounded(closedPromise,'Chromium close');}}}};
+}
+
 async function browserRun(){
  const evidence=process.argv[2]||await mkdtemp('/tmp/gos-beta-e2e-');await mkdir(evidence,{recursive:true});
  dispatchTrace=evidence+'/browser-dispatch.jsonl';
  const directory=evidence+'/site';await buildClaimIntegration({directory});await buildConsole({directory,manifestPath:evidence+'/console-manifest.json'});
  const report=producerReport(),service=await startTestService({storePath:evidence+'/test-only-store.json',directory,report});
- const userData=evidence+'/chromium-profile';const chromium=spawn('/usr/bin/chromium',['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+userData,'about:blank'],{stdio:['ignore','ignore','pipe']});
+ const userData=evidence+'/chromium-profile';const launch=observeChromiumLaunch({executable:'/usr/bin/chromium',args:['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-sync','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+userData,'about:blank'],evidence});
  let cdp;const results=[];try{
-  let port;for(let n=0;n<200;n++){try{port=(await readFile(userData+'/DevToolsActivePort','utf8')).split('\n');break;}catch{await delay(50);}}
+  let port;for(let n=0;n<200;n++){try{port=(await readFile(userData+'/DevToolsActivePort','utf8')).split('\n');break;}catch{if(launch.snapshot().finished)break;await delay(50);}}
+  if(port)launch.markReady();else console.error('Chromium startup diagnostics: '+JSON.stringify(launch.snapshot()));
   assert.ok(port,'Chromium DevTools started');cdp=await CDP.connect('ws://127.0.0.1:'+port[0]+port[1]);
   for(const width of [1280,390]){
    const {browserContextId}=await cdp.send('Target.createBrowserContext',{disposeOnDetach:true});
@@ -213,6 +228,6 @@ async function browserRun(){
  }catch(error){
   await captureFailure(error,{cdp,service,evidence});
   throw error;
- }finally{await writeFile(evidence+'/rpc-requests.json',JSON.stringify(service.requests,null,2));cdp?.ws.close();chromium.kill('SIGTERM');await bounded(service.close(),'service close');}
+ }finally{await writeFile(evidence+'/rpc-requests.json',JSON.stringify(service.requests,null,2));cdp?.ws.close();await launch.stop();await bounded(service.close(),'service close');}
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))await browserRun();

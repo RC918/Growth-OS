@@ -9,7 +9,7 @@ import {createWorkspaceApi} from '../../apps/web/claim-guarded-workspace-api.mjs
 import {canonical} from '../../apps/web/first-result-payload.mjs';
 import {createRevisionMarker} from '../../apps/web/url-result-trial-marker.mjs';
 import {deriveClaim,buildClaimIntegration} from '../web-preview/claim-integration.mjs';
-import {startTestService,producerReport,testOrigin,ids,captureFailure} from './persistence-integration.e2e.mjs';
+import {startTestService,producerReport,testOrigin,ids,captureFailure,observeChromiumLaunch} from './persistence-integration.e2e.mjs';
 const report=producerReport(),keys=['title','meta_description','description'];
 async function exported(change='Made of steel.'){
  const review=createResultReview(report);review.edit('description',change);for(const k of keys)review.check(k,true);await review.confirm();return review.export();
@@ -120,4 +120,11 @@ test('primary failure and requests/DOM are durable before screenshot failure and
   const saved=JSON.parse(await readFile(dir+'/browser-failure.json'));assert.equal(saved.error,original.message);assert.equal(saved.pages[0].text,'retained DOM');assert.deepEqual(JSON.parse(await readFile(dir+'/rpc-requests.json')),requests);throw Error('EXPECTED_SCREENSHOT_TIMEOUT');
  }})};
  await captureFailure(original,{cdp,service:{requests},evidence:dir});const saved=JSON.parse(await readFile(dir+'/browser-failure.json'));assert.equal(saved.error,original.message);assert.equal(saved.stack,original.stack);assert.deepEqual(saved.capture_errors,[{stage:'screenshot',target_id:'synthetic-page',error:'EXPECTED_SCREENSHOT_TIMEOUT'}]);
+});
+test('startup diagnosis retains actual stderr/exit and missing-executable spawn error',async t=>{
+ const dir=await mkdtemp('/tmp/gos-launch-test-');t.after(()=>rm(dir,{recursive:true,force:true}));
+ const failed=observeChromiumLaunch({executable:process.execPath,args:['-e',"process.stderr.write('TEST_ONLY_STARTUP_FAILURE\\n');process.exit(17)"],evidence:dir});
+ await new Promise(resolve=>failed.child.once('close',resolve));await failed.stop();
+ const exit=JSON.parse(await readFile(dir+'/chromium-startup.json'));assert.equal(exit.exit_code,17);assert.equal(exit.signal,null);assert.equal(exit.ready,false);assert.match(await readFile(dir+'/chromium-stderr.log','utf8'),/TEST_ONLY_STARTUP_FAILURE/);assert.equal(exit.executable,process.execPath);
+ const absent=observeChromiumLaunch({executable:dir+'/missing-executable',args:[],evidence:dir});await new Promise(resolve=>absent.child.once('close',resolve));await absent.stop();const error=JSON.parse(await readFile(dir+'/chromium-startup.json'));assert.equal(error.spawn_error.code,'ENOENT');assert.equal(error.ready,false);assert.equal(error.finished,true);
 });
