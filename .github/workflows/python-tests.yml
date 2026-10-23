@@ -149,6 +149,24 @@ jobs:
           node delivery/growth-console/console.e2e.mjs
           node delivery/growth-console/claim-gate.blocker.e2e.mjs
           node delivery/growth-console/claim-console.e2e.mjs
+      - name: Console persistence integration contracts (offline only)
+        shell: bash
+        run: |
+          # Provide the test's fixed pristine path only after matching the reviewed frozen baseline.
+          printf '%s  %s\n' '9ba67576e59dc06479c0c0a48c00c0165d80e0f04631da1a090cc9100dd1ab06' 'apps/web/workspace.mjs' | sha256sum --check --strict
+          sudo install -D -m 644 apps/web/workspace.mjs /workspace/growth-source-receipt-20261023/pristine/source/apps/web/workspace.mjs
+          node --test delivery/growth-console/persistence-integration.test.mjs
+      - name: Console persistence fresh-session browser acceptance (offline only)
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          # The frozen test uses /usr/bin/chromium; reuse the existing Playwright install.
+          if [ ! -x /usr/bin/chromium ]; then
+            chromium_path="$(node -e "process.stdout.write(require('playwright').chromium.executablePath())")"
+            test -x "$chromium_path"
+            sudo ln -s "$chromium_path" /usr/bin/chromium
+          fi
+          node delivery/growth-console/persistence-integration.e2e.mjs
       - name: Preserve console interaction evidence
         if: always()
         uses: actions/upload-artifact@v4

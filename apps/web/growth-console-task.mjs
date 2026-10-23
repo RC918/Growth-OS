@@ -77,5 +77,16 @@ export function createConsoleTask({load,claimCheck=evaluateConsoleClaims,now=()=
   event(kind==='return'?'complete':kind,kind==='failed'?{error:'network',sourceCurrent:false}:kind==='return'?{returned:true}:{});
  }
  function reset(){invalidate();review=null;report=null;state={phase:'start',taskId:null,url:'',updated:null,error:null,synthetic:false,returned:false,sourceCurrent:false};emit();}
- return {view,setURL,start,cancel,edit,check,checkClaims,cancelClaimCheck,confirm,revisit,disconnect,scenario,reset};
+ async function exportHandoff(){
+  const own=review,ticket=generation,epoch=claimEpoch,snapshot=own?.view();
+  const current=()=>ticket===generation&&review===own&&claimEpoch===epoch&&own.view().token===snapshot.token&&state.sourceCurrent&&!state.synthetic&&!controller&&claimReview.status==='CHECKED'&&claimReview.revision===snapshot.revision&&['PASS','PASS_WITH_REVIEW'].includes(claimReview.result?.decision)&&!!snapshot.receipt;
+  if(!own||!current())throw Error('請先完成目前來源與內容的本頁確認');
+  const payload=await own.export();
+  if(!current())throw Error('成果已變更；請重新核對後交接');
+  return payload;
+ }
+ // Stable facade for the existing same-origin, nonce/window-bound handoff.
+ const handoffReview={view:()=>({token:generation+':'+claimEpoch+':'+(review?.view().token??'none')}),export:exportHandoff};
+ function getHandoffReview(){const s=view();return !s.synthetic&&s.sourceCurrent&&s.review?.receipt&&s.claimReview.status==='CHECKED'&&['PASS','PASS_WITH_REVIEW'].includes(s.claimReview.result?.decision)?handoffReview:null;}
+ return {view,setURL,start,cancel,edit,check,checkClaims,cancelClaimCheck,confirm,revisit,disconnect,scenario,reset,exportHandoff,getHandoffReview};
 }
