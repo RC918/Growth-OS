@@ -18,6 +18,8 @@
 #workspace{container-type:inline-size;container-name:workspace-shell;min-width:0}
 #workspace .workspace-grid{grid-template-columns:minmax(0,1fr)}
 #workspace .workspace-grid>*{min-width:0}
+#workspace #opportunities.cards { grid-template-columns:minmax(0,1fr); }
+#workspace #opportunities.cards > .opportunity-card { min-width:0; }
 #workspace .workspace-header{flex-direction:column;align-items:flex-start}
 #workspace #sign-out{max-width:100%;white-space:normal}
 @container workspace-shell (min-width:42rem){
