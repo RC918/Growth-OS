@@ -140,8 +140,3 @@ window.addEventListener('pagehide',()=>task.cancel());
 window.addEventListener('beforeunload',e=>{if(task.view().report){e.preventDefault();e.returnValue='';}});
 if(innerWidth<768)guide(false);$('task-details').hidden=true;$('task-toggle').setAttribute('aria-expanded','false');setText($('task-toggle'),'展開');
 render(task.view());
-
-// When enlarged text or the software keyboard consumes the viewport, use document
-// flow instead of allowing fixed grid rows to squeeze/cover the main controls.
-const reflow=()=>{const occupied=document.querySelector('.topbar').getBoundingClientRect().height+$('task-card').getBoundingClientRect().height;document.body.classList.toggle('flow-layout',innerWidth<768&&occupied>innerHeight*.55);};
-const layoutObserver=new ResizeObserver(reflow);layoutObserver.observe(document.querySelector('.topbar'));layoutObserver.observe($('task-card'));window.addEventListener('resize',reflow);reflow();

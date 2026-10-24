@@ -14,10 +14,7 @@ export function deriveExperience(name,source){
   replace("article.append(compare,make('p','原建議理由：'+f.reason),make('p','來源依據：'+f.citations.join('、')),claims);",
    "const evidence=make('details');evidence.className='field-evidence';evidence.append(make('summary','查看本欄來源與檢查'),make('p','原建議理由：'+f.reason),make('p','來源依據：'+f.citations.join('、')),claims);const delta=make('div');delta.className='field-difference';delta.dataset.diffField=key;article.append(compare,delta,evidence);");
   replace(' if(v){\n  for(const key of reviewFields)',' if(v){\n  updateFieldDifferences(v,r);\n  for(const key of reviewFields)');
-  replace('const reflow=()=>{const occupied=', 'const assistantLayout=createAssistantLayout();\nconst reflow=()=>{assistantLayout.refresh();const occupied=');
-  replace("layoutObserver.observe($('task-card'));window.addEventListener", "layoutObserver.observe($('task-card'));for(const id of ['guide-heading','guide-owner','guide-reason','guide-action'])layoutObserver.observe($(id));window.addEventListener");
   text+='\n'+asset('differences.mjs');
-  text+='\n'+asset('assistant-layout.mjs');
  }
  if(name==='workspace.html')replace('    <section id="workspace" hidden>',
   '<aside class="ux-guide panel" aria-labelledby="ux-guide-title"><h2 id="ux-guide-title">你的下一步</h2><p id="ux-guide-state" role="status" aria-live="polite">登入後，接續你的成果。</p><a id="ux-guide-action" href="#login-form">前往登入</a><p>本頁確認、工作區核准與發布授權是不同步驟。</p></aside>\n    <section id="workspace" hidden>');

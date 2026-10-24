@@ -14,11 +14,6 @@
 .ux-guide a{display:block;box-sizing:border-box;max-width:100%;min-height:44px;padding:.75rem 1rem;background:#16613e;color:#fff;border-radius:8px;text-align:center;text-decoration:underline}
 .ux-guide :focus-visible{outline:3px solid #b66d20;outline-offset:3px}
 @container next-step (min-width:32rem){.ux-guide a{width:fit-content}}
-/* A stays unchanged when the desktop assistant fits its viewport budget. */
-@media(min-width:768px){
- .rail.assistant-natural{position:static;height:auto;grid-template-rows:auto auto}
- .rail.assistant-natural #guidance{overflow:visible;max-height:none}
-}
 /* Safe single-column fallback, independent of the outer viewport width. */
 #workspace{container-type:inline-size;container-name:workspace-shell;min-width:0}
 #workspace .workspace-grid{grid-template-columns:minmax(0,1fr)}

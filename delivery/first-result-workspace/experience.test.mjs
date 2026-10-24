@@ -4,18 +4,23 @@ import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 const {JSDOM}=createRequire(import.meta.url)('jsdom');
 import {deriveExperience,experienceFiles} from './derive.mjs';
-import {createAssistantLayout} from './assistant-layout.mjs';
 const source=name=>readFile('apps/web/'+name,'utf8');
-test('assistant relaxes overflowing content, stays stable, and resets on actual viewport/font change',()=>{
- const classes=new Set(),rail={classList:{add:n=>classes.add(n),remove:n=>classes.delete(n)}},guide={scrollHeight:350,hidden:false},task={scrollHeight:120};
- const doc={documentElement:{},querySelector:()=>rail,getElementById:id=>id==='guidance'?guide:task};
- let rem=16;const view={innerWidth:1280,innerHeight:900,getComputedStyle:n=>n===doc.documentElement?{fontSize:String(rem)}:{paddingTop:'16',paddingBottom:'16',rowGap:'16'}};
- const layout=createAssistantLayout({document:doc,view});layout.refresh();assert.equal(classes.size,0);
- guide.scrollHeight=1000;layout.refresh();assert.equal(classes.has('assistant-natural'),true);
- guide.scrollHeight=100;layout.refresh();assert.equal(classes.has('assistant-natural'),true);
- view.innerHeight=1000;layout.refresh();assert.equal(classes.size,0);
- guide.scrollHeight=800;rem=32;layout.refresh();assert.equal(classes.has('assistant-natural'),true);
- view.innerWidth=390;layout.refresh();assert.equal(classes.size,0);
+test('derived fields retain edits, checks and accessibility bindings while adding evidence and differences',async t=>{
+ const original=await source('growth-console.mjs'),derived=deriveExperience('growth-console.mjs',original),differences=await readFile(new URL('differences.mjs',import.meta.url),'utf8');
+ const fields=['title','meta_description','description'],report={preview:{fields:Object.fromEntries(fields.map(key=>[key,{original:'原文 '+key,reason:'來源理由',citations:['c1']}]))}},view={fields:Object.fromEntries(fields.map(key=>[key,'編輯 '+key]))};
+ const observed=[];
+ for(const [text,enhanced]of [[original,false],[derived,true]]){
+  const dom=new JSDOM('<div id="result-fields"></div><pre id="claim-report"></pre>',{runScripts:'outside-only'}),w=dom.window; t.after(()=>w.close());w.events=[];
+  const renderer=text.slice(text.indexOf('function fields('),text.indexOf('function claimDetails('));
+  w.eval("const reviewFields=['title','meta_description','description'];const names={title:'頁面標題',meta_description:'搜尋摘要',description:'產品描述'};const $=id=>document.getElementById(id),make=(tag,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};let renderedClaims=null;const task={edit:(...args)=>window.events.push(['edit',...args]),check:(...args)=>window.events.push(['check',...args])};"+renderer+(enhanced?differences:'')+';window.draw=fields;'+(enhanced?'window.diff=updateFieldDifferences;':''));
+  w.draw(report,view);if(enhanced)w.diff(view,report);
+  const controls=[];for(const key of fields){const input=w.document.getElementById('field-'+key),check=w.document.getElementById('check-'+key);controls.push({id:input.id,value:input.value,maxLength:input.maxLength,describedby:input.getAttribute('aria-describedby'),label:w.document.querySelector('label[for="'+input.id+'"]').textContent});input.value='再次編輯 '+key;input.dispatchEvent(new w.Event('input'));check.checked=true;check.dispatchEvent(new w.Event('change'));}
+  observed.push({controls,events:JSON.parse(JSON.stringify(w.events))});
+  assert.equal(w.document.querySelectorAll('.field-evidence > summary').length,enhanced?3:0);assert.equal(w.document.querySelectorAll('[data-diff-field] ins').length,enhanced?3:0);
+ }
+ assert.deepEqual(observed[1],observed[0],'Derivation must preserve field behavior and bindings');
+ const css=await source('growth-console.css'),out=deriveExperience('growth-console.css',css);
+ assert.ok(out.startsWith(css+'\n'));assert.match(css,/@container result-card/);assert.match(css,/@container assistant-card/);assert.match(out,/@container next-step/);assert.match(out,/@container workspace-shell/);
 });
 test('presentation hooks reject drift and duplicate sources',async()=>{
  for(const name of experienceFiles){if(name.endsWith('.css'))continue;const text=await source(name);assert.throws(()=>deriveExperience(name,''));assert.throws(()=>deriveExperience(name,text+text));}

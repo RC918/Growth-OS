@@ -27,10 +27,12 @@ jobs:
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium firefox webkit
       - name: Product Console handoff and fresh-session UI (synthetic transport, three engines)
-        timeout-minutes: 8
+        timeout-minutes: 12
         env:
           PRODUCT_UI_EVIDENCE: ${{ runner.temp }}/product-workspace-ui
-        run: node delivery/web-preview/product-workspace.e2e.mjs
+        run: |
+          node --test delivery/first-result-workspace/experience.test.mjs
+          node delivery/web-preview/product-workspace.e2e.mjs
       - name: Preserve product UI evidence
         if: always()
         uses: actions/upload-artifact@v4
