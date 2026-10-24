@@ -3,6 +3,8 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {deriveClaim} from './claim-transform.mjs';
+import {deriveWorkspace} from './workspace-integration.mjs';
+import {deriveExperience,experienceFiles} from '../first-result-workspace/derive.mjs';
 const root=new URL('../../',import.meta.url),output=new URL('./dist/',import.meta.url);
 const hash=b=>createHash('sha256').update(b).digest('hex');
 export function derive(name,text){
@@ -20,7 +22,7 @@ export function derive(name,text){
  // chain (handoff/import -> save_url_result_draft RPC) in the derived output.
  // Frozen apps/web sources stay closed; staging RLS/RPC still enforce owner-only.
  if(name==='url-result-config.mjs')replace('export const urlSaveEnabled=false;','export const urlSaveEnabled=true;');
- return text;
+ return deriveExperience(name,text);
 }
 export async function build(){
  // This directory is generated output only; never touch apps/web or RC artifacts.
@@ -28,9 +30,9 @@ export async function build(){
  await mkdir(output,{recursive:true});const manifest={kind:'derived-first-result-navigation',source_directory:'apps/web',files:{}};
  for(const entry of (await readdir(new URL('apps/web/',root),{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){
   assert.ok(entry.isFile()&&/\.(html|css|mjs|js|json|md|txt|csv)$/.test(entry.name),'Unexpected web source: '+entry.name);
-  const source=await readFile(new URL('apps/web/'+entry.name,root)),derived=['first-result.html','first-result.mjs','url-result-config.mjs','url-result-save.mjs','workspace.mjs'].includes(entry.name),bytes=derived?Buffer.from(deriveClaim(entry.name,derive(entry.name,source.toString('utf8')))):source;
+  const source=await readFile(new URL('apps/web/'+entry.name,root)),derived=['first-result.html','first-result.mjs','url-result-config.mjs','url-result-save.mjs','workspace.mjs','workspace.html'].includes(entry.name)||experienceFiles.has(entry.name),bytes=derived?Buffer.from(deriveWorkspace(entry.name,deriveClaim(entry.name,derive(entry.name,source.toString('utf8'))))):source;
   await writeFile(new URL(entry.name,output),bytes);manifest.files[entry.name]={source_sha256:hash(source),output_sha256:hash(bytes),derived};
  }
  await writeFile(new URL('./manifest.json',import.meta.url),JSON.stringify(manifest,null,2)+'\n');return manifest;
 }
-if(process.argv[1]===fileURLToPath(import.meta.url)){const m=await build();console.log('Derived preview built; '+Object.keys(m.files).length+' files, five derived files (navigation, Phase 1 save gate, claim validation).');}
+if(process.argv[1]===fileURLToPath(import.meta.url)){const m=await build();console.log('Derived preview built; '+Object.keys(m.files).length+' files, derived files (navigation, save gate, claims, A workspace and selected UIUX).');}

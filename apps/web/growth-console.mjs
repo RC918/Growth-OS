@@ -92,7 +92,7 @@ function render(s){
  setText($('mode-banner'),s.synthetic?'合成互動原型 · 非真網址成果 · 無真背景任務／保存／發布':'真網址模式 · 來源摘錄，不呼叫模型 · 尚未保存或發布');
  try{setText($('site-name'),s.url?new URL(s.url).hostname:'尚未選擇來源');}catch{setText($('site-name'),'待核對網址');}
  $('source-submit').disabled=s.busy||s.synthetic;$('source-submit').setAttribute('aria-busy',String(s.busy));setText($('source-submit'),s.busy?'正在讀取來源…':'讀取公開來源');$('source-cancel').hidden=!s.busy;
- const message=['failed','unknown'].includes(s.phase)?failureText[s.error]||'已停止等待，來源服務結果未知；保留網址與先前成果。':s.phase==='running'?'正在等待來源回覆；離開本頁不保證工作繼續。':s.report?'來源成果已取得；工作區保存尚未開放。':'';
+ const message=['failed','unknown'].includes(s.phase)?failureText[s.error]||'已停止等待，來源服務結果未知；保留網址與先前成果。':s.phase==='running'?'正在等待來源回覆；離開本頁不保證工作繼續。':s.report?'來源成果已取得；確認目前版本後，可帶入工作區核對保存。':'';
  setText($('source-feedback'),message);
  if(r&&r!==rendered){fields(r,v);sourceCards(r);rendered=r;if(!s.returned)viewName='result';}
  if(!r){rendered=null;$('result-fields').replaceChildren();}
@@ -105,7 +105,7 @@ function render(s){
   setText($('review-feedback'),v.pending?'正在核對確切版本…':v.receipt?'已完成本頁版本確認。重新整理會失去本頁編輯與確認。':s.sourceCurrent?'修改後舊確認失效；可稍後處理，未保存內容只在本頁。':'來源已變動或未讀完；舊成果保留，請先核對網址並重新讀取。');
   claimDetails(s);
   $('review-confirm').disabled=s.busy||v.pending||!v.canConfirm||!!v.receipt||!s.sourceCurrent||s.claimReview.status!=='CHECKED'||!['PASS','PASS_WITH_REVIEW'].includes(s.claimReview.result?.decision);$('review-confirm').setAttribute('aria-busy',String(v.pending));
-  setText($('summary-done'),v.receipt?'已取得來源，完成本頁第 '+v.revision+' 版確認；未保存。':'已取得有來源文本，本頁編輯仍待確認。');setText($('summary-decision'),v.receipt?'沒有新的內容決策；保存與發布尚未開放。':'接續核對目前版本；不重問已在本頁核對且未變更的欄位。');
+  setText($('summary-done'),v.receipt?'已取得來源，完成本頁第 '+v.revision+' 版確認；未保存。':'已取得有來源文本，本頁編輯仍待確認。');setText($('summary-decision'),v.receipt?'可帶入工作區核對保存；仍需登入及明確保存，不會自動發布。':'接續核對目前版本；不重問已在本頁核對且未變更的欄位。');
  }
  const g=guidance(s);guideTarget=g;setText($('guide-owner'),g.owner);setText($('guide-reason'),g.reason);setText($('guide-action'),g.label||'請稍候');$('guide-action').hidden=!g.label;
  document.querySelectorAll('[data-stage]').forEach(el=>{const active=el.dataset.stage===(s.phase==='running'?'source':r?'review':'source');if(active)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
@@ -140,8 +140,3 @@ window.addEventListener('pagehide',()=>task.cancel());
 window.addEventListener('beforeunload',e=>{if(task.view().report){e.preventDefault();e.returnValue='';}});
 if(innerWidth<768)guide(false);$('task-details').hidden=true;$('task-toggle').setAttribute('aria-expanded','false');setText($('task-toggle'),'展開');
 render(task.view());
-
-// When enlarged text or the software keyboard consumes the viewport, use document
-// flow instead of allowing fixed grid rows to squeeze/cover the main controls.
-const reflow=()=>{const occupied=document.querySelector('.topbar').getBoundingClientRect().height+$('task-card').getBoundingClientRect().height;document.body.classList.toggle('flow-layout',innerWidth<768&&occupied>innerHeight*.55);};
-const layoutObserver=new ResizeObserver(reflow);layoutObserver.observe(document.querySelector('.topbar'));layoutObserver.observe($('task-card'));window.addEventListener('resize',reflow);reflow();

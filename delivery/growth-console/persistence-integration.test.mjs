@@ -114,11 +114,11 @@ test('owner/viewer/foreign scope, version conflict, and late read session checks
  const hold=service.holdNext('/rest/v1/content_versions');const reading=api.readContentVersion(row);await hold.entered;api.signOut();hold.release();await assert.rejects(reading,/工作區/);
  assert.equal(mutations(service).length,1);
 });
-test('derived integration rejects absent/duplicate anchors, verifies 115 frozen sources and output hashes',async t=>{
+test('derived integration rejects absent/duplicate anchors, verifies 117 frozen sources and output hashes',async t=>{
  for(const name of ['workspace.mjs','url-result-save.mjs']){
   const source=await readFile('apps/web/'+name,'utf8');assert.notEqual(deriveClaim(name,source),source);assert.throws(()=>deriveClaim(name,''));assert.throws(()=>deriveClaim(name,source+source));
  }
- const dir=await mkdtemp('/tmp/gos-claim-build-');t.after(()=>rm(dir,{recursive:true,force:true}));const result=await buildClaimIntegration({directory:dir});assert.equal(result.frozen_files_verified,115);
+ const dir=await mkdtemp('/tmp/gos-claim-build-');t.after(()=>rm(dir,{recursive:true,force:true}));const result=await buildClaimIntegration({directory:dir});assert.equal(result.frozen_files_verified,117);
  for(const [name,identity]of Object.entries(result.files))assert.equal(createHash('sha256').update(await readFile(dir+'/'+name)).digest('hex'),identity.output_sha256);
  // Compare with the independently recorded baseline, not a copy provisioned
  // from the very file under test on one author's machine.
