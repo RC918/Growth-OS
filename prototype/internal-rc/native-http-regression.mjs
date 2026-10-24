@@ -1,5 +1,6 @@
 // Explicit short-lived native integration, not persistent RC or a production entrypoint.
 import assert from 'node:assert/strict';
+import {assertPortIsolation} from './port-isolation.mjs';
 import {readFile,writeFile,stat} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {randomBytes,randomUUID,createHmac,createHash} from 'node:crypto';
@@ -23,7 +24,18 @@ assert.equal(await rootExists(),false,'persistent RC must be absent');
 const images=(await compose()).services;
 async function wait(check,message){for(let i=0;i<80;i++){bounded();try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,250));}throw Error(message);}
 function start(service,extra=[]){bounded();const environment=Object.fromEntries(env[service==='db'?'pg':service].trim().split('\n').map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)];}));return docker(['run','-d','--rm','--pull=never','--name',run+'-'+service,'--label',label+'='+run,'--network',network,...(service==='db'?['--network-alias','db']:['--read-only','--tmpfs','/tmp']),...extra,...Object.keys(environment).flatMap(key=>['--env',key]),images[service].image],undefined,environment);}
-function origin(service,port){const name=run+'-'+service;assert.equal(docker(['inspect','-f','{{index .Config.Labels "'+label+'"}}',name]),run);assert.equal(docker(['inspect','-f','{{json .NetworkSettings.Ports}}',name]),'{}');const ip=docker(['inspect','-f','{{with index .NetworkSettings.Networks "'+network+'"}}{{.IPAddress}}{{end}}',name]);assert.match(ip,/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/);return 'http://'+ip+':'+port;}
+function origin(service,port){
+ const name=run+'-'+service;
+ assert.equal(docker(['inspect','-f','{{index .Config.Labels "'+label+'"}}',name]),run);
+ // Select only port isolation metadata. Never collect inspect Env or credentials.
+ const selected=JSON.parse(docker(['inspect','-f','{"exposedPorts":{{json .Config.ExposedPorts}},"portBindings":{{json .HostConfig.PortBindings}},"publishAllPorts":{{json .HostConfig.PublishAllPorts}},"ports":{{json .NetworkSettings.Ports}}}',name]));
+ const isolation={service,port,...selected};
+ (report.port_isolation??=[]).push(isolation);
+ assertPortIsolation(isolation);
+ const ip=docker(['inspect','-f','{{with index .NetworkSettings.Networks "'+network+'"}}{{.IPAddress}}{{end}}',name]);
+ assert.match(ip,/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/);
+ return 'http://'+ip+':'+port;
+}
 async function call(origin,path,{method='GET',token,body,record}={}){
  bounded();assert.ok([authOrigin,restOrigin].includes(origin),'only this run origins');
  const r=await fetch(origin+path,{method,redirect:'error',headers:{...(token?{authorization:'Bearer '+token}:{}),...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(5000)});
