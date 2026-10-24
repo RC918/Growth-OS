@@ -337,36 +337,94 @@ async function workspaceGeometry(page,variant){
 // Same synchronous read supplies both the original overflow assertion and its geometry.
 async function freshReadbackLayout(page,identity,caseLabel,browser,width,variant,phase){
  const snapshot=await page.evaluate(()=>{
-  const all=[...document.querySelectorAll('*')],limit=1024,offenderLimit=128;
+  const all=[...document.querySelectorAll('*')],limit=1024;
   const rect=n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
   const dimensions=n=>n?{rect:rect(n),clientWidth:n.clientWidth,scrollWidth:n.scrollWidth,clientHeight:n.clientHeight,scrollHeight:n.scrollHeight,scrollLeft:n.scrollLeft,scrollTop:n.scrollTop}:null;
   const root=document.documentElement,body=document.body,workspace=document.getElementById('workspace'),grid=workspace?.querySelector('.workspace-grid');
   const shared={rootFont:{inline:root.style.fontSize,computed:getComputedStyle(root).fontSize},viewport:{innerWidth,innerHeight,clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,scrollX,scrollY},document:dimensions(root),body:dimensions(body),workspace:dimensions(workspace),columns:grid?getComputedStyle(grid).gridTemplateColumns:null,focusId:document.activeElement?.id||null,expanded:all.length<=limit?[...document.querySelectorAll('details')].map((n,index)=>({index,id:n.id,open:n.open})):[]};
-  if(all.length>limit)return {...shared,overflow:root.scrollWidth>innerWidth,complete:false,reason:'element-limit',elementCount:all.length,limits:{elements:limit,offenders:offenderLimit},nodes:[],offenders:[]};
-  const indices=new Map(all.map((n,index)=>[n,index])),nodes=[],offenders=[];
+  // DOM preorder makes every retained prefix ancestor-closed. Read at most
+  // 1024 geometries, even when the document contains more elements.
+  const observed=all.slice(0,limit),indices=new Map(observed.map((n,index)=>[n,index])),nodes=[],offenders=[];
   const keys=['display','visibility','position','width','minWidth','maxWidth','height','boxSizing','paddingLeft','paddingRight','marginLeft','marginRight','borderLeftWidth','borderRightWidth','overflowX','overflowY','whiteSpace','overflowWrap','wordBreak','fontSize','fontFamily','lineHeight','flex','flexDirection','flexWrap','gridTemplateColumns','gap','contain','containerType','containerName'];
-  for(const [index,n]of all.entries()){
+  for(const [index,n]of observed.entries()){
    const s=getComputedStyle(n),computed=Object.fromEntries(keys.map(key=>[key,s[key]])),box=dimensions(n);
    const outsideViewport=n.getClientRects().length>0&&(box.rect.right>innerWidth+1||box.rect.left< -1),internalOverflow=box.scrollWidth>box.clientWidth+1;
    nodes.push({index,parent:indices.get(n.parentElement)??null,tag:n.tagName,id:n.id,classList:[...n.classList],hidden:n.hidden===true,rectCount:n.getClientRects().length,...box,computed});
    if(outsideViewport||internalOverflow){
-    if(offenders.length===offenderLimit)return {...shared,overflow:root.scrollWidth>innerWidth,complete:false,reason:'offender-limit',elementCount:all.length,scannedElements:index+1,observedOffenders:offenderLimit+1,limits:{elements:limit,offenders:offenderLimit},nodes:[],offenders:[]};
     offenders.push({index,outsideViewport,internalOverflow,scrollPolicy:s.overflowX});
    }
   }
   const finalWidth={innerWidth,innerHeight,clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,scrollX,scrollY};
-  return {...shared,viewport:finalWidth,overflow:finalWidth.scrollWidth>finalWidth.innerWidth,complete:true,reason:null,elementCount:all.length,limits:{elements:limit,offenders:offenderLimit},nodes,offenders};
+  return {...shared,viewport:finalWidth,overflow:finalWidth.scrollWidth>finalWidth.innerWidth,complete:all.length<=limit,reason:all.length>limit?'element-limit':null,elementCount:all.length,scannedElements:nodes.length,expandedComplete:all.length<=limit,limits:{elements:limit,offenders:limit,encodedBytes:1048576},nodes,offenders};
  });
- const record={source_head:identity.source_head,checkout_sha:identity.checkout_sha,e2e_sha256:identity.e2e_sha256,run:identity.run,attempt:identity.attempt,case:caseLabel,browser,width,variant,phase,expectedInitialRootFont:variant==='text200'?'32px':'16px',sameSynchronousRead:true,...snapshot};
- const bytes=Buffer.byteLength(JSON.stringify(record));
- if(bytes>MiB)return {source_head:record.source_head,e2e_sha256:record.e2e_sha256,case:caseLabel,browser,width,variant,phase,sameSynchronousRead:true,complete:false,reason:'encoded-geometry-limit',encodedBytes:bytes,limitBytes:MiB,elementCount:snapshot.elementCount,viewport:snapshot.viewport,rootFont:snapshot.rootFont,overflow:snapshot.overflow};
- return record;
+ const base={source_head:identity.source_head,checkout_sha:identity.checkout_sha,e2e_sha256:identity.e2e_sha256,run:identity.run,attempt:identity.attempt,case:caseLabel,browser,width,variant,phase,expectedInitialRootFont:variant==='text200'?'32px':'16px',sameSynchronousRead:true,...snapshot};
+ const flagCounts=rows=>({outside:rows.filter(n=>n.outsideViewport).length,internal:rows.filter(n=>n.internalOverflow).length,both:rows.filter(n=>n.outsideViewport&&n.internalOverflow).length,unique:rows.length});
+ const seen=snapshot.nodes.length,seenFlags=flagCounts(snapshot.offenders);
+ const makeRecord=(kept,reason,originalEncodedBytes=null)=>{
+  const nodes=snapshot.nodes.slice(0,kept),offenders=snapshot.offenders.filter(n=>n.index<kept);
+  const graphIntegrity={ancestorClosed:nodes.every((n,index)=>n.index===index&&(index===0?n.parent===null:Number.isInteger(n.parent)&&n.parent>=0&&n.parent<index)),offendersResolvable:new Set(offenders.map(n=>n.index)).size===offenders.length&&offenders.every(n=>Number.isInteger(n.index)&&n.index>=0&&n.index<kept&&(n.outsideViewport||n.internalOverflow))};
+  const graphValid=graphIntegrity.ancestorClosed&&graphIntegrity.offendersResolvable,complete=snapshot.complete&&kept===seen&&!reason&&graphValid;
+  return {...base,complete,reason:graphValid?reason:'graph-integrity',graphIntegrity,nodes,offenders,limitBytes:MiB,encodedBytes:0,originalEncodedBytes,
+   originalEncodedBytesReason:snapshot.complete?null:'not-measured: element limit left unscanned geometry',
+   counts:{total:snapshot.elementCount,seen,kept,omitted:{observedNotRetained:seen-kept,notScanned:snapshot.elementCount-seen},flags:{seenScope:snapshot.complete?'full-graph':'observed-prefix',seen:seenFlags,keptScope:complete?'full-graph':'retained-prefix',kept:flagCounts(offenders),unscanned:snapshot.elementCount>seen?'not-measured':'none'}}};
+ };
+ // Include the size fields themselves. This bounded, in-memory serialization
+ // neither resamples the DOM nor writes speculative files to find a fit.
+ const sizeRecord=(record,measureOriginal=false)=>{
+  for(let i=0;i<8;i++){
+   const bytes=Buffer.byteLength(JSON.stringify(record));
+   if(record.encodedBytes===bytes&&(!measureOriginal||record.originalEncodedBytes===bytes))return record;
+   record.encodedBytes=bytes;if(measureOriginal)record.originalEncodedBytes=bytes;
+  }
+  throw Error('Geometry encoded-size metadata did not converge');
+ };
+ const full=sizeRecord(makeRecord(seen,snapshot.reason),snapshot.complete);
+ if(full.encodedBytes<=MiB)return finalFreshLayoutEncoding(full).record;
+ const reason=snapshot.complete?'encoded-geometry-limit':'element-and-encoded-geometry-limit';
+ const originalBytes=snapshot.complete?full.encodedBytes:null;
+ let low=0,high=seen,best=sizeRecord(makeRecord(0,reason,originalBytes));
+ // Keep whole nodes and their original computed fields, with matching offender
+ // references. Every candidate is a prefix of this one already-read snapshot.
+ while(low<=high){
+  const middle=Math.floor((low+high)/2),candidate=sizeRecord(makeRecord(middle,reason,originalBytes));
+  if(candidate.encodedBytes<=MiB){best=candidate;low=middle+1;}else high=middle-1;
+ }
+ if(best.encodedBytes>MiB){
+  // Even shared metadata cannot fit. Disclose its omission, retain identity,
+  // viewport and counts, and let the existing incomplete guard stop the run.
+  const retain=['source_head','checkout_sha','e2e_sha256','run','attempt','case','browser','width','variant','phase','expectedInitialRootFont','sameSynchronousRead','complete','reason','graphIntegrity','nodes','offenders','limitBytes','encodedBytes','originalEncodedBytes','originalEncodedBytesReason','counts','elementCount','scannedElements','limits','viewport','rootFont','overflow'];
+  best=sizeRecord({...Object.fromEntries(retain.map(key=>[key,best[key]])),reason:'encoded-geometry-metadata-limit',omittedSharedFields:Object.keys(best).filter(key=>!retain.includes(key))});
+ }
+ return finalFreshLayoutEncoding(best).record;
+}
+function finalFreshLayoutEncoding(record){
+ const encoded=JSON.stringify(record),bytes=Buffer.byteLength(encoded);
+ if(bytes<=MiB)return {record,encoded,rejected:false};
+ // Never write/project an oversized geometry, including reduced metadata.
+ // This fixed-shape summary omits the geometry and bounds every copied string.
+ const text=value=>typeof value==='string'?value.slice(0,160):null;
+ const number=value=>Number.isFinite(value)?value:null;
+ const identityKeys=['source_head','checkout_sha','e2e_sha256','run','attempt','case','browser','variant','phase'];
+ const summary={...Object.fromEntries(identityKeys.map(key=>[key,text(record[key])])),width:number(record.width),sameSynchronousRead:record.sameSynchronousRead===true,complete:false,reason:'final-encoded-geometry-limit',geometryOmitted:true,omittedScope:'all nodes, offenders and shared geometry metadata',identityTruncated:identityKeys.some(key=>typeof record[key]==='string'&&record[key].length>160),rejectedEncodedBytes:bytes,limitBytes:MiB,encodedBytes:0,originalEncodedBytes:number(record.originalEncodedBytes),originalEncodedBytesReason:text(record.originalEncodedBytesReason),elementCount:number(record.elementCount),seen:number(record.counts?.seen),kept:0,omitted:{observedNotRetained:number(record.counts?.seen),notScanned:number(record.counts?.omitted?.notScanned)},flagsScope:'omitted; no unobserved flags inferred',overflow:typeof record.overflow==='boolean'?record.overflow:null,nodes:[],offenders:[]};
+ let summaryEncoded;
+ for(let i=0;i<8;i++){
+  summaryEncoded=JSON.stringify(summary);const size=Buffer.byteLength(summaryEncoded);
+  if(size===summary.encodedBytes)break;summary.encodedBytes=size;
+ }
+ summaryEncoded=JSON.stringify(summary);
+ assert.equal(Buffer.byteLength(summaryEncoded),summary.encodedBytes,'Final incomplete summary size must converge');
+ assert.ok(Buffer.byteLength(summaryEncoded)<=MiB,'Even bounded incomplete summary exceeds geometry limit');
+ return {record:summary,encoded:summaryEncoded,rejected:true};
 }
 async function persistFreshLayout(record,isFailure=false){
  const path='fresh-readback-layout-'+record.case+'.json';assert.equal(category(path),'normal');
- if(!budgetFiles.has(path))await writeFile(evidence+'/'+path,JSON.stringify(record));
+ const admission=finalFreshLayoutEncoding(record);
+ if(!budgetFiles.has(path))await writeFile(evidence+'/'+path,admission.encoded);
+ // Recheck after the await, immediately before any complete sealed-log record.
+ const projection=finalFreshLayoutEncoding(admission.record);record=projection.record;
  if(isFailure||record.overflow||!record.complete)emit({fresh_readback_layout:record});
- else emit({fresh_readback_layout_summary:{case:record.case,phase:record.phase,complete:record.complete,viewport:record.viewport,rootFont:record.rootFont,elementCount:record.elementCount,offenderCount:record.offenders.length,full_geometry_file:path,full_geometry_in_log:false}});
+ else emit({fresh_readback_layout_summary:{case:record.case,phase:record.phase,complete:record.complete,viewport:record.viewport,rootFont:record.rootFont,elementCount:record.elementCount,offenderCount:record.offenders.length,counts:record.counts,encodedBytes:record.encodedBytes,originalEncodedBytes:record.originalEncodedBytes,full_geometry_file:path,full_geometry_in_log:false}});
+ assert.equal(admission.rejected||projection.rejected,false,'Final geometry encoding exceeded 1MiB; only bounded incomplete summary retained');
 }
 function freshReadbackError(error,phase,caseLabel){
  // Preserve the original Error in memory; never put payloads, URLs or tokens in new logs.
