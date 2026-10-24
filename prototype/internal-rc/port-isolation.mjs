@@ -23,8 +23,12 @@ export function assertPortIsolation(observed){
   assert.ok(record(exposedPorts),'PostgREST EXPOSE metadata required');
   assert.deepEqual(Reflect.ownKeys(exposedPorts),['3000/tcp'],'Only PostgREST port 3000/tcp allowed');
   assert.ok(empty(exposedPorts['3000/tcp']),'EXPOSE declaration must be empty metadata');
-  assert.deepEqual(Reflect.ownKeys(ports),['3000/tcp'],'Runtime ports must match EXPOSE');
-  assert.equal(ports['3000/tcp'],null,'PostgREST port must have no runtime bindings');
+  // Internal-network Docker metadata may omit an unbound exposed port.
+  // Keep the explicit map requirement and reject every other key or binding.
+  if(!empty(ports)){
+   assert.deepEqual(Reflect.ownKeys(ports),['3000/tcp'],'Runtime ports must match EXPOSE');
+   assert.equal(ports['3000/tcp'],null,'PostgREST port must have no runtime bindings');
+  }
  }
  return true;
 }
