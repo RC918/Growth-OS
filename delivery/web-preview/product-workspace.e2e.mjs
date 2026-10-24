@@ -257,7 +257,7 @@ async function captureBaselines(site){
 try{
  claimEvidenceRoot();
  const event=process.env.GITHUB_EVENT_PATH?JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH)):{};
- emit({product_identity:{source_head:event.pull_request?.head?.sha||process.env.GITHUB_SHA,checkout_sha:git(['rev-parse','HEAD']).trim(),checkout_tree:git(['rev-parse','HEAD^{tree}']).trim(),e2e_sha256:createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'),baseline:BASELINE,run:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,evidence_limit:evidenceLimit,evidence_limit_mode:budgetMode,evidence_pools:budgetLimits}});
+ const productIdentity={source_head:event.pull_request?.head?.sha||process.env.GITHUB_SHA,checkout_sha:git(['rev-parse','HEAD']).trim(),checkout_tree:git(['rev-parse','HEAD^{tree}']).trim(),e2e_sha256:createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'),baseline:BASELINE,run:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,evidence_limit:evidenceLimit,evidence_limit_mode:budgetMode,evidence_pools:budgetLimits};emit({product_identity:productIdentity});
  assert.equal(playwrightVersion,'1.58.2');
  assert.equal(process.env.PRODUCT_UI_ENGINES||'chromium,firefox,webkit','chromium,firefox,webkit','No reduced-engine CI acceptance');assert.equal(process.env.PRODUCT_UI_CASE,undefined,'No filtered CI acceptance');
  fixtureReport=producerReport();await writeFile(evidence+'/fixture-identity.json',JSON.stringify({report_sha256:createHash('sha256').update(canonical(fixtureReport)).digest('hex'),source_version:fixtureReport.snapshot.version},null,2));
@@ -334,6 +334,48 @@ async function workspaceGeometry(page,variant){
   return {containerType:type,width:r.width,expectedColumns:type==='normal'||r.width<42*font?1:2,columns:getComputedStyle(grid).gridTemplateColumns.split(' ').length,headerDirection:getComputedStyle(header).flexDirection,childrenInside:[...grid.children].every(n=>{const b=n.getBoundingClientRect();return b.left>=r.left-1&&b.right<=r.right+1;}),fallback:variant==='fallback'};
  },variant);
 }
+// Same synchronous read supplies both the original overflow assertion and its geometry.
+async function freshReadbackLayout(page,identity,caseLabel,browser,width,variant,phase){
+ const snapshot=await page.evaluate(()=>{
+  const all=[...document.querySelectorAll('*')],limit=1024,offenderLimit=128;
+  const rect=n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
+  const dimensions=n=>n?{rect:rect(n),clientWidth:n.clientWidth,scrollWidth:n.scrollWidth,clientHeight:n.clientHeight,scrollHeight:n.scrollHeight,scrollLeft:n.scrollLeft,scrollTop:n.scrollTop}:null;
+  const root=document.documentElement,body=document.body,workspace=document.getElementById('workspace'),grid=workspace?.querySelector('.workspace-grid');
+  const shared={rootFont:{inline:root.style.fontSize,computed:getComputedStyle(root).fontSize},viewport:{innerWidth,innerHeight,clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,scrollX,scrollY},document:dimensions(root),body:dimensions(body),workspace:dimensions(workspace),columns:grid?getComputedStyle(grid).gridTemplateColumns:null,focusId:document.activeElement?.id||null,expanded:all.length<=limit?[...document.querySelectorAll('details')].map((n,index)=>({index,id:n.id,open:n.open})):[]};
+  if(all.length>limit)return {...shared,overflow:root.scrollWidth>innerWidth,complete:false,reason:'element-limit',elementCount:all.length,limits:{elements:limit,offenders:offenderLimit},nodes:[],offenders:[]};
+  const indices=new Map(all.map((n,index)=>[n,index])),nodes=[],offenders=[];
+  const keys=['display','visibility','position','width','minWidth','maxWidth','height','boxSizing','paddingLeft','paddingRight','marginLeft','marginRight','borderLeftWidth','borderRightWidth','overflowX','overflowY','whiteSpace','overflowWrap','wordBreak','fontSize','fontFamily','lineHeight','flex','flexDirection','flexWrap','gridTemplateColumns','gap','contain','containerType','containerName'];
+  for(const [index,n]of all.entries()){
+   const s=getComputedStyle(n),computed=Object.fromEntries(keys.map(key=>[key,s[key]])),box=dimensions(n);
+   const outsideViewport=n.getClientRects().length>0&&(box.rect.right>innerWidth+1||box.rect.left< -1),internalOverflow=box.scrollWidth>box.clientWidth+1;
+   nodes.push({index,parent:indices.get(n.parentElement)??null,tag:n.tagName,id:n.id,classList:[...n.classList],hidden:n.hidden===true,rectCount:n.getClientRects().length,...box,computed});
+   if(outsideViewport||internalOverflow){
+    if(offenders.length===offenderLimit)return {...shared,overflow:root.scrollWidth>innerWidth,complete:false,reason:'offender-limit',elementCount:all.length,scannedElements:index+1,observedOffenders:offenderLimit+1,limits:{elements:limit,offenders:offenderLimit},nodes:[],offenders:[]};
+    offenders.push({index,outsideViewport,internalOverflow,scrollPolicy:s.overflowX});
+   }
+  }
+  const finalWidth={innerWidth,innerHeight,clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,scrollX,scrollY};
+  return {...shared,viewport:finalWidth,overflow:finalWidth.scrollWidth>finalWidth.innerWidth,complete:true,reason:null,elementCount:all.length,limits:{elements:limit,offenders:offenderLimit},nodes,offenders};
+ });
+ const record={source_head:identity.source_head,checkout_sha:identity.checkout_sha,e2e_sha256:identity.e2e_sha256,run:identity.run,attempt:identity.attempt,case:caseLabel,browser,width,variant,phase,expectedInitialRootFont:variant==='text200'?'32px':'16px',sameSynchronousRead:true,...snapshot};
+ const bytes=Buffer.byteLength(JSON.stringify(record));
+ if(bytes>MiB)return {source_head:record.source_head,e2e_sha256:record.e2e_sha256,case:caseLabel,browser,width,variant,phase,sameSynchronousRead:true,complete:false,reason:'encoded-geometry-limit',encodedBytes:bytes,limitBytes:MiB,elementCount:snapshot.elementCount,viewport:snapshot.viewport,rootFont:snapshot.rootFont,overflow:snapshot.overflow};
+ return record;
+}
+async function persistFreshLayout(record,isFailure=false){
+ const path='fresh-readback-layout-'+record.case+'.json';assert.equal(category(path),'normal');
+ if(!budgetFiles.has(path))await writeFile(evidence+'/'+path,JSON.stringify(record));
+ if(isFailure||record.overflow||!record.complete)emit({fresh_readback_layout:record});
+ else emit({fresh_readback_layout_summary:{case:record.case,phase:record.phase,complete:record.complete,viewport:record.viewport,rootFont:record.rootFont,elementCount:record.elementCount,offenderCount:record.offenders.length,full_geometry_file:path,full_geometry_in_log:false}});
+}
+function freshReadbackError(error,phase,caseLabel){
+ // Preserve the original Error in memory; never put payloads, URLs or tokens in new logs.
+ const scalar=value=>typeof value==='boolean'||typeof value==='number';
+ const safeAssertion=error.name==='AssertionError'&&scalar(error.actual)&&scalar(error.expected);
+ const frames=[...String(error.stack||'').matchAll(/product-workspace\.e2e\.mjs:(\d+):(\d+)/g)].map(m=>({file:'delivery/web-preview/product-workspace.e2e.mjs',line:Number(m[1]),column:Number(m[2])}));
+ return {case:caseLabel,phase,name:error.name,message:safeAssertion?String(error.message):'Message details omitted from added evidence to protect payloads and credentials',messageOmitted:!safeAssertion,assertion:safeAssertion?{actual:error.actual,expected:error.expected,operator:error.operator}:null,sourceFrames:frames,stackScope:'only this public E2E source file; excludes URL/query/fragment and other frames',originalFirstErrorRetained:true};
+}
+
 const selected=(process.env.PRODUCT_UI_ENGINES||'chromium,firefox,webkit').split(',');
 assert.ok(selected.length&&selected.every(n=>['chromium','firefox','webkit'].includes(n)));
 for(const [name,engine] of Object.entries({chromium,firefox,webkit}).filter(([name])=>selected.includes(name))){
@@ -431,8 +473,9 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit}).filter(([na
    await workspace.click('#sign-out');await closeContext(context);context=null;
    const fresh=ownContext(await browser.newContext({viewport:{width,height:900}}));
    await fresh.route('**/*',route=>new URL(route.request().url()).origin===service.origin?route.continue():route.abort('blockedbyclient'));
+   let restored=null,readbackLayout=null,freshPhase='fresh-readback-content';
    try{
-    const restored=await fresh.newPage();await restored.goto(service.origin+'/'+workspaceRoute+'#access_token='+service.session()+'&token_type=bearer&expires_in=3600');
+    restored=await fresh.newPage();await restored.goto(service.origin+'/'+workspaceRoute+'#access_token='+service.session()+'&token_type=bearer&expires_in=3600');
     const loader=restored.locator('.typed-version[data-version-id="'+saved.id+'"] .typed-loader');
     await loader.locator(':scope > summary').click();await loader.locator('.typed-draft').waitFor();
     assert.equal(await loader.locator('.ux-saved-original').count(),3);
@@ -445,18 +488,40 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit}).filter(([na
     await writeFile(evidence+'/'+label+'-payloads.json',JSON.stringify(payloads,null,2));
     const posts=service.requests.filter(r=>r.method==='POST');assert.equal(posts.length,2);
     assert.equal(new Set(posts.map(r=>r.body.p_request_id)).size,2);
+    freshPhase='fresh-readback-workspace-geometry';
     const workspaceGeometryResult=await workspaceGeometry(restored,variant);
     assert.equal(workspaceGeometryResult.columns,workspaceGeometryResult.expectedColumns);assert.equal(workspaceGeometryResult.childrenInside,true,'Legacy cards escape workspace');
     assert.equal(workspaceGeometryResult.headerDirection,workspaceGeometryResult.expectedColumns===1?'column':'row');
     if(variant==='fallback')assert.equal(workspaceGeometryResult.containerType,'normal');
-    const overflow=await restored.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.equal(overflow,false);
+    freshPhase='fresh-readback-document-overflow';
+    readbackLayout=await freshReadbackLayout(restored,productIdentity,label,name,width,variant,freshPhase);
+    assert.equal(readbackLayout.complete,true,'Fresh layout evidence incomplete: '+readbackLayout.reason);
+    const overflow=readbackLayout.overflow;assert.equal(overflow,false,'fresh-readback-document-overflow '+JSON.stringify(readbackLayout.viewport));
+    await persistFreshLayout(readbackLayout);requireHealthy();
+    freshPhase='fresh-readback-screenshot';
     await screenshot(restored,evidence+'/'+label+'-readback.png');
+    freshPhase='fresh-readback-layout-assertions';
     const workspaceLayout=await restored.evaluate(()=>({rootFont:getComputedStyle(document.documentElement).fontSize,mainWidth:document.querySelector('main').getBoundingClientRect().width,containerType:getComputedStyle(document.querySelector('#url-result-panel')).containerType}));
     if(variant==='fallback')assert.equal(workspaceLayout.containerType,'normal');
     if(variant==='text200')assert.equal(workspaceLayout.rootFont,'32px');
     if(variant==='narrow')assert.equal(workspaceLayout.mainWidth,360);
     results.push({browser:name,width,variant,console_layout:layout,shell_layout:shell,workspace_layout:workspaceLayout,assistant_geometry:assistant,workspace_geometry:workspaceGeometryResult,selected_uiux:true,source_originals_equal:true,guide_focus:true,synthetic_session:true,workspace_revision:2,original_version_preserved:true,full_payload_equal:true,payload_sha256:Object.fromEntries(Object.entries(payloads).map(([k,v])=>[k,digest(v)])),save_posts:2,overflow});
-   }catch(error){remember(error);throw failure;}finally{await cleanupStep('fresh-context',()=>closeContext(fresh));requireHealthy();}
+   }catch(error){
+    // Lock the original assertion before any evidence or close can fail.
+    remember(error);
+    await cleanupStep('fresh-first-error-evidence',async()=>{
+     const detail=freshReadbackError(error,freshPhase,label);
+     await writeFile(evidence+'/fresh-readback-error-'+label+'.json',JSON.stringify(detail));emit({fresh_readback_error:detail});
+    });
+    if(restored&&!restored.isClosed()){
+     await cleanupStep('fresh-layout-evidence',async()=>{
+      if(!readbackLayout)readbackLayout=await freshReadbackLayout(restored,productIdentity,label,name,width,variant,'failure-observation-after-'+freshPhase);
+      await persistFreshLayout(readbackLayout,true);
+     });
+     await cleanupStep('fresh-fault-screenshot',()=>screenshot(restored,evidence+'/fresh-readback-'+label+'.png',true));
+    }
+    throw failure;
+   }finally{await cleanupStep('fresh-context',()=>closeContext(fresh));requireHealthy();}
   }catch(error){
    remember(error);
    await cleanupStep('case-failure-evidence',async()=>{
