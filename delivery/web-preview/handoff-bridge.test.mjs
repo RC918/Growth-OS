@@ -4,13 +4,14 @@ import {createHash} from 'node:crypto';
 import {cp, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import {applyHandoffBridge} from './handoff-bridge.mjs';
 
 const root = new URL('../../', import.meta.url);
 const sha = async path => createHash('sha256').update(await readFile(new URL(path, root))).digest('hex');
 
 test('bridge patches derived dist only, is idempotent, and fails loud on drift', async () => {
-  execFileSync(process.execPath, ['delivery/web-preview/build.mjs'], {cwd: new URL('.', root).pathname, stdio: 'pipe'});
+  execFileSync(process.execPath, ['delivery/web-preview/build.mjs'], {cwd: fileURLToPath(root), stdio: 'pipe'});
   const frozenBefore = await sha('apps/web/first-result-handoff.mjs');
   const dist = new URL('delivery/web-preview/dist/', root);
   const work = await mkdtemp(tmpdir() + '/handoff-bridge-');

@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {derive} from './build.mjs';
+import {deriveWorkspace} from './workspace-integration.mjs';
 const root=new URL('../../',import.meta.url),hash=b=>createHash('sha256').update(b).digest('hex');
 import {deriveClaim} from './claim-transform.mjs';
 export {deriveClaim} from './claim-transform.mjs';
@@ -17,7 +18,7 @@ export async function buildClaimIntegration({directory}){
  for(const e of (await readdir(new URL('apps/web/',root),{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){
   assert.ok(e.isFile(),'Unexpected web entry');
   const source=await readFile(new URL('apps/web/'+e.name,root));
-  const output=Buffer.from(deriveClaim(e.name,derive(e.name,source.toString('utf8'))));
+  const output=Buffer.from(deriveWorkspace(e.name,deriveClaim(e.name,derive(e.name,source.toString('utf8')))));
   await writeFile(directory+'/'+e.name,output);
   manifest.files[e.name]={source_sha256:hash(source),output_sha256:hash(output),derived:!source.equals(output)};
  }

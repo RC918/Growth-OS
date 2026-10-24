@@ -19,13 +19,26 @@ jobs:
           node --test tools/frozen-preflight.test.mjs
           node tools/frozen-preflight.mjs --base HEAD~1
       - name: Handoff bridge and review flag tests
-        run: node --test delivery/web-preview/handoff-bridge.test.mjs delivery/web-preview/review-flag.test.mjs
+        run: node --test delivery/web-preview/handoff-bridge.test.mjs delivery/web-preview/review-flag.test.mjs delivery/web-preview/workspace-integration.test.mjs
       - name: Auto-handoff config guard tests
         run: node --test supabase/tests/auto_handoff_config.test.mjs
       - name: Install isolated UI test browser
         run: |
           npm ci --ignore-scripts
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Product Console handoff and fresh-session UI (synthetic transport, three engines)
+        timeout-minutes: 8
+        env:
+          PRODUCT_UI_EVIDENCE: ${{ runner.temp }}/product-workspace-ui
+        run: node delivery/web-preview/product-workspace.e2e.mjs
+      - name: Preserve product UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-workspace-ui
+          path: ${{ runner.temp }}/product-workspace-ui/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Phase 2A reviewed URL-result publication contracts
         run: node --test prototype/wordpress-publish/url-result-publish.test.mjs prototype/wordpress-publish/url-result-authority.test.mjs prototype/phase2a-measure/observe.test.mjs prototype/phase2a-measure/from-publication.test.mjs prototype/wordpress-publish/url-result-chain.test.mjs prototype/ai-seo/ai-seo-pipeline.test.mjs prototype/ai-seo/model-adapter.test.mjs prototype/growth-engine/engine.test.mjs prototype/phase3a-flow/flow.test.mjs prototype/phase3a-flow/to-publish-preview.test.mjs prototype/phase3a-flow/authority-from-reviewed.test.mjs prototype/ai-seo/openai-live-gate.test.mjs prototype/ai-seo/quality-eval.test.mjs prototype/ai-seo/run-phase3b-trial.test.mjs prototype/ai-seo/batch-authorization.test.mjs prototype/ai-seo/claim-verifier.test.mjs prototype/ai-seo/claim-holdout.test.mjs prototype/ai-seo/claim-holdout-blind.test.mjs prototype/ai-seo/annotation-page.test.mjs
       - name: Pull pinned disposable WordPress images

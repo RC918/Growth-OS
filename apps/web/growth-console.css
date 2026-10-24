@@ -10,3 +10,20 @@
 @media(max-width:767px){body.flow-layout{overflow:auto}.flow-layout .shell{display:flex;height:auto;min-height:100dvh}.flow-layout main{overflow:visible;min-height:0;order:1}.flow-layout #guidance{order:0}.flow-layout #task-card{order:2}.flow-layout #site-nav{order:0}}
 
 .claim-review{border:1px solid var(--line);padding:1rem;border-radius:8px}.claim-field{border-left:3px solid #718979;padding-left:.75rem}.claim-review pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:100%}.claim-review article{border-top:1px solid var(--line)}
+
+/* Product integration of the accepted r2 component layout. Page navigation
+   remains governed by the existing toggle; no hidden-navigation lab fixture. */
+main>section{container-type:inline-size;container-name:result-card}
+.rail section{container-type:inline-size;container-name:assistant-card}
+.comparison,.summary-grid{grid-template-columns:minmax(0,1fr)}
+.handoff{display:flex;flex-wrap:wrap;gap:.5rem;min-width:0}
+.handoff>h3,.handoff>p{flex-basis:100%;margin-block:.5rem}
+.handoff button{width:100%;white-space:normal;overflow-wrap:anywhere}
+@container result-card (min-width:32rem){
+ .comparison{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .handoff button{width:auto}
+}
+@container assistant-card (max-width:14rem){.rail h2{margin-bottom:1rem}.rail p{overflow-wrap:anywhere}}
+/* Natural flow prevents zoom/software keyboard from pinning controls offscreen. */
+.flow-layout .comparison,.flow-layout .summary-grid{grid-template-columns:minmax(0,1fr)}
