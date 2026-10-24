@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile as rawWrite,readFile,readdir,lstat,rm} from 'node:fs/promises';
 import {execFileSync,spawnSync} from 'node:child_process';
+import {writeFileSync,readFileSync,lstatSync,readdirSync,mkdirSync,realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {createRequire} from 'node:module';
 import {dirname,join,isAbsolute,resolve} from 'node:path';
@@ -13,16 +14,19 @@ const playwrightModule=process.env.PRODUCT_UI_PLAYWRIGHT_MODULE||'playwright';
 const {chromium,firefox,webkit}=await import(playwrightModule);
 const packagePath=isAbsolute(playwrightModule)?join(dirname(playwrightModule),'package.json'):createRequire(import.meta.url).resolve('playwright/package.json');
 const packageBytes=await readFile(packagePath),playwrightVersion=JSON.parse(packageBytes).version;
-import {buildPreviewAcceptance,startTestService,producerReport} from '../growth-console/persistence-integration.e2e.mjs';
+import {startTestService,producerReport} from '../growth-console/persistence-integration.e2e.mjs';
 import {canonical} from '../../apps/web/first-result-payload.mjs';
+import {build} from './build.mjs';
+import {applyHandoffBridge} from './handoff-bridge.mjs';
+import {applyReviewFlag} from './review-flag.mjs';
+import {cp} from 'node:fs/promises';
 const BASELINE='4ecc22754a360216028f451f139b1dc7e548ed3b';
 const BASELINE_TREE='924da18d51d8dce4429b6ac8ec94a2bc79c95859';
 const baselineAssets={"delivery/first-result-workspace/assistant-layout.mjs":"fefcbbe83142b294798bbf061064d7a6f21b23fd","delivery/first-result-workspace/derive.mjs":"935d5052f06f1b91719ba31873bc3e3159cce31a","delivery/first-result-workspace/differences.mjs":"c91c9edcf1d147b5173335bddc311d5dc4ced546","delivery/first-result-workspace/experience.css":"df563c218769e9a5cfd5555a39e4c5713844c3aa","delivery/first-result-workspace/workspace-guide.mjs":"60839ffc6a90e23e0232bb270a2269f925a67616","delivery/web-preview/build.mjs":"159ac05d4770b36e36c905cf9ac19ffa9b48195c","delivery/web-preview/claim-transform.mjs":"2147484651a08e7707854b8cdb2287f24985d301","delivery/web-preview/handoff-bridge.mjs":"e428396fafab5873f826303e35db2ecc10da97c5","delivery/web-preview/review-flag.mjs":"25d2fc27e6a7f0f1f9a16d488fb137c16f190fe3","delivery/web-preview/workspace-integration.mjs":"9f923feb53323d68a25852122174d9cdedfc77ba","vercel.json":"fc7bc243cf70b06f7e68f416a0bd50726166cc73"};
 const evidence=resolve(process.env.PRODUCT_UI_EVIDENCE||await mkdtemp(tmpdir()+'/gos-product-ui-evidence-'));
-await mkdir(evidence,{recursive:true});
 const owned=await mkdtemp(tmpdir()+'/gos-responsive-shell-'),directory=owned+'/candidate';
 const liveBrowsers=new Set(),liveServices=new Set(),liveContexts=new Set(),closingBrowsers=new Set(),closingServices=new Set(),closingContexts=new Set(),cleanup={browsers:[],services:[],contexts:[],temp:'pending',errors:[]};
-const evidenceLimit=8*1024*1024;
+const evidenceLimit=512*1024*1024;
 let failure=null,frames=0,logBytes=0,logFailure=null,fixtureReport;const logHash=createHash('sha256');
 const remember=error=>{failure??=error;};
 const rememberLogError=error=>{logFailure??=error;remember(error);};
@@ -47,13 +51,125 @@ async function cleanupStep(stage,operation){
  try{await bounded(Promise.resolve().then(operation),stage);}catch(error){remember(error);cleanup.errors.push({stage,name:error.name,message:error.message});}
 }
 function requireHealthy(){if(failure)throw failure;if(logFailure){remember(logFailure);throw failure;}}
-async function inventory(root=evidence){let bytes=0;for(const item of await readdir(root,{withFileTypes:true})){const path=join(root,item.name);if(item.isDirectory())bytes+=await inventory(path);else{assert.ok(item.isFile(),'Unexpected evidence entry');bytes+=(await lstat(path)).size;}}return bytes;}
-async function checkBudget(){const bytes=await inventory();assert.ok(bytes<=evidenceLimit,'Post-write PRODUCT_UI_EVIDENCE soft limit exceeded (8MiB): '+bytes);return bytes;}
-async function writeFile(path,data,options){
- const target=resolve(path);if(target.startsWith(evidence+'/')){let previous=0;try{previous=(await lstat(target)).size;}catch(error){if(error.code!=='ENOENT')throw error;}assert.ok(await inventory()-previous+Buffer.byteLength(data)<=evidenceLimit,'Structured evidence would exceed 8MiB');}
- await rawWrite(path,data,options);
+// Fixed pools: metadata/first-error/cleanup cannot be consumed by normal PNGs.
+const MiB=1024*1024,pngLimit=8*MiB;
+const budgetLimits={normal:480*MiB,error:MiB,cleanup:MiB,metadata:6*MiB,fault:24*MiB};
+const budgetFiles=new Map(),budgetAttempts=[],budgetBlocked=new Set(),budgetErrors=[];
+let capacityFailure=null,faultSlots=0,rootIdentity=null;
+const budgetMode='encoded PNG admission before disk write; stat/SHA256 readback; fixed pools';
+const budgetHash=bytes=>createHash('sha256').update(bytes).digest('hex');
+function category(name){
+ if(name.startsWith('fault-')&&name.endsWith('.png'))return 'fault';
+ if(name==='first-null.json'||name.includes('first-error')||name.includes('failure')||name.includes('error'))return 'error';
+ if(name==='lifecycle.json'||name==='cleanup.json'||name==='final-status.json')return 'cleanup';
+ if(name==='inventory.json'||name==='budget-status.json'||name==='evidence-owner.json'||name==='identity.json'||name==='runtime.json'||name.endsWith('-runtime.json')||name==='fixture-identity.json')return 'metadata';
+ return 'normal';
 }
-async function screenshot(page,path){await page.screenshot({path,fullPage:true,timeout:5000});await checkBudget();}
+function totals(){const out=Object.fromEntries(Object.keys(budgetLimits).map(k=>[k,0]));for(const row of budgetFiles.values())out[row.category]+=row.bytes;return out;}
+function evidenceName(name){assert.match(name,/^[a-zA-Z0-9_#.-]+$/,'Flat owned evidence filename required');assert.ok(name!=='.'&&name!=='..');return name;}
+function rootGuard(){const s=lstatSync(evidence);assert.ok(s.isDirectory()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.dev,rootIdentity.dev);assert.equal(s.ino,rootIdentity.ino);assert.equal(realpathSync(evidence),evidence);}
+function claimEvidenceRoot(){
+ assert.equal(realpathSync(dirname(evidence)),dirname(evidence),'Evidence parent must not alias another path');
+ try{mkdirSync(evidence);}catch(error){if(error.code!=='EEXIST')throw error;}
+ const s=lstatSync(evidence);assert.ok(s.isDirectory()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.mode&0o022,0,'Evidence root must not be writable by other users');
+ assert.equal(readdirSync(evidence).length,0,'Evidence root must be fresh, empty and exclusively owned');rootIdentity={dev:s.dev,ino:s.ino};rootGuard();
+ putEvidence('evidence-owner.json',JSON.stringify({pid:process.pid,uid:process.getuid(),root:rootIdentity,exclusive:true}),false);
+}
+function auditEvidence(){
+ rootGuard();const names=readdirSync(evidence);assert.equal(names.length,budgetFiles.size,'Unexpected or missing evidence files');
+ for(const name of names){evidenceName(name);const row=budgetFiles.get(name),s=lstatSync(join(evidence,name));assert.ok(row,'Unaccounted evidence: '+name);assert.ok(s.isFile()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.nlink,1);assert.equal(s.size,row.bytes,'Evidence size drift: '+name);assert.equal(s.ino,row.ino);assert.equal(s.dev,row.dev);}
+ const used=totals();for(const [pool,size]of Object.entries(used))assert.ok(size<=budgetLimits[pool],'Evidence pool overflow: '+pool);return used;
+}
+function budgetError(error,name){
+ remember(error);const row={file:name,name:error.name,message:error.message};budgetErrors.push(row);emit({evidence_error:row});
+}
+function rejectCapacity(name,bytes,pool,reason){
+ const error=Error('Evidence capacity rejected: '+name+' ('+reason+')');capacityFailure??=error;
+ budgetAttempts.push({path:name,category:pool,status:'rejected',attempted_bytes:bytes,actual_bytes:0,reason});budgetBlocked.add(name);throw error;
+}
+function putEvidence(name,data,append=false){
+ evidenceName(name);const bytes=Buffer.isBuffer(data)?data:Buffer.from(data),pool=category(name);let attempted=false;
+ try{
+  assert.equal(budgetBlocked.has(name),false,'No retry of failed evidence: '+name);auditEvidence();
+  const previous=budgetFiles.get(name),old=previous?.bytes||0,next=(append?old:0)+bytes.length;
+  assert.ok(!previous||previous.category===pool,'Evidence classification is immutable');
+  if(capacityFailure&&pool==='normal')return rejectCapacity(name,bytes.length,pool,'normal writes stopped after first capacity failure');
+  if(name.endsWith('.png')&&bytes.length>pngLimit)return rejectCapacity(name,bytes.length,pool,'encoded PNG exceeds 8MiB');
+  if(totals()[pool]-old+next>budgetLimits[pool])return rejectCapacity(name,bytes.length,pool,'fixed '+pool+' pool exhausted');
+  const previousBytes=previous?readFileSync(join(evidence,name)):Buffer.alloc(0);
+  if(previous)assert.equal(budgetHash(previousBytes),previous.sha256,'Evidence changed before replacement/append: '+name);
+  const target=join(evidence,name);attempted=true;
+  // wx prevents concurrent creation; replacements only touch previously verified files.
+  writeFileSync(target,bytes,{flag:append?'a':previous?'w':'wx'});
+  const info=lstatSync(target),actual=readFileSync(target),hash=budgetHash(actual);
+  budgetFiles.set(name,{path:name,category:pool,bytes:info.size,sha256:hash,ino:info.ino,dev:info.dev,status:'written'});
+  assert.ok(info.isFile()&&!info.isSymbolicLink());assert.equal(info.nlink,1);assert.equal(info.uid,process.getuid());assert.equal(info.size,next);
+  const expected=append?budgetHash(Buffer.concat([previousBytes,bytes])):budgetHash(bytes);
+  assert.equal(hash,expected,'Written evidence SHA256 mismatch: '+name);budgetFiles.get(name).status='verified';
+  budgetAttempts.push({path:name,category:pool,status:'verified',bytes:info.size,delta:info.size-old,sha256:hash});auditEvidence();return true;
+ }catch(error){
+  // An incomplete write still occupies disk and must remain in the inventory.
+  if(attempted){try{const s=lstatSync(join(evidence,name));if(s.isFile()&&!s.isSymbolicLink())budgetFiles.set(name,{path:name,category:pool,bytes:s.size,sha256:budgetHash(readFileSync(join(evidence,name))),ino:s.ino,dev:s.dev,status:'unverified'});}catch(readback){emit({evidence_unreadable:{path:name,name:readback.name,message:readback.message}});}}
+  if(!budgetBlocked.has(name))budgetAttempts.push({path:name,category:pool,status:'failed',attempted_bytes:bytes.length,actual_bytes:budgetFiles.get(name)?.bytes||0,reason:error.message});
+  budgetBlocked.add(name);budgetError(error,name);throw error;
+ }
+}
+async function budgetScreenshot(page,name,options,fault=false){
+ evidenceName(name);
+ if(capacityFailure){const error=Error('No screenshot after capacity failure: '+name);budgetAttempts.push({path:name,category:fault?'fault':'normal',status:'not-captured',actual_bytes:0,reason:error.message});budgetError(error,name);throw error;}
+ if(fault&&faultSlots>=3){try{rejectCapacity(name,0,'fault','fault screenshot slots exhausted');}catch(error){budgetError(error,name);throw error;}}
+ let bytes;
+ try{bytes=await page.screenshot({...options,fullPage:true});}catch(error){budgetAttempts.push({path:name,category:fault?'fault':'normal',status:'capture-failed',actual_bytes:0,reason:error.message});budgetError(error,name);throw error;}
+ const target=fault?'fault-'+(++faultSlots)+'-'+name:name;
+ try{putEvidence(target,bytes);}catch(error){
+  // Only the same already encoded, never-written normal PNG may use one fault slot.
+  if(!fault&&capacityFailure&&bytes.length<=pngLimit&&!budgetFiles.has(target)&&faultSlots<3){
+   const saved='fault-'+(++faultSlots)+'-'+name;
+   try{putEvidence(saved,bytes);budgetAttempts.push({path:saved,original_path:name,status:'retained-rejected-buffer',incomplete:true,bytes:bytes.length});}catch(saveError){emit({fault_buffer_unwritten:{path:saved,name:saveError.name,message:saveError.message}});}
+  }
+  throw error;
+ }
+}
+function finishEvidence(){
+ auditEvidence();
+ for(const row of budgetFiles.values())assert.equal(budgetHash(readFileSync(join(evidence,row.path))),row.sha256,'Final evidence hash drift: '+row.path);
+ putEvidence('budget-status.json',JSON.stringify({limits:budgetLimits,mode:budgetMode,capacity_failure:capacityFailure?.message||null,totals_before_index:totals(),fault_slots:faultSlots,errors:budgetErrors}));
+ const files=[...budgetFiles.values()].map(({ino,dev,...row})=>row);
+ // Inventory contains attempts before its own write, avoiding recursive hashes.
+ // Its own verified write is logged separately; exact serialized bytes allow reconstruction.
+ let size=0,bytes,converged=false;
+ for(let i=0;i<8;i++){
+  const used=totals();used.metadata+=size;
+  bytes=Buffer.from(JSON.stringify({limits:budgetLimits,totals:used,files:[...files,{path:'inventory.json',category:'metadata',bytes:size,sha256:'see sealed inventory_file record'}],attempts:budgetAttempts}));
+  if(bytes.length===size){converged=true;break;}size=bytes.length;
+ }
+ assert.equal(converged,true,'Inventory self-size must converge');putEvidence('inventory.json',bytes);
+ emitInventoryRows();
+ emit({inventory_content:{encoding:'utf8',content:bytes.toString('utf8'),self_write:'excluded from content attempts; included in evidence_attempt and inventory_file'}});
+ emit({inventory_file:{path:'inventory.json',bytes:bytes.length,sha256:budgetHash(bytes),totals:auditEvidence(),limits:budgetLimits,capacity_failure:capacityFailure?.message||null}});
+}
+function emitInventoryRows(){
+ for(const row of budgetFiles.values()){const {ino,dev,...publicRow}=row;emit({evidence_file:publicRow});}
+ for(const [index,attempt]of budgetAttempts.entries())emit({evidence_attempt:{sequence:index+1,...attempt}});
+
+}
+
+async function checkBudget(){return Object.values(auditEvidence()).reduce((a,b)=>a+b,0);}
+async function writeFile(path,data,options){
+ const target=resolve(path);
+ if(target.startsWith(evidence+'/')){assert.equal(options,undefined);return putEvidence(target.slice(evidence.length+1),data);}
+ return rawWrite(path,data,options);
+}
+async function screenshot(page,path,fault=false){const target=resolve(path);assert.ok(target.startsWith(evidence+'/'),'Screenshot outside owned evidence');return budgetScreenshot(page,target.slice(evidence.length+1),{timeout:5000},fault);}
+async function buildCandidate(){
+ // Same existing buildPreviewAcceptance steps; only manifest writing is metered here.
+ const config=JSON.parse(await readFile(new URL('../../vercel.json',import.meta.url)));
+ assert.equal(config.buildCommand,'node delivery/web-preview/build.mjs && node delivery/web-preview/handoff-bridge.mjs && node delivery/web-preview/review-flag.mjs');
+ const dist=new URL('./dist/',import.meta.url),manifest=await build();await applyHandoffBridge(dist);await applyReviewFlag(dist,{});
+ await cp(dist,directory,{recursive:true});
+ for(const name of Object.keys(manifest.files)){const entry=manifest.files[name];entry.output_sha256=createHash('sha256').update(await readFile(directory+'/'+name)).digest('hex');entry.derived=entry.source_sha256!==entry.output_sha256;}
+ manifest.kind='preview-acceptance-after-handoff-bridge';await writeFile(evidence+'/preview-build-manifest.json',JSON.stringify(manifest,null,2));
+}
 async function closeService(service){assert.equal(closingServices.has(service),false,'No repeated service cleanup');closingServices.add(service);await bounded(service.close(),'Service close');liveServices.delete(service);cleanup.services.push('closed');}
 async function closeBrowser(browser){assert.equal(closingBrowsers.has(browser),false,'No repeated browser cleanup');closingBrowsers.add(browser);await bounded(browser.close(),'Browser close');liveBrowsers.delete(browser);cleanup.browsers.push('closed');}
 function ownContext(context){liveContexts.add(context);context.once('close',()=>liveContexts.delete(context));return context;}
@@ -139,14 +255,15 @@ async function captureBaselines(site){
  }}catch(error){remember(error);throw failure;}finally{await cleanupStep('baseline-browser',()=>closeBrowser(browser));requireHealthy();}
 }
 try{
+ claimEvidenceRoot();
  const event=process.env.GITHUB_EVENT_PATH?JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH)):{};
- emit({product_identity:{source_head:event.pull_request?.head?.sha||process.env.GITHUB_SHA,checkout_sha:git(['rev-parse','HEAD']).trim(),checkout_tree:git(['rev-parse','HEAD^{tree}']).trim(),e2e_sha256:createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'),baseline:BASELINE,run:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,evidence_limit:evidenceLimit,evidence_limit_mode:'8MiB soft fail-stop; screenshots checked after writing'}});
+ emit({product_identity:{source_head:event.pull_request?.head?.sha||process.env.GITHUB_SHA,checkout_sha:git(['rev-parse','HEAD']).trim(),checkout_tree:git(['rev-parse','HEAD^{tree}']).trim(),e2e_sha256:createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'),baseline:BASELINE,run:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,evidence_limit:evidenceLimit,evidence_limit_mode:budgetMode,evidence_pools:budgetLimits}});
  assert.equal(playwrightVersion,'1.58.2');
  assert.equal(process.env.PRODUCT_UI_ENGINES||'chromium,firefox,webkit','chromium,firefox,webkit','No reduced-engine CI acceptance');assert.equal(process.env.PRODUCT_UI_CASE,undefined,'No filtered CI acceptance');
  fixtureReport=producerReport();await writeFile(evidence+'/fixture-identity.json',JSON.stringify({report_sha256:createHash('sha256').update(canonical(fixtureReport)).digest('hex'),source_version:fixtureReport.snapshot.version},null,2));
  await frozenAndSourceGuard();
  const baselineSite=await rebuildBaseline();await variants(baselineSite);await captureBaselines(baselineSite);
- await buildPreviewAcceptance({directory,evidence});await checkBudget();await frozenAndSourceGuard();await variants(directory);
+ await buildCandidate();await checkBudget();await frozenAndSourceGuard();await variants(directory);
 const results=[];
 const keyboard=[];
 async function tabTo(page,selector){
@@ -346,7 +463,7 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit}).filter(([na
     const pages=await Promise.all((context?.pages()||[]).map(async p=>({url:p.url().split('#')[0],text:await p.locator('body').innerText({timeout:1500}).catch(()=>'(unavailable)'),focus:await bounded(p.evaluate(()=>({id:document.activeElement.id,tag:document.activeElement.tagName,html:document.activeElement.outerHTML.slice(0,500)})),'Failure focus',1500).catch(()=>null)})));
     await writeFile(evidence+'/'+label+'-failure.json',JSON.stringify({name:failure.name,message:failure.message,pages},null,2));
    });
-   for(const [i,p]of(context?.pages()||[]).entries())await cleanupStep('case-failure-screenshot',()=>screenshot(p,evidence+'/'+label+'-failure-'+i+'.png'));
+   for(const [i,p]of(context?.pages()||[]).entries())await cleanupStep('case-failure-screenshot',()=>screenshot(p,evidence+'/'+label+'-failure-'+i+'.png',true));
    throw failure;
   }finally{
    await cleanupStep('case-context',()=>closeContext(context));
@@ -362,7 +479,7 @@ assert.equal(results.length,33);assert.equal(visualPairs.filter(p=>p.kind==='bas
 await frozenAndSourceGuard();await writeFile(evidence+'/visual-pairs.json',JSON.stringify(visualPairs,null,2));
 for(const result of results)emit({product_case_result:result});
 emit({product_result:{scope:'synthetic transport/session, not hosted or native zoom',cases:results.length,baseline_pairs:10,visual_review:'BLOCKED_NO_REVIEWER_PIXEL_ACCESS',budget_bytes:await checkBudget()}});
-}catch(error){remember(error);emit({product_failure:{name:failure.name,message:failure.message}});}
+}catch(error){remember(error);await cleanupStep('first-error-evidence',()=>writeFile(evidence+'/first-error.json',JSON.stringify({name:failure.name,message:failure.message})));emit({product_failure:{name:failure.name,message:failure.message}});}
 finally{
  for(const context of [...liveContexts].filter(c=>!closingContexts.has(c)))await cleanupStep('final-context',()=>closeContext(context));
  for(const browser of [...liveBrowsers].filter(b=>!closingBrowsers.has(b)))await cleanupStep('final-browser',()=>closeBrowser(browser));
@@ -373,7 +490,9 @@ finally{
  cleanup.remaining={browsers:liveBrowsers.size,services:liveServices.size,contexts:liveContexts.size};
  await cleanupStep('cleanup-evidence',async()=>{await writeFile(evidence+'/cleanup.json',JSON.stringify({...cleanup,first_error:failure?{name:failure.name,message:failure.message}:null},null,2));await checkBudget();});
  emit({product_cleanup:{...cleanup,first_error:failure?{name:failure.name,message:failure.message}:null}});
+ if(failure&&!budgetFiles.has('first-error.json')&&!budgetBlocked.has('first-error.json'))await cleanupStep('final-first-error',()=>writeFile(evidence+'/first-error.json',JSON.stringify({name:failure.name,message:failure.message})));
+ await cleanupStep('evidence-inventory',()=>{try{finishEvidence();}catch(error){emitInventoryRows();emit({inventory_incomplete:{name:error.name,message:error.message}});throw error;}});
  try{await seal();}catch(error){rememberLogError(error);remember(error);}
 }
-if(failure||logFailure||cleanup.errors.length||cleanup.temp!=='removed-absence-confirmed')process.exitCode=1;
+if(failure||logFailure||budgetErrors.length||cleanup.errors.length||cleanup.temp!=='removed-absence-confirmed')process.exitCode=1;
 if(liveBrowsers.size||liveServices.size||liveContexts.size||logFailure)process.exit(1);

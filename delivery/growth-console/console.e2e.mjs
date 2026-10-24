@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {mkdtemp,readFile,rm,stat,readdir} from 'node:fs/promises';
-import {appendFileSync,writeFileSync} from 'node:fs';
+import {writeFileSync,readFileSync,lstatSync,readdirSync,mkdirSync,realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join,dirname} from 'node:path';
+import {join,dirname,resolve} from 'node:path';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 // Diagnostic module override selects the already installed isolated runtime only.
@@ -13,13 +13,13 @@ const playwrightPackage=playwrightModule==='playwright'?createRequire(import.met
 const playwrightVersion=JSON.parse(await readFile(playwrightPackage,'utf8')).version;
 assert.equal(playwrightVersion,'1.58.2','Use the existing approved Playwright version');
 const sourceHash=createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex');
-const evidence=process.env.CONSOLE_DIAGNOSTIC_DIRECTORY;
-assert.ok(evidence,'A fresh diagnostic evidence directory is required');
+assert.ok(process.env.CONSOLE_DIAGNOSTIC_DIRECTORY,'A fresh diagnostic evidence directory is required');
+const evidence=resolve(process.env.CONSOLE_DIAGNOSTIC_DIRECTORY);
 const selectors=['#guide-action','#guide-close','#task-toggle','#review-confirm'];
 let diagnosticSequence=0;
 const evidenceErrors=[];
-const writtenSizes=new Map(),runByteLimit=8*1024*1024;
-const runBudgetMode='8MiB soft fail-stop: screenshots checked after writing; structured writes prechecked';
+const runByteLimit=64*1024*1024;
+const runBudgetMode='64MiB fixed pools; encoded PNG pre-write admission and post-write verification';
 let observationRunBytes=0;
 // Small framed writes use Node's queued stream, including backpressure. The seal
 // permits independent reconstruction from received job logs; no silent partial write.
@@ -47,26 +47,118 @@ async function sealLog(){
  }),1500,'Console evidence seal');
  if(logFailure)throw logFailure;
 }
-function safeEvidence(name,value,append=false){
+// Fixed pools: metadata/first-error/cleanup cannot be consumed by normal PNGs.
+const MiB=1024*1024,pngLimit=8*MiB;
+const budgetLimits={normal:48*MiB,error:MiB,cleanup:MiB,metadata:6*MiB,fault:8*MiB};
+const budgetFiles=new Map(),budgetAttempts=[],budgetBlocked=new Set(),budgetErrors=[];
+let capacityFailure=null,faultSlots=0,rootIdentity=null;
+const budgetMode='encoded PNG admission before disk write; stat/SHA256 readback; fixed pools';
+const budgetHash=bytes=>createHash('sha256').update(bytes).digest('hex');
+function category(name){
+ if(name.startsWith('fault-')&&name.endsWith('.png'))return 'fault';
+ if(name==='first-null.json'||name.includes('first-error')||name.includes('failure')||name.includes('error'))return 'error';
+ if(name==='lifecycle.json'||name==='cleanup.json'||name==='final-status.json')return 'cleanup';
+ if(name==='inventory.json'||name==='budget-status.json'||name==='evidence-owner.json'||name==='identity.json'||name==='runtime.json'||name.endsWith('-runtime.json')||name==='fixture-identity.json')return 'metadata';
+ return 'normal';
+}
+function totals(){const out=Object.fromEntries(Object.keys(budgetLimits).map(k=>[k,0]));for(const row of budgetFiles.values())out[row.category]+=row.bytes;return out;}
+function evidenceName(name){assert.match(name,/^[a-zA-Z0-9_#.-]+$/,'Flat owned evidence filename required');assert.ok(name!=='.'&&name!=='..');return name;}
+function rootGuard(){const s=lstatSync(evidence);assert.ok(s.isDirectory()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.dev,rootIdentity.dev);assert.equal(s.ino,rootIdentity.ino);assert.equal(realpathSync(evidence),evidence);}
+function claimEvidenceRoot(){
+ assert.equal(realpathSync(dirname(evidence)),dirname(evidence),'Evidence parent must not alias another path');
+ try{mkdirSync(evidence);}catch(error){if(error.code!=='EEXIST')throw error;}
+ const s=lstatSync(evidence);assert.ok(s.isDirectory()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.mode&0o022,0,'Evidence root must not be writable by other users');
+ assert.equal(readdirSync(evidence).length,0,'Evidence root must be fresh, empty and exclusively owned');rootIdentity={dev:s.dev,ino:s.ino};rootGuard();
+ putEvidence('evidence-owner.json',JSON.stringify({pid:process.pid,uid:process.getuid(),root:rootIdentity,exclusive:true}),false);
+}
+function auditEvidence(){
+ rootGuard();const names=readdirSync(evidence);assert.equal(names.length,budgetFiles.size,'Unexpected or missing evidence files');
+ for(const name of names){evidenceName(name);const row=budgetFiles.get(name),s=lstatSync(join(evidence,name));assert.ok(row,'Unaccounted evidence: '+name);assert.ok(s.isFile()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.nlink,1);assert.equal(s.size,row.bytes,'Evidence size drift: '+name);assert.equal(s.ino,row.ino);assert.equal(s.dev,row.dev);}
+ const used=totals();for(const [pool,size]of Object.entries(used))assert.ok(size<=budgetLimits[pool],'Evidence pool overflow: '+pool);return used;
+}
+function budgetError(error,name){
+ firstError??=error;const row={file:name,name:error.name,message:error.message};budgetErrors.push(row);stderrFallback({evidence_error:row});
+}
+function rejectCapacity(name,bytes,pool,reason){
+ const error=Error('Evidence capacity rejected: '+name+' ('+reason+')');capacityFailure??=error;
+ budgetAttempts.push({path:name,category:pool,status:'rejected',attempted_bytes:bytes,actual_bytes:0,reason});budgetBlocked.add(name);throw error;
+}
+function putEvidence(name,data,append=false){
+ evidenceName(name);const bytes=Buffer.isBuffer(data)?data:Buffer.from(data),pool=category(name);let attempted=false;
  try{
-  const bytes=typeof value==='string'||Buffer.isBuffer(value)?value:JSON.stringify(value,null,2)+'\n';
-  const length=Buffer.byteLength(bytes),previous=writtenSizes.get(name)||0,next=append?previous+length:length;
-  const total=Array.from(writtenSizes.values()).reduce((a,b)=>a+b,0)-previous+next;
-  if(total>runByteLimit)throw Error('Diagnostic run evidence exceeds 8MiB: '+name);
-  if(append)appendFileSync(join(evidence,name),bytes);else writeFileSync(join(evidence,name),bytes);
-  writtenSizes.set(name,next);
-  return true;
+  assert.equal(budgetBlocked.has(name),false,'No retry of failed evidence: '+name);auditEvidence();
+  const previous=budgetFiles.get(name),old=previous?.bytes||0,next=(append?old:0)+bytes.length;
+  assert.ok(!previous||previous.category===pool,'Evidence classification is immutable');
+  if(capacityFailure&&pool==='normal')return rejectCapacity(name,bytes.length,pool,'normal writes stopped after first capacity failure');
+  if(name.endsWith('.png')&&bytes.length>pngLimit)return rejectCapacity(name,bytes.length,pool,'encoded PNG exceeds 8MiB');
+  if(totals()[pool]-old+next>budgetLimits[pool])return rejectCapacity(name,bytes.length,pool,'fixed '+pool+' pool exhausted');
+  const previousBytes=previous?readFileSync(join(evidence,name)):Buffer.alloc(0);
+  if(previous)assert.equal(budgetHash(previousBytes),previous.sha256,'Evidence changed before replacement/append: '+name);
+  const target=join(evidence,name);attempted=true;
+  // wx prevents concurrent creation; replacements only touch previously verified files.
+  writeFileSync(target,bytes,{flag:append?'a':previous?'w':'wx'});
+  const info=lstatSync(target),actual=readFileSync(target),hash=budgetHash(actual);
+  budgetFiles.set(name,{path:name,category:pool,bytes:info.size,sha256:hash,ino:info.ino,dev:info.dev,status:'written'});
+  assert.ok(info.isFile()&&!info.isSymbolicLink());assert.equal(info.nlink,1);assert.equal(info.uid,process.getuid());assert.equal(info.size,next);
+  const expected=append?budgetHash(Buffer.concat([previousBytes,bytes])):budgetHash(bytes);
+  assert.equal(hash,expected,'Written evidence SHA256 mismatch: '+name);budgetFiles.get(name).status='verified';
+  budgetAttempts.push({path:name,category:pool,status:'verified',bytes:info.size,delta:info.size-old,sha256:hash});auditEvidence();return true;
  }catch(error){
-  // Keep the earliest error in memory, even if every evidence path is unwritable.
-  if(firstError===null)firstError=error;
-  const failure={file:name,error:errorInfo(error)};evidenceErrors.push(failure);
-  stderrFallback({evidence_error:failure});
-  try{writeFileSync(join(evidence,'evidence-errors.json'),JSON.stringify(evidenceErrors,null,2)+'\n');}
-  catch(fallbackError){stderrFallback({evidence_error_index_unwritten:errorInfo(fallbackError)});}
+  // An incomplete write still occupies disk and must remain in the inventory.
+  if(attempted){try{const s=lstatSync(join(evidence,name));if(s.isFile()&&!s.isSymbolicLink())budgetFiles.set(name,{path:name,category:pool,bytes:s.size,sha256:budgetHash(readFileSync(join(evidence,name))),ino:s.ino,dev:s.dev,status:'unverified'});}catch(readback){stderrFallback({evidence_unreadable:{path:name,name:readback.name,message:readback.message}});}}
+  if(!budgetBlocked.has(name))budgetAttempts.push({path:name,category:pool,status:'failed',attempted_bytes:bytes.length,actual_bytes:budgetFiles.get(name)?.bytes||0,reason:error.message});
+  budgetBlocked.add(name);budgetError(error,name);throw error;
+ }
+}
+async function budgetScreenshot(page,name,options,fault=false){
+ evidenceName(name);
+ if(capacityFailure){const error=Error('No screenshot after capacity failure: '+name);budgetAttempts.push({path:name,category:fault?'fault':'normal',status:'not-captured',actual_bytes:0,reason:error.message});budgetError(error,name);throw error;}
+ if(fault&&faultSlots>=1){try{rejectCapacity(name,0,'fault','fault screenshot slots exhausted');}catch(error){budgetError(error,name);throw error;}}
+ let bytes;
+ try{bytes=await page.screenshot({...options,fullPage:true});}catch(error){budgetAttempts.push({path:name,category:fault?'fault':'normal',status:'capture-failed',actual_bytes:0,reason:error.message});budgetError(error,name);throw error;}
+ const target=fault?'fault-'+(++faultSlots)+'-'+name:name;
+ try{putEvidence(target,bytes);}catch(error){
+  // Only the same already encoded, never-written normal PNG may use one fault slot.
+  if(!fault&&capacityFailure&&bytes.length<=pngLimit&&!budgetFiles.has(target)&&faultSlots<1){
+   const saved='fault-'+(++faultSlots)+'-'+name;
+   try{putEvidence(saved,bytes);budgetAttempts.push({path:saved,original_path:name,status:'retained-rejected-buffer',incomplete:true,bytes:bytes.length});}catch(saveError){stderrFallback({fault_buffer_unwritten:{path:saved,name:saveError.name,message:saveError.message}});}
+  }
+  throw error;
+ }
+}
+function finishEvidence(){
+ auditEvidence();
+ for(const row of budgetFiles.values())assert.equal(budgetHash(readFileSync(join(evidence,row.path))),row.sha256,'Final evidence hash drift: '+row.path);
+ putEvidence('budget-status.json',JSON.stringify({limits:budgetLimits,mode:budgetMode,capacity_failure:capacityFailure?.message||null,totals_before_index:totals(),fault_slots:faultSlots,errors:budgetErrors}));
+ const files=[...budgetFiles.values()].map(({ino,dev,...row})=>row);
+ // Inventory contains attempts before its own write, avoiding recursive hashes.
+ // Its own verified write is logged separately; exact serialized bytes allow reconstruction.
+ let size=0,bytes,converged=false;
+ for(let i=0;i<8;i++){
+  const used=totals();used.metadata+=size;
+  bytes=Buffer.from(JSON.stringify({limits:budgetLimits,totals:used,files:[...files,{path:'inventory.json',category:'metadata',bytes:size,sha256:'see sealed inventory_file record'}],attempts:budgetAttempts}));
+  if(bytes.length===size){converged=true;break;}size=bytes.length;
+ }
+ assert.equal(converged,true,'Inventory self-size must converge');putEvidence('inventory.json',bytes);
+ emitInventoryRows();
+ stderrFallback({inventory_content:{encoding:'utf8',content:bytes.toString('utf8'),self_write:'excluded from content attempts; included in evidence_attempt and inventory_file'}});
+ stderrFallback({inventory_file:{path:'inventory.json',bytes:bytes.length,sha256:budgetHash(bytes),totals:auditEvidence(),limits:budgetLimits,capacity_failure:capacityFailure?.message||null}});
+}
+function emitInventoryRows(){
+ for(const row of budgetFiles.values()){const {ino,dev,...publicRow}=row;stderrFallback({evidence_file:publicRow});}
+ for(const [index,attempt]of budgetAttempts.entries())stderrFallback({evidence_attempt:{sequence:index+1,...attempt}});
+
+}
+
+function safeEvidence(name,value,append=false){
+ try{return putEvidence(name,typeof value==='string'||Buffer.isBuffer(value)?value:JSON.stringify(value,null,2)+'\n',append);}
+ catch(error){
+  const row={file:name,error:errorInfo(error)};evidenceErrors.push(row);
+  if(name!=='evidence-errors.json'&&!budgetBlocked.has('evidence-errors.json')){try{putEvidence('evidence-errors.json',JSON.stringify(evidenceErrors,null,2)+'\n');}catch(indexError){stderrFallback({evidence_error_index_unwritten:errorInfo(indexError)});}}
   return false;
  }
 }
-function requireEvidence(){if(evidenceErrors.length)throw firstError;if(logFailure)throw logFailure;}
+function requireEvidence(){if(evidenceErrors.length||budgetErrors.length)throw firstError;if(logFailure)throw logFailure;}
 
 async function capture(page,width,stage,selector=null,box=null){
  const state=await page.evaluate(()=>{
@@ -176,7 +268,7 @@ async function observationCheckpoint(page,width,stage,end=false){
  if(batch.missing)throw Error('Atomic observation missing for width '+width);
  const text=batch.rows.map(row=>JSON.stringify(row)+'\n').join('');
  observationRunBytes+=Buffer.byteLength(text);
- if(observationRunBytes>runByteLimit){const error=Error('Atomic observation run exceeds 8MiB');preserveFirst(error);safeEvidence('observation-capacity-error.json',{width,stage,observationRunBytes});throw error;}
+ if(observationRunBytes>6*MiB){const error=Error('Atomic observation run exceeds 6MiB');preserveFirst(error);safeEvidence('observation-capacity-error.json',{width,stage,observationRunBytes});throw error;}
  if(text)safeEvidence('atomic-'+caseKey+'.jsonl',text,true);
  // Shared nodes avoid repeating complete ancestor chains; no text/values/Env are logged.
  for(const row of batch.rows){
@@ -189,13 +281,6 @@ async function observationCheckpoint(page,width,stage,end=false){
  if(batch.overflow)throw Error('Atomic observation case capacity exceeded at '+width);
  if(batch.observerError)throw Error('Mutation observation failed at '+width+': '+batch.observerError.message);
  if(end)activeObservation=null;
-}
-// Screenshot size is only known after the original write: this is a soft limit,
-// not a promise that no file can momentarily take the run above 8MiB.
-async function accountScreenshot(name){
- const info=await stat(join(evidence,name));writtenSizes.set(name,info.size);
- const total=Array.from(writtenSizes.values()).reduce((a,b)=>a+b,0);
- if(total>runByteLimit){const error=Error('Post-write diagnostic run soft limit exceeded (8MiB) after screenshot '+name);evidenceErrors.push({file:name,error:errorInfo(error)});stderrFallback({evidence_capacity_error:{name,total,limit:runByteLimit,mode:runBudgetMode}});throw error;}
 }
 const temp=await mkdtemp(join(tmpdir(),'growth-console-'));
 let browser,server,exitSeen=false,closeSeen=false,spawnError=null,activeObservation=null;
@@ -214,6 +299,7 @@ async function bounded(operation,ms,label){let timer;try{return await Promise.ra
 let resolveExit,resolveClose;
 const exited=new Promise(resolve=>{resolveExit=resolve;}),closed=new Promise(resolve=>{resolveClose=resolve;});
 try{
+ claimEvidenceRoot();
  const frozen=JSON.parse(await readFile('prototype/internal-rc/deploy/hashes.json'));assert.equal(Object.keys(frozen).length,117);
  for(const [path,hash]of Object.entries(frozen))assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'),hash,'Frozen source: '+path);
  const generated=(await readdir('apps/web')).filter(name=>name==='console-claim-engine.mjs'||name.startsWith('source-html-'));
@@ -291,8 +377,7 @@ try{
   await capture(page,width,'before-review-scene');
   await page.locator('[data-scenario=review]').click();await page.waitForFunction(()=>document.getElementById('task-id').textContent==='prototype-review');
   await capture(page,width,'after-review-scene');
-  await page.screenshot({path:join(evidence,`growth-console-${caseKey}.png`),fullPage:true});
-  await accountScreenshot(`growth-console-${caseKey}.png`);
+  await budgetScreenshot(page,`growth-console-${caseKey}.png`,{});
   await stableShell(page,width,'initial');
   const beforeZoomText=await page.locator('#field-description').inputValue();
   await capture(page,width,'before-font-change');
@@ -313,7 +398,7 @@ try{
    const row=await capture(page,width,'before-size-assertion',selector,box);
    if(box===null){
     safeEvidence('first-null.json',row);stderrFallback({console_diagnostic_first_null:{identity,...project(row)}});requireEvidence();
-    try{await page.screenshot({path:join(evidence,`first-null-${caseKey}.png`),fullPage:true,timeout:2000});await accountScreenshot(`first-null-${caseKey}.png`);}
+    try{await budgetScreenshot(page,`first-null-${caseKey}.png`,{timeout:2000},true);}
     catch(error){safeEvidence('first-null-screenshot-error.json',errorInfo(error));}
     throw originalError;
    }
@@ -321,7 +406,7 @@ try{
   }
   await observationCheckpoint(page,width,'measurement-segment-complete',true);
   await stableShell(page,width,'200-percent');
-  await page.screenshot({path:join(evidence,`growth-console-${caseKey}-200.png`),fullPage:true});await accountScreenshot(`growth-console-${caseKey}-200.png`);
+  await budgetScreenshot(page,`growth-console-${caseKey}-200.png`,{});
   // All four retain the original 44px and hit-box checks. The synthetic review
   // scene intentionally disables confirmation; keyboard was checked when enabled.
   for(const selector of selectors){await page.locator(selector).scrollIntoViewIfNeeded();assert.equal(await page.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect();return n.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true,'Control covered: '+selector);}
@@ -389,11 +474,14 @@ finally{
  cleanup.exitSeen=exitSeen;cleanup.closeSeen=closeSeen;
  safeEvidence('cleanup.json',cleanup);
  event('cleanup-recorded');
- stderrFallback({console_diagnostic_final:{identity,completed_cases:completedCases,first_error:firstError===null?null:{name:firstError.name,message:firstError.message},cleanup,evidence_errors:evidenceErrors.length,observation_run_bytes:observationRunBytes,run_budget_mode:runBudgetMode,evidence_accounted_bytes:Array.from(writtenSizes.values()).reduce((a,b)=>a+b,0),child_exit:lifecycle.events.filter(e=>['exit','close'].includes(e.kind)),runtime:{node:process.version,platform:process.platform,arch:process.arch,playwright:playwrightVersion}}});
+ stderrFallback({console_diagnostic_final:{identity,completed_cases:completedCases,first_error:firstError===null?null:{name:firstError.name,message:firstError.message},cleanup,evidence_errors:evidenceErrors.length,observation_run_bytes:observationRunBytes,run_budget_mode:runBudgetMode,evidence_accounted_bytes:Object.values(totals()).reduce((a,b)=>a+b,0),child_exit:lifecycle.events.filter(e=>['exit','close'].includes(e.kind)),runtime:{node:process.version,platform:process.platform,arch:process.arch,playwright:playwrightVersion}}});
 }
 if(evidenceErrors.length){stderrFallback({evidence_errors:evidenceErrors,first_error:firstError===null?null:errorInfo(firstError),cleanup});process.exitCode=1;}
 if(firstError!==null){stderrFallback({first_error:errorInfo(firstError)});process.exitCode=1;}
 else if(cleanup.errors.length||cleanup.child==='unknown'||cleanup.temp!=='removed-and-absence-confirmed'){stderrFallback({cleanup_incomplete:cleanup});process.exitCode=1;}
+if(firstError&&!budgetFiles.has('first-error.json')&&!budgetBlocked.has('first-error.json'))safeEvidence('first-error.json',errorInfo(firstError));
+try{finishEvidence();}catch(error){firstError??=error;emitInventoryRows();stderrFallback({inventory_incomplete:{name:error.name,message:error.message}});process.exitCode=1;}
+if(budgetErrors.length)process.exitCode=1;
 try{await sealLog();}catch(error){logFailure=error;process.exitCode=1;}
 // A timed-out browser close can retain handles; terminate only this test process.
 if(logFailure||cleanup.browser==='unknown'||cleanup.child==='unknown')process.exit(1);
