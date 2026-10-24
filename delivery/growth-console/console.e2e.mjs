@@ -18,11 +18,18 @@ assert.ok(evidence,'A fresh diagnostic evidence directory is required');
 const selectors=['#guide-action','#guide-close','#task-toggle','#review-confirm'];
 let diagnosticSequence=0;
 const evidenceErrors=[];
+const writtenSizes=new Map(),runByteLimit=8*1024*1024;
+const runBudgetMode='8MiB soft fail-stop: screenshots checked after writing; structured writes prechecked';
+let observationRunBytes=0;
 function stderrFallback(value){try{writeSync(2,JSON.stringify(value)+'\n');}catch{/* No evidence failure may interrupt owned-resource cleanup. */}}
 function safeEvidence(name,value,append=false){
  try{
   const bytes=typeof value==='string'||Buffer.isBuffer(value)?value:JSON.stringify(value,null,2)+'\n';
+  const length=Buffer.byteLength(bytes),previous=writtenSizes.get(name)||0,next=append?previous+length:length;
+  const total=Array.from(writtenSizes.values()).reduce((a,b)=>a+b,0)-previous+next;
+  if(total>runByteLimit)throw Error('Diagnostic run evidence exceeds 8MiB: '+name);
   if(append)appendFileSync(join(evidence,name),bytes);else writeFileSync(join(evidence,name),bytes);
+  writtenSizes.set(name,next);
   return true;
  }catch(error){
   // Keep the earliest error in memory, even if every evidence path is unwritable.
@@ -54,12 +61,100 @@ async function capture(page,width,stage,selector=null,box=null){
  stderrFallback({console_diagnostic_state:project(row)});requireEvidence();
  return row;
 }
+// Read-only, short-lived browser sampling; no product callback or observer is replaced.
+async function startObservation(page,width){
+ await page.evaluate(({width})=>{
+  const probe={width,rows:[],cursor:0,count:0,bytes:0,stopped:false,reason:null,overflow:null,raf:null,mutationCount:0,observer:null,observerError:null};
+  const rect=r=>({x:r.x,y:r.y,width:r.width,height:r.height,top:r.top,right:r.right,bottom:r.bottom,left:r.left});
+  const keys=['display','visibility','position','overflow','overflowX','overflowY','contain','contentVisibility','containerType','containerName','width','height','minWidth','minHeight','maxWidth','maxHeight','boxSizing','flexDirection','flexBasis','flexGrow','flexShrink','gridTemplateColumns','gridTemplateRows','transform','zoom'];
+  probe.accept=(row,drain=false)=>{
+   if(probe.overflow||(probe.stopped&&!drain))return false;
+   row.sequence=probe.count+1;
+   const size=new TextEncoder().encode(JSON.stringify(row)+'\n').length;
+   if(probe.count+1>256||probe.bytes+size>1024*1024){probe.overflow={count:probe.count,bytes:probe.bytes,attemptedRecordBytes:size,limitRecords:256,limitBytes:1024*1024};probe.stop('capacity-failure');return false;}
+   probe.rows.push(row);probe.count++;probe.bytes+=size;return true;
+  };
+  probe.recordMutations=(records,drain=false)=>{
+   for(const [batchIndex,record]of records.entries()){
+    const row={type:'mutation',stage:'mutation-delivery',time:performance.now(),timeMeaning:'callback delivery, not mutation occurrence',batchIndex,batchLength:records.length,target:{tag:record.target.tagName,id:record.target.id},attribute:record.attributeName,oldValue:record.oldValue,currentValue:record.target.getAttribute(record.attributeName),valueMeaning:'current value at delivery; intermediate values may differ'};
+    if(!probe.accept(row,drain))return;probe.mutationCount++;
+   }
+  };
+  probe.stop=reason=>{
+   if(probe.stopped)return;probe.stopped=true;probe.reason=reason;cancelAnimationFrame(probe.raf);
+   if(probe.observer){
+    const pending=probe.observer.takeRecords();probe.observer.disconnect();
+    try{probe.recordMutations(pending,true);}catch(error){probe.observerError={name:error.name,message:error.message};probe.reason='mutation-observer-error';}
+   }
+  };
+  probe.sample=stage=>{
+   if(probe.stopped)return;
+   // All DOM/geometry reads for a row run synchronously in this one browser callback.
+   const nodes=[],seen=new Map();
+   function nodeState(el){
+    if(!el)return null;if(seen.has(el))return seen.get(el);
+    const index=nodes.length;seen.set(el,index);const style=getComputedStyle(el),computed={};for(const key of keys)computed[key]=style[key];
+    nodes.push({index,tag:el.tagName,id:el.id,connected:el.isConnected,hidden:el.hidden===true,inert:el.inert===true,ariaHidden:el.getAttribute('aria-hidden'),ariaExpanded:el.getAttribute('aria-expanded'),open:el.hasAttribute('open'),rect:rect(el.getBoundingClientRect()),clientRects:Array.from(el.getClientRects(),rect),scroll:{width:el.scrollWidth,height:el.scrollHeight,left:el.scrollLeft,top:el.scrollTop,clientWidth:el.clientWidth,clientHeight:el.clientHeight},computed});return index;
+   }
+   const controls={};for(const id of ['guide-action','guide-close','task-toggle','review-confirm']){
+    const element=document.getElementById(id),ancestry=[];for(let el=element;el;el=el.parentElement)ancestry.push(nodeState(el));controls['#'+id]={node:nodeState(element),ancestry};
+   }
+   const topbar=nodeState(document.querySelector('.topbar')),task=nodeState(document.getElementById('task-card'));
+   const occupied=(topbar===null?NaN:nodes[topbar].rect.height)+(task===null?NaN:nodes[task].rect.height);
+   const focus=document.activeElement;
+   const vv=window.visualViewport;
+   const row={type:'snapshot',stage,time:performance.now(),viewport:{width:innerWidth,height:innerHeight,scrollX,scrollY},visualViewport:vv===null?null:{width:vv.width,height:vv.height,offsetLeft:vv.offsetLeft,offsetTop:vv.offsetTop,pageLeft:vv.pageLeft,pageTop:vv.pageTop,scale:vv.scale},font:{inline:document.documentElement.style.fontSize,computed:getComputedStyle(document.documentElement).fontSize},bodyClass:document.body.className,focus:focus?{tag:focus.tagName,id:focus.id}:null,scenario:document.getElementById('task-id').textContent,controls,nodes,reflow:{topbar,task,occupied,threshold:innerHeight*.55,narrow:innerWidth<768,derivedCondition:innerWidth<768&&occupied>innerHeight*.55,productCallbackInputObserved:false}};
+   if(!probe.accept(row))return;
+   // Guidance is intentionally collapsed before the original toggle. Record it,
+   // but automatic stop tracks the known review target; original four assertions remain.
+   const target=controls['#review-confirm'].node;
+   if(target===null||nodes[target].clientRects.length===0)probe.stop('first-empty-review-confirm');
+  };
+  probe.observer=new MutationObserver(records=>{try{probe.recordMutations(records);}catch(error){probe.observerError={name:error.name,message:error.message};probe.stop('mutation-observer-error');}});
+  probe.observer.observe(document.documentElement,{subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['class','style','hidden']});
+  probe.sample('before-font-change');
+  function frame(){if(probe.stopped)return;probe.sample('animation-frame');if(!probe.stopped)probe.raf=requestAnimationFrame(frame);}
+  if(!probe.stopped)probe.raf=requestAnimationFrame(frame);
+  window.__consoleLayoutProbe=probe;
+ },{width});
+ activeObservation={page,width};
+ await observationCheckpoint(page,width,'started');
+}
+async function observationCheckpoint(page,width,stage,end=false){
+ const batch=await page.evaluate(({stage,end})=>{
+  const probe=window.__consoleLayoutProbe;
+  if(!probe)return {missing:true};
+  probe.sample(stage);if(end)probe.stop('segment-complete');
+  const rows=probe.rows.slice(probe.cursor);probe.cursor=probe.rows.length;
+  return {rows,count:probe.count,bytes:probe.bytes,mutationCount:probe.mutationCount,stopped:probe.stopped,observerDisconnected:probe.stopped,reason:probe.reason,overflow:probe.overflow,observerError:probe.observerError};
+ },{stage,end});
+ if(batch.missing)throw Error('Atomic observation missing for width '+width);
+ const text=batch.rows.map(row=>JSON.stringify(row)+'\n').join('');
+ observationRunBytes+=Buffer.byteLength(text);
+ if(observationRunBytes>runByteLimit){const error=Error('Atomic observation run exceeds 8MiB');preserveFirst(error);safeEvidence('observation-capacity-error.json',{width,stage,observationRunBytes});throw error;}
+ if(text)safeEvidence('atomic-'+width+'.jsonl',text,true);
+ // Shared nodes avoid repeating complete ancestor chains; no text/values/Env are logged.
+ for(const row of batch.rows)stderrFallback({console_atomic_observation:{width,...row}});
+ safeEvidence('atomic-'+width+'-status.json',{width,stage,count:batch.count,bytes:batch.bytes,mutationCount:batch.mutationCount,stopped:batch.stopped,observerDisconnected:batch.observerDisconnected,reason:batch.reason,overflow:batch.overflow,observerError:batch.observerError,observationRunBytes});
+ stderrFallback({console_atomic_status:{width,stage,count:batch.count,bytes:batch.bytes,mutationCount:batch.mutationCount,stopped:batch.stopped,observerDisconnected:batch.observerDisconnected,reason:batch.reason,overflow:batch.overflow,observerError:batch.observerError}});
+ requireEvidence();
+ if(batch.overflow)throw Error('Atomic observation case capacity exceeded at '+width);
+ if(batch.observerError)throw Error('Mutation observation failed at '+width+': '+batch.observerError.message);
+ if(end)activeObservation=null;
+}
+// Screenshot size is only known after the original write: this is a soft limit,
+// not a promise that no file can momentarily take the run above 8MiB.
+async function accountScreenshot(name){
+ const info=await stat(join(evidence,name));writtenSizes.set(name,info.size);
+ const total=Array.from(writtenSizes.values()).reduce((a,b)=>a+b,0);
+ if(total>runByteLimit){const error=Error('Post-write diagnostic run soft limit exceeded (8MiB) after screenshot '+name);evidenceErrors.push({file:name,error:errorInfo(error)});stderrFallback({evidence_capacity_error:{name,total,limit:runByteLimit,mode:runBudgetMode}});throw error;}
+}
 const temp=await mkdtemp(join(tmpdir(),'growth-console-'));
-let browser,server,firstError=null,exitSeen=false,closeSeen=false,spawnError=null;
+let browser,server,firstError=null,exitSeen=false,closeSeen=false,spawnError=null,activeObservation=null;
 const lifecycle={node:process.version,platform:process.platform,arch:process.arch,temp,pid:null,events:[],streams:{stdout:{bytes:0,saved:0},stderr:{bytes:0,saved:0}}};
 const cleanup={browser:'not-started',child:'not-started',temp:'not-attempted',errors:[]};
 const errorInfo=error=>({name:error.name,message:error.message,stack:error.stack});
-const identity={source_head:process.env.CONSOLE_DIAGNOSTIC_SOURCE_HEAD||'local-only',checkout_sha:process.env.GITHUB_SHA||'local-only',run_id:process.env.GITHUB_RUN_ID||'local-only',attempt:process.env.GITHUB_RUN_ATTEMPT||'local-only',e2e_sha256:sourceHash,playwright:playwrightVersion};
+const identity={source_head:process.env.CONSOLE_DIAGNOSTIC_SOURCE_HEAD||'local-only',checkout_sha:process.env.GITHUB_SHA||'local-only',run_id:process.env.GITHUB_RUN_ID||'local-only',attempt:process.env.GITHUB_RUN_ATTEMPT||'local-only',e2e_sha256:sourceHash,playwright:playwrightVersion,budgets:{caseRecords:256,caseBytes:1024*1024,runBytes:runByteLimit,mode:runBudgetMode,mutationRecordsShareCaseBudget:true}};
 function project(row){
  const controls={};for(const [key,value]of Object.entries(row.state.controls))controls[key]=value===null?null:{connected:value.connected,clientRects:value.clientRects,hidden:value.hidden,inert:value.inert,ariaExpanded:value.ariaExpanded,display:value.display,visibility:value.visibility,blockingAncestors:value.ancestors.filter(a=>a.hidden||a.inert||a.display==='none'||a.visibility==='hidden')};
  const panels={};for(const [key,value]of Object.entries(row.state.panels))panels[key]=value===null?null:{hidden:value.hidden,inert:value.inert,display:value.display,visibility:value.visibility};
@@ -136,26 +231,32 @@ try{
   await page.locator('[data-scenario=review]').click();await page.waitForFunction(()=>document.getElementById('task-id').textContent==='prototype-review');
   await capture(page,width,'after-review-scene');
   await page.screenshot({path:join(evidence,`growth-console-${width}.png`),fullPage:true});
+  await accountScreenshot(`growth-console-${width}.png`);
   await capture(page,width,'before-font-change');
+  await startObservation(page,width);
   await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+  await observationCheckpoint(page,width,'after-font-change');
   await capture(page,width,'after-font-change');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'200% text must reflow');
   await capture(page,width,'before-guide-toggle');
   if(width<768)await page.locator('#guide-toggle').click();
   await capture(page,width,'after-guide-toggle');
+  await observationCheckpoint(page,width,'after-guide-toggle');
   for(const selector of ['#guide-action','#guide-close','#task-toggle','#review-confirm']){
    const box=await page.locator(selector).boundingBox();
    let originalError;
    if(box===null){try{assert.ok(box.height>=44);}catch(error){originalError=error;preserveFirst(error);}}
+   await observationCheckpoint(page,width,'measure-'+selector,box===null);
    const row=await capture(page,width,'before-size-assertion',selector,box);
    if(box===null){
     safeEvidence('first-null.json',row);stderrFallback({console_diagnostic_first_null:{identity,...project(row)}});requireEvidence();
-    try{await page.screenshot({path:join(evidence,`first-null-${width}.png`),fullPage:true,timeout:2000});}
+    try{await page.screenshot({path:join(evidence,`first-null-${width}.png`),fullPage:true,timeout:2000});await accountScreenshot(`first-null-${width}.png`);}
     catch(error){safeEvidence('first-null-screenshot-error.json',errorInfo(error));}
     throw originalError;
    }
    assert.ok(box.height>=44);
   }
+  await observationCheckpoint(page,width,'measurement-segment-complete',true);
   const overlap=await page.evaluate(()=>{const a=document.getElementById('task-card').getBoundingClientRect(),b=document.getElementById('review-confirm').getBoundingClientRect();return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;});assert.equal(overlap,false);
   assert.equal(await page.locator('#task-phase').getAttribute('aria-live'),'polite');assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('task-card')).animationName),'none');
   await page.locator('#exit-prototype').click();assert.equal(await page.locator('#source-url').inputValue(),'');
@@ -179,7 +280,10 @@ try{
  assert.equal(await page.locator('#source-url').inputValue(),'https://example.com/products/bolt');assert.deepEqual(errors,[]);assert.equal(requests.filter(x=>x.startsWith('POST')).length,1);
  await page.locator('#prototype-tools summary').click();await page.locator('[data-scenario=review]').click();await page.locator('#result-panel:not([hidden])').waitFor();assert.match(await page.locator('#mode-banner').innerText(),/合成互動原型/);assert.deepEqual(errors,[]);await context.close();
  console.log('PASS exact /growth-console package: asset graph, unavailable backend retains URL, labelled prototype available; no hosted API claim');
-}catch(error){preserveFirst(error);}
+}catch(error){
+ preserveFirst(error);
+ if(activeObservation){const current=activeObservation;try{await bounded(observationCheckpoint(current.page,current.width,'error-final-drain',true),2000,'Final observation drain');}catch(drainError){cleanup.errors.push({stage:'observation-final-drain',error:errorInfo(drainError)});safeEvidence('observation-final-drain-error.json',errorInfo(drainError));}}
+}
 finally{
  if(browser){
   try{await bounded(browser.close(),3000,'Browser close');cleanup.browser='closed';}
@@ -211,7 +315,7 @@ finally{
  cleanup.exitSeen=exitSeen;cleanup.closeSeen=closeSeen;
  safeEvidence('cleanup.json',cleanup);
  event('cleanup-recorded');
- stderrFallback({console_diagnostic_final:{identity,first_error:firstError===null?null:{name:firstError.name,message:firstError.message},cleanup,evidence_errors:evidenceErrors.length,child_exit:lifecycle.events.filter(e=>['exit','close'].includes(e.kind)),runtime:{node:process.version,platform:process.platform,arch:process.arch,playwright:playwrightVersion}}});
+ stderrFallback({console_diagnostic_final:{identity,first_error:firstError===null?null:{name:firstError.name,message:firstError.message},cleanup,evidence_errors:evidenceErrors.length,observation_run_bytes:observationRunBytes,run_budget_mode:runBudgetMode,evidence_accounted_bytes:Array.from(writtenSizes.values()).reduce((a,b)=>a+b,0),child_exit:lifecycle.events.filter(e=>['exit','close'].includes(e.kind)),runtime:{node:process.version,platform:process.platform,arch:process.arch,playwright:playwrightVersion}}});
 }
 if(evidenceErrors.length){stderrFallback({evidence_errors:evidenceErrors,first_error:firstError===null?null:errorInfo(firstError),cleanup});process.exitCode=1;}
 if(firstError!==null){stderrFallback({first_error:errorInfo(firstError)});process.exitCode=1;}
