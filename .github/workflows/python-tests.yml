@@ -156,12 +156,24 @@ jobs:
           node --test delivery/web-preview/build.test.mjs
           node delivery/web-preview/navigation.e2e.mjs
       - name: Console six-state prototype and existing URL Review integration
+        env:
+          CONSOLE_DIAGNOSTIC_DIRECTORY: ${{ runner.temp }}/gos-console-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          CONSOLE_DIAGNOSTIC_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          mkdir -- "$CONSOLE_DIAGNOSTIC_DIRECTORY"
           node delivery/growth-console/build.mjs
           node --test delivery/growth-console/task.test.mjs delivery/growth-console/claim-review.test.mjs
           node delivery/growth-console/console.e2e.mjs
           node delivery/growth-console/claim-gate.blocker.e2e.mjs
           node delivery/growth-console/claim-console.e2e.mjs
+      - name: Preserve Console lifecycle and responsive diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-responsive-diagnostic
+          path: ${{ runner.temp }}/gos-console-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Console persistence integration contracts (offline only)
         shell: bash
         run: |

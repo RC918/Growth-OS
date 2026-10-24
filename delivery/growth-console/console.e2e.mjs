@@ -1,15 +1,106 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,stat} from 'node:fs/promises';
+import {appendFileSync,writeFileSync,writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {chromium} from 'playwright';
+import {join,dirname} from 'node:path';
+import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
+// Diagnostic module override selects the already installed isolated runtime only.
+const playwrightModule=process.env.CONSOLE_DIAGNOSTIC_PLAYWRIGHT_MODULE||'playwright';
+const {chromium}=await import(playwrightModule);
+const playwrightPackage=playwrightModule==='playwright'?createRequire(import.meta.url).resolve('playwright/package.json'):join(dirname(playwrightModule),'package.json');
+const playwrightVersion=JSON.parse(await readFile(playwrightPackage,'utf8')).version;
+assert.equal(playwrightVersion,'1.58.2','Use the existing approved Playwright version');
+const sourceHash=createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex');
+const evidence=process.env.CONSOLE_DIAGNOSTIC_DIRECTORY;
+assert.ok(evidence,'A fresh diagnostic evidence directory is required');
+const selectors=['#guide-action','#guide-close','#task-toggle','#review-confirm'];
+let diagnosticSequence=0;
+const evidenceErrors=[];
+function stderrFallback(value){try{writeSync(2,JSON.stringify(value)+'\n');}catch{/* No evidence failure may interrupt owned-resource cleanup. */}}
+function safeEvidence(name,value,append=false){
+ try{
+  const bytes=typeof value==='string'||Buffer.isBuffer(value)?value:JSON.stringify(value,null,2)+'\n';
+  if(append)appendFileSync(join(evidence,name),bytes);else writeFileSync(join(evidence,name),bytes);
+  return true;
+ }catch(error){
+  // Keep the earliest error in memory, even if every evidence path is unwritable.
+  if(firstError===null)firstError=error;
+  const failure={file:name,error:errorInfo(error)};evidenceErrors.push(failure);
+  stderrFallback({evidence_error:failure});
+  try{writeFileSync(join(evidence,'evidence-errors.json'),JSON.stringify(evidenceErrors,null,2)+'\n');}
+  catch(fallbackError){stderrFallback({evidence_error_index_unwritten:errorInfo(fallbackError)});}
+  return false;
+ }
+}
+function requireEvidence(){if(evidenceErrors.length)throw firstError;}
+
+async function capture(page,width,stage,selector=null,box=null){
+ const state=await page.evaluate(()=>{
+  function elementState(el){
+   if(!el)return null;
+   const style=getComputedStyle(el),ancestors=[];
+   for(let node=el;node;node=node.parentElement)ancestors.push({tag:node.tagName,id:node.id,hidden:node.hidden===true,inert:node.inert===true,ariaHidden:node.getAttribute('aria-hidden'),display:getComputedStyle(node).display,visibility:getComputedStyle(node).visibility});
+   return {connected:el.isConnected,clientRects:Array.from(el.getClientRects(),r=>({x:r.x,y:r.y,width:r.width,height:r.height})),hidden:el.hidden===true,inert:el.inert===true,ariaExpanded:el.getAttribute('aria-expanded'),display:style.display,visibility:style.visibility,ancestors};
+  }
+  const controls={};for(const id of ['guide-action','guide-close','task-toggle','review-confirm','guide-toggle'])controls['#'+id]=elementState(document.getElementById(id));
+  const panels={};for(const id of ['result-panel','overview-panel','guidance','task-details'])panels[id]=elementState(document.getElementById(id));
+  return {viewport:{width:innerWidth,height:innerHeight},rootFont:{inline:document.documentElement.style.fontSize,computed:getComputedStyle(document.documentElement).fontSize},scenario:document.getElementById('task-id').textContent,phase:document.getElementById('task-phase').textContent,panels,controls};
+ });
+ const boxes={};for(const key of selectors)boxes[key]=await page.locator(key).boundingBox();
+ const row={identity,sequence:++diagnosticSequence,time:new Date().toISOString(),width,stage,selector,box,state,boxes};
+ safeEvidence(`${String(row.sequence).padStart(3,'0')}-${width}-${stage}.json`,row);
+ stderrFallback({console_diagnostic_state:project(row)});requireEvidence();
+ return row;
+}
 const temp=await mkdtemp(join(tmpdir(),'growth-console-'));
-const server=spawn('python3',['-B','prototype/public-audit/product_ui_fixture.py',join(temp,'sources.sqlite3')],{stdio:['ignore','pipe','pipe']});let browser;
+let browser,server,firstError=null,exitSeen=false,closeSeen=false,spawnError=null;
+const lifecycle={node:process.version,platform:process.platform,arch:process.arch,temp,pid:null,events:[],streams:{stdout:{bytes:0,saved:0},stderr:{bytes:0,saved:0}}};
+const cleanup={browser:'not-started',child:'not-started',temp:'not-attempted',errors:[]};
+const errorInfo=error=>({name:error.name,message:error.message,stack:error.stack});
+const identity={source_head:process.env.CONSOLE_DIAGNOSTIC_SOURCE_HEAD||'local-only',checkout_sha:process.env.GITHUB_SHA||'local-only',run_id:process.env.GITHUB_RUN_ID||'local-only',attempt:process.env.GITHUB_RUN_ATTEMPT||'local-only',e2e_sha256:sourceHash,playwright:playwrightVersion};
+function project(row){
+ const controls={};for(const [key,value]of Object.entries(row.state.controls))controls[key]=value===null?null:{connected:value.connected,clientRects:value.clientRects,hidden:value.hidden,inert:value.inert,ariaExpanded:value.ariaExpanded,display:value.display,visibility:value.visibility,blockingAncestors:value.ancestors.filter(a=>a.hidden||a.inert||a.display==='none'||a.visibility==='hidden')};
+ const panels={};for(const [key,value]of Object.entries(row.state.panels))panels[key]=value===null?null:{hidden:value.hidden,inert:value.inert,display:value.display,visibility:value.visibility};
+ return {sequence:row.sequence,width:row.width,stage:row.stage,selector:row.selector,box:row.box,viewport:row.state.viewport,rootFont:row.state.rootFont,scenario:row.state.scenario,panels,controls,boxes:row.boxes};
+}
+function event(kind,detail={}){lifecycle.events.push({time:new Date().toISOString(),kind,...detail});safeEvidence('lifecycle.json',lifecycle);}
+function preserveFirst(error){if(firstError===null){firstError=error;safeEvidence('first-error.json',errorInfo(error));}}
+async function bounded(operation,ms,label){let timer;try{return await Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+' timed out after '+ms+'ms')),ms);})]);}finally{clearTimeout(timer);}}
+let resolveExit,resolveClose;
+const exited=new Promise(resolve=>{resolveExit=resolve;}),closed=new Promise(resolve=>{resolveClose=resolve;});
 try{
- const port=await new Promise((resolve,reject)=>{server.stdout.once('data',d=>resolve(Number(d.toString().trim())));server.once('exit',c=>reject(Error('fixture exit '+c)));});
+ let resolvePort,rejectPort,portBuffer='',portSettled=false;
+ const portReady=new Promise((resolve,reject)=>{resolvePort=resolve;rejectPort=reject;});
+ function startupError(error){if(!portSettled){portSettled=true;preserveFirst(error);rejectPort(error);}}
+ server=spawn('python3',['-B','prototype/public-audit/product_ui_fixture.py',join(temp,'sources.sqlite3')],{stdio:['ignore','pipe','pipe']});
+ lifecycle.pid=server.pid===undefined?null:server.pid;
+ for(const stream of ['stdout','stderr'])server[stream].on('data',data=>{
+  const stats=lifecycle.streams[stream];stats.bytes+=data.length;
+  const bytes=data.subarray(0,Math.max(0,65536-stats.saved));
+  if(bytes.length&&safeEvidence('fixture-'+stream+'.log',bytes,true))stats.saved+=bytes.length;
+  event('output',{stream,bytes:data.length,truncated:stats.saved<stats.bytes});
+  if(stream==='stdout'&&!portSettled){
+   portBuffer+=data.toString('utf8');
+   const end=portBuffer.indexOf('\n');
+   if(end!==-1){const line=portBuffer.slice(0,end).replace(/\r$/,'');
+    if(!/^[1-9][0-9]{0,4}$/.test(line)||Number(line)>65535)startupError(Error('Fixture supplied an invalid complete port line'));
+    else{portSettled=true;resolvePort(Number(line));}
+   }else if(Buffer.byteLength(portBuffer)>128)startupError(Error('Fixture port line exceeds 128 bytes'));
+  }
+ });
+ server.on('error',error=>{spawnError=errorInfo(error);startupError(error);event('error',{error:spawnError});});
+ server.on('exit',(code,signal)=>{exitSeen=true;resolveExit({code,signal});startupError(Error('Fixture exited before port: '+code+'/'+signal));event('exit',{code,signal});});
+ server.on('close',(code,signal)=>{closeSeen=true;resolveClose({code,signal});startupError(Error('Fixture closed before port: '+code+'/'+signal));event('close',{code,signal});});
+ server.on('spawn',()=>event('spawn',{pid:server.pid}));
+ safeEvidence('identity.json',identity);stderrFallback({console_diagnostic_identity:identity});
+ event('listeners-attached');
+ const port=await bounded(portReady,5000,'Fixture startup');
+ event('port-ready',{port});requireEvidence();
  const origin='http://127.0.0.1:'+port;
  browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||undefined});
+ safeEvidence('runtime.json',{identity,node:process.version,platform:process.platform,arch:process.arch,playwrightModule,playwright:playwrightVersion,browser:browser.version(),executable:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH});requireEvidence();
  for(const width of [1280,390,320]){
   server.kill('SIGUSR1');const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce',serviceWorkers:'block'}),page=await context.newPage();const errors=[],remote=[],posts=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push(new URL(r.url()).pathname);});
@@ -41,12 +132,30 @@ try{
    assert.match(await page.locator('#mode-banner').innerText(),/合成互動原型/);assert.equal(posts.length,count);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }
+  await capture(page,width,'before-review-scene');
   await page.locator('[data-scenario=review]').click();await page.waitForFunction(()=>document.getElementById('task-id').textContent==='prototype-review');
-  await page.screenshot({path:`/tmp/growth-console-${width}.png`,fullPage:true});
+  await capture(page,width,'after-review-scene');
+  await page.screenshot({path:join(evidence,`growth-console-${width}.png`),fullPage:true});
+  await capture(page,width,'before-font-change');
   await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+  await capture(page,width,'after-font-change');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'200% text must reflow');
+  await capture(page,width,'before-guide-toggle');
   if(width<768)await page.locator('#guide-toggle').click();
-  for(const selector of ['#guide-action','#guide-close','#task-toggle','#review-confirm'])assert.ok((await page.locator(selector).boundingBox()).height>=44);
+  await capture(page,width,'after-guide-toggle');
+  for(const selector of ['#guide-action','#guide-close','#task-toggle','#review-confirm']){
+   const box=await page.locator(selector).boundingBox();
+   let originalError;
+   if(box===null){try{assert.ok(box.height>=44);}catch(error){originalError=error;preserveFirst(error);}}
+   const row=await capture(page,width,'before-size-assertion',selector,box);
+   if(box===null){
+    safeEvidence('first-null.json',row);stderrFallback({console_diagnostic_first_null:{identity,...project(row)}});requireEvidence();
+    try{await page.screenshot({path:join(evidence,`first-null-${width}.png`),fullPage:true,timeout:2000});}
+    catch(error){safeEvidence('first-null-screenshot-error.json',errorInfo(error));}
+    throw originalError;
+   }
+   assert.ok(box.height>=44);
+  }
   const overlap=await page.evaluate(()=>{const a=document.getElementById('task-card').getBoundingClientRect(),b=document.getElementById('review-confirm').getBoundingClientRect();return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;});assert.equal(overlap,false);
   assert.equal(await page.locator('#task-phase').getAttribute('aria-live'),'polite');assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('task-card')).animationName),'none');
   await page.locator('#exit-prototype').click();assert.equal(await page.locator('#source-url').inputValue(),'');
@@ -70,4 +179,43 @@ try{
  assert.equal(await page.locator('#source-url').inputValue(),'https://example.com/products/bolt');assert.deepEqual(errors,[]);assert.equal(requests.filter(x=>x.startsWith('POST')).length,1);
  await page.locator('#prototype-tools summary').click();await page.locator('[data-scenario=review]').click();await page.locator('#result-panel:not([hidden])').waitFor();assert.match(await page.locator('#mode-banner').innerText(),/合成互動原型/);assert.deepEqual(errors,[]);await context.close();
  console.log('PASS exact /growth-console package: asset graph, unavailable backend retains URL, labelled prototype available; no hosted API claim');
-}finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(r=>server.once('exit',r));await rm(temp,{recursive:true,force:true});}
+}catch(error){preserveFirst(error);}
+finally{
+ if(browser){
+  try{await bounded(browser.close(),3000,'Browser close');cleanup.browser='closed';}
+  catch(error){cleanup.browser='unknown';cleanup.errors.push({stage:'browser-close',error:errorInfo(error)});}
+ }
+ if(server){
+  try{
+   if(exitSeen)cleanup.child='already-exited';
+   else if(spawnError&&lifecycle.pid===null&&closeSeen)cleanup.child='spawn-failed-no-child';
+   else if(server.exitCode!==null||server.signalCode!==null){cleanup.child='already-exited';event('exit-state-read',{code:server.exitCode,signal:server.signalCode});}
+   else if(lifecycle.pid!==null){
+    event('signal',{signal:'SIGTERM',sent:server.kill('SIGTERM')});
+    try{await bounded(exited,1500,'Fixture SIGTERM exit');}
+    catch(error){
+     if(!exitSeen&&server.exitCode===null&&server.signalCode===null){event('signal',{signal:'SIGKILL',sent:server.kill('SIGKILL')});await bounded(exited,1500,'Fixture SIGKILL exit');}
+    }
+    cleanup.child=exitSeen?'exited':'unknown';
+   }else cleanup.child='unknown';
+   if(!closeSeen)await bounded(closed,1000,'Fixture streams close');
+  }catch(error){cleanup.child='unknown';cleanup.errors.push({stage:'child-close',error:errorInfo(error)});}
+ }
+ // Never remove even this run's temporary database while its writer is unknown.
+ if(cleanup.child==='already-exited'||cleanup.child==='exited'||cleanup.child==='spawn-failed-no-child'||!server){
+  try{await bounded(rm(temp,{recursive:true,force:true}),2000,'Temporary directory removal');cleanup.temp='removal-returned';}
+  catch(error){cleanup.temp='unknown';cleanup.errors.push({stage:'temp-remove',error:errorInfo(error)});}
+ }else cleanup.temp='retained-child-state-unknown';
+ try{await bounded(stat(temp),1000,'Temporary directory existence readback');cleanup.tempExists=true;if(cleanup.temp==='removal-returned')cleanup.temp='still-present';}
+ catch(error){if(error.code==='ENOENT'){cleanup.tempExists=false;if(cleanup.temp==='removal-returned')cleanup.temp='removed-and-absence-confirmed';}else{cleanup.tempExists='unknown';cleanup.errors.push({stage:'temp-readback',error:errorInfo(error)});}}
+ cleanup.exitSeen=exitSeen;cleanup.closeSeen=closeSeen;
+ safeEvidence('cleanup.json',cleanup);
+ event('cleanup-recorded');
+ stderrFallback({console_diagnostic_final:{identity,first_error:firstError===null?null:{name:firstError.name,message:firstError.message},cleanup,evidence_errors:evidenceErrors.length,child_exit:lifecycle.events.filter(e=>['exit','close'].includes(e.kind)),runtime:{node:process.version,platform:process.platform,arch:process.arch,playwright:playwrightVersion}}});
+}
+if(evidenceErrors.length){stderrFallback({evidence_errors:evidenceErrors,first_error:firstError===null?null:errorInfo(firstError),cleanup});process.exitCode=1;}
+if(firstError!==null){stderrFallback({first_error:errorInfo(firstError)});process.exitCode=1;}
+else if(cleanup.errors.length||cleanup.child==='unknown'||cleanup.temp!=='removed-and-absence-confirmed'){stderrFallback({cleanup_incomplete:cleanup});process.exitCode=1;}
+// A timed-out browser close can retain handles; terminate only this test process.
+if(cleanup.browser==='unknown'||cleanup.child==='unknown')process.exit(1);
+
