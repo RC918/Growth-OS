@@ -3,7 +3,7 @@
 .field-evidence{background:#f2f5ee;border-radius:8px;padding:.25rem .75rem}
 .field-evidence summary{font-weight:650}
 .difference-label,.ux-change-label{font-size:1rem;font-weight:650;color:#405e4c}
-.difference-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:12rem;overflow:auto;line-height:1.8}
+.difference-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:none;overflow:visible;line-height:1.8}
 .difference-text del{background:#fcebe7;color:#813323;text-decoration:line-through}
 .difference-text ins{background:#dff3e7;color:#165937;text-decoration:underline}
 .difference-text del+ins{margin-inline-start:.35em}

@@ -315,12 +315,77 @@ async function stableShell(page,width){
  }
  return state;
 }
+// Read all rendered difference fragments without focusing, scrolling or mutating the page.
+async function completeDifferences(page,label,phase){
+ const rows=await page.locator('[data-diff-field]').evaluateAll(roots=>roots.map(root=>{
+  const p=root.querySelector('.difference-text'),field=root.dataset.diffField;
+  if(!p)return {field,unchanged:root._before===root._after};
+  const b=p.getBoundingClientRect(),s=getComputedStyle(p),next=root.nextElementSibling?.getBoundingClientRect();
+  const ranges=[...p.childNodes].flatMap(n=>{const r=document.createRange();r.selectNodeContents(n);return [...r.getClientRects()].filter(x=>x.width>0&&x.height>0).map(x=>({left:x.left,right:x.right,top:x.top,bottom:x.bottom}));});
+  // Document scrolling is expected; non-root clipping ancestors must contain every fragment.
+  const ancestors=[];
+  for(let a=p.parentElement;a&&a!==document.documentElement;a=a.parentElement){
+   const c=getComputedStyle(a),r=a.getBoundingClientRect(),left=r.left+a.clientLeft,top=r.top+a.clientTop;
+   const clipX=c.overflowX!=='visible',clipY=c.overflowY!=='visible';
+   ancestors.push({tag:a.tagName,id:a.id,overflowX:c.overflowX,overflowY:c.overflowY,
+    visible:c.display!=='none'&&c.visibility==='visible'&&Number(c.opacity)>0,
+    unsupportedClip:c.clipPath!=='none'||c.clip!=='auto',
+    fragmentsInside:ranges.every(x=>(!clipX||(x.left>=left-1&&x.right<=left+a.clientWidth+1))&&(!clipY||(x.top>=top-1&&x.bottom<=top+a.clientHeight+1)))});
+  }
+  const original=[...p.childNodes].filter(n=>n.nodeName!=='INS').map(n=>n.textContent).join('');
+  const current=[...p.childNodes].filter(n=>n.nodeName!=='DEL').map(n=>n.textContent).join('');
+  return {field,unchanged:false,ancestors,originalMatches:original===root._before,currentMatches:current===root._after,
+   fragments:ranges.length,fragmentsInside:ranges.every(r=>r.left>=b.left-1&&r.right<=b.right+1&&r.top>=b.top-1&&r.bottom<=b.bottom+1),
+   scrollHeight:p.scrollHeight,clientHeight:p.clientHeight,scrollWidth:p.scrollWidth,clientWidth:p.clientWidth,
+   overflowX:s.overflowX,overflowY:s.overflowY,nextBelow:!!next&&b.bottom<=next.top+1};
+ }));
+ assert.equal(rows.length,3,'All review fields need difference coverage');
+ const record={case:label,phase,rootFont:await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),rows};
+ await writeFile(evidence+'/'+label+'-difference-'+phase+'.json',JSON.stringify(record));
+ for(const r of rows){
+  if(r.unchanged)continue;
+  assert.equal(r.originalMatches,true,'Difference lost original text: '+r.field);
+  assert.equal(r.currentMatches,true,'Difference lost edited text: '+r.field);
+  assert.ok(r.fragments>0&&r.fragmentsInside,'Difference text clipped: '+r.field);
+  assert.ok(r.ancestors.length>0&&r.ancestors.every(a=>a.visible&&!a.unsupportedClip&&a.fragmentsInside),'Difference clipped by ancestor: '+r.field);
+  assert.ok(r.scrollHeight<=r.clientHeight+1&&r.scrollWidth<=r.clientWidth+1,'Difference needs internal scroll: '+r.field);
+  assert.equal(r.overflowX,'visible');assert.equal(r.overflowY,'visible');
+  assert.equal(r.nextBelow,true,'Difference overlaps following evidence: '+r.field);
+ }
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Difference causes document overflow');
+ return record;
+}
+
+// Focus each following evidence summary, then verify its on-screen hit targets.
+async function differenceEvidenceTargets(page,label,phase){
+ const rows=[];
+ for(const field of ['title','meta_description','description']){
+  const selector='[data-diff-field="'+field+'"] + .field-evidence > summary';
+  await tabTo(page,selector);
+  const row=await page.locator(selector).evaluate(n=>{
+   const r=n.getBoundingClientRect(),s=getComputedStyle(n),points=[[r.left+2,r.top+2],[r.right-2,r.top+2],[r.left+2,r.bottom-2],[r.right-2,r.bottom-2],[r.left+r.width/2,r.top+r.height/2]];
+   return {focused:n===document.activeElement,visible:s.visibility==='visible'&&Number(s.opacity)>0,
+    box:{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height},
+    insideViewport:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,
+    hits:points.map(([x,y])=>n.contains(document.elementFromPoint(x,y)))};
+  });
+  rows.push({field,...row});
+ }
+ await writeFile(evidence+'/'+label+'-difference-targets-'+phase+'.json',JSON.stringify({case:label,phase,rows}));
+ for(const r of rows){
+  assert.ok(r.focused&&r.visible&&r.insideViewport,'Evidence summary not visible: '+r.field);
+  assert.ok(r.box.width>4&&r.box.height>=44&&r.hits.every(Boolean),'Evidence summary clipped or covered: '+r.field);
+ }
+}
+
 async function zoomAndPair(page,name,width,variant){
  const before=await page.locator('#field-description').inputValue(),state=await stableShell(page,width);
+ await completeDifferences(page,name+'-'+width+'-'+variant,'initial');
  for(const selector of ['#guide-action','#guide-close','#task-toggle'])await tabTo(page,selector);
  if(name==='chromium'&&['normal','narrow','sidebar','text200'].includes(variant))await capturePair(page,'candidate',width,variant==='text200'?'normal':variant,variant==='text200'?32:16);
  if(['normal','narrow','sidebar'].includes(variant)){
   await page.evaluate(()=>document.documentElement.style.fontSize='32px');await stableShell(page,width);
+  await completeDifferences(page,name+'-'+width+'-'+variant,'text200');
   if(name==='chromium'&&variant!=='normal')await capturePair(page,'candidate',width,variant,32);
   await assistantGeometry(page,variant,width);
   await page.evaluate(()=>document.documentElement.style.fontSize='16px');await stableShell(page,width);assert.equal(await page.locator('#field-description').inputValue(),before,'Zoom lost edits');
@@ -466,7 +531,37 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit}).filter(([na
    const assistant=await assistantGeometry(page,variant,width);
    if(variant==='sidebar')assert.equal(await page.locator('.rail').evaluate(n=>n.getBoundingClientRect().width),224);
    await screenshot(page,evidence+'/'+label+'-console.png');
-   await page.fill('#field-description','Made of steel.');await page.click('#claim-recheck');
+   // From the loaded result onward, edit and recheck through actual keyboard input.
+   await tabTo(page,'#field-description');await page.keyboard.press(process.platform==='darwin'?'Meta+A':'Control+A');await page.keyboard.type('Made of steel.');
+   assert.equal(await page.locator('#field-description').inputValue(),'Made of steel.');
+   await tabTo(page,'#claim-recheck');await page.keyboard.press('Enter');
+   await completeDifferences(page,label,'edited');
+   await differenceEvidenceTargets(page,label,'edited');
+   if(['normal','narrow','sidebar'].includes(variant)){
+    const edited=await page.locator('#field-description').inputValue();
+    await page.evaluate(()=>document.documentElement.style.fontSize='32px');
+    assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),'32px');
+    await stableShell(page,width);
+    await completeDifferences(page,label,'edited-text200');
+    await differenceEvidenceTargets(page,label,'edited-text200');
+    assert.equal(await page.locator('#field-description').inputValue(),edited,'Zoom lost edited text');
+    await page.evaluate(()=>document.documentElement.style.fontSize='16px');
+    assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),'16px');
+    await stableShell(page,width);
+    await completeDifferences(page,label,'edited-restored');
+    await differenceEvidenceTargets(page,label,'edited-restored');
+    assert.equal(await page.locator('#field-description').inputValue(),edited,'Restoring font lost edited text');
+   }
+   await tabTo(page,'#field-description');await page.keyboard.press('Tab');
+   assert.equal(await page.evaluate(()=>document.activeElement.id),'check-description','Description check must follow editor');
+   await visibleKeyboardFocus(page,'#check-description');
+   await page.keyboard.press('Tab');
+   assert.equal(await page.locator('[data-diff-field="description"] + .field-evidence > summary').evaluate(n=>n===document.activeElement),true,'Description evidence must be reachable without an inner scroll trap');
+   await visibleKeyboardFocus(page,'[data-diff-field="description"] + .field-evidence > summary');
+   await page.keyboard.press('Enter');
+   assert.equal(await page.locator('[data-diff-field="description"] + .field-evidence').evaluate(n=>n.open),true);
+   await page.keyboard.press('Enter');
+   assert.equal(await page.locator('[data-diff-field="description"] + .field-evidence').evaluate(n=>n.open),false);
    assert.equal(await page.locator('[data-diff-field=description]').evaluate(n=>n._after),'Made of steel.');
    assert.ok(await page.locator('[data-diff-field=description] ins').textContent());
    assert.ok(await page.locator('[data-diff-field=description] ins').evaluate(n=>parseFloat(getComputedStyle(n).marginInlineStart)>0),'Changes run together');
