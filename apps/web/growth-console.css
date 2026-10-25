@@ -3,10 +3,31 @@
 @media(max-width:1023px){.shell{grid-template-columns:minmax(0,1fr) 280px}nav{display:none;grid-column:1/-1;border-bottom:1px solid var(--line)}nav.open{display:flex}#nav-toggle{display:block}main{padding:1.25rem}.comparison{grid-template-columns:1fr}}
 @media(max-width:767px){.shell{display:flex;flex-direction:column}.topbar{padding:.75rem;flex-wrap:wrap;gap:.5rem}.brand{font-size:1.15rem}.top-actions{flex-wrap:wrap}main{padding:1rem}.rail{border:0;padding:0 1rem 1rem;order:2}#guidance{order:0}#task-card{position:static;margin-top:0}.summary-grid{grid-template-columns:1fr}.url-row button{width:100%}main>section{padding:1rem}.comparison{grid-template-columns:1fr}.section-heading{align-items:flex-start}#review-confirm,#later{width:100%;margin-bottom:.5rem}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-/* Reserve the task row, so its status never covers the next decision or result. */
-@media(min-width:768px){.rail{position:sticky;top:1rem;align-self:start;height:calc(100dvh - 2rem);display:grid;grid-template-rows:minmax(0,1fr) auto}#guidance{overflow:auto}#task-card{position:static;margin:0}#task-details{max-height:35dvh;overflow:auto}}
-@media(max-width:767px){body{overflow:hidden}.shell{display:grid;height:100dvh;min-height:0;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto}.topbar{grid-row:1;grid-column:1}#site-nav{grid-row:2;grid-column:1;max-height:45dvh;overflow:auto}.rail{display:contents}#guidance{grid-row:2;grid-column:1;max-height:45dvh;overflow:auto;margin:.5rem 1rem}main{grid-row:3;grid-column:1;min-height:0;overflow:auto}#task-card{grid-row:4;grid-column:1;margin:0;border-radius:0;border-width:2px 0 0;padding:.5rem 1rem;padding-bottom:max(.5rem,env(safe-area-inset-bottom))}#task-card .section-heading h2,#task-phase{margin:.15rem 0}#task-details{max-height:30dvh;overflow:auto}}
-@media(max-width:767px){#guidance{max-height:25dvh}#site-nav{max-height:25dvh}}
-@media(max-width:767px){body.flow-layout{overflow:auto}.flow-layout .shell{display:flex;height:auto;min-height:100dvh}.flow-layout main{overflow:visible;min-height:0;order:1}.flow-layout #guidance{order:0}.flow-layout #task-card{order:2}.flow-layout #site-nav{order:0}}
+/* The page shell follows document flow at every text size. Cards keep CQ. */
+.shell{align-items:start}.topbar{flex-wrap:wrap}.top-actions{min-width:0;max-width:100%;flex-wrap:wrap}
+button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.section-heading>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.rail{align-self:start;height:auto}#task-card{position:static;margin-top:0}
+@media(max-width:767px){
+ .shell{display:flex;flex-direction:column;min-height:100vh;height:auto}
+ .shell>*{min-width:0;width:100%}
+ main{overflow:visible}.rail{order:initial;display:flex;padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+ #guidance,#task-card{order:initial;max-height:none}
+}
 
 .claim-review{border:1px solid var(--line);padding:1rem;border-radius:8px}.claim-field{border-left:3px solid #718979;padding-left:.75rem}.claim-review pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:100%}.claim-review article{border-top:1px solid var(--line)}
+
+/* Product integration of the accepted r2 component layout. Page navigation
+   remains governed by the existing toggle; no hidden-navigation lab fixture. */
+main>section{container-type:inline-size;container-name:result-card}
+.rail section{container-type:inline-size;container-name:assistant-card}
+.comparison,.summary-grid{grid-template-columns:minmax(0,1fr)}
+.handoff{display:flex;flex-wrap:wrap;gap:.5rem;min-width:0}
+.handoff>h3,.handoff>p{flex-basis:100%;margin-block:.5rem}
+.handoff button{width:100%;white-space:normal;overflow-wrap:anywhere}
+@container result-card (min-width:32rem){
+ .comparison{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .handoff button{width:auto}
+}
+@container assistant-card (max-width:14rem){.rail h2{margin-bottom:1rem}.rail p{overflow-wrap:anywhere}}
