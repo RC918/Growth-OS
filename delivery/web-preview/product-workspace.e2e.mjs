@@ -317,7 +317,7 @@ async function stableShell(page,width){
  return state;
 }
 // Charge the new diagnostic file and both decoded/sealed transport representations.
-async function writeDifferenceDiagnostic(record){
+async function writeDifferenceDiagnostic(record,name='difference-range-diagnostic.json'){
  const pack=value=>{
   const payload=JSON.stringify(value),log=Buffer.from(JSON.stringify({difference_diagnostic:value})+'\n');
   let framingBytes=0;
@@ -329,7 +329,7 @@ async function writeDifferenceDiagnostic(record){
  const complete=full.fileBytes<=limit&&fits(full);
  const chosen=complete?full:pack({case:record.case,phase:record.phase,complete:false,reason:full.fileBytes>limit?'record-limit':'aggregate-or-pool-limit',attemptedFileBytes:full.fileBytes,attemptedTotalBytes:full.total,recordLimit:limit,runLimit});
  assert.ok(fits(chosen),'No capacity for bounded incomplete diagnostic');
- await writeFile(evidence+'/difference-range-diagnostic.json',chosen.payload);
+ await writeFile(evidence+'/'+name,chosen.payload);
  differenceDiagnosticBytes+=chosen.total;
  differenceDiagnosticLogBytes+=chosen.logBytes+chosen.framingBytes;
  auditEvidence();
@@ -338,13 +338,112 @@ async function writeDifferenceDiagnostic(record){
 }
 
 // Read all rendered difference fragments without focusing, scrolling or mutating the page.
-async function completeDifferences(page,label,phase){
- const detailed=label==='chromium-1280-narrow'&&phase==='text200';
- const rows=await page.locator('[data-diff-field]').evaluateAll((roots,detailed)=>roots.map(root=>{
+
+// Only this pure predicate grants an exception to paragraph self-containment.
+function classifyHanging(x){
+ const reject=reason=>({accepted:false,reason,acceptedHangingRuns:[]});
+ if(!x||!x.safe||!x.ancestorsSafe||!x.noScroll||!x.overflowVisible||!x.nextBelow||!x.documentFits)return reject('unsafe-or-clipped');
+ if(!/^[\x20-\x7e]+$/.test(x.text)||!x.chars.length||!x.raw.length)return reject('unsupported-or-incomplete');
+ const b=x.paragraph,inside=r=>r.left>=b.left-1&&r.right<=b.right+1&&r.top>=b.top-1&&r.bottom<=b.bottom+1;
+ const same=(a,c)=>Math.abs(a.top-c.top)<=1&&Math.abs(a.bottom-c.bottom)<=1;
+ const chars=x.chars;
+ if(chars.map(c=>String.fromCodePoint(c.codepoint)).join('')!==x.text||chars.some(c=>c.rects.length!==1||c.rects[0].right<=c.rects[0].left||c.rects[0].bottom<=c.rects[0].top))return reject('missing-or-ambiguous-rect');
+ const offenders=chars.map((c,i)=>inside(c.rects[0])?-1:i).filter(i=>i>=0),covered=new Set(),acceptedHangingRuns=[];
+ if(!offenders.length)return reject('unattributed-raw-overflow');
+ for(const index of offenders){
+  if(covered.has(index))continue;
+  if(chars[index].codepoint!==32)return reject('non-space-overflow');
+  let first=index,last=index;while(first>0&&chars[first-1].codepoint===32)first--;while(last+1<chars.length&&chars[last+1].codepoint===32)last++;
+  const before=chars[first-1],after=chars[last+1];if(!before||!after||before.codepoint===32||after.codepoint===32)return reject('missing-line-neighbour');
+  const pr=before.rects[0],nr=after.rects[0];
+  if(!inside(pr)||!inside(nr)||nr.top<pr.bottom-1||same(pr,nr))return reject('not-soft-next-line');
+  for(let i=first;i<=last;i++){
+   const c=chars[i],r=c.rects[0];
+   if(!same(pr,r)||r.left<pr.right-1||r.left<b.left-1||r.top<b.top-1||r.bottom>b.bottom+1)return reject('not-inline-end');
+   if([before,after,c].some(n=>n.font!==before.font||n.fontSize!==before.fontSize||n.lineHeight!==before.lineHeight))return reject('ambiguous-font');
+   covered.add(i);
+  }
+  if(chars.slice(last+1).some(c=>c.codepoint!==32&&same(pr,c.rects[0])))return reject('later-ink-on-line');
+  acceptedHangingRuns.push({first,last,before:first-1,after:last+1,characters:chars.slice(first,last+1),rightOverrun:Math.max(...chars.slice(first,last+1).map(c=>Math.max(0,c.rects[0].right-b.right)))});
+ }
+ // Every raw overflow rectangle must be explained by a proved run, not a displaced inline box.
+ for(const r of x.raw.filter(r=>!inside(r))){
+  if(r.left<b.left-1||r.top<b.top-1||r.bottom>b.bottom+1)return reject('raw-non-end-overflow');
+  const linked=chars.map((c,index)=>({c,index})).filter(({c})=>c.source===r.source&&same(r,c.rects[0])&&c.rects[0].left>=r.left-1&&c.rects[0].right<=r.right+1);
+  if(!Number.isInteger(r.source)||r.source<0||!linked.length)return reject('unattributed-inline-box');
+  const boxes=linked.map(({c})=>c.rects[0]).sort((a,b)=>a.left-b.left);
+  if(Math.abs(boxes[0].left-r.left)>1||Math.abs(Math.max(...boxes.map(b=>b.right))-r.right)>1)return reject('incomplete-raw-coverage');
+  let edge=boxes[0].right;for(const box of boxes.slice(1)){if(box.left>edge+1)return reject('raw-coverage-gap');edge=Math.max(edge,box.right);}
+  if(linked.some(({c,index})=>!inside(c.rects[0])&&!covered.has(index)))return reject('unproved-source-character');
+  if(!linked.some(({c,index})=>!inside(c.rects[0])&&covered.has(index)))return reject('unrelated-raw-box');
+ }
+ return {accepted:true,reason:'proved-ascii-pre-wrap-soft-line-end',acceptedHangingRuns};
+}
+
+async function hangingContracts(browser,name){
+ const context=ownContext(await browser.newContext());const outcomes=[];
+ try{
+  await context.route('**/*',route=>route.abort('blockedbyclient'));
+  const page=await context.newPage();
+  const html='<style>*{unicode-bidi:normal}p{margin:0;width:50px;font:20px/2 monospace;white-space:pre-wrap;overflow:visible}#clip{overflow:visible}</style><div id="clip"><div data-diff-field="fixture"><p class="difference-text">aaaa a</p></div><details>evidence</details></div>';
+  await page.setContent(html);
+  await page.locator('[data-diff-field]').evaluate(n=>{n._before=n._after=n.querySelector('p').textContent;});
+  const read=async()=> (await page.locator('[data-diff-field]').evaluateAll(measureDifferenceRoots,'contract'))[0];
+  const positive=await read();assert.ok(positive.hanging,'Contract must exercise a real overrun');
+  assert.equal(classifyHanging(positive.hanging).accepted,true,'Soft-wrap space contract');outcomes.push({case:'soft-wrap',accepted:true});
+  await page.locator('p').evaluate(n=>n.replaceChildren(document.createTextNode('aaaa '),document.createTextNode(' a')));
+  await page.locator('[data-diff-field]').evaluate(n=>{n._before=n._after=n.querySelector('p').textContent;});
+  const cross=await read();assert.equal(classifyHanging(cross.hanging).accepted,true,'Cross-node space run');outcomes.push({case:'cross-node-spaces',accepted:true});
+
+  const mutate=(label,change)=>{const copy=structuredClone(positive.hanging);change(copy);assert.equal(classifyHanging(copy).accepted,false,label);outcomes.push({case:label,accepted:false});};
+  for(const [label,cp]of [['non-space',88],['nbsp',160],['tab',9],['unicode-space',8195],['linefeed',10],['bidi-control',8238]])mutate(label,x=>{x.chars[4].codepoint=cp;x.text=x.chars.map(c=>String.fromCodePoint(c.codepoint)).join('');});
+  mutate('same-line-successor',x=>{x.chars[5].rects[0]={...x.chars[0].rects[0]};});
+  mutate('missing-next',x=>{x.chars.pop();x.text=x.text.slice(0,-1);});
+  mutate('no-same-line-predecessor',x=>{x.chars[3].rects[0].top-=50;x.chars[3].rects[0].bottom-=50;});
+  for(const axis of ['left','top','bottom'])mutate(axis+'-overflow',x=>{x.chars[4].rects[0][axis]=x.paragraph[axis]+(axis==='bottom'?10:-10);});
+  mutate('unrelated-raw-source',x=>{x.raw.push({...x.raw.find(r=>r.right>x.paragraph.right+1),source:9999});});
+  mutate('raw-coverage-gap',x=>{const r=x.raw.find(r=>r.right>x.paragraph.right+1);r.left-=5;});
+  mutate('font-ambiguity',x=>x.chars[4].font='different');
+  mutate('missing-rect',x=>x.chars[4].rects=[]);mutate('zero-raw',x=>x.raw=[]);
+  for(const key of ['safe','ancestorsSafe','noScroll','overflowVisible','nextBelow','documentFits'])mutate(key,x=>x[key]=false);
+  // Separate DOM fixtures validate the collector, not merely the pure predicate.
+  for(const [label,css]of [['ink-overflow','letter-spacing:60px'],['ancestor-clip',''],['rtl','direction:rtl'],['vertical','writing-mode:vertical-rl'],['transform','transform:translateX(2px)'],['bidi','unicode-bidi:bidi-override'],['wrong-white-space','white-space:break-spaces'],['paint-containment',''],['forced-br',''],['generated-content',''],['vertical-align',''],['inner-block',''],['inner-inline-block',''],['inner-float','']]){
+   await page.setContent(html);await page.locator('[data-diff-field]').evaluate(n=>{n._before=n._after=n.querySelector('p').textContent;});
+   if(label==='ancestor-clip')await page.locator('#clip').evaluate(n=>{n.style.width='30px';n.style.overflow='hidden';});
+   else if(label==='paint-containment')await page.locator('#clip').evaluate(n=>n.style.contain='paint');
+   else if(label==='forced-br')await page.locator('p').evaluate(n=>n.innerHTML='aaaa <br>a');
+   else if(label==='generated-content')await page.addStyleTag({content:'p::after{content:"extra"}'});
+   else if(label==='vertical-align')await page.locator('p').evaluate(n=>n.innerHTML='aaaa<span style="vertical-align:super"> </span>a');
+   else if(label.startsWith('inner-'))await page.locator('p').evaluate((n,label)=>{n.innerHTML='aaaa<span> </span>a';n.querySelector('span').style.cssText=label==='inner-float'?'float:left':label==='inner-block'?'display:block':'display:inline-block';},label);
+   else await page.locator('p').evaluate((n,css)=>n.style.cssText+=css,css);
+   const row=await read(),x=row.hanging;assert.ok(x,'Contract needs a measured snapshot: '+label);
+   const over=x.chars.filter(c=>c.codepoint!==32&&c.rects.some(r=>r.left<x.paragraph.left-1||r.right>x.paragraph.right+1||r.top<x.paragraph.top-1||r.bottom>x.paragraph.bottom+1));
+   if(label==='ink-overflow'){assert.ok(over.length>0,'Must measure real non-space overflow');assert.equal(x.styles.find(s=>s.tag==='P').whiteSpace,'pre-wrap');}
+   if(label==='ancestor-clip')assert.equal(x.ancestorsSafe,false,'Must measure actual ancestor clip');
+   const styles=x.styles;
+   if(label==='rtl')assert.ok(styles.some(s=>s.direction==='rtl'));
+   if(label==='vertical')assert.ok(styles.some(s=>s.writingMode==='vertical-rl'));
+   if(label==='transform')assert.ok(styles.some(s=>s.transform!=='none'));
+   if(label==='bidi')assert.ok(styles.some(s=>s.unicodeBidi==='bidi-override'));
+   if(label==='wrong-white-space')assert.ok(styles.some(s=>s.tag==='P'&&s.whiteSpace==='break-spaces'));
+   if(label==='paint-containment')assert.ok(styles.some(s=>s.contain==='paint'));
+   if(label==='forced-br')assert.ok(styles.some(s=>s.tag==='BR'));
+   if(label==='generated-content')assert.ok(styles.some(s=>s.after.includes('extra')));
+   if(label==='vertical-align')assert.ok(styles.some(s=>s.tag==='SPAN'&&s.verticalAlign==='super'));
+   if(label==='inner-block')assert.ok(styles.some(s=>s.tag==='SPAN'&&s.display==='block'));
+   if(label==='inner-inline-block')assert.ok(styles.some(s=>s.tag==='SPAN'&&s.display==='inline-block'));
+   if(label==='inner-float')assert.ok(styles.some(s=>s.tag==='SPAN'&&s.float==='left'));
+   const verdict=classifyHanging(x);assert.equal(verdict.accepted,false,label);
+   outcomes.push({case:label,verdict,paragraph:x.paragraph,nonSpaceOverflow:over,ancestors:row.ancestors,styles});
+  }
+  await writeDifferenceDiagnostic({case:name+'-hanging-contracts',complete:true,outcomes},name+'-hanging-contracts.json');
+ }catch(error){remember(error);throw failure;}finally{await cleanupStep('hanging-contract-context',()=>closeContext(context));requireHealthy();}
+}
+function measureDifferenceRoots(roots,detailed){return roots.map(root=>{
   const p=root.querySelector('.difference-text'),field=root.dataset.diffField;
   if(!p)return {field,unchanged:root._before===root._after};
   const b=p.getBoundingClientRect(),s=getComputedStyle(p),next=root.nextElementSibling?.getBoundingClientRect();
-  const ranges=[...p.childNodes].flatMap(n=>{const r=document.createRange();r.selectNodeContents(n);return [...r.getClientRects()].filter(x=>x.width>0&&x.height>0).map(x=>({left:x.left,right:x.right,top:x.top,bottom:x.bottom}));});
+  const ranges=[...p.childNodes].flatMap((n,source)=>{const r=document.createRange();r.selectNodeContents(n);return [...r.getClientRects()].filter(x=>x.width>0&&x.height>0).map(x=>({source,left:x.left,right:x.right,top:x.top,bottom:x.bottom}));});
   // Document scrolling is expected; non-root clipping ancestors must contain every fragment.
   const ancestors=[];
   for(let a=p.parentElement;a&&a!==document.documentElement;a=a.parentElement){
@@ -383,20 +482,48 @@ async function completeDifferences(page,label,phase){
    for(let a=p.parentElement;a;a=a.parentElement){const c=getComputedStyle(a),r=a.getBoundingClientRect();clips.push({tag:a.tagName,id:a.id,rect:box(r),client:{left:r.left+a.clientLeft,top:r.top+a.clientTop,width:a.clientWidth,height:a.clientHeight},scroll:{left:a.scrollLeft,top:a.scrollTop,width:a.scrollWidth,height:a.scrollHeight},overflowX:c.overflowX,overflowY:c.overflowY,clip:c.clip,clipPath:c.clipPath,contain:c.contain,visibility:c.visibility,whiteSpace:c.whiteSpace,font:c.font,fontSize:c.fontSize,lineHeight:c.lineHeight});}
    diagnostic={environment:{rootFontSize:getComputedStyle(document.documentElement).fontSize,viewport:{width:innerWidth,height:innerHeight},windowScroll:{x:scrollX,y:scrollY},document:{clientWidth:document.documentElement.clientWidth,clientHeight:document.documentElement.clientHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight}},paragraph:box(b),style:{whiteSpace:s.whiteSpace,font:s.font,fontSize:s.fontSize,lineHeight:s.lineHeight,overflowX:s.overflowX,overflowY:s.overflowY},raw,offenderCount:raw.filter(r=>r.outside).length,nodes,characters,ancestors:clips};
   }
-  return {field,unchanged:false,...(detailed?{diagnostic}:{}),ancestors,originalMatches:original===root._before,currentMatches:current===root._after,
+
+  let hanging;
+  if(detailed==='contract'||ranges.some(r=>r.left<b.left-1||r.right>b.right+1||r.top<b.top-1||r.bottom>b.bottom+1)){
+   const rect=r=>({left:r.left,right:r.right,top:r.top,bottom:r.bottom});
+   const styles=[];let safe=true;
+   const seen=new Set([...p.querySelectorAll('*'),p]);for(let a=p.parentElement;a;a=a.parentElement)seen.add(a);
+   for(const a of seen){
+    const c=getComputedStyle(a),before=getComputedStyle(a,'::before').content,after=getComputedStyle(a,'::after').content;
+    const st={tag:a.tagName,display:c.display,float:c.cssFloat,direction:c.direction,writingMode:c.writingMode,unicodeBidi:c.unicodeBidi,position:c.position,transform:c.transform,translate:c.translate,rotate:c.rotate,scale:c.scale,verticalAlign:c.verticalAlign,font:c.font,fontSize:c.fontSize,lineHeight:c.lineHeight,whiteSpace:c.whiteSpace,contain:c.contain,clip:c.clip,clipPath:c.clipPath,animationName:c.animationName,transitionProperty:c.transitionProperty,before,after};styles.push(st);
+    if(c.direction!=='ltr'||c.writingMode!=='horizontal-tb'||c.unicodeBidi!=='normal'||c.position!=='static'||c.transform!=='none'||c.translate!=='none'||c.rotate!=='none'||c.scale!=='none'||c.animationName!=='none'||c.clipPath!=='none'||c.clip!=='auto'||/paint|strict|content/.test(c.contain)||![before,after].every(x=>x==='none'||x==='normal'))safe=false;
+    if(a!==p&&p.contains(a)&&(c.display!=='inline'||c.cssFloat!=='none'))safe=false;
+    if((a===p||p.contains(a))&&(c.whiteSpace!=='pre-wrap'||(a!==p&&c.verticalAlign!=='baseline')))safe=false;
+   }
+   if(p.querySelector('br')||p.getAnimations({subtree:true}).length)safe=false;
+   const chars=[],walker=document.createTreeWalker(p,NodeFilter.SHOW_TEXT);let node=0;
+   for(let n=walker.nextNode();n;n=walker.nextNode()){
+    const c=getComputedStyle(n.parentElement);let offset=0;
+    for(const ch of n.data){const r=document.createRange(),end=offset+ch.length;r.setStart(n,offset);r.setEnd(n,end);chars.push({node,source:[...p.childNodes].findIndex(a=>a===n||a.contains(n)),start:offset,end,codepoint:ch.codePointAt(0),font:c.font,fontSize:c.fontSize,lineHeight:c.lineHeight,rects:[...r.getClientRects()].map(rect)});offset=end;}node++;
+   }
+   hanging={safe,text:p.textContent,paragraph:rect(b),raw:ranges,chars,styles,ancestorsSafe:ancestors.every(a=>a.visible&&!a.unsupportedClip&&a.fragmentsInside),noScroll:p.scrollWidth<=p.clientWidth+1&&p.scrollHeight<=p.clientHeight+1,overflowVisible:s.overflowX==='visible'&&s.overflowY==='visible',nextBelow:!!next&&b.bottom<=next.top+1,documentFits:document.documentElement.scrollWidth<=innerWidth,environment:{rootFont:getComputedStyle(document.documentElement).fontSize,innerWidth,innerHeight,scrollX,scrollY}};
+  }
+  return {field,unchanged:false,...(hanging?{hanging}:{}),...(detailed?{diagnostic}:{}),ancestors,originalMatches:original===root._before,currentMatches:current===root._after,
    fragments:ranges.length,fragmentsInside:ranges.every(r=>r.left>=b.left-1&&r.right<=b.right+1&&r.top>=b.top-1&&r.bottom<=b.bottom+1),
    scrollHeight:p.scrollHeight,clientHeight:p.clientHeight,scrollWidth:p.scrollWidth,clientWidth:p.clientWidth,
    overflowX:s.overflowX,overflowY:s.overflowY,nextBelow:!!next&&b.bottom<=next.top+1};
- }),detailed);
- if(detailed)await writeDifferenceDiagnostic({case:label,phase,complete:true,rows});
+ });}
+async function completeDifferences(page,label,phase){
+ const detailed=label==='chromium-1280-narrow'&&phase==='text200';
+ const rows=await page.locator('[data-diff-field]').evaluateAll(measureDifferenceRoots,detailed);
+ if(detailed)await writeDifferenceDiagnostic({case:label,phase,complete:true,rows:rows.map(({hanging,...r})=>r)});
+ for(const row of rows)if(row.hanging){
+  row.hangingVerdict=classifyHanging(row.hanging);
+  await writeDifferenceDiagnostic({case:label,phase,field:row.field,complete:true,rawFragmentsInside:row.fragmentsInside,classification:row.hangingVerdict,snapshot:row.hanging},label+'-'+phase+'-'+row.field+'-hanging.json');
+ }
  assert.equal(rows.length,3,'All review fields need difference coverage');
- const record={case:label,phase,rootFont:await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),rows:rows.map(({diagnostic,...row})=>row)};
+ const record={case:label,phase,rootFont:await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),rows:rows.map(({diagnostic,hanging,hangingVerdict,...row})=>row)};
  await writeFile(evidence+'/'+label+'-difference-'+phase+'.json',JSON.stringify(record));
  for(const r of rows){
   if(r.unchanged)continue;
   assert.equal(r.originalMatches,true,'Difference lost original text: '+r.field);
   assert.equal(r.currentMatches,true,'Difference lost edited text: '+r.field);
-  assert.ok(r.fragments>0&&r.fragmentsInside,'Difference text clipped: '+r.field);
+  assert.ok(r.fragments>0&&(r.fragmentsInside||r.hangingVerdict?.accepted===true),'Difference text clipped: '+r.field);
   assert.ok(r.ancestors.length>0&&r.ancestors.every(a=>a.visible&&!a.unsupportedClip&&a.fragmentsInside),'Difference clipped by ancestor: '+r.field);
   assert.ok(r.scrollHeight<=r.clientHeight+1&&r.scrollWidth<=r.clientWidth+1,'Difference needs internal scroll: '+r.field);
   assert.equal(r.overflowX,'visible');assert.equal(r.overflowY,'visible');
@@ -556,7 +683,7 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit}).filter(([na
  liveBrowsers.add(browser);
  await writeFile(evidence+'/'+name+'-runtime.json',JSON.stringify({browser:name,version:browser.version(),node:process.version,playwright_module:process.env.PRODUCT_UI_PLAYWRIGHT_MODULE||'lockfile:playwright',executable:name==='chromium'&&process.env.PRODUCT_CHROMIUM_EXECUTABLE_PATH?process.env.PRODUCT_CHROMIUM_EXECUTABLE_PATH:engine.executablePath(),playwright_version:playwrightVersion,package_json_sha256:createHash('sha256').update(packageBytes).digest('hex'),platform:process.platform,arch:process.arch,keyboard_navigation:process.platform==='darwin'&&name==='webkit'?'Option+Tab / Shift+Option+Tab':'Tab / Shift+Tab'},null,2));
  emit({candidate_runtime:{browser:name,version:browser.version(),node:process.version,platform:process.platform,arch:process.arch,playwright:playwrightVersion,head:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT}});
- try{for(const width of [1280,390,320]){for(const variant of width===1280?['normal','narrow','text200','fallback','sidebar']:['normal','text200','fallback']){
+ try{await hangingContracts(browser,name);for(const width of [1280,390,320]){for(const variant of width===1280?['normal','narrow','text200','fallback','sidebar']:['normal','text200','fallback']){
   const label=name+'-'+width+'-'+variant;if(process.env.PRODUCT_UI_CASE&&process.env.PRODUCT_UI_CASE!==label)continue;const report=fixtureReport;
   const consoleRoute=variant==='normal'?'growth-console.html':'growth-console-'+variant+'.html';
   const workspaceRoute=variant==='normal'?'workspace.html':'workspace-'+variant+'.html';
