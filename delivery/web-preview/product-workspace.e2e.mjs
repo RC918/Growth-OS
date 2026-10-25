@@ -56,6 +56,7 @@ const MiB=1024*1024,pngLimit=8*MiB;
 const budgetLimits={normal:480*MiB,error:MiB,cleanup:MiB,metadata:6*MiB,fault:24*MiB};
 const budgetFiles=new Map(),budgetAttempts=[],budgetBlocked=new Set(),budgetErrors=[];
 let capacityFailure=null,faultSlots=0,rootIdentity=null;
+let differenceDiagnosticBytes=0,differenceDiagnosticLogBytes=0;
 const budgetMode='encoded PNG admission before disk write; stat/SHA256 readback; fixed pools';
 const budgetHash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function category(name){
@@ -65,7 +66,7 @@ function category(name){
  if(name==='inventory.json'||name==='budget-status.json'||name==='evidence-owner.json'||name==='identity.json'||name==='runtime.json'||name.endsWith('-runtime.json')||name==='fixture-identity.json')return 'metadata';
  return 'normal';
 }
-function totals(){const out=Object.fromEntries(Object.keys(budgetLimits).map(k=>[k,0]));for(const row of budgetFiles.values())out[row.category]+=row.bytes;return out;}
+function totals(){const out=Object.fromEntries(Object.keys(budgetLimits).map(k=>[k,0]));for(const row of budgetFiles.values())out[row.category]+=row.bytes;out.normal+=differenceDiagnosticLogBytes;return out;}
 function evidenceName(name){assert.match(name,/^[a-zA-Z0-9_#.-]+$/,'Flat owned evidence filename required');assert.ok(name!=='.'&&name!=='..');return name;}
 function rootGuard(){const s=lstatSync(evidence);assert.ok(s.isDirectory()&&!s.isSymbolicLink());assert.equal(s.uid,process.getuid());assert.equal(s.dev,rootIdentity.dev);assert.equal(s.ino,rootIdentity.ino);assert.equal(realpathSync(evidence),evidence);}
 function claimEvidenceRoot(){
@@ -315,9 +316,31 @@ async function stableShell(page,width){
  }
  return state;
 }
+// Charge the new diagnostic file and both decoded/sealed transport representations.
+async function writeDifferenceDiagnostic(record){
+ const pack=value=>{
+  const payload=JSON.stringify(value),log=Buffer.from(JSON.stringify({difference_diagnostic:value})+'\n');
+  let framingBytes=0;
+  for(let offset=0,sequence=frames;offset<log.length;offset+=480){framingBytes+=Buffer.byteLength(JSON.stringify({product_evidence_frame:{sequence:++sequence,data:log.subarray(offset,offset+480).toString('base64')}})+'\n');}
+  return {payload,fileBytes:Buffer.byteLength(payload),logBytes:log.length,framingBytes,total:Buffer.byteLength(payload)+log.length+framingBytes};
+ };
+ const full=pack(record),limit=256*1024,runLimit=MiB;
+ const fits=x=>differenceDiagnosticBytes+x.total<=runLimit&&totals().normal+x.total<=budgetLimits.normal;
+ const complete=full.fileBytes<=limit&&fits(full);
+ const chosen=complete?full:pack({case:record.case,phase:record.phase,complete:false,reason:full.fileBytes>limit?'record-limit':'aggregate-or-pool-limit',attemptedFileBytes:full.fileBytes,attemptedTotalBytes:full.total,recordLimit:limit,runLimit});
+ assert.ok(fits(chosen),'No capacity for bounded incomplete diagnostic');
+ await writeFile(evidence+'/difference-range-diagnostic.json',chosen.payload);
+ differenceDiagnosticBytes+=chosen.total;
+ differenceDiagnosticLogBytes+=chosen.logBytes+chosen.framingBytes;
+ auditEvidence();
+ assert.equal(emit({difference_diagnostic:JSON.parse(chosen.payload)}),true,'Diagnostic sealed-log emission failed');
+ if(!complete)throw Error('Incomplete difference diagnostic: capacity limit');
+}
+
 // Read all rendered difference fragments without focusing, scrolling or mutating the page.
 async function completeDifferences(page,label,phase){
- const rows=await page.locator('[data-diff-field]').evaluateAll(roots=>roots.map(root=>{
+ const detailed=label==='chromium-1280-narrow'&&phase==='text200';
+ const rows=await page.locator('[data-diff-field]').evaluateAll((roots,detailed)=>roots.map(root=>{
   const p=root.querySelector('.difference-text'),field=root.dataset.diffField;
   if(!p)return {field,unchanged:root._before===root._after};
   const b=p.getBoundingClientRect(),s=getComputedStyle(p),next=root.nextElementSibling?.getBoundingClientRect();
@@ -334,13 +357,40 @@ async function completeDifferences(page,label,phase){
   }
   const original=[...p.childNodes].filter(n=>n.nodeName!=='INS').map(n=>n.textContent).join('');
   const current=[...p.childNodes].filter(n=>n.nodeName!=='DEL').map(n=>n.textContent).join('');
-  return {field,unchanged:false,ancestors,originalMatches:original===root._before,currentMatches:current===root._after,
+  let diagnostic;
+  if(detailed){
+   const box=r=>({left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height});
+   const beyond=r=>({left:Math.max(0,b.left-r.left),right:Math.max(0,r.right-b.right),top:Math.max(0,b.top-r.top),bottom:Math.max(0,r.bottom-b.bottom)});
+   const outside=r=>r.left<b.left-1||r.right>b.right+1||r.top<b.top-1||r.bottom>b.bottom+1;
+   const raw=ranges.map((r,index)=>({index,...r,beyond:beyond(r),outside:outside(r)}));
+   const characters=[],nodes=[];
+   let nodeIndex=0;
+   // Read-only text traversal; offsets count UTF-16 units without splitting surrogate pairs.
+   const walker=document.createTreeWalker(p,NodeFilter.SHOW_TEXT);
+   for(let n=walker.nextNode();n;n=walker.nextNode()){
+    const nodeRange=document.createRange();nodeRange.selectNodeContents(n);
+    const nodeRects=[...nodeRange.getClientRects()].filter(r=>r.width>0&&r.height>0);
+    const affected=nodeRects.some(outside);
+    nodes.push({index:nodeIndex,parent:n.parentElement.tagName,utf16Length:n.data.length,affected,rects:nodeRects.map(r=>({...box(r),beyond:beyond(r)}))});
+    if(affected){let offset=0;for(const character of n.data){
+     const end=offset+character.length,r=document.createRange();r.setStart(n,offset);r.setEnd(n,end);
+     characters.push({node:nodeIndex,start:offset,end,codepoint:character.codePointAt(0),whitespace:/\s/u.test(character),cssSpace:character===' '||character==='\t'||character==='\n'||character==='\r',rects:[...r.getClientRects()].map(x=>({...box(x),beyond:beyond(x),outside:outside(x)}))});
+     offset=end;
+    }}
+    nodeIndex++;
+   }
+   const clips=[];
+   for(let a=p.parentElement;a;a=a.parentElement){const c=getComputedStyle(a),r=a.getBoundingClientRect();clips.push({tag:a.tagName,id:a.id,rect:box(r),client:{left:r.left+a.clientLeft,top:r.top+a.clientTop,width:a.clientWidth,height:a.clientHeight},scroll:{left:a.scrollLeft,top:a.scrollTop,width:a.scrollWidth,height:a.scrollHeight},overflowX:c.overflowX,overflowY:c.overflowY,clip:c.clip,clipPath:c.clipPath,contain:c.contain,visibility:c.visibility,whiteSpace:c.whiteSpace,font:c.font,fontSize:c.fontSize,lineHeight:c.lineHeight});}
+   diagnostic={environment:{rootFontSize:getComputedStyle(document.documentElement).fontSize,viewport:{width:innerWidth,height:innerHeight},windowScroll:{x:scrollX,y:scrollY},document:{clientWidth:document.documentElement.clientWidth,clientHeight:document.documentElement.clientHeight,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight}},paragraph:box(b),style:{whiteSpace:s.whiteSpace,font:s.font,fontSize:s.fontSize,lineHeight:s.lineHeight,overflowX:s.overflowX,overflowY:s.overflowY},raw,offenderCount:raw.filter(r=>r.outside).length,nodes,characters,ancestors:clips};
+  }
+  return {field,unchanged:false,...(detailed?{diagnostic}:{}),ancestors,originalMatches:original===root._before,currentMatches:current===root._after,
    fragments:ranges.length,fragmentsInside:ranges.every(r=>r.left>=b.left-1&&r.right<=b.right+1&&r.top>=b.top-1&&r.bottom<=b.bottom+1),
    scrollHeight:p.scrollHeight,clientHeight:p.clientHeight,scrollWidth:p.scrollWidth,clientWidth:p.clientWidth,
    overflowX:s.overflowX,overflowY:s.overflowY,nextBelow:!!next&&b.bottom<=next.top+1};
- }));
+ }),detailed);
+ if(detailed)await writeDifferenceDiagnostic({case:label,phase,complete:true,rows});
  assert.equal(rows.length,3,'All review fields need difference coverage');
- const record={case:label,phase,rootFont:await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),rows};
+ const record={case:label,phase,rootFont:await page.evaluate(()=>getComputedStyle(document.documentElement).fontSize),rows:rows.map(({diagnostic,...row})=>row)};
  await writeFile(evidence+'/'+label+'-difference-'+phase+'.json',JSON.stringify(record));
  for(const r of rows){
   if(r.unchanged)continue;
