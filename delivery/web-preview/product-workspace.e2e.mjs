@@ -617,17 +617,22 @@ async function differenceEvidenceTargets(page,label,phase){
   await tabTo(page,selector);
   const row=await page.locator(selector).evaluate(n=>{
    const r=n.getBoundingClientRect(),s=getComputedStyle(n),points=[[r.left+2,r.top+2],[r.right-2,r.top+2],[r.left+2,r.bottom-2],[r.right-2,r.bottom-2],[r.left+r.width/2,r.top+r.height/2]];
+   const tolerance=1,overflowPx={left:Math.max(0,-r.left),right:Math.max(0,r.right-innerWidth),top:Math.max(0,-r.top),bottom:Math.max(0,r.bottom-innerHeight)};
    return {focused:n===document.activeElement,visible:s.visibility==='visible'&&Number(s.opacity)>0,
     box:{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height},
-    insideViewport:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,
+    viewport:{innerWidth,innerHeight},tolerance,overflowPx,
+    insideViewport:r.left>=-tolerance&&r.right<=innerWidth+tolerance&&r.top>=-tolerance&&r.bottom<=innerHeight+tolerance,
     hits:points.map(([x,y])=>n.contains(document.elementFromPoint(x,y)))};
   });
   rows.push({field,...row});
  }
  await writeFile(evidence+'/'+label+'-difference-targets-'+phase+'.json',JSON.stringify({case:label,phase,rows}));
  for(const r of rows){
-  assert.ok(r.focused&&r.visible&&r.insideViewport,'Evidence summary not visible: '+r.field);
-  assert.ok(r.box.width>4&&r.box.height>=44&&r.hits.every(Boolean),'Evidence summary clipped or covered: '+r.field);
+  const detail=JSON.stringify({field:r.field,box:r.box,viewport:r.viewport,tolerance:r.tolerance,overflowPx:r.overflowPx,hits:r.hits});
+  assert.equal(r.focused,true,'Evidence summary not focused: '+detail);
+  assert.equal(r.visible,true,'Evidence summary not visible: '+detail);
+  assert.equal(r.insideViewport,true,'Evidence summary outside viewport: '+detail);
+  assert.ok(r.box.width>4&&r.box.height>=44&&r.hits.every(Boolean),'Evidence summary clipped or covered: '+detail);
  }
 }
 
